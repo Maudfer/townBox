@@ -17,23 +17,20 @@ export default class MainScene extends Phaser.Scene {
 
     create (data)  {
         console.log('Scene intialized.');
-
         this.drawGrid(this);
 
         this.input.mouse.disableContextMenu();
-
         this.input.on('pointerup', (pointer) => {
             this.handleCellClick(pointer.worldX, pointer.worldY);
         });
     }
 
     update(time, delta) {
-        
-        this.field.iterateBuiltTiles((tile) => {
+        this.field.iterateBuildQueue((tile) => {
             const position = this.getCellPosition(tile.getRow(), tile.getCol());
             this.add.image(position.x, position.y, tile.getContent());
         });
-        
+
        //console.log(`Update: ${time}`);
     }
 

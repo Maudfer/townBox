@@ -6,7 +6,7 @@ export default class Field {
         this.rows = rows;
         this.cols = cols;
         this.matrix = {};
-        this.builtTiles = {};
+        this.buildQueue = {};
 
         for(let i = 0; i < this.rows; i++){
             this.matrix[i] = {};
@@ -18,15 +18,20 @@ export default class Field {
         //console.log(this.matrix);
     }
 
-    iterateBuiltTiles(callback){
-        for (const [label, tile] of Object.entries(this.builtTiles)) {
+    iterateBuildQueue(callback){
+        for (const [label, tile] of Object.entries(this.buildQueue)) {
+            delete this.buildQueue[label];
             callback(tile);
         }
     }
 
     handleTileClick(row, col){
         this.matrix[row][col].setContent('ball');
-        this.builtTiles[`${row}-${col}`] = this.matrix[row][col];
+        this.buildQueue[`${row}-${col}`] = this.matrix[row][col];
+    }
+
+    getBuildQueue(){
+        return this.buildQueue;
     }
 
     getRows(){
