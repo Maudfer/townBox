@@ -9,25 +9,27 @@ export default class GameManager {
             cols: 20
         };
 
-        const grid = {
+        const gridParams = {
             width: 900,
             height: 900
         };
 
-        const screen = {
+        const screenParams = {
             width: 1000,
             height: 1000
         };
+
         this.field = new Field(fieldParams.rows, fieldParams.cols);
 
         // GAME AND SCENE CODE
         this.scene = new MainScene(this.field);
-        this.scene.setScreenParams(screen);
+        this.scene.setScreenParams(screenParams.width, screenParams.height);
+        this.scene.setGridParams(this.field.getRows(), this.field.getCols(), gridParams.width, gridParams.height);
 
         const config = {
             type: Phaser.AUTO,
-            width: screen.width,
-            height: screen.height,
+            width: screenParams.width,
+            height: screenParams.height,
             scale: {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH
@@ -36,7 +38,6 @@ export default class GameManager {
         }
         this.game = new Phaser.Game(config);
     
-        this.scene.setGridParams(this.field.getRows(), this.field.getCols(), grid.width, grid.height);
     }
 }
 

@@ -34,6 +34,7 @@ export default class MainScene extends Phaser.Scene {
        //console.log(`Update: ${time}`);
     }
 
+    // gets cell center position in pixels given a specific row and col
     getCellPosition(row, col){
         let cellPositions = null;
 
@@ -53,6 +54,7 @@ export default class MainScene extends Phaser.Scene {
         return cellPositions;
     }
 
+    // gets tile position in row and col given X and Y in pixels
     getTilePosition(pixelX, pixelY){
         const belowTop = pixelY > this.gridParams.bounds.top;
         const aboveBottom = pixelY < this.gridParams.bounds.bottom;
@@ -83,12 +85,12 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    setScreenParams(screen){
+    setScreenParams(screenWidth, screenHeight){
         this.screenParams = {
-            width: screen.width,
-            height: screen.height,
-            horizontalCenter: screen.width / 2,
-            verticalCenter: screen.height / 2,
+            width: screenWidth,
+            height: screenHeight,
+            horizontalCenter: screenWidth / 2,
+            verticalCenter: screenHeight / 2,
         };
     }
 
