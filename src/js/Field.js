@@ -39,13 +39,15 @@ export default class Field {
     }
 
     updateFieldTile(tile){
-        const row = tile.getRow();
-        const col = tile.getCol();
-        const neighbors = this.getNeighbors(tile);
-
-        tile.updateSelfBasedOnNeighbors(neighbors);
-        this.matrix[row][col] = tile;
-        this.buildQueue.push(tile);
+        if(tile !== null){
+            const row = tile.getRow();
+            const col = tile.getCol();
+            const neighbors = this.getNeighbors(tile);
+    
+            tile.updateSelfBasedOnNeighbors(neighbors);
+            this.matrix[row][col] = tile;
+            this.buildQueue.push(tile);
+        }
     }
 
     getNeighbors(tile){

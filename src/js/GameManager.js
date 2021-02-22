@@ -5,18 +5,18 @@ import MainScene from './MainScene.js';
 export default class GameManager {
     constructor() {
         const fieldParams = {
-            rows: 20,
-            cols: 20
+            rows: 60,
+            cols: 60
         };
 
         const gridParams = {
-            width: 960,
-            height: 960
+            width: 2880,
+            height: 2880
         };
 
         const screenParams = {
-            width: 1000,
-            height: 1000
+            width: 1920,
+            height: 1920
         };
 
         this.field = new Field(fieldParams.rows, fieldParams.cols);

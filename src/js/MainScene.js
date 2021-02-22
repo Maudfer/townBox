@@ -38,6 +38,23 @@ export default class MainScene extends Phaser.Scene {
         this.input.on('pointerup', (pointer) => {
             this.handleCellClick(pointer.worldX, pointer.worldY, pointer);
         });
+
+        this.cameras.main.zoom = 2;
+
+        const cameraControlParams = {
+            camera: this.cameras.main,
+            left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+            right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+            up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+            down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+            zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+            zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            acceleration: 0.25, // originally was 0.06
+            drag: 0.002, // originally was 0.0005
+            maxSpeed: 0.25 // originally was 1.0
+        };
+    
+        this.cameraControls = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
     }
 
     update(time, delta) {
@@ -55,6 +72,8 @@ export default class MainScene extends Phaser.Scene {
                 this.constructions[identifier] = this.add.image(pixelPosition.x, pixelPosition.y, tile.getTextureName());
             }
         });
+
+        this.cameraControls.update(delta);
        //console.log(`Update: ${time}`);
     }
 
