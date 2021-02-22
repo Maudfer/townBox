@@ -1,7 +1,7 @@
 # townBox
 
-parcel watch index.html
+cd src
+parcel watch index.html --out-dir ../dist
 
 cd dist
-
 browser-sync start --server --files "."

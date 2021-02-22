@@ -21,5 +21,9 @@ export default class Tile {
     setTextureName(textureName){
         this.textureName = textureName;
     }
+
+    updateSelfBasedOnNeighbors(neighbors){
+        
+    }
 }
 

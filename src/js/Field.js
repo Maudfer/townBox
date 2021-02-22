@@ -22,32 +22,30 @@ export default class Field {
         let newTile = null;
 
         if(button === 0){
-            newTile = new Road(row, col,'road_0011');
+            newTile = new Road(row, col, null);
         } else if (button === 2){
-            newTile = new Road(row, col, 'road_1100');
+            newTile = new Building(row, col, 'building_1x1x1_2');   
         } else {
-            newTile = new Building(row, col, 'building_1x1x1_2');
+            newTile = new Tile(row, col, null);   
         }
-        
+
         const neighbors = this.getNeighbors(newTile);
-        newTile.updateSelfBasedOnNeighbors(neighbors);
 
-        /*
-        neighbors.top.updateSelfBasedOnNeighbors(this.getNeighbors(neighbors.top));
-        this.buildQueue.push(newTile);
+        this.updateFieldTile(newTile);
+        this.updateFieldTile(neighbors.top);
+        this.updateFieldTile(neighbors.bottom);
+        this.updateFieldTile(neighbors.left);
+        this.updateFieldTile(neighbors.right); 
+    }
 
-        neighbors.bottom.updateSelfBasedOnNeighbors(this.getNeighbors(neighbors.bottom));
-        this.buildQueue.push(neighbors.bottom);
+    updateFieldTile(tile){
+        const row = tile.getRow();
+        const col = tile.getCol();
+        const neighbors = this.getNeighbors(tile);
 
-        neighbors.left.updateSelfBasedOnNeighbors(this.getNeighbors(neighbors.left));
-        this.buildQueue.push(neighbors.left);
-
-        neighbors.right.updateSelfBasedOnNeighbors(this.getNeighbors(neighbors.right));
-        this.buildQueue.push(neighbors.right);
-        */
-
-        this.matrix[row][col] = newTile;
-        this.buildQueue.push(newTile);
+        tile.updateSelfBasedOnNeighbors(neighbors);
+        this.matrix[row][col] = tile;
+        this.buildQueue.push(tile);
     }
 
     getNeighbors(tile){

@@ -49,8 +49,11 @@ export default class MainScene extends Phaser.Scene {
                 this.constructions[identifier].destroy();
                 delete this.constructions[identifier];
             }
-            
-            this.constructions[identifier] = this.add.image(pixelPosition.x, pixelPosition.y, tile.getTextureName());
+
+            const textureName = tile.getTextureName();
+            if(textureName !== null){
+                this.constructions[identifier] = this.add.image(pixelPosition.x, pixelPosition.y, tile.getTextureName());
+            }
         });
        //console.log(`Update: ${time}`);
     }
