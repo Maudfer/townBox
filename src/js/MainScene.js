@@ -13,6 +13,8 @@ export default class MainScene extends Phaser.Scene {
 
     preload () {
         this.load.setBaseURL('./');
+
+        // Roads
         this.load.image('road_0011', 'road_0011.png');
         this.load.image('road_0101', 'road_0101.png');
         this.load.image('road_0110', 'road_0110.png');
@@ -24,23 +26,83 @@ export default class MainScene extends Phaser.Scene {
         this.load.image('road_1101', 'road_1101.png');
         this.load.image('road_1110', 'road_1110.png');
         this.load.image('road_1111', 'road_1111.png');
+
+        // 1x1x1 Buildings
         this.load.image('building_1x1x1_1', 'building_1x1x1_1.png');
         this.load.image('building_1x1x1_2', 'building_1x1x1_2.png');
+        this.load.image('building_1x1x1_3', 'building_1x1x1_3.png');
+        this.load.image('building_1x1x1_4', 'building_1x1x1_4.png');
+        this.load.image('building_1x1x1_5', 'building_1x1x1_5.png');
+        this.load.image('building_1x1x1_6', 'building_1x1x1_6.png');
+
+        // 1x1x2 Buildings
         this.load.image('building_1x1x2_1', 'building_1x1x2_1.png');
+        this.load.image('building_1x1x2_2', 'building_1x1x2_2.png');
+
+        // 2x1x1 Buildings
+        this.load.image('building_2x1x1_1_left', 'building_2x1x1_1_left.png');
+        this.load.image('building_2x1x1_1_right', 'building_2x1x1_1_right.png');
+
+        // 2x2x1 Buildings
+        this.load.image('building_2x2x1_1_down-left', 'building_2x2x1_1_down-left.png');
+        this.load.image('building_2x2x1_1_down-right', 'building_2x2x1_1_down-right.png');
+        this.load.image('building_2x2x1_1_up-left', 'building_2x2x1_1_up-left.png');
+        this.load.image('building_2x2x1_1_up-right', 'building_2x2x1_1_up-right.png');
     }
 
     create (data)  {
-        console.log('Scene intialized.');
         this.drawGrid(this); //antipattern
 
         this.input.mouse.disableContextMenu();
 
-        this.input.on('pointerup', (pointer) => {
-            this.handleCellClick(pointer.worldX, pointer.worldY, pointer);
+        let mouseTool = 'road';
+
+        this.input.keyboard.addKey('F1').on('up', function(event) {
+            mouseTool = 'building_1x1x1_1';
         });
 
-        this.cameras.main.zoom = 2;
+        this.input.keyboard.addKey('F2').on('up', function(event) {
+            mouseTool = 'building_1x1x1_2';
+        });
 
+        this.input.keyboard.addKey('F3').on('up', function(event) {
+            mouseTool = 'building_1x1x1_3';
+        });
+
+        this.input.keyboard.addKey('F4').on('up', function(event) {
+            mouseTool = 'building_1x1x1_4';
+        });
+
+        this.input.keyboard.addKey('F5').on('up', function(event) {
+            mouseTool = 'building_1x1x1_5';
+        });
+
+        this.input.keyboard.addKey('F6').on('up', function(event) {
+            mouseTool = 'building_1x1x1_6';
+        });
+
+        this.input.keyboard.addKey('F7').on('up', function(event) {
+            mouseTool = 'building_1x1x2_1';
+        });
+
+        this.input.keyboard.addKey('F8').on('up', function(event) {
+            mouseTool = 'building_1x1x2_2';
+        });
+
+        this.input.keyboard.addKey('F9').on('up', function(event) {
+            mouseTool = 'road';
+        });
+
+        this.input.keyboard.addKey('F10').on('up', function(event) {
+            mouseTool = 'eraser';
+        });
+
+        this.input.on('pointerup', (pointer) => {
+            this.handleCellClick(pointer.worldX, pointer.worldY, mouseTool);
+        });
+
+        // Camera
+        this.cameras.main.zoom = 2;
         const cameraControlParams = {
             camera: this.cameras.main,
             left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
@@ -53,8 +115,9 @@ export default class MainScene extends Phaser.Scene {
             drag: 0.002, // originally was 0.0005
             maxSpeed: 0.25 // originally was 1.0
         };
-    
         this.cameraControls = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
+
+        console.log('Scene intialized.');
     }
 
     update(time, delta) {
@@ -134,7 +197,7 @@ export default class MainScene extends Phaser.Scene {
     handleCellClick(clickedX, clickedY, clickEvent){
         const position = this.getTilePosition(clickedX, clickedY);
         if(position){
-            this.field.handleTileClick(position.row, position.col, clickEvent.button);
+            this.field.handleTileClick(position.row, position.col, clickEvent);
         }
     }
 

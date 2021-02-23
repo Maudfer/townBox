@@ -18,19 +18,18 @@ export default class Field {
         }
     }
 
-    handleTileClick(row, col, button){
+    handleTileClick(row, col, tool){
         let newTile = null;
 
-        if(button === 0){
-            newTile = new Road(row, col, null);
-        } else if (button === 2){
-            if(this.matrix[row][col] !== null && this.matrix[row][col].getTextureName() ===  'building_1x1x1_2') {
-                newTile = new Building(row, col, 'building_1x1x2_1');
-            } else {
-                newTile = new Building(row, col, 'building_1x1x1_2');
-            }
-        } else {
-            newTile = new Tile(row, col, null);   
+        switch(tool){
+            case 'road':
+                newTile = new Road(row, col, null);
+                break;
+            case 'eraser':
+                newTile = new Tile(row, col, null);
+                break;
+            default: 
+                newTile = new Building(row, col, tool);
         }
 
         const neighbors = this.getNeighbors(newTile);
