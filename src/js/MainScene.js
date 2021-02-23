@@ -59,8 +59,11 @@ export default class MainScene extends Phaser.Scene {
 
     update(time, delta) {
         this.field.iterateBuildQueue((tile) => {
-            const pixelPosition = this.getCellPosition(tile.getRow(), tile.getCol());
-            const identifier = `${tile.getRow()}-${tile.getCol()}`;
+            const row = tile.getRow();
+            const col = tile.getCol();
+
+            const pixelPosition = this.getCellPosition(row, col);
+            const identifier = `${row}-${col}`;
 
             if(this.constructions[identifier]) {
                 this.constructions[identifier].destroy();
@@ -69,7 +72,14 @@ export default class MainScene extends Phaser.Scene {
 
             const textureName = tile.getTextureName();
             if(textureName !== null){
-                this.constructions[identifier] = this.add.image(pixelPosition.x, pixelPosition.y, tile.getTextureName());
+                const imageX = pixelPosition.x;
+                const imageY = pixelPosition.y + (this.gridParams.cells.height / 2);
+
+                const image = this.add.image(imageX, imageY, tile.getTextureName());
+                image.setDepth(row);
+                image.setOrigin(0.5, 1);
+
+                this.constructions[identifier] = image;
             }
         });
 

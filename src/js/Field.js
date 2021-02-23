@@ -24,7 +24,11 @@ export default class Field {
         if(button === 0){
             newTile = new Road(row, col, null);
         } else if (button === 2){
-            newTile = new Building(row, col, 'building_1x1x1_2');   
+            if(this.matrix[row][col] !== null && this.matrix[row][col].getTextureName() ===  'building_1x1x1_2') {
+                newTile = new Building(row, col, 'building_1x1x2_1');
+            } else {
+                newTile = new Building(row, col, 'building_1x1x1_2');
+            }
         } else {
             newTile = new Tile(row, col, null);   
         }
