@@ -57,48 +57,54 @@ export default class MainScene extends Phaser.Scene {
 
         let mouseTool = 'road';
 
-        this.input.keyboard.addKey('F1').on('up', function(event) {
+        this.input.keyboard.addKey('F1').on('up', (event) => {
             mouseTool = 'building_1x1x1_1';
         });
 
-        this.input.keyboard.addKey('F2').on('up', function(event) {
+        this.input.keyboard.addKey('F2').on('up', (event) => {
             mouseTool = 'building_1x1x1_2';
         });
 
-        this.input.keyboard.addKey('F3').on('up', function(event) {
+        this.input.keyboard.addKey('F3').on('up', (event) => {
             mouseTool = 'building_1x1x1_3';
         });
 
-        this.input.keyboard.addKey('F4').on('up', function(event) {
+        this.input.keyboard.addKey('F4').on('up', (event) => {
             mouseTool = 'building_1x1x1_4';
         });
 
-        this.input.keyboard.addKey('F5').on('up', function(event) {
+        this.input.keyboard.addKey('F5').on('up', (event) => {
             mouseTool = 'building_1x1x1_5';
         });
 
-        this.input.keyboard.addKey('F6').on('up', function(event) {
+        this.input.keyboard.addKey('F6').on('up', (event) => {
             mouseTool = 'building_1x1x1_6';
         });
 
-        this.input.keyboard.addKey('F7').on('up', function(event) {
+        this.input.keyboard.addKey('F7').on('up', (event) => {
             mouseTool = 'building_1x1x2_1';
         });
 
-        this.input.keyboard.addKey('F8').on('up', function(event) {
+        this.input.keyboard.addKey('F8').on('up', (event) => {
             mouseTool = 'building_1x1x2_2';
         });
 
-        this.input.keyboard.addKey('F9').on('up', function(event) {
+        this.input.keyboard.addKey('F9').on('up', (event) => {
             mouseTool = 'road';
         });
 
-        this.input.keyboard.addKey('F10').on('up', function(event) {
+        this.input.keyboard.addKey('F10').on('up', (event) => {
             mouseTool = 'eraser';
         });
 
-        this.input.on('pointerup', (pointer) => {
-            this.handleCellClick(pointer.worldX, pointer.worldY, mouseTool);
+        this.input.on('pointermove', (pointer) => {
+            if (pointer.isDown) {
+                this.handleClick(pointer, mouseTool);
+            }
+        });
+
+        this.input.on('pointerdown', (pointer) => {
+            this.handleClick(pointer, mouseTool);
         });
 
         // Camera
@@ -111,9 +117,9 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-            acceleration: 0.25, // originally was 0.06
+            acceleration: 0.5, // originally was 0.06
             drag: 0.002, // originally was 0.0005
-            maxSpeed: 0.25 // originally was 1.0
+            maxSpeed: 0.35 // originally was 1.0
         };
         this.cameraControls = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
@@ -148,6 +154,19 @@ export default class MainScene extends Phaser.Scene {
 
         this.cameraControls.update(delta);
        //console.log(`Update: ${time}`);
+    }
+
+    handleClick(pointer, mouseTool){
+        const position = this.getTilePosition(pointer.worldX, pointer.worldY);
+        const clickEvent = {
+            pointer: pointer,
+            position: position,
+            tool: mouseTool
+        };
+
+        if(position){
+            this.field.handleTileClick(position.row, position.col, clickEvent);
+        }
     }
 
     // gets cell center position in pixels given a specific row and col
@@ -192,13 +211,6 @@ export default class MainScene extends Phaser.Scene {
         }
 
         return position;
-    }
-
-    handleCellClick(clickedX, clickedY, clickEvent){
-        const position = this.getTilePosition(clickedX, clickedY);
-        if(position){
-            this.field.handleTileClick(position.row, position.col, clickEvent);
-        }
     }
 
     setScreenParams(screenWidth, screenHeight){

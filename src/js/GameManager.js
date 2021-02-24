@@ -5,13 +5,13 @@ import MainScene from './MainScene.js';
 export default class GameManager {
     constructor() {
         const fieldParams = {
-            rows: 60,
-            cols: 60
+            rows: 128,
+            cols: 128
         };
 
         const gridParams = {
-            width: 2880,
-            height: 2880
+            width: 6144,
+            height: 6144
         };
 
         const screenParams = {
@@ -34,10 +34,14 @@ export default class GameManager {
                 mode: Phaser.Scale.FIT,
                 autoCenter: Phaser.Scale.CENTER_BOTH
             },
+            render: {
+                antialias: true,
+                roundPixels: true,
+            },
             scene: this.scene
         }
         this.game = new Phaser.Game(config);
-    
+
     }
 }
 

@@ -18,10 +18,10 @@ export default class Field {
         }
     }
 
-    handleTileClick(row, col, tool){
+    handleTileClick(row, col, event){
         let newTile = null;
 
-        switch(tool){
+        switch(event.tool){
             case 'road':
                 newTile = new Road(row, col, null);
                 break;
@@ -29,9 +29,9 @@ export default class Field {
                 newTile = new Tile(row, col, null);
                 break;
             default: 
-                newTile = new Building(row, col, tool);
+                newTile = new Building(row, col, event.tool);
         }
-
+        
         const neighbors = this.getNeighbors(newTile);
 
         this.updateFieldTile(newTile);
@@ -45,11 +45,15 @@ export default class Field {
         if(tile !== null){
             const row = tile.getRow();
             const col = tile.getCol();
+            const oldTexture = this.getTile(row, col).getTextureName();
+
             const neighbors = this.getNeighbors(tile);
-    
             tile.updateSelfBasedOnNeighbors(neighbors);
-            this.matrix[row][col] = tile;
-            this.buildQueue.push(tile);
+
+            if(tile.getTextureName() !== oldTexture){
+                this.setTile(row, col, tile);
+                this.buildQueue.push(tile);
+            }
         }
     }
 
@@ -58,10 +62,10 @@ export default class Field {
         const col = tile.getCol();
 
         const neighbors = {
-            top: this.isValidPosition(row-1, col) ? this.matrix[row-1][col] : null,
-            bottom: this.isValidPosition(row+1, col) ? this.matrix[row+1][col] : null,
-            left: this.isValidPosition(row, col-1) ? this.matrix[row][col-1] : null,
-            right: this.isValidPosition(row, col+1) ? this.matrix[row][col+1] : null
+            top: this.isValidPosition(row-1, col) ? this.getTile(row-1, col) : null,
+            bottom: this.isValidPosition(row+1, col) ? this.getTile(row+1, col) : null,
+            left: this.isValidPosition(row, col-1) ? this.getTile(row, col-1) : null,
+            right: this.isValidPosition(row, col+1) ? this.getTile(row, col+1) : null
         };
 
         return neighbors;
@@ -78,6 +82,14 @@ export default class Field {
             const tile = this.buildQueue.shift();
             callback(tile);
         }
+    }
+
+    getTile(row, col){
+        return this.matrix[row][col];
+    }
+
+    setTile(row, col, tile){
+        this.matrix[row][col] = tile;
     }
 
     getBuildQueue(){
