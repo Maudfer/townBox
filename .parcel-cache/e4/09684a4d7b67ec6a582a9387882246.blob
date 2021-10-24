@@ -1,0 +1,52 @@
+var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
+_parcelHelpers.defineInteropFlag(exports);
+var _phaser = require('phaser');
+var _phaserDefault = _parcelHelpers.interopDefault(_phaser);
+var _FieldJs = require('./Field.js');
+var _FieldJsDefault = _parcelHelpers.interopDefault(_FieldJs);
+var _MainSceneJs = require('./MainScene.js');
+var _MainSceneJsDefault = _parcelHelpers.interopDefault(_MainSceneJs);
+class GameManager {
+  constructor() {
+    const fieldParams = {
+      rows: 128,
+      cols: 128
+    };
+    const screenParams = {
+      width: 1920,
+      height: 1920
+    };
+    const gridParams = {
+      width: 6144,
+      height: 6144,
+      rows: fieldParams.rows,
+      cols: fieldParams.cols,
+      gridX: screenParams.width / 2,
+      gridY: screenParams.height / 2
+    };
+    gridParams.cells = {
+      width: gridParams.width / gridParams.cols,
+      height: gridParams.height / gridParams.rows
+    };
+    this.field = new _FieldJsDefault.default(fieldParams.rows, fieldParams.cols);
+    // GAME AND SCENE CODE
+    this.scene = new _MainSceneJsDefault.default(this.field);
+    this.scene.setGridParams(gridParams);
+    const config = {
+      type: _phaserDefault.default.AUTO,
+      width: screenParams.width,
+      height: screenParams.height,
+      scale: {
+        mode: _phaserDefault.default.Scale.FIT,
+        autoCenter: _phaserDefault.default.Scale.CENTER_BOTH
+      },
+      render: {
+        antialias: true,
+        roundPixels: true
+      },
+      scene: this.scene
+    };
+    this.game = new _phaserDefault.default.Game(config);
+  }
+}
+exports.default = GameManager;

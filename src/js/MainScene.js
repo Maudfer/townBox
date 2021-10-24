@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
+import Person from './Person.js';
 
 export default class MainScene extends Phaser.Scene {
     constructor (field) {
         super();
         this.field = field;
         this.constructions = {};
+        this.cursorEntity = null;
+        this.people = [];
     }
 
     init(data) {
@@ -13,6 +16,9 @@ export default class MainScene extends Phaser.Scene {
 
     preload () {
         this.load.setBaseURL('./');
+
+        // People
+        this.load.image('person', 'person.png');
 
         // Roads
         this.load.image('road_0011', 'road_0011.png');
@@ -54,57 +60,60 @@ export default class MainScene extends Phaser.Scene {
         this.drawGrid(this); //antipattern
 
         this.input.mouse.disableContextMenu();
+        this.setCursor('road', 'road_1100');
 
-        let mouseTool = 'road';
-
-        this.input.keyboard.addKey('F1').on('up', (event) => {
-            mouseTool = 'building_1x1x1_1';
+        this.input.keyboard.addKey('S').on('down', (event) => {
+            console.log('Saved.');
         });
 
-        this.input.keyboard.addKey('F2').on('up', (event) => {
-            mouseTool = 'building_1x1x1_2';
+        this.input.keyboard.addKey('F1').on('down', (event) => {
+            this.setCursor('building_1x1x1_1', 'building_1x1x1_1');
         });
 
-        this.input.keyboard.addKey('F3').on('up', (event) => {
-            mouseTool = 'building_1x1x1_3';
+        this.input.keyboard.addKey('F2').on('down', (event) => {
+            this.setCursor('building_1x1x1_2', 'building_1x1x1_2');
         });
 
-        this.input.keyboard.addKey('F4').on('up', (event) => {
-            mouseTool = 'building_1x1x1_4';
+        this.input.keyboard.addKey('F3').on('down', (event) => {
+            this.setCursor('building_1x1x1_3', 'building_1x1x1_3');
         });
 
-        this.input.keyboard.addKey('F5').on('up', (event) => {
-            mouseTool = 'building_1x1x1_5';
+        this.input.keyboard.addKey('F4').on('down', (event) => {
+            this.setCursor('building_1x1x1_4', 'building_1x1x1_4');
         });
 
-        this.input.keyboard.addKey('F6').on('up', (event) => {
-            mouseTool = 'building_1x1x1_6';
+        this.input.keyboard.addKey('F5').on('down', (event) => {
+            this.setCursor('building_1x1x1_5', 'building_1x1x1_5');
         });
 
-        this.input.keyboard.addKey('F7').on('up', (event) => {
-            mouseTool = 'building_1x1x2_1';
+        this.input.keyboard.addKey('F6').on('down', (event) => {
+            this.setCursor('building_1x1x1_6', 'building_1x1x1_6');
         });
 
-        this.input.keyboard.addKey('F8').on('up', (event) => {
-            mouseTool = 'building_1x1x2_2';
+        this.input.keyboard.addKey('F7').on('down', (event) => {
+            this.setCursor('building_1x1x2_1', 'building_1x1x2_1');
         });
 
-        this.input.keyboard.addKey('F9').on('up', (event) => {
-            mouseTool = 'road';
+        this.input.keyboard.addKey('F8').on('down', (event) => {
+            this.setCursor('building_1x1x2_2', 'building_1x1x2_2');
         });
 
-        this.input.keyboard.addKey('F10').on('up', (event) => {
-            mouseTool = 'eraser';
+        this.input.keyboard.addKey('F9').on('down', (event) => {
+            this.setCursor('road', 'road_1100');
+        });
+
+        this.input.keyboard.addKey('F10').on('down', (event) => {
+            this.setCursor('eraser', null);
         });
 
         this.input.on('pointermove', (pointer) => {
             if (pointer.isDown) {
-                this.handleClick(pointer, mouseTool);
+                this.handleClick(pointer);
             }
         });
 
         this.input.on('pointerdown', (pointer) => {
-            this.handleClick(pointer, mouseTool);
+            this.handleClick(pointer);
         });
 
         // Camera
@@ -152,21 +161,93 @@ export default class MainScene extends Phaser.Scene {
             }
         });
 
+        this.field.iteratePeopleSpawner((personPayload) => {
+            const {x, y} = this.getCellPosition(personPayload.row, personPayload.col);
+
+            const personSprite = this.add.image(x, y, 'person');
+            personSprite.setOrigin(0.5, 0.5);
+
+            const person = new Person(x, y, personSprite);
+            person.updateTile(personPayload.row, personPayload.col);
+
+            this.people.push(person);
+        });
+
+        this.people.forEach(person => {
+            person.walk();
+            const {x, y} = person.getPosition();
+            const {row, col} = this.getTilePosition(x, y);
+            person.updateTile(row, col);
+        });
+
         this.cameraControls.update(delta);
+        this.handleHover();
+        
        //console.log(`Update: ${time}`);
     }
 
-    handleClick(pointer, mouseTool){
-        const position = this.getTilePosition(pointer.worldX, pointer.worldY);
-        const clickEvent = {
-            pointer: pointer,
-            position: position,
-            tool: mouseTool
-        };
+    handleHover(){
+        if(this.getCursor().entity !== null){
+            const tilePosition = this.getTilePosition(this.input.activePointer.worldX, this.input.activePointer.worldY);
+            
+            if(tilePosition !== null) {
+                const tileCenter = this.getCellPosition(tilePosition.row, tilePosition.col);
+                const imageX = tileCenter.x;
+                const imageY = tileCenter.y + (this.gridParams.cells.height / 2);
+                this.getCursor().entity.setPosition(imageX, imageY);
+                this.unhideCursor();
+            } else {
+                this.hideCursor();
+            }
+        }
+    }
 
-        if(position){
+    handleClick(pointer){
+        const position = this.getTilePosition(pointer.worldX, pointer.worldY);
+
+        if(position !== null){
+            const clickEvent = {
+                pointer: pointer,
+                position: position,
+                tool: this.getCursor().tool
+            };
+
             this.field.handleTileClick(position.row, position.col, clickEvent);
         }
+    }
+
+    setCursor(toolName, textureName){
+        this.tool = toolName;
+
+        if(this.cursorEntity !== null){
+            this.cursorEntity.destroy();
+        }
+
+        if(textureName !== null){
+            this.cursorEntity = this.add.image(0, 0, textureName);
+            this.cursorEntity.setAlpha(0.5);
+            this.cursorEntity.setOrigin(0.5, 1);
+            this.cursorEntity.setDepth(this.gridParams.rows + 1);
+        }
+    }
+
+    unhideCursor(){
+        if(this.cursorEntity !== null && !this.cursorEntity.visible){
+            this.cursorEntity.setVisible(true);
+        }
+    }
+
+    hideCursor(){
+        if(this.cursorEntity !== null && this.cursorEntity.visible){
+            this.cursorEntity.setVisible(false);
+        }
+    }
+
+    getCursor(){
+        return {
+            tool: this.tool,
+            entity: this.cursorEntity
+        };
     }
 
     // gets cell center position in pixels given a specific row and col
@@ -213,36 +294,16 @@ export default class MainScene extends Phaser.Scene {
         return position;
     }
 
-    setScreenParams(screenWidth, screenHeight){
-        this.screenParams = {
-            width: screenWidth,
-            height: screenHeight,
-            horizontalCenter: screenWidth / 2,
-            verticalCenter: screenHeight / 2,
-        };
-    }
-
-    setGridParams(rows, cols, gridWidth, gridHeight){
-        this.gridParams = {
-            width: gridWidth,
-            height: gridHeight,
-
-            rows: rows,
-            cols: cols,
-
-            cells: {
-                width: gridWidth / cols,
-                height: gridHeight / rows,
-            }
-        };
+    setGridParams(gridParams){
+        this.gridParams = gridParams;
     }
 
     drawGrid(scene) {
         const backgroundColor = 0x057605;
 
         this.grid = scene.add.grid(
-            this.screenParams.horizontalCenter, 
-            this.screenParams.verticalCenter, 
+            this.gridParams.gridX, 
+            this.gridParams.gridY, 
             this.gridParams.width, 
             this.gridParams.height,
             this.gridParams.cells.width, 

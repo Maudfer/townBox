@@ -9,6 +9,7 @@ export default class Field {
         this.cols = cols;
         this.matrix = {};
         this.buildQueue = [];
+        this.peopleSpawner = [];
 
         for(let i = 0; i < this.rows; i++){
             this.matrix[i] = {};
@@ -24,6 +25,7 @@ export default class Field {
         switch(event.tool){
             case 'road':
                 newTile = new Road(row, col, null);
+                this.peopleSpawner.push({row, col});
                 break;
             case 'eraser':
                 newTile = new Tile(row, col, null);
@@ -81,6 +83,13 @@ export default class Field {
         while(this.buildQueue.length > 0){
             const tile = this.buildQueue.shift();
             callback(tile);
+        }
+    }
+
+    iteratePeopleSpawner(callback){
+        while(this.peopleSpawner.length > 0){
+            const person = this.peopleSpawner.shift();
+            callback(person);
         }
     }
 

@@ -1,5 +1,8 @@
 # townBox
 
+npm install -g parcel-bundler
+npm install -g browser-sync
+
 cd src
 parcel watch index.html --out-dir ../dist
 
