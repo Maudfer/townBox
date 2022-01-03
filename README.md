@@ -1,5 +1,9 @@
 # townBox
 
+Simple city builder in javascript using Phaser engine
+
+# Usage
+
 npm install -g parcel-bundler
 npm install -g browser-sync
 
