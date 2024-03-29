@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import Person from './Person.js';
+import Person from './Person';
 
 export default class MainScene extends Phaser.Scene {
     constructor (field) {
@@ -174,12 +174,16 @@ export default class MainScene extends Phaser.Scene {
         });
 
         this.people.forEach(person => {
-            person.walk();
-            const {x, y} = person.getPosition();
-            const {row, col} = this.getTilePosition(x, y);
-            person.updateTile(row, col);
-        });
+            person.walk(this.field, this);
 
+            let tilePosition = this.getTilePosition(person.x, person.y);
+            person.updateTile(tilePosition.row, tilePosition.col);
+
+            // If the person reaches the center of the tile, decide the new direction
+            if (person.isAtTileCenter(this)) {
+                person.decideNewDirection(this.field);
+            }
+        });
         this.cameraControls.update(delta);
         this.handleHover();
         

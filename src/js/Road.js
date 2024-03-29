@@ -27,4 +27,20 @@ export default class Road extends Tile {
 
         this.textureName = code;
     }
+
+    getPossibleDirections(field) {
+        // Get all neighboring tiles
+        const neighbors = field.getNeighbors(this);
+        
+        // Initialize an array to hold possible directions
+        let possibleDirections = [];
+
+        // Check each neighbor to see if it's also a road
+        if (neighbors.top instanceof Road) possibleDirections.push('up');
+        if (neighbors.bottom instanceof Road) possibleDirections.push('down');
+        if (neighbors.left instanceof Road) possibleDirections.push('left');
+        if (neighbors.right instanceof Road) possibleDirections.push('right');
+
+        return possibleDirections;
+    }
 }
