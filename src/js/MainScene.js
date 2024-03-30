@@ -2,19 +2,19 @@ import Phaser from 'phaser';
 import Person from './Person';
 
 export default class MainScene extends Phaser.Scene {
-    constructor (field) {
+    constructor(gameManager) {
         super();
-        this.field = field;
-        this.constructions = {};
+        this.gameManager = gameManager;
         this.cursorEntity = null;
-        this.people = [];
+
+        this.gameManager.on('tileUpdated', this.drawTile);
     }
 
     init(data) {
 
     }
 
-    preload () {
+    preload() {
         this.load.setBaseURL('./');
 
         // People
@@ -56,7 +56,7 @@ export default class MainScene extends Phaser.Scene {
         this.load.image('building_2x2x1_1_up-right', 'building_2x2x1_1_up-right.png');
     }
 
-    create (data)  {
+    create(data) {
         this.drawGrid(this); //antipattern
 
         this.input.mouse.disableContextMenu();
@@ -126,7 +126,7 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-            acceleration: 0.5, // originally was 0.06
+            acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
             maxSpeed: 0.35 // originally was 1.0
         };
@@ -136,33 +136,11 @@ export default class MainScene extends Phaser.Scene {
     }
 
     update(time, delta) {
-        this.field.iterateBuildQueue((tile) => {
-            const row = tile.getRow();
-            const col = tile.getCol();
-
-            const pixelPosition = this.getCellPosition(row, col);
-            const identifier = `${row}-${col}`;
-
-            if(this.constructions[identifier]) {
-                this.constructions[identifier].destroy();
-                delete this.constructions[identifier];
-            }
-
-            const textureName = tile.getTextureName();
-            if(textureName !== null){
-                const imageX = pixelPosition.x;
-                const imageY = pixelPosition.y + (this.gridParams.cells.height / 2);
-
-                const image = this.add.image(imageX, imageY, tile.getTextureName());
-                image.setDepth(row * 10);
-                image.setOrigin(0.5, 1);
-
-                this.constructions[identifier] = image;
-            }
-        });
+        // this.gameManager.updateField();
+        // this.gameManager.updatePeople();
 
         this.field.iteratePeopleSpawner((personPayload) => {
-            const {x, y} = this.getCellPosition(personPayload.row, personPayload.col);
+            const { x, y } = this.getCellPosition(personPayload.row, personPayload.col);
 
             const personSprite = this.add.image(x, y, 'person');
             personSprite.setOrigin(0.5, 0.5);
@@ -187,15 +165,15 @@ export default class MainScene extends Phaser.Scene {
 
         this.cameraControls.update(delta);
         this.handleHover();
-        
-       //console.log(`Update: ${time}`);
+
+        // console.log(`Update: ${time}`);
     }
 
-    handleHover(){
-        if(this.getCursor().entity !== null){
+    handleHover() {
+        if (this.getCursor().entity !== null) {
             const tilePosition = this.getTilePosition(this.input.activePointer.worldX, this.input.activePointer.worldY);
-            
-            if(tilePosition !== null) {
+
+            if (tilePosition !== null) {
                 const tileCenter = this.getCellPosition(tilePosition.row, tilePosition.col);
                 const imageX = tileCenter.x;
                 const imageY = tileCenter.y + (this.gridParams.cells.height / 2);
@@ -207,28 +185,23 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    handleClick(pointer){
+    handleClick(pointer) {
         const position = this.getTilePosition(pointer.worldX, pointer.worldY);
+        const tool = this.getCursor().tool;
 
-        if(position !== null){
-            const clickEvent = {
-                pointer: pointer,
-                position: position,
-                tool: this.getCursor().tool
-            };
-
-            this.field.handleTileClick(position.row, position.col, clickEvent);
+        if (position !== null) {
+            this.gameManager.trigger("tileClicked", { position, tool });
         }
     }
 
-    setCursor(toolName, textureName){
+    setCursor(toolName, textureName) {
         this.tool = toolName;
 
-        if(this.cursorEntity !== null){
+        if (this.cursorEntity !== null) {
             this.cursorEntity.destroy();
         }
 
-        if(textureName !== null){
+        if (textureName !== null) {
             this.cursorEntity = this.add.image(0, 0, textureName);
             this.cursorEntity.setAlpha(0.5);
             this.cursorEntity.setOrigin(0.5, 1);
@@ -236,19 +209,19 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    unhideCursor(){
-        if(this.cursorEntity !== null && !this.cursorEntity.visible){
+    unhideCursor() {
+        if (this.cursorEntity !== null && !this.cursorEntity.visible) {
             this.cursorEntity.setVisible(true);
         }
     }
 
-    hideCursor(){
-        if(this.cursorEntity !== null && this.cursorEntity.visible){
+    hideCursor() {
+        if (this.cursorEntity !== null && this.cursorEntity.visible) {
             this.cursorEntity.setVisible(false);
         }
     }
 
-    getCursor(){
+    getCursor() {
         return {
             tool: this.tool,
             entity: this.cursorEntity
@@ -256,27 +229,27 @@ export default class MainScene extends Phaser.Scene {
     }
 
     // gets cell center position in pixels given a specific row and col
-    getCellPosition(row, col){
+    getCellPosition(row, col) {
         let cellPositions = null;
 
-        if(row >= 0 && row < this.field.getRows()){
+        if (row >= 0 && row < this.field.getRows()) {
             const yEdge = this.gridParams.bounds.top + (row * this.gridParams.cells.height);
             const yCenter = yEdge + (this.gridParams.cells.height / 2);
-    
+
             const xEdge = this.gridParams.bounds.left + (col * this.gridParams.cells.width);
             const xCenter = xEdge + (this.gridParams.cells.width / 2);
-    
+
             cellPositions = {
                 x: xCenter,
                 y: yCenter
             };
         }
-    
+
         return cellPositions;
     }
 
     // gets tile position in row and col given X and Y in pixels
-    getTilePosition(pixelX, pixelY){
+    getTilePosition(pixelX, pixelY) {
         const belowTop = pixelY > this.gridParams.bounds.top;
         const aboveBottom = pixelY < this.gridParams.bounds.bottom;
         const afterLeft = pixelX > this.gridParams.bounds.left;
@@ -284,22 +257,22 @@ export default class MainScene extends Phaser.Scene {
 
         let position = null;
 
-        if(belowTop && aboveBottom && afterLeft && beforeRight){
+        if (belowTop && aboveBottom && afterLeft && beforeRight) {
             const distance = {
                 top: pixelY - this.gridParams.bounds.top,
                 left: pixelX - this.gridParams.bounds.left
             };
-            
-            const row = Math.floor(distance.top / this.gridParams.cells.height);
-            const col = Math.floor(distance.left / this.gridParams.cells.width); 
 
-            position = {row, col};
+            const row = Math.floor(distance.top / this.gridParams.cells.height);
+            const col = Math.floor(distance.left / this.gridParams.cells.width);
+
+            position = { row, col };
         }
 
         return position;
     }
 
-    setGridParams(gridParams){
+    setGridParams(gridParams) {
         this.gridParams = gridParams;
     }
 
@@ -307,16 +280,35 @@ export default class MainScene extends Phaser.Scene {
         const backgroundColor = 0x057605;
 
         this.grid = scene.add.grid(
-            this.gridParams.gridX, 
-            this.gridParams.gridY, 
-            this.gridParams.width, 
+            this.gridParams.gridX,
+            this.gridParams.gridY,
+            this.gridParams.width,
             this.gridParams.height,
-            this.gridParams.cells.width, 
-            this.gridParams.cells.height, 
+            this.gridParams.cells.width,
+            this.gridParams.cells.height,
             backgroundColor
         );
-        
+
         this.gridParams.bounds = this.grid.getBounds();
+    }
+
+    drawTile(tile){
+        const row = tile.getRow();
+        const col = tile.getCol();
+        
+        const textureName = tile.getTextureName();
+        const pixelPosition = this.getCellPosition(row, col);
+
+        if (textureName !== null) {
+            const imageX = pixelPosition.x;
+            const imageY = pixelPosition.y + (this.gridParams.cells.height / 2);
+
+            const image = this.add.image(imageX, imageY, textureName);
+            image.setDepth(row * 10);
+            image.setOrigin(0.5, 1);
+            
+            tile.setAsset(image);
+        }
     }
 
 }

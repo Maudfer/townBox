@@ -4,6 +4,8 @@ import MainScene from './MainScene.js';
 
 export default class GameManager {
     constructor() {
+        this.listeners = {};
+
         const fieldParams = {
             rows: 128,
             cols: 128
@@ -30,10 +32,8 @@ export default class GameManager {
             height: gridParams.height / gridParams.rows,
         };
 
-        this.field = new Field(fieldParams.rows, fieldParams.cols);
-
-        // GAME AND SCENE CODE
-        this.scene = new MainScene(this.field);
+        this.field = new Field(this, fieldParams.rows, fieldParams.cols);
+        this.scene = new MainScene(this);
         this.scene.setGridParams(gridParams);
 
         const config = {
@@ -53,6 +53,24 @@ export default class GameManager {
         this.game = new Phaser.Game(config);
     }
 
+    handleFieldClick(row, col, clickEvent) {
+        this.field.handleTileClick(row, col, clickEvent);
+    }
+
+    trigger(eventName, payload) {
+        if (this.listeners[eventName]) {
+            this.listeners[eventName].forEach(callback => {
+                callback(payload);
+            });
+        }
+    }
+
+    on(eventName, callback) {
+        if (!this.listeners[eventName]) {
+            this.listeners[eventName] = [];
+        }
+        this.listeners[eventName].push(callback);
+    }
     
 }
 

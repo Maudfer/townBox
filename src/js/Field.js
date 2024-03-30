@@ -3,25 +3,28 @@ import Road from './Road.js';
 import Building from './Building.js';
 
 export default class Field {
-
-    constructor(rows, cols) {
+    constructor(gameManager, rows, cols) {
         this.rows = rows;
         this.cols = cols;
         this.matrix = {};
-        this.buildQueue = [];
-        this.peopleSpawner = [];
-
+        
+        this.cursorEntity = null;
+        this.people = [];
+        
         for(let i = 0; i < this.rows; i++){
             this.matrix[i] = {};
             for(let j = 0; j < this.cols; j++){
                 this.matrix[i][j] = new Tile(i, j, null);
             }
         }
+
+        gameManager.on("tileClicked", this.build);
     }
 
-    handleTileClick(row, col, event){
-        let newTile = null;
+    build(event){
+        const {row, col} = event.position;
 
+        let newTile = null;
         switch(event.tool){
             case 'road':
                 newTile = new Road(row, col, null);
@@ -36,25 +39,28 @@ export default class Field {
         
         const neighbors = this.getNeighbors(newTile);
 
-        this.updateFieldTile(newTile);
-        this.updateFieldTile(neighbors.top);
-        this.updateFieldTile(neighbors.bottom);
-        this.updateFieldTile(neighbors.left);
-        this.updateFieldTile(neighbors.right); 
+        this.replaceTile(newTile);
+        this.replaceTile(neighbors.top);
+        this.replaceTile(neighbors.bottom);
+        this.replaceTile(neighbors.left);
+        this.replaceTile(neighbors.right);
     }
 
-    updateFieldTile(tile){
+    replaceTile(tile){
         if(tile !== null){
             const row = tile.getRow();
             const col = tile.getCol();
-            const oldTexture = this.getTile(row, col).getTextureName();
 
             const neighbors = this.getNeighbors(tile);
             tile.updateSelfBasedOnNeighbors(neighbors);
 
+            const oldTile = this.getTile(row, col);
+            const oldTexture = oldTile.getTextureName();
+
             if(tile.getTextureName() !== oldTexture){
+                oldTile.getAsset()?.destroy();
                 this.setTile(row, col, tile);
-                this.buildQueue.push(tile);
+                this.gameManager.trigger("tileUpdated", tile);
             }
         }
     }
@@ -79,19 +85,14 @@ export default class Field {
         return (isRowValid && isColValid);
     }
 
-    iterateBuildQueue(callback){
-        while(this.buildQueue.length > 0){
-            const tile = this.buildQueue.shift();
-            callback(tile);
-        }
-    }
-
+    /*
     iteratePeopleSpawner(callback){
         while(this.peopleSpawner.length > 0){
             const person = this.peopleSpawner.shift();
             callback(person);
         }
     }
+    */
 
     getTile(row, col){
         return this.matrix[row][col];
@@ -112,4 +113,5 @@ export default class Field {
     getCols(){
         return this.cols;
     }
+
 }

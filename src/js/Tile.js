@@ -2,8 +2,8 @@ export default class Tile {
     constructor(row, col, textureName) {
         this.row = row;
         this.col = col;
+        this.asset = null;
         this.textureName = textureName;
-        //console.log(`Hello from Tile class. My row is ${this.row} and my column is ${this.column}`);
     }
 
     getRow(){
@@ -14,12 +14,24 @@ export default class Tile {
         return this.col;
     }
 
+    getIdentifier(){
+        return `${this.row}-${this.col}`;
+    }
+
     getTextureName(){
         return this.textureName;
     }
 
     setTextureName(textureName){
         this.textureName = textureName;
+    }
+
+    getAsset(){
+        return this.asset;
+    }
+
+    setAsset(asset){
+        this.asset = asset;
     }
 
     updateSelfBasedOnNeighbors(neighbors){
