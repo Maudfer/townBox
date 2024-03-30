@@ -14,7 +14,7 @@ export default class Person {
    updateTile(row, col) {
       this.row = row;
       this.col = col;
-      this.image.setDepth(row + 1);
+      this.image.setDepth((row * 10) + 1);
    }
 
    decideNewDirection(field, offRoad = false) {

@@ -154,7 +154,7 @@ export default class MainScene extends Phaser.Scene {
                 const imageY = pixelPosition.y + (this.gridParams.cells.height / 2);
 
                 const image = this.add.image(imageX, imageY, tile.getTextureName());
-                image.setDepth(row);
+                image.setDepth(row * 10);
                 image.setOrigin(0.5, 1);
 
                 this.constructions[identifier] = image;
@@ -184,6 +184,7 @@ export default class MainScene extends Phaser.Scene {
                 person.decideNewDirection(this.field);
             }
         });
+
         this.cameraControls.update(delta);
         this.handleHover();
         
@@ -231,7 +232,7 @@ export default class MainScene extends Phaser.Scene {
             this.cursorEntity = this.add.image(0, 0, textureName);
             this.cursorEntity.setAlpha(0.5);
             this.cursorEntity.setOrigin(0.5, 1);
-            this.cursorEntity.setDepth(this.gridParams.rows + 1);
+            this.cursorEntity.setDepth((this.gridParams.rows * 10) + 1);
         }
     }
 
