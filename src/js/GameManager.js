@@ -54,7 +54,7 @@ export default class GameManager {
         this.game = new Phaser.Game(config);
     }
 
-    // gets cell center position in pixels given a specific row and col
+    // gets tile center position in pixels given a specific row and col
     tileToPixelPosition(row, col) {
         let cellPositions = null;
 
@@ -98,20 +98,25 @@ export default class GameManager {
         return position;
     }
 
-    trigger(eventName, payload) {
-        if (this.listeners[eventName]) {
-            this.listeners[eventName].forEach(callback => {
-                callback(payload);
-            });
-        }
-    }
-
-    on(eventName, callback) {
+    on(eventName, callback, context = null) {
         if (!this.listeners[eventName]) {
             this.listeners[eventName] = [];
         }
-        this.listeners[eventName].push(callback);
+        // Store the callback with its context (if any)
+        this.listeners[eventName].push({ callback, context });
     }
 
+    trigger(eventName, payload) {
+        if (this.listeners[eventName]) {
+            this.listeners[eventName].forEach(listener => {
+                // If context is provided, use it, else call the callback normally
+                if (listener.context) {
+                    listener.callback.call(listener.context, payload);
+                } else {
+                    listener.callback(payload);
+                }
+            });
+        }
+    }
 }
 

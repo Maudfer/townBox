@@ -8,8 +8,8 @@ export default class MainScene extends Phaser.Scene {
         this.cursorEntity = null;
         this.gridParams = null;
 
-        this.gameManager.on('tileUpdated', this.drawTile);
-        this.gameManager.on('personSpawned', this.drawPerson);
+        this.gameManager.on('tileUpdated', this.drawTile, this);
+        this.gameManager.on('personSpawned', this.drawPerson, this);
     }
 
     init(data) { }
@@ -136,33 +136,17 @@ export default class MainScene extends Phaser.Scene {
     }
 
     update(time, delta) {
-        // this.gameManager.updateField();
-        // this.gameManager.updatePeople();
-
-        this.people.forEach(person => {
-            person.walk(this.field, this);
-
-            let tilePosition = this.getTilePosition(person.x, person.y);
-            person.updateTile(tilePosition.row, tilePosition.col);
-
-            // If the person reaches the center of the tile, decide the new direction
-            if (person.isAtTileCenter(this)) {
-                person.decideNewDirection(this.field);
-            }
-        });
-
+        this.gameManager.trigger("update", { time, delta });
         this.cameraControls.update(delta);
         this.handleHover();
-
-        // console.log(`Update: ${time}`);
     }
 
     handleHover() {
         if (this.getCursor().entity !== null) {
-            const tilePosition = this.getTilePosition(this.input.activePointer.worldX, this.input.activePointer.worldY);
+            const tilePosition = this.gameManager.pixelToTilePosition(this.input.activePointer.worldX, this.input.activePointer.worldY);
 
             if (tilePosition !== null) {
-                const tileCenter = this.getCellPosition(tilePosition.row, tilePosition.col);
+                const tileCenter = this.gameManager.tileToPixelPosition(tilePosition.row, tilePosition.col);
                 const imageX = tileCenter.x;
                 const imageY = tileCenter.y + (this.gridParams.cells.height / 2);
                 this.getCursor().entity.setPosition(imageX, imageY);
@@ -174,7 +158,7 @@ export default class MainScene extends Phaser.Scene {
     }
 
     handleClick(pointer) {
-        const position = this.getTilePosition(pointer.worldX, pointer.worldY);
+        const position = this.gameManager.pixelToTilePosition(pointer.worldX, pointer.worldY);
         const tool = this.getCursor().tool;
 
         if (position !== null) {
@@ -241,7 +225,7 @@ export default class MainScene extends Phaser.Scene {
         const col = tile.getCol();
 
         const textureName = tile.getTextureName();
-        const pixelPosition = this.getCellPosition(row, col);
+        const pixelPosition = this.gameManager.tileToPixelPosition(row, col);
 
         if (textureName !== null) {
             const imageX = pixelPosition.x;

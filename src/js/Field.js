@@ -20,8 +20,13 @@ export default class Field {
             }
         }
 
-        this.gameManager.on("tileClicked", this.build);
-        this.gameManager.on('roadBuilt', this.spawnPerson);
+        this.gameManager.on("tileClicked", this.build, this);
+        this.gameManager.on('roadBuilt', this.spawnPerson, this);
+        this.gameManager.on('update', this.update, this);
+    }
+
+    update(event) {
+        this.people.forEach(person => person.update(event));
     }
 
     build(event) {
@@ -94,7 +99,7 @@ export default class Field {
 
     spawnPerson(event) {
         const { row, col } = event;
-        const { x, y } = this.gameManager.tileToPixel(row, col);
+        const { x, y } = this.gameManager.tileToPixelPosition(row, col);
         const person = new Person(x, y, row, col);
 
         person.decideNewDirection(this, true);

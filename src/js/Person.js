@@ -13,7 +13,20 @@ export default class Person {
       this.updateDepth();
    }
 
+   update(){
+      this.walk();
+
+      let tilePosition = this.getTilePosition(person.x, person.y);
+      person.updateTile(tilePosition.row, tilePosition.col);
+
+      // If the person reaches the center of the tile, decide the new direction
+      if (person.isAtTileCenter(this)) {
+          person.decideNewDirection(this.field);
+      }
+   }
+
    updateDepth() {
+      if (!this.image) return;
       this.image.setDepth((this.row * 10) + 1);
    }
 
@@ -42,7 +55,7 @@ export default class Person {
       return directions[direction];
    }
 
-   walk(field, scene) {
+   walk() {
       const potentialX = this.x + this.direction.x * this.speed;
       const potentialY = this.y + this.direction.y * this.speed;
    
