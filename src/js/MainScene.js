@@ -1,18 +1,18 @@
 import Phaser from 'phaser';
-import Person from './Person';
+
 
 export default class MainScene extends Phaser.Scene {
     constructor(gameManager) {
         super();
         this.gameManager = gameManager;
         this.cursorEntity = null;
+        this.gridParams = null;
 
         this.gameManager.on('tileUpdated', this.drawTile);
+        this.gameManager.on('personSpawned', this.drawPerson);
     }
 
-    init(data) {
-
-    }
+    init(data) { }
 
     preload() {
         this.load.setBaseURL('./');
@@ -139,18 +139,6 @@ export default class MainScene extends Phaser.Scene {
         // this.gameManager.updateField();
         // this.gameManager.updatePeople();
 
-        this.field.iteratePeopleSpawner((personPayload) => {
-            const { x, y } = this.getCellPosition(personPayload.row, personPayload.col);
-
-            const personSprite = this.add.image(x, y, 'person');
-            personSprite.setOrigin(0.5, 0.5);
-
-            const person = new Person(x, y, personSprite);
-            person.updateTile(personPayload.row, personPayload.col);
-
-            this.people.push(person);
-        });
-
         this.people.forEach(person => {
             person.walk(this.field, this);
 
@@ -228,50 +216,6 @@ export default class MainScene extends Phaser.Scene {
         };
     }
 
-    // gets cell center position in pixels given a specific row and col
-    getCellPosition(row, col) {
-        let cellPositions = null;
-
-        if (row >= 0 && row < this.field.getRows()) {
-            const yEdge = this.gridParams.bounds.top + (row * this.gridParams.cells.height);
-            const yCenter = yEdge + (this.gridParams.cells.height / 2);
-
-            const xEdge = this.gridParams.bounds.left + (col * this.gridParams.cells.width);
-            const xCenter = xEdge + (this.gridParams.cells.width / 2);
-
-            cellPositions = {
-                x: xCenter,
-                y: yCenter
-            };
-        }
-
-        return cellPositions;
-    }
-
-    // gets tile position in row and col given X and Y in pixels
-    getTilePosition(pixelX, pixelY) {
-        const belowTop = pixelY > this.gridParams.bounds.top;
-        const aboveBottom = pixelY < this.gridParams.bounds.bottom;
-        const afterLeft = pixelX > this.gridParams.bounds.left;
-        const beforeRight = pixelX < this.gridParams.bounds.right;
-
-        let position = null;
-
-        if (belowTop && aboveBottom && afterLeft && beforeRight) {
-            const distance = {
-                top: pixelY - this.gridParams.bounds.top,
-                left: pixelX - this.gridParams.bounds.left
-            };
-
-            const row = Math.floor(distance.top / this.gridParams.cells.height);
-            const col = Math.floor(distance.left / this.gridParams.cells.width);
-
-            position = { row, col };
-        }
-
-        return position;
-    }
-
     setGridParams(gridParams) {
         this.gridParams = gridParams;
     }
@@ -292,10 +236,10 @@ export default class MainScene extends Phaser.Scene {
         this.gridParams.bounds = this.grid.getBounds();
     }
 
-    drawTile(tile){
+    drawTile(tile) {
         const row = tile.getRow();
         const col = tile.getCol();
-        
+
         const textureName = tile.getTextureName();
         const pixelPosition = this.getCellPosition(row, col);
 
@@ -306,9 +250,18 @@ export default class MainScene extends Phaser.Scene {
             const image = this.add.image(imageX, imageY, textureName);
             image.setDepth(row * 10);
             image.setOrigin(0.5, 1);
-            
+
             tile.setAsset(image);
         }
+    }
+
+    drawPerson(person) {
+        const { x, y } = person.getPosition();
+
+        const personSprite = this.add.image(x, y, 'person');
+        personSprite.setOrigin(0.5, 0.5);
+
+        person.setImage(personSprite);
     }
 
 }

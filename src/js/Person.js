@@ -1,20 +1,20 @@
 import Road from './Road.js';
 
 export default class Person {
-   constructor(x, y, imageEntity) {
-      this.row = null;
-      this.col = null;
+   constructor(x, y, row, col) {
+      this.row = row;
+      this.col = col;
       this.x = x;
       this.y = y;
       this.speed = 1;
       this.direction = { x: 0, y: 0 };
-      this.image = imageEntity;
+      this.image = null;
+
+      this.updateDepth();
    }
 
-   updateTile(row, col) {
-      this.row = row;
-      this.col = col;
-      this.image.setDepth((row * 10) + 1);
+   updateDepth() {
+      this.image.setDepth((this.row * 10) + 1);
    }
 
    decideNewDirection(field, offRoad = false) {
@@ -73,5 +73,29 @@ export default class Person {
 
    getPosition() {
       return { x: this.x, y: this.y };
+   }
+
+   setPosition(x, y) {
+      this.x = x;
+      this.y = y;
+   }
+
+   getTilePosition() {
+      return { row: this.row, col: this.col };
+   }
+
+   setTilePosition(row, col) {
+      this.row = row;
+      this.col = col;
+
+      this.updateDepth();
+   }
+
+   setImage(image) {
+      this.image = image;
+   }
+
+   getImage() {
+      return this.image;
    }
 }
