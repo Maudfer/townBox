@@ -53,10 +53,6 @@ export default class GameManager {
         this.game = new Phaser.Game(config);
     }
 
-    handleFieldClick(row, col, clickEvent) {
-        this.field.handleTileClick(row, col, clickEvent);
-    }
-
     trigger(eventName, payload) {
         if (this.listeners[eventName]) {
             this.listeners[eventName].forEach(callback => {
@@ -71,6 +67,6 @@ export default class GameManager {
         }
         this.listeners[eventName].push(callback);
     }
-    
+
 }
 
