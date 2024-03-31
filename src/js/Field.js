@@ -26,23 +26,31 @@ export default class Field {
     }
 
     update(event) {
-        this.people.forEach(person => person.update(event));
+        this.people.forEach((person) => {
+            const currentPosition = person.getPosition();
+            const currentTilePosition = this.gameManager.pixelToTilePosition(currentPosition.x, currentPosition.y);
+            const currentTile = this.getTile(currentTilePosition.row, currentTilePosition.col);
+            const neighboringTiles = this.getNeighbors(currentTile);
+
+            person.walk(currentTile, event.delta);
+            person.updateDestination(currentTile, neighboringTiles);
+        });
     }
 
     build(event) {
         const { row, col } = event.position;
+        const pixelCenter = this.gameManager.tileToPixelPosition(row, col);
 
         let newTile = null;
         switch (event.tool) {
             case 'road':
-                newTile = new Road(row, col, null);
-                // this.peopleSpawner.push({row, col});
+                newTile = new Road(row, col, pixelCenter, null);
                 break;
             case 'eraser':
-                newTile = new Tile(row, col, null);
+                newTile = new Tile(row, col, pixelCenter, null);
                 break;
             default:
-                newTile = new Building(row, col, event.tool);
+                newTile = new Building(row, col, pixelCenter, event.tool);
         }
 
         const neighbors = this.getNeighbors(newTile);
@@ -63,14 +71,18 @@ export default class Field {
             const row = tile.getRow();
             const col = tile.getCol();
 
+            const oldTile = this.getTile(row, col);
+            const oldTexture = oldTile.getTextureName();
+            const oldAsset = oldTile.getAsset();
+
             const neighbors = this.getNeighbors(tile);
             tile.updateSelfBasedOnNeighbors(neighbors);
 
-            const oldTile = this.getTile(row, col);
-            const oldTexture = oldTile.getTextureName();
-
             if (tile.getTextureName() !== oldTexture) {
-                oldTile.getAsset()?.destroy();
+                if (oldAsset) {
+                    oldAsset.destroy();
+                }
+
                 this.setTile(row, col, tile);
                 this.gameManager.trigger("tileUpdated", tile);
             }
@@ -100,11 +112,10 @@ export default class Field {
     spawnPerson(event) {
         const { row, col } = event;
         const { x, y } = this.gameManager.tileToPixelPosition(row, col);
-        const person = new Person(x, y, row, col);
 
-        person.decideNewDirection(this, true);
+        const person = new Person(x, y);
         this.people.push(person);
-
+        
         this.gameManager.trigger("personSpawned", person);
     }
 

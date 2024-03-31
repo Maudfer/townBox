@@ -62,10 +62,6 @@ export default class MainScene extends Phaser.Scene {
         this.input.mouse.disableContextMenu();
         this.setCursor('road', 'road_1100');
 
-        this.input.keyboard.addKey('S').on('down', (event) => {
-            console.log('Saved.');
-        });
-
         this.input.keyboard.addKey('F1').on('down', (event) => {
             this.setCursor('building_1x1x1_1', 'building_1x1x1_1');
         });
@@ -235,6 +231,11 @@ export default class MainScene extends Phaser.Scene {
             image.setDepth(row * 10);
             image.setOrigin(0.5, 1);
 
+            const oldAsset = tile.getAsset();
+            if (oldAsset) {
+                oldAsset.destroy();
+            }
+
             tile.setAsset(image);
         }
     }
@@ -245,7 +246,7 @@ export default class MainScene extends Phaser.Scene {
         const personSprite = this.add.image(x, y, 'person');
         personSprite.setOrigin(0.5, 0.5);
 
-        person.setImage(personSprite);
+        person.setAsset(personSprite);
     }
 
 }
