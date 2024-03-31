@@ -112,11 +112,10 @@ export default class Field {
     spawnPerson(event) {
         const { row, col } = event;
         const { x, y } = this.gameManager.tileToPixelPosition(row, col);
+
         const person = new Person(x, y);
-
-        // person.decideNewDirection(this, true);
         this.people.push(person);
-
+        
         this.gameManager.trigger("personSpawned", person);
     }
 
