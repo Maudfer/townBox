@@ -1,7 +1,8 @@
 export default class Tile {
-    constructor(row, col, textureName) {
+    constructor(row, col, center, textureName) {
         this.row = row;
         this.col = col;
+        this.center = center;
         this.asset = null;
         this.textureName = textureName;
     }
@@ -32,6 +33,10 @@ export default class Tile {
 
     setAsset(asset){
         this.asset = asset;
+    }
+
+    getCenter(){
+        return this.center;
     }
 
     updateSelfBasedOnNeighbors(neighbors){

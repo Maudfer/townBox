@@ -2,8 +2,8 @@ import Tile from './Tile.js';
 
 export default class Road extends Tile {
 
-    constructor(row, col, textureName) {
-        super(row, col, textureName);
+    constructor(row, col, center, textureName) {
+        super(row, col, center, textureName);
     }
 
     updateSelfBasedOnNeighbors(neighbors){
@@ -24,14 +24,11 @@ export default class Road extends Tile {
         } else {
             code += neighborsCode;
         }
-
+        
         this.textureName = code;
     }
 
-    getPossibleDirections(field) {
-        // Get all neighboring tiles
-        const neighbors = field.getNeighbors(this);
-        
+    getConnectingRoads(neighbors) {      
         // Initialize an array to hold possible directions
         let possibleDirections = [];
 
