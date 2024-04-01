@@ -8,6 +8,7 @@ export default class Person {
       this.speed = 1;
       this.direction = { x: 0, y: 0 };
       this.asset = null;
+      this.hasTargetDirection = false;
    }
 
    updateDepth(currentTile) {
@@ -40,18 +41,26 @@ export default class Person {
       this.updateDepth(currentTile);
    }
 
-   updateDestination(currentTile, neighbors) {
-      if (this.destinationReached(currentTile)) {
+   updateTargetDirection(currentTile, neighbors) {
+      if (!currentTile || !(currentTile instanceof Road)) {
+         // TODO: handle offroad movement and behavior
+         return;
+      }
+
+      if (this.isTargetDirectionReached(currentTile) || !this.hasTargetDirection) {
          let possibleDirections = currentTile.getConnectingRoads(neighbors);
 
          if (possibleDirections.length) {
             const selectedDirection = Phaser.Math.RND.pick(possibleDirections);
             this.direction = this.calculateDirectionVector(selectedDirection);
+            this.hasTargetDirection = true;
+         } else {
+            this.hasTargetDirection = false;
          }
       }
    }
 
-   destinationReached(currentTile) {
+   isTargetDirectionReached(currentTile) {
       const tileCenter = currentTile.getCenter();
       const distance = Phaser.Math.Distance.Between(this.x, this.y, tileCenter.x, tileCenter.y);
       return distance < 1;

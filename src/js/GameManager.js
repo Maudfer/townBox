@@ -32,10 +32,9 @@ export default class GameManager {
             height: gridParams.height / gridParams.rows,
         };
 
-        this.field = new Field(this, fieldParams.rows, fieldParams.cols);
-        this.scene = new MainScene(this);
-        this.scene.setGridParams(gridParams);
         this.gridParams = gridParams;
+        this.scene = new MainScene(this);
+        this.field = new Field(this, fieldParams.rows, fieldParams.cols);
 
         const config = {
             type: Phaser.AUTO,

@@ -1,12 +1,10 @@
 import Phaser from 'phaser';
 
-
 export default class MainScene extends Phaser.Scene {
     constructor(gameManager) {
         super();
         this.gameManager = gameManager;
         this.cursorEntity = null;
-        this.gridParams = null;
 
         this.gameManager.on('tileUpdated', this.drawTile, this);
         this.gameManager.on('personSpawned', this.drawPerson, this);
@@ -57,7 +55,7 @@ export default class MainScene extends Phaser.Scene {
     }
 
     create(data) {
-        this.drawGrid(this); //antipattern
+        this.drawGrid(this);
 
         this.input.mouse.disableContextMenu();
         this.setCursor('road', 'road_1100');
@@ -102,6 +100,11 @@ export default class MainScene extends Phaser.Scene {
             this.setCursor('eraser', null);
         });
 
+        this.input.keyboard.addKey('P').on('down', (event) => {
+            const pointer = { x: this.input.activePointer.worldX, y: this.input.activePointer.worldY }
+            this.gameManager.trigger("personNeeded", pointer);
+        });
+
         this.input.on('pointermove', (pointer) => {
             if (pointer.isDown) {
                 this.handleClick(pointer);
@@ -144,7 +147,7 @@ export default class MainScene extends Phaser.Scene {
             if (tilePosition !== null) {
                 const tileCenter = this.gameManager.tileToPixelPosition(tilePosition.row, tilePosition.col);
                 const imageX = tileCenter.x;
-                const imageY = tileCenter.y + (this.gridParams.cells.height / 2);
+                const imageY = tileCenter.y + (this.gameManager.gridParams.cells.height / 2);
                 this.getCursor().entity.setPosition(imageX, imageY);
                 this.unhideCursor();
             } else {
@@ -162,6 +165,13 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    getCursor() {
+        return {
+            tool: this.tool,
+            entity: this.cursorEntity
+        };
+    }
+
     setCursor(toolName, textureName) {
         this.tool = toolName;
 
@@ -173,7 +183,7 @@ export default class MainScene extends Phaser.Scene {
             this.cursorEntity = this.add.image(0, 0, textureName);
             this.cursorEntity.setAlpha(0.5);
             this.cursorEntity.setOrigin(0.5, 1);
-            this.cursorEntity.setDepth((this.gridParams.rows * 10) + 1);
+            this.cursorEntity.setDepth((this.gameManager.gridParams.rows * 10) + 1);
         }
     }
 
@@ -189,34 +199,25 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
-    getCursor() {
-        return {
-            tool: this.tool,
-            entity: this.cursorEntity
-        };
-    }
-
-    setGridParams(gridParams) {
-        this.gridParams = gridParams;
-    }
-
     drawGrid(scene) {
+        const gridParams = this.gameManager.gridParams;
         const backgroundColor = 0x057605;
 
         this.grid = scene.add.grid(
-            this.gridParams.gridX,
-            this.gridParams.gridY,
-            this.gridParams.width,
-            this.gridParams.height,
-            this.gridParams.cells.width,
-            this.gridParams.cells.height,
+            gridParams.gridX,
+            gridParams.gridY,
+            gridParams.width,
+            gridParams.height,
+            gridParams.cells.width,
+            gridParams.cells.height,
             backgroundColor
         );
 
-        this.gridParams.bounds = this.grid.getBounds();
+        this.gameManager.gridParams.bounds = this.grid.getBounds();
     }
 
     drawTile(tile) {
+        const gridParams = this.gameManager.gridParams;
         const row = tile.getRow();
         const col = tile.getCol();
 
@@ -225,15 +226,15 @@ export default class MainScene extends Phaser.Scene {
 
         if (textureName !== null) {
             const imageX = pixelPosition.x;
-            const imageY = pixelPosition.y + (this.gridParams.cells.height / 2);
+            const imageY = pixelPosition.y + (gridParams.cells.height / 2);
 
             const image = this.add.image(imageX, imageY, textureName);
             image.setDepth(row * 10);
             image.setOrigin(0.5, 1);
 
-            const oldAsset = tile.getAsset();
-            if (oldAsset) {
-                oldAsset.destroy();
+            const existingTileAsset = tile.getAsset();
+            if (existingTileAsset) {
+                existingTileAsset.destroy();
             }
 
             tile.setAsset(image);
