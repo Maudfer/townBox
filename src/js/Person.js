@@ -4,10 +4,15 @@ export default class Person {
    constructor(x, y) {
       this.x = x;
       this.y = y;
+
       this.depth = 0;
       this.speed = 1;
+
       this.currentTarget = null;
       this.movingAxis = 'x';
+
+      this.path = [];
+      this.currentDestination = null;
       this.asset = null;
    }
 
@@ -36,30 +41,17 @@ export default class Person {
       }
 
       this.asset.setPosition(this.x, this.y);
-   }
 
-   updateCurrentTarget(currentTile, neighbors) {
-      if (!currentTile || !(currentTile instanceof Road)) {
-         // TODO: handle offroad movement and behavior
-         return;
-      }
-
-      if (this.currentTarget && !this.isCurrentTargetReached()) {
-         return; // Still moving towards the current target
-      }
-
-      const possibleTargets = currentTile.getConnectingRoads(neighbors);
-
-      if (possibleTargets.length > 0) {
-         const nextTarget = Phaser.Math.RND.pick(possibleTargets);
-         this.setNewTarget(nextTarget);
-      } else {
-         this.currentTarget = null; // No valid targets, stop moving
+      if (this.isCurrentTargetReached() && this.path.length) {
+         this.setNextTarget();
       }
    }
 
-   setNewTarget(targetTile) {
-      this.currentTarget = targetTile;
+   setNextTarget() {
+      const nextTile = this.path.shift();
+      //const nextTile = field.getTile(nextTilePosition.row, nextTilePosition.col);
+
+      this.currentTarget = nextTile;
       const targetCenter = this.currentTarget.getCenter();
 
       // Decide whether to move in x or y direction based on the closer axis to the target
@@ -67,6 +59,30 @@ export default class Person {
       const deltaY = Math.abs(targetCenter.y - this.y);
 
       this.movingAxis = deltaX > deltaY ? 'x' : 'y';
+   }
+
+   updateDestination(currentTile, destinations, pathFinder) {
+      if(!destinations.size) {
+         return;
+      }
+      if (this.currentDestination) {
+         return;
+      }
+
+      const destinationArray = Array.from(destinations);
+      const destinationKey = Phaser.Math.RND.pick(destinationArray);
+      const [destinationRow, destinationCol] = destinationKey.split('-').map(Number);
+      this.currentDestination = { row: destinationRow, col: destinationCol };
+
+      const currentTilePosition = {
+         row: currentTile.getRow(),
+         col: currentTile.getCol()
+      };
+
+      this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
+      if (this.path?.length) {
+         this.setNextTarget();
+      }
    }
 
    isCurrentTargetXReached() {

@@ -2,16 +2,20 @@ import Tile from './Tile.js';
 import Road from './Road.js';
 import Building from './Building.js';
 import Person from './Person';
+import PathFinder from './PathFinder';
 
 export default class Field {
     constructor(gameManager, rows, cols) {
         this.gameManager = gameManager;
         this.rows = rows;
         this.cols = cols;
-        this.matrix = {};
 
-        this.cursorEntity = null;
+        this.matrix = {};
+        this.destinations = new Set();
         this.people = [];
+        
+        this.cursorEntity = null;
+        this.pathFinder = new PathFinder(this);
 
         for (let row = 0; row < this.rows; row++) {
             this.matrix[row] = {};
@@ -32,11 +36,10 @@ export default class Field {
             const currentPosition = person.getPosition();
             const currentTilePosition = this.gameManager.pixelToTilePosition(currentPosition.x, currentPosition.y);
             const currentTile = this.getTile(currentTilePosition.row, currentTilePosition.col);
-            const neighboringTiles = this.getNeighbors(currentTile);
 
             person.walk(currentTile, event.delta);
             person.updateDepth(currentTile);
-            person.updateCurrentTarget(currentTile, neighboringTiles);
+            person.updateDestination(currentTile, this.destinations, this.pathFinder);
         });
     }
 
@@ -87,6 +90,12 @@ export default class Field {
                     oldAsset.destroy();
                 }
 
+                // Update destinations set with building tiles
+                this.destinations.delete(`${row}-${col}`);
+                if(tile instanceof Building) {
+                    this.destinations.add(`${row}-${col}`);
+                }
+
                 this.setTile(row, col, tile);
                 this.gameManager.trigger("tileUpdated", tile);
             }
@@ -114,12 +123,12 @@ export default class Field {
     }
 
     spawnPerson(event) {
-        console.log('Spawning person', event);
         const { x, y } = event;
 
         const person = new Person(x, y);
         this.people.push(person);
         
+        console.log('personSpawned', person);
         this.gameManager.trigger("personSpawned", person);
     }
 
