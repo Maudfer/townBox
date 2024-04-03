@@ -131,6 +131,7 @@ export default class MainScene extends Phaser.Scene {
         };
         this.cameraControls = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
+        this.gameManager.trigger("sceneInitialized", { scene: this });
         console.log('Scene intialized.');
     }
 

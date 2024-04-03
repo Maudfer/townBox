@@ -28,16 +28,15 @@ export default class Road extends Tile {
         this.textureName = code;
     }
 
-    getConnectingRoads(neighbors) {      
-        // Initialize an array to hold possible directions
-        let possibleDirections = [];
+    getConnectingRoads(neighbors) {
+        let connectingRoads = [];
 
-        // Check each neighbor to see if it's also a road
-        if (neighbors.top instanceof Road) possibleDirections.push('up');
-        if (neighbors.bottom instanceof Road) possibleDirections.push('down');
-        if (neighbors.left instanceof Road) possibleDirections.push('left');
-        if (neighbors.right instanceof Road) possibleDirections.push('right');
-
-        return possibleDirections;
+        Object.values(neighbors).forEach(tile => {
+            if (tile instanceof Road) {
+                connectingRoads.push(tile);
+            }
+        });
+        
+        return connectingRoads;
     }
 }

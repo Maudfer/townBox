@@ -17,7 +17,7 @@ export default class Field {
             this.matrix[row] = {};
             for (let col = 0; col < this.cols; col++) {
                 const pixelCenter = this.gameManager.tileToPixelPosition(row, col);
-                this.matrix[row][col] = new Tile(row, col, {x: 0, y: 0}, null);
+                this.matrix[row][col] = new Tile(row, col, pixelCenter, null);
             }
         }
 
@@ -35,7 +35,8 @@ export default class Field {
             const neighboringTiles = this.getNeighbors(currentTile);
 
             person.walk(currentTile, event.delta);
-            person.updateTargetDirection(currentTile, neighboringTiles);
+            person.updateDepth(currentTile);
+            person.updateCurrentTarget(currentTile, neighboringTiles);
         });
     }
 
