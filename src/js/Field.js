@@ -26,7 +26,6 @@ export default class Field {
         }
 
         this.gameManager.on("tileClicked", this.build, this);
-        //this.gameManager.on('roadBuilt', this.spawnPerson, this);
         this.gameManager.on('personNeeded', this.spawnPerson, this);
         this.gameManager.on('update', this.update, this);
     }
@@ -38,8 +37,8 @@ export default class Field {
             const currentTile = this.getTile(currentTilePosition.row, currentTilePosition.col);
 
             person.walk(currentTile, event.delta);
-            person.updateDepth(currentTile);
             person.updateDestination(currentTile, this.destinations, this.pathFinder);
+            person.updateDepth(currentTile);
         });
     }
 
