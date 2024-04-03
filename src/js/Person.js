@@ -4,10 +4,99 @@ export default class Person {
    constructor(x, y) {
       this.x = x;
       this.y = y;
+
       this.depth = 0;
       this.speed = 1;
-      this.direction = { x: 0, y: 0 };
+
+      this.currentTarget = null;
+      this.movingAxis = 'x';
+
+      this.path = [];
+      this.currentDestination = null;
       this.asset = null;
+   }
+
+   walk(currentTile, timeDelta) {
+      if (!this.currentTarget || !(currentTile instanceof Road)) return;
+
+      const targetCenter = this.currentTarget.getCenter();
+
+      // TODO: implement timeDelta to make the movement frame-independent
+      const speedX = this.speed * Math.sign(targetCenter.x - this.x); // * timeDelta;
+      const speedY = this.speed * Math.sign(targetCenter.y - this.y); // * timeDelta;
+
+      let potentialX = this.x + speedX;
+      let potentialY = this.y + speedY;
+
+      if (this.movingAxis === 'x') {
+         this.x = potentialX;
+         if (this.isCurrentTargetXReached()) {
+            this.movingAxis = 'y';
+         }
+      } else if (this.movingAxis === 'y') {
+         this.y = potentialY;
+         if (this.isCurrentTargetYReached()) {
+            this.movingAxis = 'x';
+         }
+      }
+
+      this.asset.setPosition(this.x, this.y);
+
+      if (this.isCurrentTargetReached() && this.path.length) {
+         this.setNextTarget();
+      }
+   }
+
+   setNextTarget() {
+      const nextTile = this.path.shift();
+      this.currentTarget = nextTile;
+      const targetCenter = this.currentTarget.getCenter();
+
+      // Decide whether to move in x or y direction based on the closer axis to the target
+      const deltaX = Math.abs(targetCenter.x - this.x);
+      const deltaY = Math.abs(targetCenter.y - this.y);
+
+      this.movingAxis = deltaX > deltaY ? 'x' : 'y';
+   }
+
+   updateDestination(currentTile, destinations, pathFinder) {
+      if(!destinations.size) {
+         return;
+      }
+      if (this.currentDestination) {
+         return;
+      }
+
+      const destinationArray = Array.from(destinations);
+      const destinationKey = Phaser.Math.RND.pick(destinationArray);
+      const [destinationRow, destinationCol] = destinationKey.split('-').map(Number);
+      this.currentDestination = { row: destinationRow, col: destinationCol };
+
+      const currentTilePosition = {
+         row: currentTile.getRow(),
+         col: currentTile.getCol()
+      };
+
+      this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
+      if (this.path?.length) {
+         this.setNextTarget();
+      }
+   }
+
+   isCurrentTargetXReached() {
+      const targetX = this.currentTarget.getCenter().x;
+      const distance = Math.abs(this.x - targetX);
+      return distance < 1;
+   }
+
+   isCurrentTargetYReached() {
+      const targetY = this.currentTarget.getCenter().y;
+      const distance = Math.abs(this.y - targetY);
+      return distance < 1;
+   }
+
+   isCurrentTargetReached() {
+      return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
    }
 
    updateDepth(currentTile) {
@@ -20,53 +109,6 @@ export default class Person {
       this.asset.setDepth(this.depth);
    }
 
-   walk(currentTile, timeDelta) {
-      if (!currentTile || !(currentTile instanceof Road)) {
-         return;
-      }
-
-      if (!this.asset) {
-         return;
-      }
-
-      // TODO: implement timeDelta to make the movement frame-independent
-      const potentialX = this.x + this.direction.x * this.speed; // * timeDelta;
-      const potentialY = this.y + this.direction.y * this.speed; // * timeDelta;
-
-      // If the tile position is valid and is a road, update the pedestrian's position
-      this.x = potentialX;
-      this.y = potentialY;
-      this.asset.setPosition(this.x, this.y);
-      this.updateDepth(currentTile);
-   }
-
-   updateDestination(currentTile, neighbors) {
-      if (this.destinationReached(currentTile)) {
-         let possibleDirections = currentTile.getConnectingRoads(neighbors);
-
-         if (possibleDirections.length) {
-            const selectedDirection = Phaser.Math.RND.pick(possibleDirections);
-            this.direction = this.calculateDirectionVector(selectedDirection);
-         }
-      }
-   }
-
-   destinationReached(currentTile) {
-      const tileCenter = currentTile.getCenter();
-      const distance = Phaser.Math.Distance.Between(this.x, this.y, tileCenter.x, tileCenter.y);
-      return distance < 1;
-   }
-
-   calculateDirectionVector(direction) {
-      const directions = {
-         left: { x: -1, y: 0 },
-         right: { x: 1, y: 0 },
-         up: { x: 0, y: -1 },
-         down: { x: 0, y: 1 }
-      };
-      return directions[direction];
-   }
-
    getPosition() {
       return { x: this.x, y: this.y };
    }
@@ -76,11 +118,11 @@ export default class Person {
       this.y = y;
    }
 
-   setAsset(asset) {
-      this.asset = asset;
-   }
-
    getAsset() {
       return this.asset;
+   }
+
+   setAsset(asset) {
+      this.asset = asset;
    }
 }

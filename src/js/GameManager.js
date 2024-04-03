@@ -32,10 +32,8 @@ export default class GameManager {
             height: gridParams.height / gridParams.rows,
         };
 
-        this.field = new Field(this, fieldParams.rows, fieldParams.cols);
-        this.scene = new MainScene(this);
-        this.scene.setGridParams(gridParams);
         this.gridParams = gridParams;
+        this.scene = new MainScene(this);
 
         const config = {
             type: Phaser.AUTO,
@@ -52,6 +50,10 @@ export default class GameManager {
             scene: this.scene
         }
         this.game = new Phaser.Game(config);
+
+        this.on("sceneInitialized", () => {
+            this.field = new Field(this, fieldParams.rows, fieldParams.cols);
+        });
     }
 
     // gets tile center position in pixels given a specific row and col

@@ -2,26 +2,31 @@ import Tile from './Tile.js';
 import Road from './Road.js';
 import Building from './Building.js';
 import Person from './Person';
+import PathFinder from './PathFinder';
 
 export default class Field {
     constructor(gameManager, rows, cols) {
         this.gameManager = gameManager;
         this.rows = rows;
         this.cols = cols;
+
         this.matrix = {};
-
-        this.cursorEntity = null;
+        this.destinations = new Set();
         this.people = [];
+        
+        this.cursorEntity = null;
+        this.pathFinder = new PathFinder(this);
 
-        for (let i = 0; i < this.rows; i++) {
-            this.matrix[i] = {};
-            for (let j = 0; j < this.cols; j++) {
-                this.matrix[i][j] = new Tile(i, j, null);
+        for (let row = 0; row < this.rows; row++) {
+            this.matrix[row] = {};
+            for (let col = 0; col < this.cols; col++) {
+                const pixelCenter = this.gameManager.tileToPixelPosition(row, col);
+                this.matrix[row][col] = new Tile(row, col, pixelCenter, null);
             }
         }
 
         this.gameManager.on("tileClicked", this.build, this);
-        this.gameManager.on('roadBuilt', this.spawnPerson, this);
+        this.gameManager.on('personNeeded', this.spawnPerson, this);
         this.gameManager.on('update', this.update, this);
     }
 
@@ -30,10 +35,10 @@ export default class Field {
             const currentPosition = person.getPosition();
             const currentTilePosition = this.gameManager.pixelToTilePosition(currentPosition.x, currentPosition.y);
             const currentTile = this.getTile(currentTilePosition.row, currentTilePosition.col);
-            const neighboringTiles = this.getNeighbors(currentTile);
 
             person.walk(currentTile, event.delta);
-            person.updateDestination(currentTile, neighboringTiles);
+            person.updateDestination(currentTile, this.destinations, this.pathFinder);
+            person.updateDepth(currentTile);
         });
     }
 
@@ -78,9 +83,16 @@ export default class Field {
             const neighbors = this.getNeighbors(tile);
             tile.updateSelfBasedOnNeighbors(neighbors);
 
+            // TODO: Implement a better way to update the tile that doesn't rely on texture name
             if (tile.getTextureName() !== oldTexture) {
                 if (oldAsset) {
                     oldAsset.destroy();
+                }
+
+                // Update destinations set with building tiles
+                this.destinations.delete(`${row}-${col}`);
+                if(tile instanceof Building) {
+                    this.destinations.add(`${row}-${col}`);
                 }
 
                 this.setTile(row, col, tile);
@@ -110,12 +122,12 @@ export default class Field {
     }
 
     spawnPerson(event) {
-        const { row, col } = event;
-        const { x, y } = this.gameManager.tileToPixelPosition(row, col);
+        const { x, y } = event;
 
         const person = new Person(x, y);
         this.people.push(person);
         
+        console.log('personSpawned', person);
         this.gameManager.trigger("personSpawned", person);
     }
 
