@@ -49,8 +49,6 @@ export default class Person {
 
    setNextTarget() {
       const nextTile = this.path.shift();
-      //const nextTile = field.getTile(nextTilePosition.row, nextTilePosition.col);
-
       this.currentTarget = nextTile;
       const targetCenter = this.currentTarget.getCenter();
 
