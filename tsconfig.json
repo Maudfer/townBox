@@ -1,0 +1,46 @@
+{
+    "compilerOptions": {
+      "lib": [
+        "ESNext",
+        "dom"
+      ],
+      
+      "outDir": "dist",
+      "removeComments": false, // Strips all comments from TypeScript files when converting into JavaScript
+      "target": "ES6", // Target environment. Most modern browsers support ES6, but you may want to set it to newer or older. (defaults to ES3)
+      "skipLibCheck": true, // Skip type checking of all declaration files (*.d.ts)
+
+      // Module resolution
+      "baseUrl": ".",
+      "paths": {
+        "app/*": ["./src/js/*"],
+        "types/*": ["./src/types/*"],
+        "json/*": ["./src/json/*"],
+        "css/*": ["./src/css/*"],
+      },
+      "moduleResolution": "node", // how modules get resolved. Node is the most common
+      "esModuleInterop": true, // fixes some issues TS originally had with the ES6 spec where TypeScript treats CommonJS/AMD/UMD modules similar to ES6 module
+  
+      // Source Map
+      "sourceMap": true, // enables the use of source maps for debuggers and error reporting etc
+      "sourceRoot": "/", // Specify the location where a debugger should locate TypeScript files instead of relative source locations.
+  
+      // Strict Checks
+      "strict": true, // Enabling all strict type checking options
+      "alwaysStrict": true, // Ensures that your files are parsed in the ECMAScript strict mode, and emit “use strict” for each source file.
+      "allowUnreachableCode": false, // pick up dead code paths
+      "noImplicitAny": true, // In some cases where no type annotations are present, TypeScript will fall back to a type of any for a variable when it cannot infer the type.
+      "strictNullChecks": true, // When strictNullChecks is true, null and undefined have their own distinct types and you’ll get a type error if you try to use them where a concrete value is expected.
+
+      // Linter Checks
+      "noImplicitReturns": true,
+      "noUncheckedIndexedAccess": true, // accessing index must always check for undefined
+      "noUnusedLocals": true, // Report errors on unused local variables.
+      "noUnusedParameters": true // Report errors on unused parameters in functions
+    },
+    
+    "include": ["./**/*.ts"],
+    "exclude": [
+      "node_modules/**/*"
+    ]
+  }

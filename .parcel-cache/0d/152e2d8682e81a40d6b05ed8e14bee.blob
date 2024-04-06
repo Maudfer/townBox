@@ -1,4 +1,0 @@
-var _GameManagerJs = require('./GameManager.js');
-var _parcelHelpers = require("@parcel/transformer-js/lib/esmodule-helpers.js");
-var _GameManagerJsDefault = _parcelHelpers.interopDefault(_GameManagerJs);
-const manager = new _GameManagerJsDefault.default();
