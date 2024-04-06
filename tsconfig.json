@@ -11,13 +11,12 @@
       "skipLibCheck": true, // Skip type checking of all declaration files (*.d.ts)
 
       // Module resolution
-      "baseUrl": "./",
+      "baseUrl": ".",
       "paths": {
-        "@/*": ["./src/js/*"],
-        "@/types/*": ["./src/types/*"],
-        "@/json/*": ["./src/json/*"],
-        "@/css/*": ["./src/css/*"],
-        "@/img/*": ["./src/img/*"],
+        "app/*": ["./src/js/*"],
+        "types/*": ["./src/types/*"],
+        "json/*": ["./src/json/*"],
+        "css/*": ["./src/css/*"],
       },
       "moduleResolution": "node", // how modules get resolved. Node is the most common
       "esModuleInterop": true, // fixes some issues TS originally had with the ES6 spec where TypeScript treats CommonJS/AMD/UMD modules similar to ES6 module

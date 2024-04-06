@@ -1,11 +1,11 @@
 import Phaser from 'phaser';
-import Field from '@/Field';
-import MainScene from '@/MainScene';
+import Field from 'app/Field';
+import MainScene from 'app/MainScene';
 
-import { EventListeners, Handler } from '@/types/EventListener';
-import { EventPayloads } from '@/types/Events';
-import { PixelPosition, TilePosition } from '@/types/Position';
-import { FieldParams, GridParams, ScreenParams } from '@/types/Grid';
+import { EventListeners, Handler } from 'types/EventListener';
+import { EventPayloads } from 'types/Events';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};

@@ -1,8 +1,8 @@
-import Field from '@/Field';
-import Tile from '@/Tile';
-import Road from '@/Road';
+import Field from 'app/Field';
+import Tile from 'app/Tile';
+import Road from 'app/Road';
 
-import { TilePosition } from '@/types/Position';
+import { TilePosition } from 'types/Position';
 
 export default class PathFinder {
     private field: Field;
@@ -90,17 +90,17 @@ export default class PathFinder {
         const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]]; // N, S, W, E
 
         const neighborPositions = directions.map(([dr, dc]) => {
-            if(!dr || !dc) {
-                throw new Error(`[PathFinder] Invalid direction: ${dr}, ${dc}`);
-            }
-
             return { 
-                row: (position.row + dr), 
-                col: (position.col + dc) 
+                row: (position.row + dr!), 
+                col: (position.col + dc!) 
             };
         });
 
         const validNeighbors = neighborPositions.filter(neighbor => {
+            if (!neighbor) {
+                return false;
+            }
+
             const neighborTile = matrix[neighbor.row]![neighbor.col];
             if (!neighborTile || !destination) {
                 return false;
@@ -112,6 +112,10 @@ export default class PathFinder {
 
             return ( isValid && (isRoad || isDestination) );
         });
+
+        if (!validNeighbors) {
+            return [];
+        }
 
         return validNeighbors;
     }

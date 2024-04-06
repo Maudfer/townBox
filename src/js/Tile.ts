@@ -1,6 +1,6 @@
-import { NeighborMap } from '@/types/Neighbor';
-import { PixelPosition, TilePosition } from '@/types/Position';
-import { Image } from '@/types/Phaser';
+import { NeighborMap } from 'types/Neighbor';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { Image } from 'types/Phaser';
 
 export default class Tile {
     private row: number;

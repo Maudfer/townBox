@@ -1,3 +1,3 @@
-import GameManager from '@/GameManager';
+import GameManager from 'app/GameManager';
 
 new GameManager();

@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 
-import GameManager from '@/GameManager';
-import Tile from '@/Tile';
-import Person from '@/Person';
+import GameManager from 'app/GameManager';
+import Tile from 'app/Tile';
+import Person from 'app/Person';
 
-import { PixelPosition, TilePosition } from '@/types/Position';
-import { Cursor } from '@/types/Cursor';
-import { Image } from '@/types/Phaser';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { Cursor } from 'types/Cursor';
+import { Image } from 'types/Phaser';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
@@ -31,7 +31,7 @@ export default class MainScene extends Phaser.Scene {
     init(_: any): void { }
 
     preload(): void {
-        this.load.setBaseURL('./');
+        this.load.setBaseURL('./sprites/');
 
         // People
         this.load.image('person', 'person.png');

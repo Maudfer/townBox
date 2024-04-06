@@ -1,7 +1,7 @@
-import Tile from '@/Tile';
+import Tile from 'app/Tile';
 
-import { NeighborMap } from '@/types/Neighbor';
-import { PixelPosition } from '@/types/Position';
+import { NeighborMap } from 'types/Neighbor';
+import { PixelPosition } from 'types/Position';
 
 export default class Road extends Tile {
     constructor(row: number, col: number, center: PixelPosition, textureName: string | null) {

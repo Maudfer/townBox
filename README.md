@@ -4,11 +4,16 @@ Simple city builder in javascript using Phaser engine
 
 # Usage
 
-npm install -g parcel-bundler
+```
+npm install -g parcel
 npm install -g browser-sync
 
-cd src
-parcel watch index.html --out-dir ../dist
+parcel watch ./src/js/main.ts --dist-dir ./dist
+
+cp ./src/html/index.html ./dist/
+cp ./src/css/styles.css ./dist/
+cp ./src/img/sprites/ ./dist/sprites/ -r
 
 cd dist
-browser-sync start --server --files "."
+browser-sync start --server --files "./"
+```

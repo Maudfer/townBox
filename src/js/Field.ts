@@ -1,13 +1,13 @@
-import GameManager from '@/GameManager';
-import Tile from '@/Tile';
-import Road from '@/Road';
-import Building from '@/Building';
-import Person from '@/Person';
-import PathFinder from '@/PathFinder';
+import GameManager from 'app/GameManager';
+import Tile from 'app/Tile';
+import Road from 'app/Road';
+import Building from 'app/Building';
+import Person from 'app/Person';
+import PathFinder from 'app/PathFinder';
 
-import { TilePosition, PixelPosition } from '@/types/Position';
-import { UpdateEvent, BuildEvent } from '@/types/Events';
-import { NeighborMap } from '@/types/Neighbor';
+import { TilePosition, PixelPosition } from 'types/Position';
+import { UpdateEvent, BuildEvent } from 'types/Events';
+import { NeighborMap } from 'types/Neighbor';
 
 type TileMatrix = {
     [row: number]: {

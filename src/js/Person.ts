@@ -1,9 +1,9 @@
-import Road from '@/Road';
-import Tile from '@/Tile';
-import PathFinder from '@/PathFinder';
+import Road from 'app/Road';
+import Tile from 'app/Tile';
+import PathFinder from 'app/PathFinder';
 
-import { TilePosition, PixelPosition } from '@/types/Position';
-import { Image } from '@/types/Phaser';
+import { TilePosition, PixelPosition } from 'types/Position';
+import { Image } from 'types/Phaser';
 
 export default class Person {
     private x: number;

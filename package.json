@@ -2,7 +2,6 @@
   "name": "phaser3",
   "version": "1.0.0",
   "description": "",
-  "main": "index.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -10,9 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "browser-sync": "^2.26.14",
-    "parcel": "^2.12.0",
-    "parcel-resolver-tspaths": "^0.0.9",
+    "app": "^0.1.0",
     "phaser": "^3.52.0"
   },
   "devDependencies": {
