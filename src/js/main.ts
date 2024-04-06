@@ -1,3 +1,3 @@
-import GameManager from './GameManager.js';
+import GameManager from '@/GameManager';
 
 new GameManager();

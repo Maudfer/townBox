@@ -12,5 +12,8 @@
   "dependencies": {
     "browser-sync": "^2.26.14",
     "phaser": "^3.52.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.4"
   }
 }
