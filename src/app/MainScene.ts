@@ -75,6 +75,10 @@ export default class MainScene extends Phaser.Scene {
     create(): void {
         this.drawGrid(this);
 
+        if (!this.input || !this.input.mouse || !this.input.keyboard) {
+            return;
+        }
+
         this.input.mouse.disableContextMenu();
         this.setCursor('road', 'road_1100');
 
