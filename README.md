@@ -8,7 +8,7 @@ Simple city builder in javascript using Phaser engine
 npm install -g parcel
 npm install -g browser-sync
 
-parcel watch ./src/js/main.ts --dist-dir ./dist
+parcel watch ./src/app/main.ts --dist-dir ./dist
 
 cp ./src/html/index.html ./dist/
 cp ./src/css/styles.css ./dist/
