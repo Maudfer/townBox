@@ -49,7 +49,9 @@ export default class Field {
                     throw new Error(`[Grid Creation] Tried to create a tile on an invalid or uninitialized row: ${row}`);
                 }
 
-                this.matrix[row]![col] = new Tile(row, col, pixelCenter, null);
+                const tile = new Tile(row, col, pixelCenter, "grass");
+                this.matrix[row]![col] = tile;
+                this.gameManager.trigger("tileUpdated", tile);
             }
         }
 

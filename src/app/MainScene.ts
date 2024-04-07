@@ -11,6 +11,7 @@ import { AssetManifest } from 'types/Assets';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
+import config from 'json/config.json';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
@@ -89,6 +90,7 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            zoomSpeed: 0.8, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
             maxSpeed: 0.35 // originally was 1.0
@@ -201,7 +203,8 @@ export default class MainScene extends Phaser.Scene {
 
     private drawGrid(scene: MainScene): void {
         const gridParams = this.gameManager.gridParams;
-        const backgroundColor = 0x057605;
+        const lineColor = 0x000000;
+        const lineAlpha = 0.1;
 
         const grid = scene.add.grid(
             gridParams.gridX,
@@ -210,8 +213,12 @@ export default class MainScene extends Phaser.Scene {
             gridParams.height,
             gridParams.cells.width,
             gridParams.cells.height,
-            backgroundColor
+            undefined,
+            undefined,
+            lineColor,
+            lineAlpha
         );
+        grid.setDepth((this.gameManager.gridParams.rows * 10) + 1);
 
         this.gameManager.gridParams.bounds = grid.getBounds();
     }
@@ -234,13 +241,31 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const imageX = pixelPosition.x;
-        const imageY = pixelPosition.y + (gridParams.cells.height / 2);
+        let image: Image;
+        if (textureName === "grass") {
+            image = this.add.image(pixelPosition.x, pixelPosition.y, textureName);
+            image.setOrigin(0.5, 0.5);
 
-        const image = this.add.image(imageX, imageY, textureName);
-        image.setDepth(tilePosition.row * 10);
-        image.setOrigin(0.5, 1);
+            const angles: number[] = [0, 90, 180, 270];
+            const rotation = angles[Math.floor(Math.random() * angles.length)]! * (Math.PI / 180);
 
+            image.setRotation(rotation);
+            image.setDepth(0);
+        } else {
+            // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
+            const imageY = pixelPosition.y + (gridParams.cells.height / 2);
+
+            image = this.add.image(pixelPosition.x, imageY, textureName);
+            image.setOrigin(0.5, 1);
+            image.setDepth(tilePosition.row * 10);
+        }
+
+        if (config.debug.drawDepth){
+            const rowText = this.add.text(pixelPosition.x, pixelPosition.y, `${tilePosition.row}`, { color: 'black' });
+            rowText.setOrigin(0.5, 0.5);
+            rowText.setDepth((this.gameManager.gridParams.rows * 10) + 1);
+        }
+        
         const existingTileAsset: Image = tile.getAsset();
         if (existingTileAsset) {
             existingTileAsset.destroy();
