@@ -26,9 +26,12 @@ export default class GameManager {
             height: 1920
         };
 
+        const gridWidth = 6144;
+        const gridHeight = 6144;
+
         const gridParams: GridParams = {
-            width: 6144,
-            height: 6144,
+            width: gridWidth,
+            height: gridHeight,
 
             rows: fieldParams.rows,
             cols: fieldParams.cols,
@@ -37,8 +40,8 @@ export default class GameManager {
             gridY: screenParams.height / 2,
 
             cells: {
-                width: 6144 / fieldParams.cols,
-                height: 6144 / fieldParams.rows,
+                width: gridWidth / fieldParams.cols,
+                height: gridHeight / fieldParams.rows,
             },
         };
 

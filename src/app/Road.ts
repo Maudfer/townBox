@@ -6,6 +6,7 @@ import { PixelPosition } from 'types/Position';
 export default class Road extends Tile {
     constructor(row: number, col: number, center: PixelPosition, textureName: string | null) {
         super(row, col, center, textureName);
+        
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {

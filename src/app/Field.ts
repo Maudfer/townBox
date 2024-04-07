@@ -19,8 +19,9 @@ export default class Field {
     private gameManager: GameManager;
     private rows: number;
     private cols: number;
-    private destinations: Set<string>;
+
     private people: Person[];
+    private destinations: Set<string>;
     private pathFinder: PathFinder;
 
     public matrix: TileMatrix;
@@ -29,8 +30,9 @@ export default class Field {
         this.gameManager = gameManager;
         this.rows = rows;
         this.cols = cols;
-        this.destinations = new Set();
+
         this.people = [];
+        this.destinations = new Set();
         this.pathFinder = new PathFinder(this);
 
         this.matrix = {};

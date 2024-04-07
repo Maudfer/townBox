@@ -8,12 +8,16 @@ import { Image } from 'types/Phaser';
 export default class Person {
     private x: number;
     private y: number;
+
     private depth: number;
     private speed: number;
+
     private currentTarget: Tile | null;
     private movingAxis: 'x' | 'y';
+
     private path: Tile[];
     private currentDestination: TilePosition;
+    
     private asset: Image;
 
     constructor(x: number, y: number) {
@@ -36,15 +40,12 @@ export default class Person {
             return;
         }
 
-        const targetCenter = this.currentTarget.getCenter();
-        if (!targetCenter) {
-            return;
-        }
-
         if (this.isCurrentTargetReached()) {
             this.setNextTarget();
             return;
         }
+
+        const nextCorner = this.determineNextCorner(currentTile, this.currentTarget);
 
         // TODO: implement timeDelta to make the movement frame-independent
         const speedX = this.speed * Math.sign(targetCenter.x - this.x); // * timeDelta;
@@ -85,10 +86,12 @@ export default class Person {
         }
 
         // Decide whether to move in x or y direction based on the closer axis to the target
+        /*
         const deltaX = Math.abs(targetCenter.x - this.x);
         const deltaY = Math.abs(targetCenter.y - this.y);
 
         this.movingAxis = deltaX > deltaY ? 'x' : 'y';
+        */
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
@@ -150,7 +153,24 @@ export default class Person {
     }
 
     isCurrentTargetReached(): boolean {
-        return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
+        if (!this.currentTarget) {
+            return false;
+        }
+
+        const tileCenter = this.currentTarget.getCenter();
+        if (!tileCenter) return false;
+
+        // Calculate the bounds of the tile
+        const tileLeftEdge = tileCenter.x - TILE_SIZE / 2;
+        const tileRightEdge = tileCenter.x + TILE_SIZE / 2;
+        const tileTopEdge = tileCenter.y - TILE_SIZE / 2;
+        const tileBottomEdge = tileCenter.y + TILE_SIZE / 2;
+
+        // Check if the person's position is within the bounds of the tile
+        const isWithinHorizontalBounds = this.x >= tileLeftEdge && this.x <= tileRightEdge;
+        const isWithinVerticalBounds = this.y >= tileTopEdge && this.y <= tileBottomEdge;
+
+        return isWithinHorizontalBounds && isWithinVerticalBounds;
     }
 
     updateDepth(currentTile: Tile): void {
