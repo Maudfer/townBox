@@ -7,6 +7,10 @@ import Person from 'app/Person';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
 import { Image } from 'types/Phaser';
+import { AssetManifest } from 'types/Assets';
+
+import assetManifest from 'json/assets.json';
+import inputConfig from 'json/input.json';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
@@ -24,98 +28,37 @@ export default class MainScene extends Phaser.Scene {
         this.cursor = null;
         this.cameraController = null;
 
-        this.gameManager.on('tileUpdated', {callback: this.drawTile, context: this});
-        this.gameManager.on('personSpawned', {callback: this.drawPerson, context: this});
+        this.gameManager.on('tileUpdated', { callback: this.drawTile, context: this });
+        this.gameManager.on('personSpawned', { callback: this.drawPerson, context: this });
     }
 
     init(_: any): void { }
 
     preload(): void {
-        this.load.setBaseURL('./sprites/');
+        const assets: AssetManifest = assetManifest;
 
-        // People
-        this.load.image('person', 'person.png');
-
-        // Roads
-        this.load.image('road_0011', 'road_0011.png');
-        this.load.image('road_0101', 'road_0101.png');
-        this.load.image('road_0110', 'road_0110.png');
-        this.load.image('road_0111', 'road_0111.png');
-        this.load.image('road_1001', 'road_1001.png');
-        this.load.image('road_1010', 'road_1010.png');
-        this.load.image('road_1011', 'road_1011.png');
-        this.load.image('road_1100', 'road_1100.png');
-        this.load.image('road_1101', 'road_1101.png');
-        this.load.image('road_1110', 'road_1110.png');
-        this.load.image('road_1111', 'road_1111.png');
-
-        // 1x1x1 Buildings
-        this.load.image('building_1x1x1_1', 'building_1x1x1_1.png');
-        this.load.image('building_1x1x1_2', 'building_1x1x1_2.png');
-        this.load.image('building_1x1x1_3', 'building_1x1x1_3.png');
-        this.load.image('building_1x1x1_4', 'building_1x1x1_4.png');
-        this.load.image('building_1x1x1_5', 'building_1x1x1_5.png');
-        this.load.image('building_1x1x1_6', 'building_1x1x1_6.png');
-
-        // 1x1x2 Buildings
-        this.load.image('building_1x1x2_1', 'building_1x1x2_1.png');
-        this.load.image('building_1x1x2_2', 'building_1x1x2_2.png');
-
-        // 2x1x1 Buildings
-        this.load.image('building_2x1x1_1_left', 'building_2x1x1_1_left.png');
-        this.load.image('building_2x1x1_1_right', 'building_2x1x1_1_right.png');
-
-        // 2x2x1 Buildings
-        this.load.image('building_2x2x1_1_down-left', 'building_2x2x1_1_down-left.png');
-        this.load.image('building_2x2x1_1_down-right', 'building_2x2x1_1_down-right.png');
-        this.load.image('building_2x2x1_1_up-left', 'building_2x2x1_1_up-left.png');
-        this.load.image('building_2x2x1_1_up-right', 'building_2x2x1_1_up-right.png');
+        this.load.setBaseURL(assets.baseURL);
+        assets.assets.forEach(asset => {
+            if (asset.type === "image") {
+                this.load.image(asset.key, asset.file);
+            }
+        });
     }
 
     create(): void {
         this.drawGrid(this);
 
+        if (!this.input || !this.input.mouse || !this.input.keyboard) {
+            return;
+        }
+
         this.input.mouse.disableContextMenu();
         this.setCursor('road', 'road_1100');
 
-        this.input.keyboard.addKey('F1').on('down', () => {
-            this.setCursor('building_1x1x1_1', 'building_1x1x1_1');
-        });
-
-        this.input.keyboard.addKey('F2').on('down', () => {
-            this.setCursor('building_1x1x1_2', 'building_1x1x1_2');
-        });
-
-        this.input.keyboard.addKey('F3').on('down', () => {
-            this.setCursor('building_1x1x1_3', 'building_1x1x1_3');
-        });
-
-        this.input.keyboard.addKey('F4').on('down', () => {
-            this.setCursor('building_1x1x1_4', 'building_1x1x1_4');
-        });
-
-        this.input.keyboard.addKey('F5').on('down', () => {
-            this.setCursor('building_1x1x1_5', 'building_1x1x1_5');
-        });
-
-        this.input.keyboard.addKey('F6').on('down', () => {
-            this.setCursor('building_1x1x1_6', 'building_1x1x1_6');
-        });
-
-        this.input.keyboard.addKey('F7').on('down', () => {
-            this.setCursor('building_1x1x2_1', 'building_1x1x2_1');
-        });
-
-        this.input.keyboard.addKey('F8').on('down', () => {
-            this.setCursor('building_1x1x2_2', 'building_1x1x2_2');
-        });
-
-        this.input.keyboard.addKey('F9').on('down', () => {
-            this.setCursor('road', 'road_1100');
-        });
-
-        this.input.keyboard.addKey('F10').on('down', () => {
-            this.setCursor('eraser', null);
+        inputConfig.inputMappings.forEach(mapping => {
+            this.input.keyboard?.addKey(mapping.key).on('down', () => {
+                this.setCursor(mapping.toolName, mapping.textureName);
+            });
         });
 
         this.input.keyboard.addKey('P').on('down', () => {
@@ -211,14 +154,16 @@ export default class MainScene extends Phaser.Scene {
     }
 
     setCursor(toolName: string, textureName: string | null): void {
-        if (this.cursor && this.cursor.entity !== null) {
-            this.cursor.entity.destroy();
-            this.cursor.entity = null;
-        } else if (!this.cursor) {
+        if (!this.cursor) {
             this.cursor = {
                 tool: "",
                 entity: null
             };
+        }
+
+        if (this.cursor && this.cursor.entity !== null) {
+            this.cursor.entity.destroy();
+            this.cursor.entity = null;
         }
 
         this.cursor.tool = toolName;
