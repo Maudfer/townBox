@@ -65,7 +65,7 @@ export default class PathFinder {
 
     private getPositionFromKey(key: string): TilePosition {
         const [row, col] = key.split('-').map(Number);
-        if (!row || !col) {
+        if (row === undefined || col === undefined) { // Explicit undefined check because 0 is a valid value
             throw new Error(`[PathFinder] Invalid key: ${key}`);
         }
 
@@ -101,6 +101,7 @@ export default class PathFinder {
                 return false;
             }
 
+            // TODO: handle grid edges
             const neighborTile = matrix[neighbor.row]![neighbor.col];
             if (!neighborTile || !destination) {
                 return false;

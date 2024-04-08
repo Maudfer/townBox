@@ -47,8 +47,8 @@
         },
         {
             "key": "F10",
-            "toolName": "eraser",
-            "textureName": null
+            "toolName": "soil",
+            "textureName": "grass"
         }
     ]
 }

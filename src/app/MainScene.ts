@@ -98,7 +98,7 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-            zoomSpeed: 0.8, // originally was 0.02
+            zoomSpeed: 0.08, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
             maxSpeed: 0.35 // originally was 1.0
@@ -267,22 +267,14 @@ export default class MainScene extends Phaser.Scene {
             const rotation = angles[Math.floor(Math.random() * angles.length)]! * (Math.PI / 180);
 
             image.setRotation(rotation);
-            image.setDepth(0);
         } else {
             // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
             const imageY = pixelPosition.y + (gridParams.cells.height / 2);
-
             image = this.add.image(pixelPosition.x, imageY, textureName);
             image.setOrigin(0.5, 1);
-            image.setDepth(tilePosition.row * 10);
         }
+        image.setDepth(tile.calculateDepth());
 
-        if (config.debug.drawDepth){
-            const rowText = this.add.text(pixelPosition.x, pixelPosition.y, `${tilePosition.row}`, { color: 'black' });
-            rowText.setOrigin(0.5, 0.5);
-            rowText.setDepth((this.gameManager.gridParams.rows * 10) + 1);
-        }
-        
         const existingTileAsset: Image = tile.getAsset();
         if (existingTileAsset) {
             existingTileAsset.destroy();
@@ -301,5 +293,20 @@ export default class MainScene extends Phaser.Scene {
         personSprite.setOrigin(0.5, 0.5);
 
         person.setAsset(personSprite);
+
+        person.setRedrawFunction(() => {
+            const personAsset = person.getAsset();
+            if (personAsset === null) {
+                return;
+            }
+
+            const position = person.getPosition();
+            if (position === null) {
+                return;
+            }
+
+            personAsset.setPosition(position.x, position.y);
+            personAsset.setDepth(person.getDepth());
+        });
     }
 }

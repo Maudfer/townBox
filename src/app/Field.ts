@@ -80,7 +80,7 @@ export default class Field {
 
             person.walk(currentTile, event.delta);
             person.updateDestination(currentTile, this.destinations, this.pathFinder);
-            person.updateDepth(currentTile);
+            person.redraw();
         });
     }
 
@@ -102,8 +102,8 @@ export default class Field {
             case 'road':
                 newTile = new Road(row, col, pixelCenter, null);
                 break;
-            case 'eraser':
-                newTile = new Tile(row, col, pixelCenter, null);
+            case 'soil':
+                newTile = new Soil(row, col, pixelCenter, "grass");
                 break;
             default:
                 newTile = new Building(row, col, pixelCenter, event.tool);
