@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
+import Soil from 'app/Soil';
 import Person from 'app/Person';
 
 import { PixelPosition, TilePosition } from 'types/Position';
@@ -15,12 +16,14 @@ import config from 'json/config.json';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
+type Grid = Phaser.GameObjects.Grid | null;
 type SceneConfig = Phaser.Types.Scenes.SettingsConfig;
 
 export default class MainScene extends Phaser.Scene {
     private gameManager: GameManager;
     private cameraController: CameraControl;
     private cursor: Cursor;
+    private grid: Grid;
 
     constructor(gameManager: GameManager, sceneConfig: SceneConfig) {
         super(sceneConfig);
@@ -28,6 +31,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.cursor = null;
         this.cameraController = null;
+        this.grid = null;
 
         this.gameManager.on('tileUpdated', { callback: this.drawTile, context: this });
         this.gameManager.on('personSpawned', { callback: this.drawPerson, context: this });
@@ -68,6 +72,10 @@ export default class MainScene extends Phaser.Scene {
                 y: this.input.activePointer.worldY
             };
             this.gameManager.trigger("personNeeded", pointer);
+        });
+
+        this.input.keyboard.addKey('G').on('down', () => {
+            this.toggleGrid();
         });
 
         this.input.on('pointermove', (pointer: Pointer) => {
@@ -201,6 +209,14 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    private toggleGrid(): void {
+        if (!this.grid) {
+            return;
+        }
+
+        this.grid.setVisible(!this.grid.visible);
+    }
+
     private drawGrid(scene: MainScene): void {
         const gridParams = this.gameManager.gridParams;
         const lineColor = 0x000000;
@@ -218,9 +234,10 @@ export default class MainScene extends Phaser.Scene {
             lineColor,
             lineAlpha
         );
-        grid.setDepth((this.gameManager.gridParams.rows * 10) + 1);
+        grid.setDepth((this.gameManager.gridParams.rows * 10) + 100);
 
         this.gameManager.gridParams.bounds = grid.getBounds();
+        this.grid = grid;
     }
 
     private drawTile(tile: Tile): void {
@@ -242,7 +259,7 @@ export default class MainScene extends Phaser.Scene {
         }
 
         let image: Image;
-        if (textureName === "grass") {
+        if (tile instanceof Soil) {
             image = this.add.image(pixelPosition.x, pixelPosition.y, textureName);
             image.setOrigin(0.5, 0.5);
 

@@ -1,5 +1,6 @@
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
+import Soil from 'app/Soil';
 import Road from 'app/Road';
 import Building from 'app/Building';
 import Person from 'app/Person';
@@ -49,7 +50,7 @@ export default class Field {
                     throw new Error(`[Grid Creation] Tried to create a tile on an invalid or uninitialized row: ${row}`);
                 }
 
-                const tile = new Tile(row, col, pixelCenter, "grass");
+                const tile = new Soil(row, col, pixelCenter, "grass");
                 this.matrix[row]![col] = tile;
                 this.gameManager.trigger("tileUpdated", tile);
             }
