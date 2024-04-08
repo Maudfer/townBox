@@ -10,6 +10,11 @@ export interface ScreenParams {
     height: number;
 }
 
+export interface CellParams {
+    width: number;
+    height: number;
+}
+
 export interface GridParams {
     width: number;
     height: number;
@@ -17,9 +22,6 @@ export interface GridParams {
     cols: number;
     gridX: number;
     gridY: number;
-    cells: {
-        width: number;
-        height: number;
-    };
+    cells: CellParams;
     bounds?: Phaser.Geom.Rectangle;
 }

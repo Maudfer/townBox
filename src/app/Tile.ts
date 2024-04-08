@@ -1,19 +1,17 @@
 import { NeighborMap } from 'types/Neighbor';
-import { PixelPosition, TilePosition } from 'types/Position';
+import { TilePosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 
 export default class Tile {
     protected row: number;
     protected col: number;
 
-    private center: PixelPosition;
     private asset: Image;
     private textureName: string | null;
 
-    constructor(row: number, col: number, center: PixelPosition, textureName: string | null) {
+    constructor(row: number, col: number, textureName: string | null) {
         this.row = row;
         this.col = col;
-        this.center = center;
         this.asset = null;
         this.textureName = textureName;
     }
@@ -52,10 +50,6 @@ export default class Tile {
 
     setAsset(asset: Image): void {
         this.asset = asset;
-    }
-
-    getCenter(): PixelPosition {
-        return this.center;
     }
 
     updateSelfBasedOnNeighbors(_: NeighborMap): void { }

@@ -3,15 +3,8 @@ import Tile from 'app/Tile';
 import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
+import { CurbPoint } from 'types/Curb';
 import { Image } from 'types/Phaser';
-
-enum Direction {
-    North = "north",
-    South = "south",
-    East = "east",
-    West = "west",
-}
-
 export default class Person {
     private x: number;
     private y: number;
@@ -24,7 +17,7 @@ export default class Person {
 
     private path: Tile[];
     private currentDestination: TilePosition;
-    
+
     private asset: Image;
 
     private redrawFunction: (() => void) | null;
@@ -47,15 +40,21 @@ export default class Person {
     }
 
     walk(currentTile: Tile, _: number): void {
-        if (!this.currentTarget || !(currentTile instanceof Road) || !this.asset) {
+        if (!this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
 
-        if (this.isCurrentTargetReached(currentTile)) {
-            this.setNextTarget();
+        if (!this.asset) {
             return;
         }
 
+        // If current target (CurbPoint) is reached, set next target and wait for next walk cycle
+        if (this.isCurrentTargetReached()) {
+            this.setNextTarget(currentTile);
+            return;
+        }
+
+        // If current target is not reached, check if we have a target at all
         if (!this.currentTarget) {
             return;
         }
@@ -64,53 +63,82 @@ export default class Person {
         const speedX = this.speed * Math.sign(this.currentTarget.x - this.x); // * timeDelta;
         const speedY = this.speed * Math.sign(this.currentTarget.y - this.y); // * timeDelta;
 
-        let potentialX = this.x + speedX;
-        let potentialY = this.y + speedY;
+        const potentialX = this.x + speedX;
+        const potentialY = this.y + speedY;
 
-        /*
+        const deltaX = Math.abs(this.currentTarget.x - potentialX);
+        const deltaY = Math.abs(this.currentTarget.y - potentialY);
+
         if (this.movingAxis === 'x') {
             this.x = potentialX;
-            if (this.isCurrentTargetXReached()) {
+            if (deltaX <= 1) {
                 this.movingAxis = 'y';
             }
         } else if (this.movingAxis === 'y') {
             this.y = potentialY;
-            if (this.isCurrentTargetYReached()) {
+            if (deltaY <= 1) {
                 this.movingAxis = 'x';
             }
         }
-        */
 
         this.updateDepth(currentTile);
     }
 
-    setNextTarget(): void {
+    setNextTarget(currentTile: Tile): void {
         if (!this.path.length) {
             return;
         }
 
-        const nextTile = this.path.shift();
-        if (!nextTile) {
+        if (!currentTile || !(currentTile instanceof Road)) {
             return;
         }
 
-        const directionToNextTile = getDirectionToNextTile(currentTile, nextTile);
-    
-        switch (directionToNextTile) {
-            case Direction.North:
-                // Example: If moving north and the current target is on the right side, head towards topRight corner.
-                // This assumes you have logic in place to know which side of the road the person is on.
-                return this.isOnRightSideOfRoad(currentTile) ? currentTile.corners.topRight : currentTile.corners.topLeft;
-            case Direction.South:
-                return this.isOnRightSideOfRoad(currentTile) ? currentTile.corners.bottomRight : currentTile.corners.bottomLeft;
-            case Direction.East:
-                return this.isMovingUpward() ? currentTile.corners.topRight : currentTile.corners.bottomRight;
-            case Direction.West:
-                return this.isMovingUpward() ? currentTile.corners.topLeft : currentTile.corners.bottomLeft;
-            default:
-                // Default case if direction is somehow not determined; consider how best to handle this.
-                return currentTile.corners.bottomRight;
+        const currentTilePosition = currentTile.getPosition();
+        if (!currentTilePosition) {
+            return;
         }
+
+        const nextTile = this.path.shift();
+        if (!nextTile || !(nextTile instanceof Road)) {
+            return;
+        }
+         
+        const nextTilePosition = nextTile.getPosition();
+        const curbs = nextTile.getCurb();
+        if (!nextTilePosition || !curbs) {
+            return;
+        }
+
+        // Determine which CurbPoint is going to be the next target
+        let nextTarget;
+        const currentPixelPosition = { x: this.x, y: this.y };
+
+        // Moving North
+        if (nextTilePosition.row < currentTilePosition.row) {
+            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.topRight : curbs.topLeft;
+        }
+
+        // Moving South
+        if (nextTilePosition.row > currentTilePosition.row) {
+            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.bottomRight : curbs.bottomLeft;
+        }
+
+        // Moving East
+        if (nextTilePosition.col > currentTilePosition.col) {
+            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topRight : curbs.bottomRight;
+        }
+
+        // Moving West
+        if (nextTilePosition.col < currentTilePosition.col) {
+            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topLeft : curbs.bottomLeft;
+        }
+
+        if (!nextTarget) {
+            console.warn("Could not determine direction to next tile", this, currentTile, nextTile);
+            return;
+        }
+
+        this.currentTarget = nextTarget;
 
         // Decide whether to move in x or y direction based on the closer axis to the target
         /*
@@ -119,18 +147,6 @@ export default class Person {
 
         this.movingAxis = deltaX > deltaY ? 'x' : 'y';
         */
-    }
-
-    getDirectionToNextTile(currentTile: Tile, nextTile: Tile): Direction {
-        if (nextTile.row < currentTile.row) return Direction.North;
-        if (nextTile.row > currentTile.row) return Direction.South;
-        if (nextTile.col > currentTile.col) return Direction.East;
-        if (nextTile.col < currentTile.col) return Direction.West;
-        throw new Error("Next tile is not adjacent to current tile");
-    }
-
-    determineNextCurbPoint(currentTile: Road, nextTile: Road): CurbPoint {
-
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
@@ -157,62 +173,22 @@ export default class Person {
 
         this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
         if (this.path?.length) {
-            this.setNextTarget();
+            this.setNextTarget(currentTile);
         }
     }
 
-    /*
-    isCurrentTargetXReached(): boolean {
+    isCurrentTargetReached(): boolean {
         if (!this.currentTarget) {
             return false;
         }
 
-        const targetPixelPosition = this.currentTarget.getCenter();
-        if (!targetPixelPosition) {
-            return false;
-        }
+        const curretPixelPosition: PixelPosition = {x: this.x, y: this.y};
+        const targetPixelPosition: CurbPoint = this.currentTarget;
 
-        const targetX = targetPixelPosition.x;
-        const distance = Math.abs(this.x - targetX);
-        return distance < 1;
-    }
+        const deltaX = Math.abs(targetPixelPosition.x - curretPixelPosition.x);
+        const deltaY = Math.abs(targetPixelPosition.y - curretPixelPosition.y);
 
-    isCurrentTargetYReached(): boolean {
-        if (!this.currentTarget) {
-            return false;
-        }
-
-        const targetPixelPosition = this.currentTarget.getCenter();
-        if (!targetPixelPosition) {
-            return false;
-        }
-
-        const targetY = targetPixelPosition.y;
-        const distance = Math.abs(this.y - targetY);
-        return distance < 1;
-    }
-    */
-
-    isCurrentTargetReached(currentTile: Tile): boolean {
-        if (!this.currentTarget) {
-            return false;
-        }
-
-        if(!currentTile) {
-            return false;
-        }
-
-        const targetTilePosition = this.currentTarget.getPosition();
-        const currentTilePosition = currentTile.getPosition();
-
-        if (!targetTilePosition || !currentTilePosition) {
-            return false;
-        }
-
-        const isSameRow = targetTilePosition.row === currentTilePosition.row;
-        const isSameCol = targetTilePosition.col === currentTilePosition.col;
-
-        return isSameRow && isSameCol;
+        return (deltaX <= 1) && (deltaY <= 1);
     }
 
     updateDepth(currentTile: Tile): void {
@@ -249,5 +225,9 @@ export default class Person {
         if (this.redrawFunction) {
             this.redrawFunction();
         }
+    }
+
+    getMovingAxis(): string {
+        return this.movingAxis;
     }
 }

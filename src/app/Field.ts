@@ -41,18 +41,7 @@ export default class Field {
 
             this.matrix[row] = {}; // Initialize the row
             for (let col = 0; col < this.cols; col++) {
-                const tilePosition: TilePosition = { row, col };
-
-                const pixelCenter = this.gameManager.tileToPixelPosition(tilePosition);
-                if (pixelCenter === null) {
-                    throw new Error(`[Grid Creation] Tried to create a tile on an invalid pixel range: ${row}, ${col}`);
-                }
-
-                if (!this.matrix[row]) {
-                    throw new Error(`[Grid Creation] Tried to create a tile on an invalid or uninitialized row: ${row}`);
-                }
-
-                const tile = new Soil(row, col, pixelCenter, "grass");
+                const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
                 this.gameManager.trigger("tileUpdated", tile);
             }
@@ -98,17 +87,18 @@ export default class Field {
         }
 
         const { row, col } = tilePosition;
+        
 
         let newTile = null;
         switch (event.tool) {
             case 'road':
-                newTile = new Road(row, col, pixelCenter, null);
+                newTile = new Road(row, col, null);
                 break;
             case 'soil':
-                newTile = new Soil(row, col, pixelCenter, "grass");
+                newTile = new Soil(row, col, "grass");
                 break;
             default:
-                newTile = new Building(row, col, pixelCenter, event.tool);
+                newTile = new Building(row, col, event.tool);
         }
 
         const neighbors = this.getNeighbors(newTile);
@@ -120,6 +110,9 @@ export default class Field {
         neighbors.right && this.replaceTile(neighbors.right);
 
         if (newTile instanceof Road) {
+            const cellParams = this.gameManager.gridParams.cells;
+            newTile.calculateCurb(cellParams, pixelCenter);
+            newTile.calculateLanes(cellParams, pixelCenter);
             this.gameManager.trigger("roadBuilt", tilePosition);
         }
     }

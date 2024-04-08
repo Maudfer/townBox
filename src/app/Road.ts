@@ -2,15 +2,70 @@ import Tile from 'app/Tile';
 
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
-
+import { CellParams } from 'types/Grid';
+import { Curb } from 'types/Curb';
 export default class Road extends Tile {
-    constructor(row: number, col: number, center: PixelPosition, textureName: string | null) {
-        super(row, col, center, textureName);
-        
+    private curb: Curb;
+
+    constructor(row: number, col: number, textureName: string | null) {
+        super(row, col, textureName);
+        this.curb = null;
     }
 
     calculateDepth(): number {
         return (this.row * 10);
+    }
+
+    calculateCurb(cellParams: CellParams, pixelCenter: PixelPosition): void {
+        if (!pixelCenter || !cellParams) {
+            console.warn(`[Road] calculateCurb() called with invalid parameters: ${pixelCenter}, ${cellParams}`);
+            return;
+        }
+
+        const { width, height } = cellParams;
+        const { x, y } = pixelCenter;
+
+        const offset = 4;
+        this.curb = {
+            topLeft: {
+                x: (x - (width / 2)) + offset,
+                y: (y - (height / 2)) + offset
+            },
+            topRight: {
+                x: (x + (width / 2)) - offset,
+                y: (y - (height / 2)) + offset
+            },
+            bottomLeft: {
+                x: (x - (width / 2)) + offset,
+                y: (y + (height / 2)) - offset
+            },
+            bottomRight: {
+                x: (x + (width / 2)) - offset,
+                y: (y + (height / 2)) - offset
+            }
+        };
+    }
+
+    calculateLanes(_1: CellParams, _2: PixelPosition): void {
+        // TODO: Implement lane calculation
+    }
+
+    isRightSideOfRoad(pixelPosition: PixelPosition): boolean {
+        if(!pixelPosition || !this.curb) {
+            console.warn(`[Road] isRightSideOfRoad() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
+            return false;
+        }
+
+        return pixelPosition.x > this.curb.topRight.x;
+    }
+
+    isTopSideOfTheRoad(pixelPosition: PixelPosition): boolean {
+        if(!pixelPosition || !this.curb) {
+            console.warn(`[Road] isTopSideOfTheRoad() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
+            return false;
+        }
+
+        return pixelPosition.y < this.curb.topRight.y;
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {
@@ -45,5 +100,9 @@ export default class Road extends Tile {
         });
 
         return connectingRoads;
+    }
+
+    getCurb(): Curb {
+        return this.curb;
     }
 }
