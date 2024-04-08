@@ -16,6 +16,8 @@ export default class Person {
     private currentDestination: TilePosition;
     private asset: Image;
 
+    private redrawFunction: (() => void) | null;
+
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
@@ -29,6 +31,8 @@ export default class Person {
         this.path = [];
         this.currentDestination = null;
         this.asset = null;
+
+        this.redrawFunction = null;
     }
 
     walk(currentTile: Tile, _: number): void {
@@ -65,7 +69,7 @@ export default class Person {
             }
         }
 
-        this.asset.setPosition(this.x, this.y);
+        this.updateDepth(currentTile);
     }
 
     setNextTarget(): void {
@@ -154,13 +158,12 @@ export default class Person {
     }
 
     updateDepth(currentTile: Tile): void {
-        if (!this.asset) {
-            return;
-        }
-
         const row = currentTile.getRow();
-        this.depth = (row * 10) + 1;
-        this.asset.setDepth(this.depth);
+        this.depth = ((row + 1) * 10) + 1;
+    }
+
+    getDepth(): number {
+        return this.depth;
     }
 
     getPosition(): PixelPosition {
@@ -178,5 +181,15 @@ export default class Person {
 
     setAsset(asset: Image): void {
         this.asset = asset;
+    }
+
+    setRedrawFunction(redrawFunction: () => void): void {
+        this.redrawFunction = redrawFunction;
+    }
+
+    redraw(): void {
+        if (this.redrawFunction) {
+            this.redrawFunction();
+        }
     }
 }

@@ -8,6 +8,10 @@ export default class Road extends Tile {
         super(row, col, center, textureName);
     }
 
+    calculateDepth(): number {
+        return (this.row * 10);
+    }
+
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {
         let code = 'road_';
 

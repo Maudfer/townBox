@@ -8,6 +8,11 @@
         },
         {
             "type": "image",
+            "key": "grass",
+            "file": "grass.png"
+        },
+        {
+            "type": "image",
             "key": "road_0011",
             "file": "road_0011.png"
         },
