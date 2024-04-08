@@ -129,12 +129,23 @@ export default class Field {
             return;
         }
 
+        const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
+        if (tilePosition === null) {
+            return;
+        }
+
+        const currentTile = this.getTile(tilePosition.row, tilePosition.col);
+        if (currentTile === null) {
+            return;
+        }
+
         const { x, y } = pixelPosition;
         const person = new Person(x, y);
-        this.people.push(person);
+        person.updateDepth(currentTile);
 
-        console.log('personSpawned', person);
+        this.people.push(person);
         this.gameManager.trigger("personSpawned", person);
+        console.log('personSpawned', person);
     }
 
     replaceTile(tile: Tile): void {

@@ -5,6 +5,13 @@ import PathFinder from 'app/PathFinder';
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 
+enum Direction {
+    North = "north",
+    South = "south",
+    East = "east",
+    West = "west",
+}
+
 export default class Person {
     private x: number;
     private y: number;
@@ -12,7 +19,7 @@ export default class Person {
     private depth: number;
     private speed: number;
 
-    private currentTarget: Tile | null;
+    private currentTarget: CurbPoint | null;
     private movingAxis: 'x' | 'y';
 
     private path: Tile[];
@@ -44,20 +51,23 @@ export default class Person {
             return;
         }
 
-        if (this.isCurrentTargetReached()) {
+        if (this.isCurrentTargetReached(currentTile)) {
             this.setNextTarget();
             return;
         }
 
-        const nextCorner = this.determineNextCorner(currentTile, this.currentTarget);
+        if (!this.currentTarget) {
+            return;
+        }
 
         // TODO: implement timeDelta to make the movement frame-independent
-        const speedX = this.speed * Math.sign(targetCenter.x - this.x); // * timeDelta;
-        const speedY = this.speed * Math.sign(targetCenter.y - this.y); // * timeDelta;
+        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x); // * timeDelta;
+        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y); // * timeDelta;
 
         let potentialX = this.x + speedX;
         let potentialY = this.y + speedY;
 
+        /*
         if (this.movingAxis === 'x') {
             this.x = potentialX;
             if (this.isCurrentTargetXReached()) {
@@ -69,6 +79,7 @@ export default class Person {
                 this.movingAxis = 'x';
             }
         }
+        */
 
         this.updateDepth(currentTile);
     }
@@ -83,10 +94,22 @@ export default class Person {
             return;
         }
 
-        this.currentTarget = nextTile;
-        const targetCenter = this.currentTarget.getCenter();
-        if (!targetCenter) {
-            return;
+        const directionToNextTile = getDirectionToNextTile(currentTile, nextTile);
+    
+        switch (directionToNextTile) {
+            case Direction.North:
+                // Example: If moving north and the current target is on the right side, head towards topRight corner.
+                // This assumes you have logic in place to know which side of the road the person is on.
+                return this.isOnRightSideOfRoad(currentTile) ? currentTile.corners.topRight : currentTile.corners.topLeft;
+            case Direction.South:
+                return this.isOnRightSideOfRoad(currentTile) ? currentTile.corners.bottomRight : currentTile.corners.bottomLeft;
+            case Direction.East:
+                return this.isMovingUpward() ? currentTile.corners.topRight : currentTile.corners.bottomRight;
+            case Direction.West:
+                return this.isMovingUpward() ? currentTile.corners.topLeft : currentTile.corners.bottomLeft;
+            default:
+                // Default case if direction is somehow not determined; consider how best to handle this.
+                return currentTile.corners.bottomRight;
         }
 
         // Decide whether to move in x or y direction based on the closer axis to the target
@@ -96,6 +119,18 @@ export default class Person {
 
         this.movingAxis = deltaX > deltaY ? 'x' : 'y';
         */
+    }
+
+    getDirectionToNextTile(currentTile: Tile, nextTile: Tile): Direction {
+        if (nextTile.row < currentTile.row) return Direction.North;
+        if (nextTile.row > currentTile.row) return Direction.South;
+        if (nextTile.col > currentTile.col) return Direction.East;
+        if (nextTile.col < currentTile.col) return Direction.West;
+        throw new Error("Next tile is not adjacent to current tile");
+    }
+
+    determineNextCurbPoint(currentTile: Road, nextTile: Road): CurbPoint {
+
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
@@ -126,6 +161,7 @@ export default class Person {
         }
     }
 
+    /*
     isCurrentTargetXReached(): boolean {
         if (!this.currentTarget) {
             return false;
@@ -155,26 +191,28 @@ export default class Person {
         const distance = Math.abs(this.y - targetY);
         return distance < 1;
     }
+    */
 
-    isCurrentTargetReached(): boolean {
+    isCurrentTargetReached(currentTile: Tile): boolean {
         if (!this.currentTarget) {
             return false;
         }
 
-        const tileCenter = this.currentTarget.getCenter();
-        if (!tileCenter) return false;
+        if(!currentTile) {
+            return false;
+        }
 
-        // Calculate the bounds of the tile
-        const tileLeftEdge = tileCenter.x - TILE_SIZE / 2;
-        const tileRightEdge = tileCenter.x + TILE_SIZE / 2;
-        const tileTopEdge = tileCenter.y - TILE_SIZE / 2;
-        const tileBottomEdge = tileCenter.y + TILE_SIZE / 2;
+        const targetTilePosition = this.currentTarget.getPosition();
+        const currentTilePosition = currentTile.getPosition();
 
-        // Check if the person's position is within the bounds of the tile
-        const isWithinHorizontalBounds = this.x >= tileLeftEdge && this.x <= tileRightEdge;
-        const isWithinVerticalBounds = this.y >= tileTopEdge && this.y <= tileBottomEdge;
+        if (!targetTilePosition || !currentTilePosition) {
+            return false;
+        }
 
-        return isWithinHorizontalBounds && isWithinVerticalBounds;
+        const isSameRow = targetTilePosition.row === currentTilePosition.row;
+        const isSameCol = targetTilePosition.col === currentTilePosition.col;
+
+        return isSameRow && isSameCol;
     }
 
     updateDepth(currentTile: Tile): void {
