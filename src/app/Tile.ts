@@ -19,7 +19,7 @@ export default class Tile {
     }
 
     calculateDepth(): number {
-        return this.row;
+        throw new Error("Base class Tile calculateDepth() called. This method should always be overridden.");
     }
 
     getRow(): number {

@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
+import Road from 'app/Road';
+import Building from 'app/Building';
 import Soil from 'app/Soil';
 import Person from 'app/Person';
 
@@ -272,7 +274,7 @@ export default class MainScene extends Phaser.Scene {
             const imageY = pixelPosition.y + (gridParams.cells.height / 2);
             image = this.add.image(pixelPosition.x, imageY, textureName);
             image.setOrigin(0.5, 1);
-        }
+        } 
         image.setDepth(tile.calculateDepth());
 
         const existingTileAsset: Image = tile.getAsset();
