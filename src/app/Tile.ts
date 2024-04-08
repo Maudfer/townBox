@@ -3,8 +3,9 @@ import { PixelPosition, TilePosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 
 export default class Tile {
-    private row: number;
-    private col: number;
+    protected row: number;
+    protected col: number;
+
     private center: PixelPosition;
     private asset: Image;
     private textureName: string | null;
@@ -15,6 +16,10 @@ export default class Tile {
         this.center = center;
         this.asset = null;
         this.textureName = textureName;
+    }
+
+    calculateDepth(): number {
+        return this.row;
     }
 
     getRow(): number {

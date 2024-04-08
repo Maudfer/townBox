@@ -9,6 +9,10 @@ export default class Road extends Tile {
         
     }
 
+    calculateDepth(): number {
+        return (this.row * 10);
+    }
+
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {
         let code = 'road_';
 

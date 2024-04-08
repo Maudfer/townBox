@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
+import Soil from 'app/Soil';
 import Person from 'app/Person';
 
 import { PixelPosition, TilePosition } from 'types/Position';
@@ -11,15 +12,18 @@ import { AssetManifest } from 'types/Assets';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
+import config from 'json/config.json';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
+type Grid = Phaser.GameObjects.Grid | null;
 type SceneConfig = Phaser.Types.Scenes.SettingsConfig;
 
 export default class MainScene extends Phaser.Scene {
     private gameManager: GameManager;
     private cameraController: CameraControl;
     private cursor: Cursor;
+    private grid: Grid;
 
     constructor(gameManager: GameManager, sceneConfig: SceneConfig) {
         super(sceneConfig);
@@ -27,6 +31,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.cursor = null;
         this.cameraController = null;
+        this.grid = null;
 
         this.gameManager.on('tileUpdated', { callback: this.drawTile, context: this });
         this.gameManager.on('personSpawned', { callback: this.drawPerson, context: this });
@@ -69,6 +74,10 @@ export default class MainScene extends Phaser.Scene {
             this.gameManager.trigger("personNeeded", pointer);
         });
 
+        this.input.keyboard.addKey('G').on('down', () => {
+            this.toggleGrid();
+        });
+
         this.input.on('pointermove', (pointer: Pointer) => {
             if (pointer.isDown) {
                 this.handleClick(pointer);
@@ -89,6 +98,7 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            zoomSpeed: 0.08, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
             maxSpeed: 0.35 // originally was 1.0
@@ -199,9 +209,18 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    private toggleGrid(): void {
+        if (!this.grid) {
+            return;
+        }
+
+        this.grid.setVisible(!this.grid.visible);
+    }
+
     private drawGrid(scene: MainScene): void {
         const gridParams = this.gameManager.gridParams;
-        const backgroundColor = 0x057605;
+        const lineColor = 0x000000;
+        const lineAlpha = 0.1;
 
         const grid = scene.add.grid(
             gridParams.gridX,
@@ -210,10 +229,15 @@ export default class MainScene extends Phaser.Scene {
             gridParams.height,
             gridParams.cells.width,
             gridParams.cells.height,
-            backgroundColor
+            undefined,
+            undefined,
+            lineColor,
+            lineAlpha
         );
+        grid.setDepth((this.gameManager.gridParams.rows * 10) + 100);
 
         this.gameManager.gridParams.bounds = grid.getBounds();
+        this.grid = grid;
     }
 
     private drawTile(tile: Tile): void {
@@ -234,12 +258,22 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const imageX = pixelPosition.x;
-        const imageY = pixelPosition.y + (gridParams.cells.height / 2);
+        let image: Image;
+        if (tile instanceof Soil) {
+            image = this.add.image(pixelPosition.x, pixelPosition.y, textureName);
+            image.setOrigin(0.5, 0.5);
 
-        const image = this.add.image(imageX, imageY, textureName);
-        image.setDepth(tilePosition.row * 10);
-        image.setOrigin(0.5, 1);
+            const angles: number[] = [0, 90, 180, 270];
+            const rotation = angles[Math.floor(Math.random() * angles.length)]! * (Math.PI / 180);
+
+            image.setRotation(rotation);
+        } else {
+            // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
+            const imageY = pixelPosition.y + (gridParams.cells.height / 2);
+            image = this.add.image(pixelPosition.x, imageY, textureName);
+            image.setOrigin(0.5, 1);
+        }
+        image.setDepth(tile.calculateDepth());
 
         const existingTileAsset: Image = tile.getAsset();
         if (existingTileAsset) {
@@ -259,5 +293,20 @@ export default class MainScene extends Phaser.Scene {
         personSprite.setOrigin(0.5, 0.5);
 
         person.setAsset(personSprite);
+
+        person.setRedrawFunction(() => {
+            const personAsset = person.getAsset();
+            if (personAsset === null) {
+                return;
+            }
+
+            const position = person.getPosition();
+            if (position === null) {
+                return;
+            }
+
+            personAsset.setPosition(position.x, position.y);
+            personAsset.setDepth(person.getDepth());
+        });
     }
 }

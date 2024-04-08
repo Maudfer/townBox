@@ -1,5 +1,6 @@
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
+import Soil from 'app/Soil';
 import Road from 'app/Road';
 import Building from 'app/Building';
 import Person from 'app/Person';
@@ -51,7 +52,9 @@ export default class Field {
                     throw new Error(`[Grid Creation] Tried to create a tile on an invalid or uninitialized row: ${row}`);
                 }
 
-                this.matrix[row]![col] = new Tile(row, col, pixelCenter, null);
+                const tile = new Soil(row, col, pixelCenter, "grass");
+                this.matrix[row]![col] = tile;
+                this.gameManager.trigger("tileUpdated", tile);
             }
         }
 
@@ -79,7 +82,7 @@ export default class Field {
 
             person.walk(currentTile, event.delta);
             person.updateDestination(currentTile, this.destinations, this.pathFinder);
-            person.updateDepth(currentTile);
+            person.redraw();
         });
     }
 
@@ -101,8 +104,8 @@ export default class Field {
             case 'road':
                 newTile = new Road(row, col, pixelCenter, null);
                 break;
-            case 'eraser':
-                newTile = new Tile(row, col, pixelCenter, null);
+            case 'soil':
+                newTile = new Soil(row, col, pixelCenter, "grass");
                 break;
             default:
                 newTile = new Building(row, col, pixelCenter, event.tool);
