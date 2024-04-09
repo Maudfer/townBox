@@ -71,12 +71,12 @@ export default class Person {
 
         if (this.movingAxis === 'x') {
             this.x = potentialX;
-            if (deltaX <= 1) {
+            if (deltaX <= 2) {
                 this.movingAxis = 'y';
             }
         } else if (this.movingAxis === 'y') {
             this.y = potentialY;
-            if (deltaY <= 1) {
+            if (deltaY <= 2) {
                 this.movingAxis = 'x';
             }
         }
@@ -188,7 +188,7 @@ export default class Person {
         const deltaX = Math.abs(targetPixelPosition.x - curretPixelPosition.x);
         const deltaY = Math.abs(targetPixelPosition.y - curretPixelPosition.y);
 
-        return (deltaX <= 1) && (deltaY <= 1);
+        return (deltaX <= 2) && (deltaY <= 2);
     }
 
     updateDepth(currentTile: Tile): void {
