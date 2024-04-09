@@ -1,9 +1,10 @@
 import Road from 'app/Road';
 import Tile from 'app/Tile';
+import Building from 'app/Building';
 import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
-import { CurbPoint } from 'types/Curb';
+import { Point } from 'types/Tile';
 import { Image } from 'types/Phaser';
 export default class Person {
     private x: number;
@@ -12,7 +13,7 @@ export default class Person {
     private depth: number;
     private speed: number;
 
-    private currentTarget: CurbPoint | null;
+    private currentTarget: Point | null;
     private movingAxis: 'x' | 'y';
 
     private path: Tile[];
@@ -66,17 +67,14 @@ export default class Person {
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
 
-        const deltaX = Math.abs(this.currentTarget.x - potentialX);
-        const deltaY = Math.abs(this.currentTarget.y - potentialY);
-
         if (this.movingAxis === 'x') {
             this.x = potentialX;
-            if (deltaX <= 2) {
+            if (this.isCurrentTargetXReached()) {
                 this.movingAxis = 'y';
             }
         } else if (this.movingAxis === 'y') {
             this.y = potentialY;
-            if (deltaY <= 2) {
+            if (this.isCurrentTargetYReached()) {
                 this.movingAxis = 'x';
             }
         }
@@ -89,23 +87,38 @@ export default class Person {
             return;
         }
 
-        if (!currentTile || !(currentTile instanceof Road)) {
+        if (!currentTile) {
+            console.warn(`[Person] Current tile is not valid for setting next target`, currentTile);
             return;
         }
 
         const currentTilePosition = currentTile.getPosition();
         if (!currentTilePosition) {
+            console.warn(`[Person] Can't set next target, current position not valid`, currentTilePosition);
             return;
         }
 
         const nextTile = this.path.shift();
-        if (!nextTile || !(nextTile instanceof Road)) {
+        if (!nextTile) {
+            console.warn(`[Person] Could not get next tile from path`, nextTile);
+            return;
+        }
+
+        if (nextTile instanceof Building) {
+            this.currentTarget = nextTile.getEntrance();
+            return;
+        }
+
+        // If next tile is not a Building nor a Road, stay still
+        if (!(nextTile instanceof Road)){
+            console.warn(`[Person] Next tile is not a road`, nextTile);
             return;
         }
          
         const nextTilePosition = nextTile.getPosition();
         const curbs = nextTile.getCurb();
         if (!nextTilePosition || !curbs) {
+            console.log(`Could not determine next tile position or curbs`, nextTile, curbs);
             return;
         }
 
@@ -115,22 +128,26 @@ export default class Person {
 
         // Moving North
         if (nextTilePosition.row < currentTilePosition.row) {
-            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.topRight : curbs.topLeft;
+            console.log(`Moving North, isRightSideOfRoad = ${currentTile.isRightSideOfRoad(currentPixelPosition) ? 'topRight' : 'topLeft'}`);
+            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.bottomRight : curbs.bottomLeft;
         }
 
         // Moving South
         if (nextTilePosition.row > currentTilePosition.row) {
-            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.bottomRight : curbs.bottomLeft;
+            console.log(`Moving South, isRightSideOfRoad = ${currentTile.isRightSideOfRoad(currentPixelPosition) ? 'bottomRight' : 'bottomLeft'}`);
+            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.topRight : curbs.topLeft;
         }
 
         // Moving East
         if (nextTilePosition.col > currentTilePosition.col) {
-            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topRight : curbs.bottomRight;
+            console.log(`Moving East, isTopSideOfTheRoad = ${currentTile.isTopSideOfTheRoad(currentPixelPosition) ? 'topRight' : 'bottomRight'}`);
+            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topLeft : curbs.bottomLeft;
         }
 
         // Moving West
         if (nextTilePosition.col < currentTilePosition.col) {
-            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topLeft : curbs.bottomLeft;
+            console.log(`Moving West, isTopSideOfTheRoad = ${currentTile.isTopSideOfTheRoad(currentPixelPosition) ? 'topLeft' : 'bottomLeft'}`);
+            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topRight : curbs.bottomRight;
         }
 
         if (!nextTarget) {
@@ -139,6 +156,7 @@ export default class Person {
         }
 
         this.currentTarget = nextTarget;
+        console.log(`--------------------------------------`);
 
         // Decide whether to move in x or y direction based on the closer axis to the target
         /*
@@ -177,18 +195,22 @@ export default class Person {
         }
     }
 
-    isCurrentTargetReached(): boolean {
+    isCurrentTargetXReached(): boolean {
         if (!this.currentTarget) {
             return false;
         }
+        return Math.abs(this.currentTarget.x - this.x) < 1;
+    }
 
-        const curretPixelPosition: PixelPosition = {x: this.x, y: this.y};
-        const targetPixelPosition: CurbPoint = this.currentTarget;
+    isCurrentTargetYReached(): boolean {
+        if (!this.currentTarget) {
+            return false;
+        }
+        return Math.abs(this.currentTarget.y - this.y) < 1;
+    }
 
-        const deltaX = Math.abs(targetPixelPosition.x - curretPixelPosition.x);
-        const deltaY = Math.abs(targetPixelPosition.y - curretPixelPosition.y);
-
-        return (deltaX <= 2) && (deltaY <= 2);
+    isCurrentTargetReached(): boolean {
+        return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
     }
 
     updateDepth(currentTile: Tile): void {

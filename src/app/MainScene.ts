@@ -295,8 +295,26 @@ export default class MainScene extends Phaser.Scene {
                     trRect.setOrigin(0.5, 0.5);
                     brRect.setOrigin(0.5, 0.5);
                     blRect.setOrigin(0.5, 0.5);
-
                 }
+
+                const lane = tile.getLane();
+                if (lane) {
+                    const tlRect = this.add.rectangle(lane.topLeft.x, lane.topLeft.y, 1, 1, 0x00ff00);
+                    const trRect = this.add.rectangle(lane.topRight.x, lane.topRight.y, 1, 1, 0x00ff00);
+                    const brRect = this.add.rectangle(lane.bottomRight.x, lane.bottomRight.y, 1, 1, 0x00ff00);
+                    const blRect = this.add.rectangle(lane.bottomLeft.x, lane.bottomLeft.y, 1, 1, 0x00ff00);
+
+                    tlRect.setDepth(9000);
+                    trRect.setDepth(9000);
+                    brRect.setDepth(9000);
+                    blRect.setDepth(9000);
+
+                    tlRect.setOrigin(0.5, 0.5);
+                    trRect.setOrigin(0.5, 0.5);
+                    brRect.setOrigin(0.5, 0.5);
+                    blRect.setOrigin(0.5, 0.5);
+                }
+
                 console.log(curb);
                 console.log("--------------------------------");
             }, 10);

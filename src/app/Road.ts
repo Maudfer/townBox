@@ -3,13 +3,15 @@ import Tile from 'app/Tile';
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
-import { Curb } from 'types/Curb';
+import { Curb, Lane } from 'types/Tile';
 export default class Road extends Tile {
     private curb: Curb;
+    private lane: Lane;
 
     constructor(row: number, col: number, textureName: string | null) {
         super(row, col, textureName);
         this.curb = null;
+        this.lane = null;
     }
 
     calculateDepth(): number {
@@ -17,7 +19,7 @@ export default class Road extends Tile {
     }
 
     calculateCurb(cellParams: CellParams, pixelCenter: PixelPosition): void {
-        if (!pixelCenter || !cellParams) {
+        if (!cellParams || !pixelCenter) {
             console.warn(`[Road] calculateCurb() called with invalid parameters: ${pixelCenter}, ${cellParams}`);
             return;
         }
@@ -46,8 +48,34 @@ export default class Road extends Tile {
         };
     }
 
-    calculateLanes(_1: CellParams, _2: PixelPosition): void {
-        // TODO: Implement lane calculation
+    calculateLanes(cellParams: CellParams, pixelCenter: PixelPosition): void {
+        if (!cellParams || !pixelCenter) {
+            console.warn(`[Road] calculateLanes() called with invalid parameters: ${pixelCenter}, ${cellParams}`);
+            return;
+        }
+
+        const { width, height } = cellParams;
+        const { x, y } = pixelCenter;
+
+        const offset = 13;
+        this.lane = {
+            topLeft: {
+                x: (x - (width / 2)) + offset,
+                y: (y - (height / 2)) + offset
+            },
+            topRight: {
+                x: (x + (width / 2)) - offset,
+                y: (y - (height / 2)) + offset
+            },
+            bottomLeft: {
+                x: (x - (width / 2)) + offset,
+                y: (y + (height / 2)) - offset
+            },
+            bottomRight: {
+                x: (x + (width / 2)) - offset,
+                y: (y + (height / 2)) - offset
+            }
+        };
     }
 
     isRightSideOfRoad(pixelPosition: PixelPosition): boolean {
@@ -55,7 +83,6 @@ export default class Road extends Tile {
             console.warn(`[Road] isRightSideOfRoad() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
             return false;
         }
-
         return pixelPosition.x > this.curb.topRight.x;
     }
 
@@ -64,8 +91,7 @@ export default class Road extends Tile {
             console.warn(`[Road] isTopSideOfTheRoad() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
             return false;
         }
-
-        return pixelPosition.y < this.curb.topRight.y;
+        return pixelPosition.y > this.curb.topRight.y;
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {
@@ -104,5 +130,9 @@ export default class Road extends Tile {
 
     getCurb(): Curb {
         return this.curb;
+    }
+
+    getLane(): Lane {
+        return this.lane;
     }
 }

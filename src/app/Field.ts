@@ -113,7 +113,13 @@ export default class Field {
             const cellParams = this.gameManager.gridParams.cells;
             newTile.calculateCurb(cellParams, pixelCenter);
             newTile.calculateLanes(cellParams, pixelCenter);
+
             this.gameManager.trigger("roadBuilt", tilePosition);
+        }
+
+        if (newTile instanceof Building) {
+            const cellParams = this.gameManager.gridParams.cells;
+            newTile.calculateEntrance(cellParams, pixelCenter);
         }
     }
 
