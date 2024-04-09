@@ -98,10 +98,12 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            maxZoom: 5,
+            minZoom: 0.32,
             zoomSpeed: 0.08, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
-            maxSpeed: 0.35 // originally was 1.0
+            maxSpeed: 0.45 // originally was 1.0
         };
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
