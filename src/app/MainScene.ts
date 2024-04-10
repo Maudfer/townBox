@@ -9,6 +9,7 @@ import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
 import { Image } from 'types/Phaser';
 import { AssetManifest } from 'types/Assets';
+import { Direction } from 'types/Movement';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
@@ -306,11 +307,15 @@ export default class MainScene extends Phaser.Scene {
                 return;
             }
 
-            const movingAxis = person.getMovingAxis();
-            if (movingAxis === 'x') {
-                personAsset.setRotation(0);
-            } else if (movingAxis === 'y') {
+            const direction = person.getDirection();
+            if(direction === Direction.North) {
+                personAsset.setRotation(-90 * (Math.PI / 180));
+            } else if (direction === Direction.South) {
                 personAsset.setRotation(90 * (Math.PI / 180));
+            } else if(direction === Direction.East) {
+                personAsset.setRotation(0);
+            } else if (direction === Direction.West) {
+                personAsset.setRotation(180 * (Math.PI / 180));
             }
 
             personAsset.setPosition(position.x, position.y);

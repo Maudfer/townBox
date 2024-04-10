@@ -32,7 +32,7 @@ export default class Person {
         this.speed = 0.05;
 
         this.currentTarget = null;
-        this.direction = Direction.NULL;
+        this.direction = Direction.East;
         this.movingAxis = 'x';
 
         this.path = [];
@@ -66,11 +66,14 @@ export default class Person {
 
         if (this.movingAxis === 'x') {
             this.x = potentialX;
+            this.direction = speedX > 0 ? Direction.East : Direction.West;
+            
             if (this.isCurrentTargetXReached()) {
                 this.movingAxis = 'y';
             }
         } else if (this.movingAxis === 'y') {
             this.y = potentialY;
+            this.direction = speedY > 0 ? Direction.South : Direction.North;
             if (this.isCurrentTargetYReached()) {
                 this.movingAxis = 'x';
             }
@@ -192,6 +195,10 @@ export default class Person {
 
     setRedrawFunction(redrawFunction: () => void): void {
         this.redrawFunction = redrawFunction;
+    }
+
+    getDirection(): Direction {
+        return this.direction;
     }
 
     redraw(): void {
