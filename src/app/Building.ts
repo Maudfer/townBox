@@ -1,14 +1,13 @@
 import Tile from 'app/Tile';
 
-import { Point } from 'types/Tile';
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
 export default class Building extends Tile {
-    private entrance: Point;
+    private entrance: PixelPosition;
 
     constructor(row: number, col: number, textureName: string | null) {
         super(row, col, textureName);
-        this.entrance = {x: 0, y: 0};
+        this.entrance = null;
     }
 
     calculateDepth(): number {
@@ -27,7 +26,7 @@ export default class Building extends Tile {
         };
     }
 
-    getEntrance(): Point {
+    getEntrance(): PixelPosition {
         return this.entrance;
     }
 }

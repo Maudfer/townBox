@@ -1,6 +1,7 @@
 import { NeighborMap } from 'types/Neighbor';
 import { TilePosition } from 'types/Position';
 import { Image } from 'types/Phaser';
+import { Direction } from 'types/Movement';
 
 export default class Tile {
     protected row: number;

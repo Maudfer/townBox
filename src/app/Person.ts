@@ -4,8 +4,8 @@ import Building from 'app/Building';
 import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
-import { Point } from 'types/Tile';
 import { Image } from 'types/Phaser';
+import { Direction } from 'types/Movement';
 export default class Person {
     private x: number;
     private y: number;
@@ -13,7 +13,8 @@ export default class Person {
     private depth: number;
     private speed: number;
 
-    private currentTarget: Point | null;
+    private currentTarget: PixelPosition | null;
+    private direction: Direction;
     private movingAxis: 'x' | 'y';
 
     private path: Tile[];
@@ -28,9 +29,10 @@ export default class Person {
         this.y = y;
 
         this.depth = 0;
-        this.speed = 1;
+        this.speed = 0.05;
 
         this.currentTarget = null;
+        this.direction = Direction.NULL;
         this.movingAxis = 'x';
 
         this.path = [];
@@ -40,16 +42,12 @@ export default class Person {
         this.redrawFunction = null;
     }
 
-    walk(currentTile: Tile, _: number): void {
-        if (!this.currentTarget || !(currentTile instanceof Road)) {
+    walk(currentTile: Tile, timeDelta: number): void {
+        if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
 
-        if (!this.asset) {
-            return;
-        }
-
-        // If current target (CurbPoint) is reached, set next target and wait for next walk cycle
+        // If current target is reached, set next target and wait for next walk cycle
         if (this.isCurrentTargetReached()) {
             this.setNextTarget(currentTile);
             return;
@@ -61,8 +59,8 @@ export default class Person {
         }
 
         // TODO: implement timeDelta to make the movement frame-independent
-        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x); // * timeDelta;
-        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y); // * timeDelta;
+        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
+        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
 
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
@@ -83,12 +81,7 @@ export default class Person {
     }
 
     setNextTarget(currentTile: Tile): void {
-        if (!this.path.length) {
-            return;
-        }
-
-        if (!currentTile) {
-            console.warn(`[Person] Current tile is not valid for setting next target`, currentTile);
+        if (!this.path.length || !currentTile) {
             return;
         }
 
@@ -100,7 +93,6 @@ export default class Person {
 
         const nextTile = this.path.shift();
         if (!nextTile) {
-            console.warn(`[Person] Could not get next tile from path`, nextTile);
             return;
         }
 
@@ -118,53 +110,13 @@ export default class Person {
         const nextTilePosition = nextTile.getPosition();
         const curbs = nextTile.getCurb();
         if (!nextTilePosition || !curbs) {
-            console.log(`Could not determine next tile position or curbs`, nextTile, curbs);
+            console.warn(`[Person] Could not determine next tile position or curbs`, nextTile, curbs);
             return;
         }
 
-        // Determine which CurbPoint is going to be the next target
-        let nextTarget;
+        // Determine which curb Point is going to be the next target
         const currentPixelPosition = { x: this.x, y: this.y };
-
-        // Moving North
-        if (nextTilePosition.row < currentTilePosition.row) {
-            console.log(`Moving North, isRightSideOfRoad = ${currentTile.isRightSideOfRoad(currentPixelPosition) ? 'topRight' : 'topLeft'}`);
-            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.bottomRight : curbs.bottomLeft;
-        }
-
-        // Moving South
-        if (nextTilePosition.row > currentTilePosition.row) {
-            console.log(`Moving South, isRightSideOfRoad = ${currentTile.isRightSideOfRoad(currentPixelPosition) ? 'bottomRight' : 'bottomLeft'}`);
-            nextTarget = currentTile.isRightSideOfRoad(currentPixelPosition) ? curbs.topRight : curbs.topLeft;
-        }
-
-        // Moving East
-        if (nextTilePosition.col > currentTilePosition.col) {
-            console.log(`Moving East, isTopSideOfTheRoad = ${currentTile.isTopSideOfTheRoad(currentPixelPosition) ? 'topRight' : 'bottomRight'}`);
-            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topLeft : curbs.bottomLeft;
-        }
-
-        // Moving West
-        if (nextTilePosition.col < currentTilePosition.col) {
-            console.log(`Moving West, isTopSideOfTheRoad = ${currentTile.isTopSideOfTheRoad(currentPixelPosition) ? 'topLeft' : 'bottomLeft'}`);
-            nextTarget = currentTile.isTopSideOfTheRoad(currentPixelPosition) ? curbs.topRight : curbs.bottomRight;
-        }
-
-        if (!nextTarget) {
-            console.warn("Could not determine direction to next tile", this, currentTile, nextTile);
-            return;
-        }
-
-        this.currentTarget = nextTarget;
-        console.log(`--------------------------------------`);
-
-        // Decide whether to move in x or y direction based on the closer axis to the target
-        /*
-        const deltaX = Math.abs(targetCenter.x - this.x);
-        const deltaY = Math.abs(targetCenter.y - this.y);
-
-        this.movingAxis = deltaX > deltaY ? 'x' : 'y';
-        */
+        this.currentTarget = nextTile.getClosestCurbPoint(currentPixelPosition);
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {

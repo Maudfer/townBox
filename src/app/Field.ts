@@ -144,7 +144,6 @@ export default class Field {
 
         this.people.push(person);
         this.gameManager.trigger("personSpawned", person);
-        console.log('personSpawned', person);
     }
 
     replaceTile(tile: Tile): void {

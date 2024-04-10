@@ -3,7 +3,7 @@ import Tile from 'app/Tile';
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
-import { Curb, Lane } from 'types/Tile';
+import { Curb, Lane } from 'types/Movement';
 export default class Road extends Tile {
     private curb: Curb;
     private lane: Lane;
@@ -78,20 +78,35 @@ export default class Road extends Tile {
         };
     }
 
-    isRightSideOfRoad(pixelPosition: PixelPosition): boolean {
-        if(!pixelPosition || !this.curb) {
-            console.warn(`[Road] isRightSideOfRoad() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
-            return false;
+    getClosestCurbPoint(pixelPosition: PixelPosition): PixelPosition {
+        if (!pixelPosition || !this.curb) {
+            console.warn(`[Road] getClosestCurbPoint() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
+            return null;
         }
-        return pixelPosition.x > this.curb.topRight.x;
-    }
 
-    isTopSideOfTheRoad(pixelPosition: PixelPosition): boolean {
-        if(!pixelPosition || !this.curb) {
-            console.warn(`[Road] isTopSideOfTheRoad() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
-            return false;
+        const { x, y } = pixelPosition;
+        const { topLeft, topRight, bottomLeft, bottomRight } = this.curb;
+        if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
+            return null;
         }
-        return pixelPosition.y > this.curb.topRight.y;
+
+        const distanceTopLeft = Math.sqrt(Math.pow(x - topLeft.x, 2) + Math.pow(y - topLeft.y, 2));
+        const distanceTopRight = Math.sqrt(Math.pow(x - topRight.x, 2) + Math.pow(y - topRight.y, 2));
+        const distanceBottomLeft = Math.sqrt(Math.pow(x - bottomLeft.x, 2) + Math.pow(y - bottomLeft.y, 2));
+        const distanceBottomRight = Math.sqrt(Math.pow(x - bottomRight.x, 2) + Math.pow(y - bottomRight.y, 2));
+
+        const distances = [distanceTopLeft, distanceTopRight, distanceBottomLeft, distanceBottomRight];
+        const minDistance = Math.min(...distances);
+
+        if (minDistance === distanceTopLeft) {
+            return topLeft;
+        } else if (minDistance === distanceTopRight) {
+            return topRight;
+        } else if (minDistance === distanceBottomLeft) {
+            return bottomLeft;
+        } else {
+            return bottomRight;
+        }
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {

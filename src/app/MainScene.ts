@@ -3,7 +3,6 @@ import Phaser from 'phaser';
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
 import Soil from 'app/Soil';
-import Road from 'app/Road';
 import Person from 'app/Person';
 
 import { PixelPosition, TilePosition } from 'types/Position';
@@ -276,49 +275,6 @@ export default class MainScene extends Phaser.Scene {
             image.setOrigin(0.5, 1);
         } 
         image.setDepth(tile.calculateDepth());
-
-        if(tile instanceof Road){
-            setTimeout(() => {
-                const curb = tile.getCurb();
-                if (curb) {
-                    const tlRect = this.add.rectangle(curb.topLeft.x, curb.topLeft.y, 1, 1, 0xff0000);
-                    const trRect = this.add.rectangle(curb.topRight.x, curb.topRight.y, 1, 1, 0xff0000);
-                    const brRect = this.add.rectangle(curb.bottomRight.x, curb.bottomRight.y, 1, 1, 0xff0000);
-                    const blRect = this.add.rectangle(curb.bottomLeft.x, curb.bottomLeft.y, 1, 1, 0xff0000);
-
-                    tlRect.setDepth(9000);
-                    trRect.setDepth(9000);
-                    brRect.setDepth(9000);
-                    blRect.setDepth(9000);
-
-                    tlRect.setOrigin(0.5, 0.5);
-                    trRect.setOrigin(0.5, 0.5);
-                    brRect.setOrigin(0.5, 0.5);
-                    blRect.setOrigin(0.5, 0.5);
-                }
-
-                const lane = tile.getLane();
-                if (lane) {
-                    const tlRect = this.add.rectangle(lane.topLeft.x, lane.topLeft.y, 1, 1, 0x00ff00);
-                    const trRect = this.add.rectangle(lane.topRight.x, lane.topRight.y, 1, 1, 0x00ff00);
-                    const brRect = this.add.rectangle(lane.bottomRight.x, lane.bottomRight.y, 1, 1, 0x00ff00);
-                    const blRect = this.add.rectangle(lane.bottomLeft.x, lane.bottomLeft.y, 1, 1, 0x00ff00);
-
-                    tlRect.setDepth(9000);
-                    trRect.setDepth(9000);
-                    brRect.setDepth(9000);
-                    blRect.setDepth(9000);
-
-                    tlRect.setOrigin(0.5, 0.5);
-                    trRect.setOrigin(0.5, 0.5);
-                    brRect.setOrigin(0.5, 0.5);
-                    blRect.setOrigin(0.5, 0.5);
-                }
-
-                console.log(curb);
-                console.log("--------------------------------");
-            }, 10);
-        }
 
         const existingTileAsset: Image = tile.getAsset();
         if (existingTileAsset) {
