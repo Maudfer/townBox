@@ -1,19 +1,25 @@
 import Road from 'app/Road';
 import Tile from 'app/Tile';
+import Building from 'app/Building';
 import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
-
+import { Direction } from 'types/Movement';
 export default class Person {
     private x: number;
     private y: number;
+
     private depth: number;
     private speed: number;
-    private currentTarget: Tile | null;
+
+    private currentTarget: PixelPosition | null;
+    private direction: Direction;
     private movingAxis: 'x' | 'y';
+
     private path: Tile[];
     private currentDestination: TilePosition;
+
     private asset: Image;
 
     private redrawFunction: (() => void) | null;
@@ -23,9 +29,10 @@ export default class Person {
         this.y = y;
 
         this.depth = 0;
-        this.speed = 1;
+        this.speed = 0.05;
 
         this.currentTarget = null;
+        this.direction = Direction.East;
         this.movingAxis = 'x';
 
         this.path = [];
@@ -35,36 +42,38 @@ export default class Person {
         this.redrawFunction = null;
     }
 
-    walk(currentTile: Tile, _: number): void {
-        if (!this.currentTarget || !(currentTile instanceof Road) || !this.asset) {
+    walk(currentTile: Tile, timeDelta: number): void {
+        if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
 
-        const targetCenter = this.currentTarget.getCenter();
-        if (!targetCenter) {
-            return;
-        }
-
+        // If current target is reached, set next target and wait for next walk cycle
         if (this.isCurrentTargetReached()) {
-            this.setNextTarget();
+            this.setNextTarget(currentTile);
             return;
         }
 
-        // TODO: implement timeDelta to make the movement frame-independent
-        const speedX = this.speed * Math.sign(targetCenter.x - this.x); // * timeDelta;
-        const speedY = this.speed * Math.sign(targetCenter.y - this.y); // * timeDelta;
+        // If current target is not reached, check if we have a target at all
+        if (!this.currentTarget) {
+            return;
+        }
 
-        let potentialX = this.x + speedX;
-        let potentialY = this.y + speedY;
+        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
+        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
+
+        const potentialX = this.x + speedX;
+        const potentialY = this.y + speedY;
 
         if (this.movingAxis === 'x') {
             this.x = potentialX;
-            if (this.isCurrentTargetXReached()) {
+            this.direction = speedX > 0 ? Direction.East : Direction.West;
+            if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
                 this.movingAxis = 'y';
             }
         } else if (this.movingAxis === 'y') {
             this.y = potentialY;
-            if (this.isCurrentTargetYReached()) {
+            this.direction = speedY > 0 ? Direction.South : Direction.North;
+            if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
                 this.movingAxis = 'x';
             }
         }
@@ -72,8 +81,14 @@ export default class Person {
         this.updateDepth(currentTile);
     }
 
-    setNextTarget(): void {
-        if (!this.path.length) {
+    setNextTarget(currentTile: Tile): void {
+        if (!this.path.length || !currentTile) {
+            return;
+        }
+
+        const currentTilePosition = currentTile.getPosition();
+        if (!currentTilePosition) {
+            console.warn(`[Person] Can't set next target, current position not valid`, currentTilePosition);
             return;
         }
 
@@ -82,17 +97,27 @@ export default class Person {
             return;
         }
 
-        this.currentTarget = nextTile;
-        const targetCenter = this.currentTarget.getCenter();
-        if (!targetCenter) {
+        if (nextTile instanceof Building) {
+            this.currentTarget = nextTile.getEntrance();
             return;
         }
 
-        // Decide whether to move in x or y direction based on the closer axis to the target
-        const deltaX = Math.abs(targetCenter.x - this.x);
-        const deltaY = Math.abs(targetCenter.y - this.y);
+        // If next tile is not a Building nor a Road, stay still
+        if (!(nextTile instanceof Road)){
+            console.warn(`[Person] Next tile is not a road`, nextTile);
+            return;
+        }
+         
+        const nextTilePosition = nextTile.getPosition();
+        const curbs = nextTile.getCurb();
+        if (!nextTilePosition || !curbs) {
+            console.warn(`[Person] Could not determine next tile position or curbs`, nextTile, curbs);
+            return;
+        }
 
-        this.movingAxis = deltaX > deltaY ? 'x' : 'y';
+        // Determine which curb Point is going to be the next target
+        const currentPixelPosition = { x: this.x, y: this.y };
+        this.currentTarget = nextTile.getClosestCurbPoint(currentPixelPosition);
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
@@ -119,7 +144,7 @@ export default class Person {
 
         this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
         if (this.path?.length) {
-            this.setNextTarget();
+            this.setNextTarget(currentTile);
         }
     }
 
@@ -127,30 +152,14 @@ export default class Person {
         if (!this.currentTarget) {
             return false;
         }
-
-        const targetPixelPosition = this.currentTarget.getCenter();
-        if (!targetPixelPosition) {
-            return false;
-        }
-
-        const targetX = targetPixelPosition.x;
-        const distance = Math.abs(this.x - targetX);
-        return distance < 1;
+        return Math.abs(this.currentTarget.x - this.x) < 1;
     }
 
     isCurrentTargetYReached(): boolean {
         if (!this.currentTarget) {
             return false;
         }
-
-        const targetPixelPosition = this.currentTarget.getCenter();
-        if (!targetPixelPosition) {
-            return false;
-        }
-
-        const targetY = targetPixelPosition.y;
-        const distance = Math.abs(this.y - targetY);
-        return distance < 1;
+        return Math.abs(this.currentTarget.y - this.y) < 1;
     }
 
     isCurrentTargetReached(): boolean {
@@ -187,9 +196,17 @@ export default class Person {
         this.redrawFunction = redrawFunction;
     }
 
+    getDirection(): Direction {
+        return this.direction;
+    }
+
     redraw(): void {
         if (this.redrawFunction) {
             this.redrawFunction();
         }
+    }
+
+    getMovingAxis(): string {
+        return this.movingAxis;
     }
 }

@@ -2,8 +2,6 @@ import Phaser from 'phaser';
 
 import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
-import Road from 'app/Road';
-import Building from 'app/Building';
 import Soil from 'app/Soil';
 import Person from 'app/Person';
 
@@ -11,10 +9,10 @@ import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
 import { Image } from 'types/Phaser';
 import { AssetManifest } from 'types/Assets';
+import { Direction } from 'types/Movement';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
-import config from 'json/config.json';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
@@ -100,10 +98,12 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
+            maxZoom: 5,
+            minZoom: 0.32,
             zoomSpeed: 0.08, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
-            maxSpeed: 0.35 // originally was 1.0
+            maxSpeed: 0.45 // originally was 1.0
         };
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
@@ -305,6 +305,17 @@ export default class MainScene extends Phaser.Scene {
             const position = person.getPosition();
             if (position === null) {
                 return;
+            }
+
+            const direction = person.getDirection();
+            if(direction === Direction.North) {
+                personAsset.setRotation(-90 * (Math.PI / 180));
+            } else if (direction === Direction.South) {
+                personAsset.setRotation(90 * (Math.PI / 180));
+            } else if(direction === Direction.East) {
+                personAsset.setRotation(0);
+            } else if (direction === Direction.West) {
+                personAsset.setRotation(180 * (Math.PI / 180));
             }
 
             personAsset.setPosition(position.x, position.y);
