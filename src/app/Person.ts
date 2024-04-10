@@ -67,14 +67,13 @@ export default class Person {
         if (this.movingAxis === 'x') {
             this.x = potentialX;
             this.direction = speedX > 0 ? Direction.East : Direction.West;
-            
-            if (this.isCurrentTargetXReached()) {
+            if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
                 this.movingAxis = 'y';
             }
         } else if (this.movingAxis === 'y') {
             this.y = potentialY;
             this.direction = speedY > 0 ? Direction.South : Direction.North;
-            if (this.isCurrentTargetYReached()) {
+            if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
                 this.movingAxis = 'x';
             }
         }
