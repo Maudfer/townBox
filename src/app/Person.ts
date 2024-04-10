@@ -58,7 +58,6 @@ export default class Person {
             return;
         }
 
-        // TODO: implement timeDelta to make the movement frame-independent
         const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
         const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
 
