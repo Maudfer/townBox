@@ -1,7 +1,6 @@
 import { NeighborMap } from 'types/Neighbor';
 import { TilePosition } from 'types/Position';
 import { Image } from 'types/Phaser';
-import { Direction } from 'types/Movement';
 
 export default class Tile {
     protected row: number;
@@ -9,6 +8,8 @@ export default class Tile {
 
     private asset: Image;
     private textureName: string | null;
+
+    private debugText?: Phaser.GameObjects.Text;
 
     constructor(row: number, col: number, textureName: string | null) {
         this.row = row;
@@ -51,6 +52,14 @@ export default class Tile {
 
     setAsset(asset: Image): void {
         this.asset = asset;
+    }
+
+    getDebugText(): Phaser.GameObjects.Text | undefined {
+        return this.debugText;
+    }
+
+    setDebugText(debugText: Phaser.GameObjects.Text): void {
+        this.debugText = debugText;
     }
 
     updateSelfBasedOnNeighbors(_: NeighborMap): void { }

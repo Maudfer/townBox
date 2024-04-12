@@ -164,6 +164,7 @@ export default class Field {
 
         const oldTexture = oldTile.getTextureName();
         const oldAsset = oldTile.getAsset();
+        const oldDebugText = oldTile.getDebugText();
 
         const neighbors = this.getNeighbors(tile);
         tile.updateSelfBasedOnNeighbors(neighbors);
@@ -174,6 +175,10 @@ export default class Field {
                 oldAsset.destroy();
             }
 
+            if (oldDebugText) {
+                oldDebugText.destroy();
+            }
+            
             // Update destinations set with building tiles
             this.destinations.delete(`${row}-${col}`);
             if (tile instanceof Building) {

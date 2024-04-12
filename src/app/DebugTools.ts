@@ -93,5 +93,7 @@ export default class DebugTools {
         const text = scene.add.text(pixelCenter.x, pixelCenter.y, `${tile.getRow()}-${tile.getCol()}`, style);
         text.setOrigin(0.5, 0.5);
         text.setDepth(10000);
+
+        tile.setDebugText(text);
     }
 }

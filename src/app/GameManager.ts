@@ -65,11 +65,11 @@ export default class GameManager {
         };
 
         new Phaser.Game(phaserConfig);
+        const debugTools = new DebugTools();
 
         const postSceneInit = (_: Phaser.Scene) => {
             if (config.debug.masterSwitch) {
-                const debugTools = new DebugTools();
-                this.on("tileChanged", { callback: debugTools.drawTileDebugInfo, context: this })
+                this.on("tileChanged", { callback: debugTools.drawTileDebugInfo, context: this }) // Huge performance hit, disabled by default
                 this.on("roadBuilt", { callback: debugTools.drawRoadCurbs, context: this });
                 this.on("roadBuilt", { callback: debugTools.drawRoadLanes, context: this });
             }
