@@ -1,4 +1,4 @@
-import Tile from '@/Tile';
+import Tile from 'app/Tile';
 
 export type Neighbor = Tile | null;
 

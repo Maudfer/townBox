@@ -33,8 +33,8 @@ export default class MainScene extends Phaser.Scene {
         this.cameraController = null;
         this.grid = null;
 
-        this.gameManager.on('tileUpdated', { callback: this.drawTile, context: this });
-        this.gameManager.on('personSpawned', { callback: this.drawPerson, context: this });
+        this.gameManager.on("tileChanged", { callback: this.drawTile, context: this });
+        this.gameManager.on("personSpawned", { callback: this.drawPerson, context: this });
     }
 
     init(_: any): void { }
@@ -107,7 +107,7 @@ export default class MainScene extends Phaser.Scene {
         };
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
-        this.gameManager.trigger("sceneInitialized", { scene: this });
+        this.gameManager.trigger("sceneInitialized", this);
         console.log('Scene intialized.');
     }
 
@@ -261,6 +261,7 @@ export default class MainScene extends Phaser.Scene {
         }
 
         let image: Image;
+
         if (tile instanceof Soil) {
             image = this.add.image(pixelPosition.x, pixelPosition.y, textureName);
             image.setOrigin(0.5, 0.5);
@@ -271,13 +272,14 @@ export default class MainScene extends Phaser.Scene {
             image.setRotation(rotation);
         } else {
             // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
+            const imageX = pixelPosition.x;
             const imageY = pixelPosition.y + (gridParams.cells.height / 2);
-            image = this.add.image(pixelPosition.x, imageY, textureName);
+            image = this.add.image(imageX, imageY, textureName);
             image.setOrigin(0.5, 1);
-        } 
+        }
         image.setDepth(tile.calculateDepth());
 
-        const existingTileAsset: Image = tile.getAsset();
+        const existingTileAsset = tile.getAsset();
         if (existingTileAsset) {
             existingTileAsset.destroy();
         }
@@ -293,7 +295,6 @@ export default class MainScene extends Phaser.Scene {
 
         const personSprite: Image = this.add.image(position.x, position.y, 'person');
         personSprite.setOrigin(0.5, 0.5);
-
         person.setAsset(personSprite);
 
         person.setRedrawFunction(() => {
@@ -307,6 +308,7 @@ export default class MainScene extends Phaser.Scene {
                 return;
             }
 
+            // TODO: Optimization: no need set rotation every time
             const direction = person.getDirection();
             if(direction === Direction.North) {
                 personAsset.setRotation(-90 * (Math.PI / 180));
