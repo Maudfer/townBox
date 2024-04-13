@@ -7,7 +7,7 @@ import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction } from 'types/Movement';
 
-export default class Person {
+export default class Vehicle {
     private x: number;
     private y: number;
 
@@ -30,7 +30,7 @@ export default class Person {
         this.y = y;
 
         this.depth = 0;
-        this.speed = 0.02;
+        this.speed = 0.1;
 
         this.currentTarget = null;
         this.direction = Direction.East;
@@ -43,7 +43,7 @@ export default class Person {
         this.redrawFunction = null;
     }
 
-    walk(currentTile: Tile, timeDelta: number): void {
+    drive(currentTile: Tile, timeDelta: number): void {
         if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
@@ -89,7 +89,7 @@ export default class Person {
 
         const currentTilePosition = currentTile.getPosition();
         if (!currentTilePosition) {
-            console.warn(`[Person] Can't set next target, current position not valid`, currentTilePosition);
+            console.warn(`[Vehicle] Can't set next target, current position not valid`, currentTilePosition);
             return;
         }
 
@@ -105,20 +105,20 @@ export default class Person {
 
         // If next tile is not a Building nor a Road, stay still
         if (!(nextTile instanceof Road)){
-            console.warn(`[Person] Next tile is not a road`, nextTile);
+            console.warn(`[Vehicle] Next tile is not a road`, nextTile);
             return;
         }
          
         const nextTilePosition = nextTile.getPosition();
-        const curbs = nextTile.getCurb();
-        if (!nextTilePosition || !curbs) {
-            console.warn(`[Person] Could not determine next tile position or curbs`, nextTile, curbs);
+        const lanes = nextTile.getLane();
+        if (!nextTilePosition || !lanes) {
+            console.warn(`[Vehicle] Could not determine next tile position or lanes`, nextTile, lanes);
             return;
         }
 
-        // Determine which curb Point is going to be the next target
+        // Determine which lane Point is going to be the next target
         const currentPixelPosition = { x: this.x, y: this.y };
-        this.currentTarget = nextTile.getClosestCurbPoint(currentPixelPosition);
+        this.currentTarget = nextTile.getClosestLanePoint(currentPixelPosition);
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {

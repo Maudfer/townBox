@@ -4,6 +4,7 @@ import Soil from 'app/Soil';
 import Road from 'app/Road';
 import Building from 'app/Building';
 import Person from 'app/Person';
+import Vehicle from 'app/Vehicle';
 import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
@@ -22,6 +23,7 @@ export default class Field {
     private cols: number;
 
     private people: Person[];
+    private vehicles: Vehicle[];
     private destinations: Set<string>;
     private pathFinder: PathFinder;
 
@@ -33,6 +35,7 @@ export default class Field {
         this.cols = cols;
 
         this.people = [];
+        this.vehicles = [];
         this.destinations = new Set();
         this.pathFinder = new PathFinder(this);
 
@@ -49,11 +52,12 @@ export default class Field {
 
         this.gameManager.on("tileClicked", { callback: this.build, context: this });
         this.gameManager.on("personNeeded", { callback: this.spawnPerson, context: this });
+        this.gameManager.on("vehicleNeeded", { callback: this.spawnVehicle, context: this });
         this.gameManager.on("update", { callback: this.update, context: this });
     }
 
     update(event: UpdateEvent): void {
-        this.people.forEach((person) => {
+        this.people.forEach((person: Person) => {
             const currentPixelPosition = person.getPosition();
             if (currentPixelPosition === null) {
                 return;
@@ -72,6 +76,27 @@ export default class Field {
             person.walk(currentTile, event.delta);
             person.updateDestination(currentTile, this.destinations, this.pathFinder);
             person.redraw();
+        });
+
+        this.vehicles.forEach((vehicle: Vehicle) => {
+            const currentPixelPosition = vehicle.getPosition();
+            if (currentPixelPosition === null) {
+                return;
+            }
+
+            const currentTilePosition = this.gameManager.pixelToTilePosition(currentPixelPosition);
+            if (currentTilePosition === null) {
+                return;
+            }
+
+            const currentTile = this.getTile(currentTilePosition.row, currentTilePosition.col);
+            if (currentTile === null) {
+                return;
+            }
+
+            vehicle.drive(currentTile, event.delta);
+            vehicle.updateDestination(currentTile, this.destinations, this.pathFinder);
+            vehicle.redraw();
         });
     }
 
@@ -144,6 +169,29 @@ export default class Field {
 
         this.people.push(person);
         this.gameManager.trigger("personSpawned", person);
+    }
+
+    spawnVehicle(pixelPosition: PixelPosition): void {
+        if (pixelPosition === null) {
+            return;
+        }
+
+        const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
+        if (tilePosition === null) {
+            return;
+        }
+
+        const currentTile = this.getTile(tilePosition.row, tilePosition.col);
+        if (currentTile === null) {
+            return;
+        }
+
+        const { x, y } = pixelPosition;
+        const vehicle = new Vehicle(x, y);
+        vehicle.updateDepth(currentTile);
+
+        this.vehicles.push(vehicle);
+        this.gameManager.trigger("vehicleSpawned", vehicle);
     }
 
     replaceTile(tile: Tile): void {

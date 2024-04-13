@@ -109,6 +109,37 @@ export default class Road extends Tile {
         }
     }
 
+    getClosestLanePoint(pixelPosition: PixelPosition): PixelPosition {
+        if (!pixelPosition || !this.lane) {
+            console.warn(`[Road] getClosestLanePoint() called with invalid parameters: ${pixelPosition}, ${this.lane}`);
+            return null;
+        }
+
+        const { x, y } = pixelPosition;
+        const { topLeft, topRight, bottomLeft, bottomRight } = this.lane;
+        if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
+            return null;
+        }
+
+        const distanceTopLeft = Math.sqrt(Math.pow(x - topLeft.x, 2) + Math.pow(y - topLeft.y, 2));
+        const distanceTopRight = Math.sqrt(Math.pow(x - topRight.x, 2) + Math.pow(y - topRight.y, 2));
+        const distanceBottomLeft = Math.sqrt(Math.pow(x - bottomLeft.x, 2) + Math.pow(y - bottomLeft.y, 2));
+        const distanceBottomRight = Math.sqrt(Math.pow(x - bottomRight.x, 2) + Math.pow(y - bottomRight.y, 2));
+
+        const distances = [distanceTopLeft, distanceTopRight, distanceBottomLeft, distanceBottomRight];
+        const minDistance = Math.min(...distances);
+
+        if (minDistance === distanceTopLeft) {
+            return topLeft;
+        } else if (minDistance === distanceTopRight) {
+            return topRight;
+        } else if (minDistance === distanceBottomLeft) {
+            return bottomLeft;
+        } else {
+            return bottomRight;
+        }
+    }
+
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {
         let code = 'road_';
 

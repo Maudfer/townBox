@@ -1,6 +1,7 @@
 import Tile from 'app/Tile';
 import Road from 'app/Road';
 import Person from 'app/Person';
+import Vehicle from 'app/Vehicle';
 
 import { TilePosition, PixelPosition } from "types/Position";
 
@@ -20,6 +21,8 @@ export interface EventPayloads {
     "tileClicked": BuildEvent;
     "tileChanged": Tile;
     "personNeeded": PixelPosition;
+    "vehicleNeeded": PixelPosition;
     "personSpawned": Person;
+    "vehicleSpawned": Vehicle;
     "roadBuilt": Road;
 };

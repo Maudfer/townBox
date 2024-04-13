@@ -4,6 +4,7 @@ import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
 import Soil from 'app/Soil';
 import Person from 'app/Person';
+import Vehicle from 'app/Vehicle';
 
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
@@ -35,6 +36,7 @@ export default class MainScene extends Phaser.Scene {
 
         this.gameManager.on("tileChanged", { callback: this.drawTile, context: this });
         this.gameManager.on("personSpawned", { callback: this.drawPerson, context: this });
+        this.gameManager.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
     }
 
     init(_: any): void { }
@@ -72,6 +74,14 @@ export default class MainScene extends Phaser.Scene {
                 y: this.input.activePointer.worldY
             };
             this.gameManager.trigger("personNeeded", pointer);
+        });
+
+        this.input.keyboard.addKey('V').on('down', () => {
+            const pointer = {
+                x: this.input.activePointer.worldX,
+                y: this.input.activePointer.worldY
+            };
+            this.gameManager.trigger("vehicleNeeded", pointer);
         });
 
         this.input.keyboard.addKey('G').on('down', () => {
@@ -322,6 +332,44 @@ export default class MainScene extends Phaser.Scene {
 
             personAsset.setPosition(position.x, position.y);
             personAsset.setDepth(person.getDepth());
+        });
+    }
+
+    private drawVehicle(vehicle: Vehicle): void {
+        const position: PixelPosition = vehicle.getPosition();
+        if (position === null) {
+            return;
+        }
+
+        const vehicleSprite: Image = this.add.image(position.x, position.y, 'vehicle');
+        vehicleSprite.setOrigin(0.5, 0.5);
+        vehicle.setAsset(vehicleSprite);
+
+        vehicle.setRedrawFunction(() => {
+            const vehicleAsset = vehicle.getAsset();
+            if (vehicleAsset === null) {
+                return;
+            }
+
+            const position = vehicle.getPosition();
+            if (position === null) {
+                return;
+            }
+
+            // TODO: Optimization: no need set rotation every time
+            const direction = vehicle.getDirection();
+            if(direction === Direction.North) {
+                vehicleAsset.setRotation(-90 * (Math.PI / 180));
+            } else if (direction === Direction.South) {
+                vehicleAsset.setRotation(90 * (Math.PI / 180));
+            } else if(direction === Direction.East) {
+                vehicleAsset.setRotation(0);
+            } else if (direction === Direction.West) {
+                vehicleAsset.setRotation(180 * (Math.PI / 180));
+            }
+
+            vehicleAsset.setPosition(position.x, position.y);
+            vehicleAsset.setDepth(vehicle.getDepth());
         });
     }
 }
