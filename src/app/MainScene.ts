@@ -355,46 +355,11 @@ export default class MainScene extends Phaser.Scene {
             if (position === null) {
                 return;
             }
+            
+            const currentRotation = vehicleAsset.rotation;
+            const newRotation = vehicle.rotate(currentRotation, timeDelta);
 
-            // TODO: Optimization: no need set rotation every time
-            const direction = vehicle.getDirection();
-            let desiredRotation;
-            if (direction === Direction.North) {
-                desiredRotation = -Math.PI / 2;
-            } else if (direction === Direction.South) {
-                desiredRotation = Math.PI / 2;
-            } else if (direction === Direction.East) {
-                desiredRotation = 0;
-            } else if (direction === Direction.West) {
-                desiredRotation = Math.PI;
-            } else {
-                desiredRotation = 0;  // Default, or handle error
-            }
-            
-            // Normalize the current rotation to be within -pi to pi
-            let currentRotation = vehicleAsset.rotation;
-            currentRotation = (currentRotation % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
-            if (currentRotation > Math.PI) {
-                currentRotation -= 2 * Math.PI;
-            }
-            
-            // Calculate the shortest rotation direction
-            let rotationDelta = desiredRotation - currentRotation;
-            if (rotationDelta > Math.PI) {
-                rotationDelta -= 2 * Math.PI;
-            } else if (rotationDelta < -Math.PI) {
-                rotationDelta += 2 * Math.PI;
-            }
-            
-            // Rotate the vehicle towards the desired rotation using timeDelta
-            const rotationSpeed = 0.007; // Adjust as necessary
-            const rotationDirection = Math.sign(rotationDelta);
-            const rotationAmount = Math.min(Math.abs(rotationDelta), rotationSpeed * timeDelta) * rotationDirection;
-            const newRotation = currentRotation + rotationAmount;
-            
-            // Set the new rotation, normalized
-            vehicleAsset.setRotation((newRotation + 2 * Math.PI) % (2 * Math.PI));
-            
+            vehicleAsset.setRotation(newRotation);
             vehicleAsset.setPosition(position.x, position.y);
             vehicleAsset.setDepth(vehicle.getDepth());
         });

@@ -13,6 +13,7 @@ export default class Vehicle {
 
     private depth: number;
     private speed: number;
+    private rotationSpeed: number;
 
     private currentTarget: PixelPosition | null;
     private direction: Direction;
@@ -31,6 +32,7 @@ export default class Vehicle {
 
         this.depth = 0;
         this.speed = 0.1;
+        this.rotationSpeed = 0.007;
 
         this.currentTarget = null;
         this.direction = Direction.East;
@@ -169,6 +171,53 @@ export default class Vehicle {
     updateDepth(currentTile: Tile): void {
         const row = currentTile.getRow();
         this.depth = ((row + 1) * 10) + 1;
+    }
+
+    rotate(currentRotation: number, timeDelta: number): number {
+        let desiredRotation;
+        if (this.direction === Direction.North) {
+            desiredRotation = -Math.PI / 2;
+        } else if (this.direction === Direction.South) {
+            desiredRotation = Math.PI / 2;
+        } else if (this.direction === Direction.East) {
+            desiredRotation = 0;
+        } else if (this.direction === Direction.West) {
+            desiredRotation = Math.PI;
+        } else {
+            desiredRotation = 0;
+        }
+        
+        // Normalize currentRotation to be within -pi to pi
+        currentRotation = (currentRotation % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
+        if (currentRotation > Math.PI) {
+            currentRotation -= 2 * Math.PI;
+        }
+        
+        // Calculate the shortest rotation direction
+        let rotationDelta = desiredRotation - currentRotation;
+        if (rotationDelta > Math.PI) {
+            rotationDelta -= 2 * Math.PI;
+        } else if (rotationDelta < -Math.PI) {
+            rotationDelta += 2 * Math.PI;
+        }
+
+        /*
+        TODO: Implement snapping correctly
+        // Below code is broken, will cause random snapping
+        const snapThreshold = 180 * (Math.PI / 180);
+        if (Math.abs(rotationDelta) >= snapThreshold) {
+            console.log(rotationDelta);
+            return desiredRotation;
+        }
+        */
+        
+        // Rotate the vehicle towards the desired rotation
+        const rotationDirection = Math.sign(rotationDelta);
+        const rotationAmount = Math.min(Math.abs(rotationDelta), this.rotationSpeed * timeDelta) * rotationDirection;
+        const newRotation = currentRotation + rotationAmount;
+
+        // Normalize newRotation to be within -pi to pi
+        return (newRotation + 2 * Math.PI) % (2 * Math.PI);
     }
 
     getDepth(): number {
