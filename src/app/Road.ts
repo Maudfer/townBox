@@ -3,7 +3,7 @@ import Tile from 'app/Tile';
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
-import { Curb, Lane } from 'types/Movement';
+import { Curb, Lane, Direction } from 'types/Movement';
 export default class Road extends Tile {
     private curb: Curb;
     private lane: Lane;
@@ -78,13 +78,13 @@ export default class Road extends Tile {
         };
     }
 
-    getClosestCurbPoint(pixelPosition: PixelPosition): PixelPosition {
-        if (!pixelPosition || !this.curb) {
-            console.warn(`[Road] getClosestCurbPoint() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
+    getClosestCurbPoint(currentPosition: PixelPosition): PixelPosition {
+        if (!currentPosition || !this.curb) {
+            console.warn("[Road] getClosestCurbPoint() call invalid:", currentPosition, this.curb);
             return null;
         }
 
-        const { x, y } = pixelPosition;
+        const { x, y } = currentPosition;
         const { topLeft, topRight, bottomLeft, bottomRight } = this.curb;
         if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
             return null;
@@ -109,35 +109,30 @@ export default class Road extends Tile {
         }
     }
 
-    getClosestLanePoint(pixelPosition: PixelPosition): PixelPosition {
-        if (!pixelPosition || !this.lane) {
-            console.warn(`[Road] getClosestLanePoint() called with invalid parameters: ${pixelPosition}, ${this.lane}`);
+    getLaneEntryPoint(relativeDirection: Direction): PixelPosition {
+        if (!relativeDirection || !this.lane) {
+            console.warn("[Road] getClosestLanePoint() call invalid:", relativeDirection, this.lane);
             return null;
         }
 
-        const { x, y } = pixelPosition;
         const { topLeft, topRight, bottomLeft, bottomRight } = this.lane;
         if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
             return null;
         }
 
-        const distanceTopLeft = Math.sqrt(Math.pow(x - topLeft.x, 2) + Math.pow(y - topLeft.y, 2));
-        const distanceTopRight = Math.sqrt(Math.pow(x - topRight.x, 2) + Math.pow(y - topRight.y, 2));
-        const distanceBottomLeft = Math.sqrt(Math.pow(x - bottomLeft.x, 2) + Math.pow(y - bottomLeft.y, 2));
-        const distanceBottomRight = Math.sqrt(Math.pow(x - bottomRight.x, 2) + Math.pow(y - bottomRight.y, 2));
-
-        const distances = [distanceTopLeft, distanceTopRight, distanceBottomLeft, distanceBottomRight];
-        const minDistance = Math.min(...distances);
-
-        if (minDistance === distanceTopLeft) {
-            return topLeft;
-        } else if (minDistance === distanceTopRight) {
-            return topRight;
-        } else if (minDistance === distanceBottomLeft) {
-            return bottomLeft;
-        } else {
+        if (relativeDirection === Direction.North) {
             return bottomRight;
+        } else if (relativeDirection === Direction.South) {
+            return topLeft;
+        } else if (relativeDirection === Direction.East) {
+            return bottomLeft;
+        } else if (relativeDirection === Direction.West) {
+            return topRight;
+        } else {
+            console.warn("[Road] getLaneEntryPoint() invalid relativeDirection:", relativeDirection);
+            return null;
         }
+
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {

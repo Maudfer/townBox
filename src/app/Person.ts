@@ -5,7 +5,7 @@ import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
-import { Direction } from 'types/Movement';
+import { Direction, Axis } from 'types/Movement';
 
 export default class Person {
     private x: number;
@@ -16,7 +16,7 @@ export default class Person {
 
     private currentTarget: PixelPosition | null;
     private direction: Direction;
-    private movingAxis: 'x' | 'y';
+    private movingAxis: Axis;
 
     private path: Tile[];
     private currentDestination: TilePosition;
@@ -34,7 +34,7 @@ export default class Person {
 
         this.currentTarget = null;
         this.direction = Direction.East;
-        this.movingAxis = 'x';
+        this.movingAxis = Axis.X;
 
         this.path = [];
         this.currentDestination = null;
@@ -65,17 +65,17 @@ export default class Person {
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
 
-        if (this.movingAxis === 'x') {
+        if (this.movingAxis === Axis.X) {
             this.x = potentialX;
             this.direction = speedX > 0 ? Direction.East : Direction.West;
             if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
-                this.movingAxis = 'y';
+                this.movingAxis = Axis.Y;
             }
-        } else if (this.movingAxis === 'y') {
+        } else if (this.movingAxis === Axis.Y) {
             this.y = potentialY;
             this.direction = speedY > 0 ? Direction.South : Direction.North;
             if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
-                this.movingAxis = 'x';
+                this.movingAxis = Axis.X;
             }
         }
 
@@ -205,9 +205,5 @@ export default class Person {
         if (this.redrawFunction) {
             this.redrawFunction();
         }
-    }
-
-    getMovingAxis(): string {
-        return this.movingAxis;
     }
 }

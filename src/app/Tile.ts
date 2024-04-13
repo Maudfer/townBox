@@ -1,6 +1,7 @@
 import { NeighborMap } from 'types/Neighbor';
 import { TilePosition } from 'types/Position';
 import { Image } from 'types/Phaser';
+import { Direction } from 'types/Movement';
 
 export default class Tile {
     protected row: number;
@@ -28,6 +29,22 @@ export default class Tile {
 
     getCol(): number {
         return this.col;
+    }
+
+    getRelativeDirection(otherTile: Tile): Direction {
+        if (this.row === otherTile.getRow()) {
+            if (this.col < otherTile.getCol()) {
+                return Direction.East;
+            } else {
+                return Direction.West;
+            }
+        } else {
+            if (this.row < otherTile.getRow()) {
+                return Direction.South;
+            } else {
+                return Direction.North;
+            }
+        }
     }
 
     getPosition(): TilePosition {

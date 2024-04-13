@@ -5,7 +5,7 @@ import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
-import { Direction } from 'types/Movement';
+import { Direction, Axis } from 'types/Movement';
 
 export default class Vehicle {
     private x: number;
@@ -16,7 +16,7 @@ export default class Vehicle {
 
     private currentTarget: PixelPosition | null;
     private direction: Direction;
-    private movingAxis: 'x' | 'y';
+    private movingAxis: Axis;
 
     private path: Tile[];
     private currentDestination: TilePosition;
@@ -34,7 +34,7 @@ export default class Vehicle {
 
         this.currentTarget = null;
         this.direction = Direction.East;
-        this.movingAxis = 'x';
+        this.movingAxis = Axis.X;
 
         this.path = [];
         this.currentDestination = null;
@@ -65,17 +65,17 @@ export default class Vehicle {
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
 
-        if (this.movingAxis === 'x') {
+        if (this.movingAxis === Axis.X) {
             this.x = potentialX;
             this.direction = speedX > 0 ? Direction.East : Direction.West;
             if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
-                this.movingAxis = 'y';
+                this.movingAxis = Axis.Y;
             }
-        } else if (this.movingAxis === 'y') {
+        } else if (this.movingAxis === Axis.Y) {
             this.y = potentialY;
             this.direction = speedY > 0 ? Direction.South : Direction.North;
             if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
-                this.movingAxis = 'x';
+                this.movingAxis = Axis.X;
             }
         }
 
@@ -116,9 +116,15 @@ export default class Vehicle {
             return;
         }
 
-        // Determine which lane Point is going to be the next target
-        const currentPixelPosition = { x: this.x, y: this.y };
-        this.currentTarget = nextTile.getClosestLanePoint(currentPixelPosition);
+        // get direction of nextTile relative to currentTile
+        const relativeDirection = currentTile.getRelativeDirection(nextTile);
+        if (!relativeDirection) {
+            console.warn(`[Vehicle] Could not determine relative tile direction`, currentTile, nextTile);
+            return;
+        }
+
+        // Determine which lane entry Point is going to be the next target
+        this.currentTarget = nextTile.getLaneEntryPoint(relativeDirection);
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
@@ -205,9 +211,5 @@ export default class Vehicle {
         if (this.redrawFunction) {
             this.redrawFunction();
         }
-    }
-
-    getMovingAxis(): string {
-        return this.movingAxis;
     }
 }
