@@ -48,17 +48,6 @@ export default class Person {
             return;
         }
 
-        // If current target is reached, set next target and wait for next walk cycle
-        if (this.isCurrentTargetReached()) {
-            this.setNextTarget(currentTile);
-            return;
-        }
-
-        // If current target is not reached, check if we have a target at all
-        if (!this.currentTarget) {
-            return;
-        }
-
         const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
         const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
 
@@ -80,6 +69,10 @@ export default class Person {
         }
 
         this.updateDepth(currentTile);
+
+        if (this.isCurrentTargetReached()) {
+            this.setNextTarget(currentTile);
+        }
     }
 
     setNextTarget(currentTile: Tile): void {
