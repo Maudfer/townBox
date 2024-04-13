@@ -46,7 +46,7 @@ export default class Field {
             for (let col = 0; col < this.cols; col++) {
                 const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
-                this.gameManager.trigger("tileChanged", tile);
+                this.gameManager.trigger("tileSpawned", tile);
             }
         }
 
@@ -73,9 +73,9 @@ export default class Field {
                 return;
             }
 
-            person.walk(currentTile, event.delta);
+            person.walk(currentTile, event.timeDelta);
             person.updateDestination(currentTile, this.destinations, this.pathFinder);
-            person.redraw();
+            person.redraw(event.timeDelta);
         });
 
         this.vehicles.forEach((vehicle: Vehicle) => {
@@ -94,9 +94,9 @@ export default class Field {
                 return;
             }
 
-            vehicle.drive(currentTile, event.delta);
+            vehicle.drive(currentTile, event.timeDelta);
             vehicle.updateDestination(currentTile, this.destinations, this.pathFinder);
-            vehicle.redraw();
+            vehicle.redraw(event.timeDelta);
         });
     }
 
@@ -234,7 +234,7 @@ export default class Field {
             }
 
             this.setTile(row, col, tile);
-            this.gameManager.trigger("tileChanged", tile);
+            this.gameManager.trigger("tileSpawned", tile);
         }
 
     }

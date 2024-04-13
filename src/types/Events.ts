@@ -7,7 +7,7 @@ import { TilePosition, PixelPosition } from "types/Position";
 
 export type UpdateEvent = {
     time: number;
-    delta: number;
+    timeDelta: number;
 };
 
 export type BuildEvent = {
@@ -19,9 +19,9 @@ export interface EventPayloads {
     "sceneInitialized": Phaser.Scene;
     "update": UpdateEvent;
     "tileClicked": BuildEvent;
-    "tileChanged": Tile;
     "personNeeded": PixelPosition;
     "vehicleNeeded": PixelPosition;
+    "tileSpawned": Tile;
     "personSpawned": Person;
     "vehicleSpawned": Vehicle;
     "roadBuilt": Road;

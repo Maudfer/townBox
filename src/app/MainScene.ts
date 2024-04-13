@@ -34,7 +34,7 @@ export default class MainScene extends Phaser.Scene {
         this.cameraController = null;
         this.grid = null;
 
-        this.gameManager.on("tileChanged", { callback: this.drawTile, context: this });
+        this.gameManager.on("tileSpawned", { callback: this.drawTile, context: this });
         this.gameManager.on("personSpawned", { callback: this.drawPerson, context: this });
         this.gameManager.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
     }
@@ -121,9 +121,9 @@ export default class MainScene extends Phaser.Scene {
         console.log('Scene intialized.');
     }
 
-    update(time: number, delta: number): void {
-        this.gameManager.trigger("update", { time, delta });
-        this.cameraController?.update(delta);
+    update(time: number, timeDelta: number): void {
+        this.gameManager.trigger("update", { time, timeDelta });
+        this.cameraController?.update(timeDelta);
         this.handleHover();
     }
 
@@ -307,7 +307,7 @@ export default class MainScene extends Phaser.Scene {
         personSprite.setOrigin(0.5, 0.5);
         person.setAsset(personSprite);
 
-        person.setRedrawFunction(() => {
+        person.setRedrawFunction((_: number) => {
             const personAsset = person.getAsset();
             if (personAsset === null) {
                 return;
@@ -345,7 +345,7 @@ export default class MainScene extends Phaser.Scene {
         vehicleSprite.setOrigin(0.5, 0.5);
         vehicle.setAsset(vehicleSprite);
 
-        vehicle.setRedrawFunction(() => {
+        vehicle.setRedrawFunction((timeDelta: number) => {
             const vehicleAsset = vehicle.getAsset();
             if (vehicleAsset === null) {
                 return;
@@ -358,16 +358,43 @@ export default class MainScene extends Phaser.Scene {
 
             // TODO: Optimization: no need set rotation every time
             const direction = vehicle.getDirection();
-            if(direction === Direction.North) {
-                vehicleAsset.setRotation(-90 * (Math.PI / 180));
+            let desiredRotation;
+            if (direction === Direction.North) {
+                desiredRotation = -Math.PI / 2;
             } else if (direction === Direction.South) {
-                vehicleAsset.setRotation(90 * (Math.PI / 180));
-            } else if(direction === Direction.East) {
-                vehicleAsset.setRotation(0);
+                desiredRotation = Math.PI / 2;
+            } else if (direction === Direction.East) {
+                desiredRotation = 0;
             } else if (direction === Direction.West) {
-                vehicleAsset.setRotation(180 * (Math.PI / 180));
+                desiredRotation = Math.PI;
+            } else {
+                desiredRotation = 0;  // Default, or handle error
             }
-
+            
+            // Normalize the current rotation to be within -pi to pi
+            let currentRotation = vehicleAsset.rotation;
+            currentRotation = (currentRotation % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
+            if (currentRotation > Math.PI) {
+                currentRotation -= 2 * Math.PI;
+            }
+            
+            // Calculate the shortest rotation direction
+            let rotationDelta = desiredRotation - currentRotation;
+            if (rotationDelta > Math.PI) {
+                rotationDelta -= 2 * Math.PI;
+            } else if (rotationDelta < -Math.PI) {
+                rotationDelta += 2 * Math.PI;
+            }
+            
+            // Rotate the vehicle towards the desired rotation using timeDelta
+            const rotationSpeed = 0.007; // Adjust as necessary
+            const rotationDirection = Math.sign(rotationDelta);
+            const rotationAmount = Math.min(Math.abs(rotationDelta), rotationSpeed * timeDelta) * rotationDirection;
+            const newRotation = currentRotation + rotationAmount;
+            
+            // Set the new rotation, normalized
+            vehicleAsset.setRotation((newRotation + 2 * Math.PI) % (2 * Math.PI));
+            
             vehicleAsset.setPosition(position.x, position.y);
             vehicleAsset.setDepth(vehicle.getDepth());
         });

@@ -23,7 +23,7 @@ export default class Vehicle {
 
     private asset: Image;
 
-    private redrawFunction: (() => void) | null;
+    private redrawFunction: ((timeDelta: number) => void) | null;
 
     constructor(x: number, y: number) {
         this.x = x;
@@ -192,7 +192,7 @@ export default class Vehicle {
         this.asset = asset;
     }
 
-    setRedrawFunction(redrawFunction: () => void): void {
+    setRedrawFunction(redrawFunction: (timeDelta: number) => void): void {
         this.redrawFunction = redrawFunction;
     }
 
@@ -200,9 +200,9 @@ export default class Vehicle {
         return this.direction;
     }
 
-    redraw(): void {
+    redraw(timeDelta: number): void {
         if (this.redrawFunction) {
-            this.redrawFunction();
+            this.redrawFunction(timeDelta);
         }
     }
 }
