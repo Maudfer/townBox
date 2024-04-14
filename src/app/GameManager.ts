@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Field from 'app/Field';
 import MainScene from 'app/MainScene';
+import HUDScene from 'app/HUDScene';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
@@ -10,6 +11,7 @@ import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 export default class GameManager {
     private eventListeners: EventListeners = {};
     private scene: MainScene;
+    private hud: HUDScene;
 
     public gridParams: GridParams;
 
@@ -44,7 +46,8 @@ export default class GameManager {
         };
 
         this.gridParams = gridParams;
-        this.scene = new MainScene(this, {});
+        this.scene = new MainScene(this, { key: 'MainScene', active: true });
+        this.hud = new HUDScene(this, { key: 'HUDScene', active: true });
 
         const config: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -56,7 +59,7 @@ export default class GameManager {
                 antialias: true,
                 roundPixels: true,
             },
-            scene: this.scene,
+            scene: [this.scene, this.hud],
         };
         new Phaser.Game(config);
 
@@ -110,7 +113,7 @@ export default class GameManager {
         this.eventListeners[eventName].push(handler);
     }
 
-    trigger<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): void {
+    emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): void {
         this.eventListeners[eventName]?.forEach(handler => {
             const { callback, context } = handler;
             context ? callback.call(context, payload) : callback(payload);

@@ -7,7 +7,7 @@ import Person from 'app/Person';
 
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
-import { Image } from 'types/Phaser';
+import { Image, SceneConfig } from 'types/Phaser';
 import { AssetManifest } from 'types/Assets';
 import { Direction } from 'types/Movement';
 
@@ -17,7 +17,6 @@ import inputConfig from 'json/input.json';
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
 type Grid = Phaser.GameObjects.Grid | null;
-type SceneConfig = Phaser.Types.Scenes.SettingsConfig;
 
 export default class MainScene extends Phaser.Scene {
     private gameManager: GameManager;
@@ -71,7 +70,7 @@ export default class MainScene extends Phaser.Scene {
                 x: this.input.activePointer.worldX,
                 y: this.input.activePointer.worldY
             };
-            this.gameManager.trigger("personNeeded", pointer);
+            this.gameManager.emit("personNeeded", pointer);
         });
 
         this.input.keyboard.addKey('G').on('down', () => {
@@ -107,12 +106,12 @@ export default class MainScene extends Phaser.Scene {
         };
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
-        this.gameManager.trigger("sceneInitialized", { scene: this });
+        this.gameManager.emit("sceneInitialized", { scene: this });
         console.log('Scene intialized.');
     }
 
     update(time: number, delta: number): void {
-        this.gameManager.trigger("update", { time, delta });
+        this.gameManager.emit("update", { time, delta });
         this.cameraController?.update(delta);
         this.handleHover();
     }
@@ -158,7 +157,7 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        this.gameManager.trigger("tileClicked", { position: tilePosition, tool: cursor.tool });
+        this.gameManager.emit("tileClicked", { position: tilePosition, tool: cursor.tool });
     }
 
     getCursor(): Cursor {

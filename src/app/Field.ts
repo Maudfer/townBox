@@ -43,7 +43,7 @@ export default class Field {
             for (let col = 0; col < this.cols; col++) {
                 const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
-                this.gameManager.trigger("tileUpdated", tile);
+                this.gameManager.emit("tileUpdated", tile);
             }
         }
 
@@ -114,7 +114,7 @@ export default class Field {
             newTile.calculateCurb(cellParams, pixelCenter);
             newTile.calculateLanes(cellParams, pixelCenter);
 
-            this.gameManager.trigger("roadBuilt", tilePosition);
+            this.gameManager.emit("roadBuilt", tilePosition);
         }
 
         if (newTile instanceof Building) {
@@ -143,7 +143,7 @@ export default class Field {
         person.updateDepth(currentTile);
 
         this.people.push(person);
-        this.gameManager.trigger("personSpawned", person);
+        this.gameManager.emit("personSpawned", person);
     }
 
     replaceTile(tile: Tile): void {
@@ -181,7 +181,7 @@ export default class Field {
             }
 
             this.setTile(row, col, tile);
-            this.gameManager.trigger("tileUpdated", tile);
+            this.gameManager.emit("tileUpdated", tile);
         }
 
     }
