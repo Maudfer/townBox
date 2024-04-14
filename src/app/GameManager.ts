@@ -10,8 +10,6 @@ import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 export default class GameManager {
     private eventListeners: EventListeners = {};
     private scene: MainScene;
-    // private game: Phaser.Game;
-    // private field: Field;
 
     public gridParams: GridParams;
 
@@ -22,8 +20,8 @@ export default class GameManager {
         };
 
         const screenParams: ScreenParams = {
-            width: 1920,
-            height: 1920
+            width: window.innerWidth,
+            height: window.innerHeight
         };
 
         const gridWidth = 6144;
@@ -50,10 +48,8 @@ export default class GameManager {
 
         const config: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
-            width: screenParams.width,
-            height: screenParams.height,
             scale: {
-                mode: Phaser.Scale.FIT,
+                mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
             },
             render: {
@@ -62,7 +58,6 @@ export default class GameManager {
             },
             scene: this.scene,
         };
-
         new Phaser.Game(config);
 
         const initializeField = () => {
