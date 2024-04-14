@@ -192,6 +192,10 @@ export default class Vehicle {
         if (currentRotation > Math.PI) {
             currentRotation -= 2 * Math.PI;
         }
+
+        if (currentRotation === desiredRotation) {
+            return currentRotation;
+        }
         
         // Calculate the shortest rotation direction
         let rotationDelta = desiredRotation - currentRotation;
@@ -201,23 +205,23 @@ export default class Vehicle {
             rotationDelta += 2 * Math.PI;
         }
 
-        /*
-        TODO: Implement snapping correctly
-        // Below code is broken, will cause random snapping
-        const snapThreshold = 180 * (Math.PI / 180);
-        if (Math.abs(rotationDelta) >= snapThreshold) {
-            console.log(rotationDelta);
-            return desiredRotation;
+        // convert rotationDelta to degrees
+        const rotationDeltaDegrees = rotationDelta * (180 / Math.PI);
+
+        const snapThreshold = 180;
+        if (rotationDeltaDegrees >= snapThreshold) {
+            console.log(rotationDeltaDegrees);
+            console.log("SNAP");
+            //return desiredRotation;
         }
-        */
         
-        // Rotate the vehicle towards the desired rotation
+        // Calculate newRotation and normalize it to be within -pi to pi
         const rotationDirection = Math.sign(rotationDelta);
         const rotationAmount = Math.min(Math.abs(rotationDelta), this.rotationSpeed * timeDelta) * rotationDirection;
-        const newRotation = currentRotation + rotationAmount;
+        let newRotation = currentRotation + rotationAmount;
+        newRotation = (newRotation + 2 * Math.PI) % (2 * Math.PI); 
 
-        // Normalize newRotation to be within -pi to pi
-        return (newRotation + 2 * Math.PI) % (2 * Math.PI);
+        return newRotation;
     }
 
     getDepth(): number {
