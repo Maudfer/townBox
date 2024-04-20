@@ -184,7 +184,7 @@ export default class Vehicle {
         } else if (this.direction === Direction.West) {
             desiredRotation = Math.PI;
         } else {
-            desiredRotation = 0;
+            throw new Error(`[Vehicle] Invalid direction: ${this.direction}`);
         }
         
         // Normalize currentRotation to be within -pi to pi
@@ -210,8 +210,11 @@ export default class Vehicle {
 
         const snapThreshold = 180;
         if (rotationDeltaDegrees >= snapThreshold) {
-            console.log(rotationDeltaDegrees);
+            console.log("currentRotation", (currentRotation * (180 / Math.PI)));
+            console.log("desiredRotation", (desiredRotation * (180 / Math.PI)));
+            console.log("rotationDeltaDegrees", rotationDeltaDegrees);
             console.log("SNAP");
+            console.log("--------------------------------------------------");
             //return desiredRotation;
         }
         

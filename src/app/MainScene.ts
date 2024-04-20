@@ -5,6 +5,7 @@ import Tile from 'app/Tile';
 import Soil from 'app/Soil';
 import Person from 'app/Person';
 import Vehicle from 'app/Vehicle';
+import { degreesToRadians, radiansToDegrees } from 'util/Math';
 
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
@@ -318,17 +319,15 @@ export default class MainScene extends Phaser.Scene {
                 return;
             }
 
-            // TODO: Optimization: no need set rotation every time
             const direction = person.getDirection();
-            if(direction === Direction.North) {
-                personAsset.setRotation(-90 * (Math.PI / 180));
-            } else if (direction === Direction.South) {
-                personAsset.setRotation(90 * (Math.PI / 180));
-            } else if(direction === Direction.East) {
-                personAsset.setRotation(0);
-            } else if (direction === Direction.West) {
-                personAsset.setRotation(180 * (Math.PI / 180));
-            }
+            const directionRotationMap = {
+                [Direction.North]: degreesToRadians(-90),
+                [Direction.South]: degreesToRadians(90),
+                [Direction.East]: degreesToRadians(0),
+                [Direction.West]: degreesToRadians(180),
+                [Direction.NULL]: 0 // TODO: Should throw an error
+            };
+            personAsset.setRotation(directionRotationMap[direction]);
 
             personAsset.setPosition(position.x, position.y);
             personAsset.setDepth(person.getDepth());
@@ -358,8 +357,8 @@ export default class MainScene extends Phaser.Scene {
             
             const currentRotation = vehicleAsset.rotation;
             const newRotation = vehicle.rotate(currentRotation, timeDelta);
-
             vehicleAsset.setRotation(newRotation);
+            
             vehicleAsset.setPosition(position.x, position.y);
             vehicleAsset.setDepth(vehicle.getDepth());
         });
