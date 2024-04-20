@@ -14,6 +14,7 @@
       "baseUrl": ".",
       "paths": {
         "app/*": ["./src/app/*"],
+        "util/*": ["./src/util/*"],
         "types/*": ["./src/types/*"],
         "json/*": ["./src/json/*"],
         "css/*": ["./src/css/*"],

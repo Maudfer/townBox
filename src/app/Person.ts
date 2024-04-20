@@ -5,7 +5,8 @@ import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
-import { Direction } from 'types/Movement';
+import { Direction, Axis } from 'types/Movement';
+
 export default class Person {
     private x: number;
     private y: number;
@@ -15,25 +16,25 @@ export default class Person {
 
     private currentTarget: PixelPosition | null;
     private direction: Direction;
-    private movingAxis: 'x' | 'y';
+    private movingAxis: Axis;
 
     private path: Tile[];
     private currentDestination: TilePosition;
 
     private asset: Image;
 
-    private redrawFunction: (() => void) | null;
+    private redrawFunction: ((timeDelta: number) => void) | null;
 
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
 
         this.depth = 0;
-        this.speed = 0.05;
+        this.speed = 0.02;
 
         this.currentTarget = null;
         this.direction = Direction.East;
-        this.movingAxis = 'x';
+        this.movingAxis = Axis.X;
 
         this.path = [];
         this.currentDestination = null;
@@ -47,38 +48,31 @@ export default class Person {
             return;
         }
 
-        // If current target is reached, set next target and wait for next walk cycle
-        if (this.isCurrentTargetReached()) {
-            this.setNextTarget(currentTile);
-            return;
-        }
-
-        // If current target is not reached, check if we have a target at all
-        if (!this.currentTarget) {
-            return;
-        }
-
         const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
         const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
 
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
 
-        if (this.movingAxis === 'x') {
+        if (this.movingAxis === Axis.X) {
             this.x = potentialX;
             this.direction = speedX > 0 ? Direction.East : Direction.West;
             if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
-                this.movingAxis = 'y';
+                this.movingAxis = Axis.Y;
             }
-        } else if (this.movingAxis === 'y') {
+        } else if (this.movingAxis === Axis.Y) {
             this.y = potentialY;
             this.direction = speedY > 0 ? Direction.South : Direction.North;
             if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
-                this.movingAxis = 'x';
+                this.movingAxis = Axis.X;
             }
         }
 
         this.updateDepth(currentTile);
+
+        if (this.isCurrentTargetReached()) {
+            this.setNextTarget(currentTile);
+        }
     }
 
     setNextTarget(currentTile: Tile): void {
@@ -192,7 +186,7 @@ export default class Person {
         this.asset = asset;
     }
 
-    setRedrawFunction(redrawFunction: () => void): void {
+    setRedrawFunction(redrawFunction: (timeDelta: number) => void): void {
         this.redrawFunction = redrawFunction;
     }
 
@@ -200,13 +194,9 @@ export default class Person {
         return this.direction;
     }
 
-    redraw(): void {
+    redraw(timeDelta: number): void {
         if (this.redrawFunction) {
-            this.redrawFunction();
+            this.redrawFunction(timeDelta);
         }
-    }
-
-    getMovingAxis(): string {
-        return this.movingAxis;
     }
 }

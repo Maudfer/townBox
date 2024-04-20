@@ -8,6 +8,11 @@ export enum Direction {
     NULL = 0
 }
 
+export enum Axis {
+    X = 'x',
+    Y = 'y'
+}
+
 export type Curb = {
     topLeft: PixelPosition;
     topRight: PixelPosition;
