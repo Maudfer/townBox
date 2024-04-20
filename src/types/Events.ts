@@ -1,10 +1,13 @@
-import { TilePosition, PixelPosition } from "@/types/Position";
-import { Tile } from '@/Tile';
-import { Person } from '@/Person';
+import Tile from 'app/Tile';
+import Road from 'app/Road';
+import Person from 'app/Person';
+import Vehicle from 'app/Vehicle';
+
+import { TilePosition, PixelPosition } from "types/Position";
 
 export type UpdateEvent = {
     time: number;
-    delta: number;
+    timeDelta: number;
 };
 
 export type BuildEvent = {
@@ -13,11 +16,13 @@ export type BuildEvent = {
 };
 
 export interface EventPayloads {
-    "sceneInitialized": {};
+    "sceneInitialized": Phaser.Scene;
     "update": UpdateEvent;
     "tileClicked": BuildEvent;
-    "tileUpdated": Tile;
     "personNeeded": PixelPosition;
+    "vehicleNeeded": PixelPosition;
+    "tileSpawned": Tile;
     "personSpawned": Person;
-    "roadBuilt": TilePosition;
+    "vehicleSpawned": Vehicle;
+    "roadBuilt": Road;
 };

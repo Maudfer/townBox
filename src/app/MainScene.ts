@@ -4,12 +4,13 @@ import GameManager from 'app/GameManager';
 import Tile from 'app/Tile';
 import Soil from 'app/Soil';
 import Person from 'app/Person';
+import Vehicle from 'app/Vehicle';
+import { directionToRadianRotation } from 'util/tools';
 
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
 import { Image, SceneConfig } from 'types/Phaser';
 import { AssetManifest } from 'types/Assets';
-import { Direction } from 'types/Movement';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
@@ -32,8 +33,9 @@ export default class MainScene extends Phaser.Scene {
         this.cameraController = null;
         this.grid = null;
 
-        this.gameManager.on('tileUpdated', { callback: this.drawTile, context: this });
-        this.gameManager.on('personSpawned', { callback: this.drawPerson, context: this });
+        this.gameManager.on("tileSpawned", { callback: this.drawTile, context: this });
+        this.gameManager.on("personSpawned", { callback: this.drawPerson, context: this });
+        this.gameManager.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
     }
 
     init(_: any): void { }
@@ -73,6 +75,14 @@ export default class MainScene extends Phaser.Scene {
             this.gameManager.emit("personNeeded", pointer);
         });
 
+        this.input.keyboard.addKey('V').on('down', () => {
+            const pointer = {
+                x: this.input.activePointer.worldX,
+                y: this.input.activePointer.worldY
+            };
+            this.gameManager.emit("vehicleNeeded", pointer);
+        });
+
         this.input.keyboard.addKey('G').on('down', () => {
             this.toggleGrid();
         });
@@ -106,13 +116,13 @@ export default class MainScene extends Phaser.Scene {
         };
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
-        this.gameManager.emit("sceneInitialized", { scene: this });
-        console.log('Scene intialized.');
+        this.gameManager.emit("sceneInitialized", this);
+        console.info('Scene intialized.');
     }
 
-    update(time: number, delta: number): void {
-        this.gameManager.emit("update", { time, delta });
-        this.cameraController?.update(delta);
+    update(time: number, timeDelta: number): void {
+        this.gameManager.emit("update", { time, timeDelta });
+        this.cameraController?.update(timeDelta);
         this.handleHover();
     }
 
@@ -260,6 +270,7 @@ export default class MainScene extends Phaser.Scene {
         }
 
         let image: Image;
+
         if (tile instanceof Soil) {
             image = this.add.image(pixelPosition.x, pixelPosition.y, textureName);
             image.setOrigin(0.5, 0.5);
@@ -270,13 +281,14 @@ export default class MainScene extends Phaser.Scene {
             image.setRotation(rotation);
         } else {
             // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
+            const imageX = pixelPosition.x;
             const imageY = pixelPosition.y + (gridParams.cells.height / 2);
-            image = this.add.image(pixelPosition.x, imageY, textureName);
+            image = this.add.image(imageX, imageY, textureName);
             image.setOrigin(0.5, 1);
-        } 
+        }
         image.setDepth(tile.calculateDepth());
 
-        const existingTileAsset: Image = tile.getAsset();
+        const existingTileAsset = tile.getAsset();
         if (existingTileAsset) {
             existingTileAsset.destroy();
         }
@@ -292,10 +304,9 @@ export default class MainScene extends Phaser.Scene {
 
         const personSprite: Image = this.add.image(position.x, position.y, 'person');
         personSprite.setOrigin(0.5, 0.5);
-
         person.setAsset(personSprite);
 
-        person.setRedrawFunction(() => {
+        person.setRedrawFunction((_: number) => {
             const personAsset = person.getAsset();
             if (personAsset === null) {
                 return;
@@ -307,18 +318,41 @@ export default class MainScene extends Phaser.Scene {
             }
 
             const direction = person.getDirection();
-            if(direction === Direction.North) {
-                personAsset.setRotation(-90 * (Math.PI / 180));
-            } else if (direction === Direction.South) {
-                personAsset.setRotation(90 * (Math.PI / 180));
-            } else if(direction === Direction.East) {
-                personAsset.setRotation(0);
-            } else if (direction === Direction.West) {
-                personAsset.setRotation(180 * (Math.PI / 180));
-            }
-
+            const rotation = directionToRadianRotation(direction);
+            
+            personAsset.setRotation(rotation);
             personAsset.setPosition(position.x, position.y);
             personAsset.setDepth(person.getDepth());
+        });
+    }
+
+    private drawVehicle(vehicle: Vehicle): void {
+        const position: PixelPosition = vehicle.getPosition();
+        if (position === null) {
+            return;
+        }
+
+        const vehicleSprite: Image = this.add.image(position.x, position.y, 'vehicle');
+        vehicleSprite.setOrigin(0.5, 0.5);
+        vehicle.setAsset(vehicleSprite);
+
+        vehicle.setRedrawFunction((timeDelta: number) => {
+            const vehicleAsset = vehicle.getAsset();
+            if (vehicleAsset === null) {
+                return;
+            }
+
+            const position = vehicle.getPosition();
+            if (position === null) {
+                return;
+            }
+            
+            const currentRotation = vehicleAsset.rotation;
+            const newRotation = vehicle.curve(currentRotation, timeDelta);
+            vehicleAsset.setRotation(newRotation);
+
+            vehicleAsset.setPosition(position.x, position.y);
+            vehicleAsset.setDepth(vehicle.getDepth());
         });
     }
 }

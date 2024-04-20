@@ -3,7 +3,7 @@ import Tile from 'app/Tile';
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
-import { Curb, Lane } from 'types/Movement';
+import { Curb, Lane, Direction } from 'types/Movement';
 export default class Road extends Tile {
     private curb: Curb;
     private lane: Lane;
@@ -78,13 +78,13 @@ export default class Road extends Tile {
         };
     }
 
-    getClosestCurbPoint(pixelPosition: PixelPosition): PixelPosition {
-        if (!pixelPosition || !this.curb) {
-            console.warn(`[Road] getClosestCurbPoint() called with invalid parameters: ${pixelPosition}, ${this.curb}`);
+    getClosestCurbPoint(currentPosition: PixelPosition): PixelPosition {
+        if (!currentPosition || !this.curb) {
+            console.warn("[Road] getClosestCurbPoint() call invalid:", currentPosition, this.curb);
             return null;
         }
 
-        const { x, y } = pixelPosition;
+        const { x, y } = currentPosition;
         const { topLeft, topRight, bottomLeft, bottomRight } = this.curb;
         if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
             return null;
@@ -107,6 +107,33 @@ export default class Road extends Tile {
         } else {
             return bottomRight;
         }
+    }
+
+    getLaneEntryPoint(relativeDirection: Direction): PixelPosition {
+        if (!relativeDirection || !this.lane) {
+            console.warn("[Road] getClosestLanePoint() call invalid:", relativeDirection, this.lane);
+            return null;
+        }
+
+        const { topLeft, topRight, bottomLeft, bottomRight } = this.lane;
+        if (!topLeft || !topRight || !bottomLeft || !bottomRight) {
+            return null;
+        }
+
+        const directionMap = {
+            [Direction.North]: bottomRight,
+            [Direction.South]: topLeft,
+            [Direction.East]: bottomLeft,
+            [Direction.West]: topRight
+        };
+
+        const entryPoint = directionMap[relativeDirection];
+        if (!entryPoint) {
+            console.warn("[Road] getLaneEntryPoint() invalid relativeDirection:", relativeDirection);
+            return null;
+        }
+
+        return entryPoint;
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {

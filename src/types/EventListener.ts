@@ -1,4 +1,4 @@
-import { EventPayloads } from '@/types/Events';
+import { EventPayloads } from 'types/Events';
 
 export interface Handler<T> {
     callback: (payload: T) => void;

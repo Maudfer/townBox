@@ -10,6 +10,8 @@ export default class Tile {
     private asset: Image;
     private textureName: string | null;
 
+    private debugText?: Phaser.GameObjects.Text;
+
     constructor(row: number, col: number, textureName: string | null) {
         this.row = row;
         this.col = col;
@@ -27,6 +29,22 @@ export default class Tile {
 
     getCol(): number {
         return this.col;
+    }
+
+    getRelativeDirection(otherTile: Tile): Direction {
+        if (this.row === otherTile.getRow()) {
+            if (this.col < otherTile.getCol()) {
+                return Direction.East;
+            } else {
+                return Direction.West;
+            }
+        } else {
+            if (this.row < otherTile.getRow()) {
+                return Direction.South;
+            } else {
+                return Direction.North;
+            }
+        }
     }
 
     getPosition(): TilePosition {
@@ -51,6 +69,14 @@ export default class Tile {
 
     setAsset(asset: Image): void {
         this.asset = asset;
+    }
+
+    getDebugText(): Phaser.GameObjects.Text | undefined {
+        return this.debugText;
+    }
+
+    setDebugText(debugText: Phaser.GameObjects.Text): void {
+        this.debugText = debugText;
     }
 
     updateSelfBasedOnNeighbors(_: NeighborMap): void { }

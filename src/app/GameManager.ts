@@ -2,17 +2,21 @@ import Phaser from 'phaser';
 import Field from 'app/Field';
 import MainScene from 'app/MainScene';
 import HUDScene from 'app/HUDScene';
+import DebugTools from 'app/DebugTools';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 
+import config from 'json/config.json';
+
 export default class GameManager {
     private eventListeners: EventListeners = {};
-    private scene: MainScene;
     private hud: HUDScene;
 
+    
+    public scene: MainScene;
     public gridParams: GridParams;
 
     constructor() {
@@ -49,7 +53,7 @@ export default class GameManager {
         this.scene = new MainScene(this, { key: 'MainScene', active: true });
         this.hud = new HUDScene(this, { key: 'HUDScene', active: true });
 
-        const config: Phaser.Types.Core.GameConfig = {
+        const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
             scale: {
                 mode: Phaser.Scale.RESIZE,
@@ -61,12 +65,20 @@ export default class GameManager {
             },
             scene: [this.scene, this.hud],
         };
-        new Phaser.Game(config);
 
-        const initializeField = () => {
+        new Phaser.Game(phaserConfig);
+        const debugTools = new DebugTools();
+
+        const postSceneInit = (_: Phaser.Scene) => {
+            if (config.debug.masterSwitch) {
+                this.on("tileSpawned", { callback: debugTools.drawTileDebugInfo, context: this }) // Huge performance hit, disabled by default
+                this.on("roadBuilt", { callback: debugTools.drawRoadCurbs, context: this });
+                this.on("roadBuilt", { callback: debugTools.drawRoadLanes, context: this });
+            }
+
             new Field(this, fieldParams.rows, fieldParams.cols);
         }
-        this.on("sceneInitialized", {callback: initializeField, context: this});
+        this.on("sceneInitialized", {callback: postSceneInit, context: this});
     }
 
     tileToPixelPosition(tilePosition: TilePosition): PixelPosition {
@@ -114,6 +126,10 @@ export default class GameManager {
     }
 
     emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): void {
+        if(!payload) {
+            payload = {} as EventPayloads[K];
+        }
+        
         this.eventListeners[eventName]?.forEach(handler => {
             const { callback, context } = handler;
             context ? callback.call(context, payload) : callback(payload);

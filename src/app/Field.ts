@@ -4,6 +4,7 @@ import Soil from 'app/Soil';
 import Road from 'app/Road';
 import Building from 'app/Building';
 import Person from 'app/Person';
+import Vehicle from 'app/Vehicle';
 import PathFinder from 'app/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
@@ -22,6 +23,7 @@ export default class Field {
     private cols: number;
 
     private people: Person[];
+    private vehicles: Vehicle[];
     private destinations: Set<string>;
     private pathFinder: PathFinder;
 
@@ -33,6 +35,7 @@ export default class Field {
         this.cols = cols;
 
         this.people = [];
+        this.vehicles = [];
         this.destinations = new Set();
         this.pathFinder = new PathFinder(this);
 
@@ -43,17 +46,18 @@ export default class Field {
             for (let col = 0; col < this.cols; col++) {
                 const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
-                this.gameManager.emit("tileUpdated", tile);
+                this.gameManager.emit("tileSpawned", tile);
             }
         }
 
         this.gameManager.on("tileClicked", { callback: this.build, context: this });
         this.gameManager.on("personNeeded", { callback: this.spawnPerson, context: this });
+        this.gameManager.on("vehicleNeeded", { callback: this.spawnVehicle, context: this });
         this.gameManager.on("update", { callback: this.update, context: this });
     }
 
     update(event: UpdateEvent): void {
-        this.people.forEach((person) => {
+        this.people.forEach((person: Person) => {
             const currentPixelPosition = person.getPosition();
             if (currentPixelPosition === null) {
                 return;
@@ -69,9 +73,30 @@ export default class Field {
                 return;
             }
 
-            person.walk(currentTile, event.delta);
+            person.walk(currentTile, event.timeDelta);
             person.updateDestination(currentTile, this.destinations, this.pathFinder);
-            person.redraw();
+            person.redraw(event.timeDelta);
+        });
+
+        this.vehicles.forEach((vehicle: Vehicle) => {
+            const currentPixelPosition = vehicle.getPosition();
+            if (currentPixelPosition === null) {
+                return;
+            }
+
+            const currentTilePosition = this.gameManager.pixelToTilePosition(currentPixelPosition);
+            if (currentTilePosition === null) {
+                return;
+            }
+
+            const currentTile = this.getTile(currentTilePosition.row, currentTilePosition.col);
+            if (currentTile === null) {
+                return;
+            }
+
+            vehicle.drive(currentTile, event.timeDelta);
+            vehicle.updateDestination(currentTile, this.destinations, this.pathFinder);
+            vehicle.redraw(event.timeDelta);
         });
     }
 
@@ -114,7 +139,7 @@ export default class Field {
             newTile.calculateCurb(cellParams, pixelCenter);
             newTile.calculateLanes(cellParams, pixelCenter);
 
-            this.gameManager.emit("roadBuilt", tilePosition);
+            this.gameManager.emit("roadBuilt", newTile);
         }
 
         if (newTile instanceof Building) {
@@ -146,6 +171,29 @@ export default class Field {
         this.gameManager.emit("personSpawned", person);
     }
 
+    spawnVehicle(pixelPosition: PixelPosition): void {
+        if (pixelPosition === null) {
+            return;
+        }
+
+        const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
+        if (tilePosition === null) {
+            return;
+        }
+
+        const currentTile = this.getTile(tilePosition.row, tilePosition.col);
+        if (currentTile === null) {
+            return;
+        }
+
+        const { x, y } = pixelPosition;
+        const vehicle = new Vehicle(x, y);
+        vehicle.updateDepth(currentTile);
+
+        this.vehicles.push(vehicle);
+        this.gameManager.emit("vehicleSpawned", vehicle);
+    }
+
     replaceTile(tile: Tile): void {
         if (tile === null) {
             return;
@@ -164,6 +212,7 @@ export default class Field {
 
         const oldTexture = oldTile.getTextureName();
         const oldAsset = oldTile.getAsset();
+        const oldDebugText = oldTile.getDebugText();
 
         const neighbors = this.getNeighbors(tile);
         tile.updateSelfBasedOnNeighbors(neighbors);
@@ -174,6 +223,10 @@ export default class Field {
                 oldAsset.destroy();
             }
 
+            if (oldDebugText) {
+                oldDebugText.destroy();
+            }
+            
             // Update destinations set with building tiles
             this.destinations.delete(`${row}-${col}`);
             if (tile instanceof Building) {
@@ -181,7 +234,7 @@ export default class Field {
             }
 
             this.setTile(row, col, tile);
-            this.gameManager.emit("tileUpdated", tile);
+            this.gameManager.emit("tileSpawned", tile);
         }
 
     }
