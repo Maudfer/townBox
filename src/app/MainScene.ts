@@ -98,7 +98,7 @@ export default class MainScene extends Phaser.Scene {
         });
 
         // Camera
-        this.cameras.main.zoom = 2;
+        this.cameras.main.zoom = 1.75;
         const cameraControlParams = {
             camera: this.cameras.main,
             left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
@@ -107,8 +107,8 @@ export default class MainScene extends Phaser.Scene {
             down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
             zoomIn: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
-            maxZoom: 5,
-            minZoom: 0.32,
+            maxZoom: 1.75,
+            minZoom: 0.3,
             zoomSpeed: 0.08, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
