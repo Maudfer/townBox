@@ -120,19 +120,20 @@ export default class Road extends Tile {
             return null;
         }
 
-        if (relativeDirection === Direction.North) {
-            return bottomRight;
-        } else if (relativeDirection === Direction.South) {
-            return topLeft;
-        } else if (relativeDirection === Direction.East) {
-            return bottomLeft;
-        } else if (relativeDirection === Direction.West) {
-            return topRight;
-        } else {
+        const directionMap = {
+            [Direction.North]: bottomRight,
+            [Direction.South]: topLeft,
+            [Direction.East]: bottomLeft,
+            [Direction.West]: topRight
+        };
+
+        const entryPoint = directionMap[relativeDirection];
+        if (!entryPoint) {
             console.warn("[Road] getLaneEntryPoint() invalid relativeDirection:", relativeDirection);
             return null;
         }
 
+        return entryPoint;
     }
 
     updateSelfBasedOnNeighbors(neighbors: NeighborMap): void {
