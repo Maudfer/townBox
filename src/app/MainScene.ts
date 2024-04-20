@@ -5,13 +5,12 @@ import Tile from 'app/Tile';
 import Soil from 'app/Soil';
 import Person from 'app/Person';
 import Vehicle from 'app/Vehicle';
-import { degreesToRadians, radiansToDegrees } from 'util/Math';
+import { directionToRadianRotation } from 'util/tools';
 
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Cursor } from 'types/Cursor';
 import { Image } from 'types/Phaser';
 import { AssetManifest } from 'types/Assets';
-import { Direction } from 'types/Movement';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
@@ -119,7 +118,7 @@ export default class MainScene extends Phaser.Scene {
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
         this.gameManager.trigger("sceneInitialized", this);
-        console.log('Scene intialized.');
+        console.info('Scene intialized.');
     }
 
     update(time: number, timeDelta: number): void {
@@ -320,15 +319,9 @@ export default class MainScene extends Phaser.Scene {
             }
 
             const direction = person.getDirection();
-            const directionRotationMap = {
-                [Direction.North]: degreesToRadians(-90),
-                [Direction.South]: degreesToRadians(90),
-                [Direction.East]: degreesToRadians(0),
-                [Direction.West]: degreesToRadians(180),
-                [Direction.NULL]: 0 // TODO: Should throw an error
-            };
-            personAsset.setRotation(directionRotationMap[direction]);
-
+            const rotation = directionToRadianRotation(direction);
+            
+            personAsset.setRotation(rotation);
             personAsset.setPosition(position.x, position.y);
             personAsset.setDepth(person.getDepth());
         });
@@ -356,9 +349,9 @@ export default class MainScene extends Phaser.Scene {
             }
             
             const currentRotation = vehicleAsset.rotation;
-            const newRotation = vehicle.rotate(currentRotation, timeDelta);
+            const newRotation = vehicle.curve(currentRotation, timeDelta);
             vehicleAsset.setRotation(newRotation);
-            
+
             vehicleAsset.setPosition(position.x, position.y);
             vehicleAsset.setDepth(vehicle.getDepth());
         });

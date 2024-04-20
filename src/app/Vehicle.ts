@@ -3,6 +3,9 @@ import Tile from 'app/Tile';
 import Building from 'app/Building';
 import PathFinder from 'app/PathFinder';
 
+import { radiansToDegrees } from 'util/math';
+import { directionToRadianRotation } from 'util/tools';
+
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
@@ -49,31 +52,76 @@ export default class Vehicle {
         if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
-
-        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
-        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
-
-        const potentialX = this.x + speedX;
-        const potentialY = this.y + speedY;
-
-        if (this.movingAxis === Axis.X) {
-            this.x = potentialX;
-            this.direction = speedX > 0 ? Direction.East : Direction.West;
-            if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
-                this.movingAxis = Axis.Y;
-            }
-        } else if (this.movingAxis === Axis.Y) {
-            this.y = potentialY;
-            this.direction = speedY > 0 ? Direction.South : Direction.North;
-            if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
-                this.movingAxis = Axis.X;
-            }
-        }
-
+        
+        this.updatePosition(this.movingAxis, timeDelta);
+        this.updateDirection(this.movingAxis);
         this.updateDepth(currentTile);
 
         if (this.isCurrentTargetReached()) {
             this.setNextTarget(currentTile);
+        }
+    }
+
+    updatePosition(axis: Axis, timeDelta: number): void {
+        if (!this.currentTarget) {
+            return;
+        }
+
+        const speed = this.speed * timeDelta;
+        if (axis === Axis.X) {
+            const speedX = speed * Math.sign(this.currentTarget.x - this.x);
+            let potentialX = this.x + speedX;
+
+            if (Math.abs(potentialX - this.currentTarget.x) < Math.abs(speedX)) {
+                potentialX = this.currentTarget.x; // Snap directly to target if overshooting
+            }
+
+            this.x = potentialX;
+
+        } else if (axis === Axis.Y) {
+            const speedY = speed * Math.sign(this.currentTarget.y - this.y);
+            let potentialY = this.y + speedY;
+
+            if (Math.abs(potentialY - this.currentTarget.y) < Math.abs(speedY)) {
+                potentialY = this.currentTarget.y; // Snap directly to target if overshooting
+            }
+
+            this.y = potentialY;
+
+        } else {
+            throw new Error(`[Vehicle] Invalid moving axis: ${axis}`);
+        }
+    }
+
+    updateDirection(axis: Axis): void {
+        if (!this.currentTarget) {
+            return;
+        }
+
+        if (axis === Axis.X) {
+            const doesPositionMatchTarget = this.x !== this.currentTarget.x;
+            const potentialDirection = this.x < this.currentTarget.x ? Direction.East : Direction.West;
+
+            this.direction = doesPositionMatchTarget ? potentialDirection : this.direction;
+    
+            if (this.isCurrentTargetXReached()) {
+                this.movingAxis = !this.isCurrentTargetYReached() ? Axis.Y : this.movingAxis;
+                this.direction = this.isCurrentTargetYReached() ? Direction.NULL : this.direction;
+            }
+
+        } else if (axis === Axis.Y) {
+            const doesPositionMatchTargetY = this.y !== this.currentTarget.y;
+            const potentialDirectionY = this.y < this.currentTarget.y ? Direction.South : Direction.North;
+            
+            this.direction = doesPositionMatchTargetY ? potentialDirectionY : this.direction;
+    
+            if (this.isCurrentTargetYReached()) {
+                this.movingAxis = !this.isCurrentTargetXReached() ? Axis.X : this.movingAxis;
+                this.direction = this.isCurrentTargetXReached() ? Direction.NULL : this.direction;
+            }
+
+        } else {
+            throw new Error(`[Vehicle] Invalid moving axis: ${axis}`);
         }
     }
 
@@ -99,11 +147,11 @@ export default class Vehicle {
         }
 
         // If next tile is not a Building nor a Road, stay still
-        if (!(nextTile instanceof Road)){
+        if (!(nextTile instanceof Road)) {
             console.warn(`[Vehicle] Next tile is not a road`, nextTile);
             return;
         }
-         
+
         const nextTilePosition = nextTile.getPosition();
         const lanes = nextTile.getLane();
         if (!nextTilePosition || !lanes) {
@@ -111,7 +159,7 @@ export default class Vehicle {
             return;
         }
 
-        // get direction of nextTile relative to currentTile
+        // Get direction of nextTile relative to currentTile
         const relativeDirection = currentTile.getRelativeDirection(nextTile);
         if (!relativeDirection) {
             console.warn(`[Vehicle] Could not determine relative tile direction`, currentTile, nextTile);
@@ -173,30 +221,23 @@ export default class Vehicle {
         this.depth = ((row + 1) * 10) + 1;
     }
 
-    rotate(currentRotation: number, timeDelta: number): number {
-        let desiredRotation;
-        if (this.direction === Direction.North) {
-            desiredRotation = -Math.PI / 2;
-        } else if (this.direction === Direction.South) {
-            desiredRotation = Math.PI / 2;
-        } else if (this.direction === Direction.East) {
-            desiredRotation = 0;
-        } else if (this.direction === Direction.West) {
-            desiredRotation = Math.PI;
-        } else {
-            throw new Error(`[Vehicle] Invalid direction: ${this.direction}`);
+    curve(currentRotation: number, timeDelta: number): number {
+        if (this.direction === Direction.NULL) {
+            return currentRotation;
         }
-        
+        const desiredRotation = directionToRadianRotation(this.direction);
+
         // Normalize currentRotation to be within -pi to pi
         currentRotation = (currentRotation % (2 * Math.PI) + (2 * Math.PI)) % (2 * Math.PI);
         if (currentRotation > Math.PI) {
             currentRotation -= 2 * Math.PI;
         }
 
+        // If currentRotation is already the desiredRotation, no need to recalculate
         if (currentRotation === desiredRotation) {
             return currentRotation;
         }
-        
+
         // Calculate the shortest rotation direction
         let rotationDelta = desiredRotation - currentRotation;
         if (rotationDelta > Math.PI) {
@@ -205,24 +246,16 @@ export default class Vehicle {
             rotationDelta += 2 * Math.PI;
         }
 
-        // convert rotationDelta to degrees
-        const rotationDeltaDegrees = rotationDelta * (180 / Math.PI);
-
+        // Snap to desiredRotation if rotationDelta too large, we can't have a single curve more than 180 degrees
         const snapThreshold = 180;
-        if (rotationDeltaDegrees >= snapThreshold) {
-            console.log("currentRotation", (currentRotation * (180 / Math.PI)));
-            console.log("desiredRotation", (desiredRotation * (180 / Math.PI)));
-            console.log("rotationDeltaDegrees", rotationDeltaDegrees);
-            console.log("SNAP");
-            console.log("--------------------------------------------------");
-            //return desiredRotation;
+        if (radiansToDegrees(rotationDelta) >= snapThreshold) {
+            return desiredRotation;
         }
-        
-        // Calculate newRotation and normalize it to be within -pi to pi
+
+        // Calculate newRotation according to rotation speed and normalize it to be within -pi to pi
         const rotationDirection = Math.sign(rotationDelta);
         const rotationAmount = Math.min(Math.abs(rotationDelta), this.rotationSpeed * timeDelta) * rotationDirection;
-        let newRotation = currentRotation + rotationAmount;
-        newRotation = (newRotation + 2 * Math.PI) % (2 * Math.PI); 
+        const newRotation = ((currentRotation + rotationAmount) + 2 * Math.PI) % (2 * Math.PI);
 
         return newRotation;
     }
