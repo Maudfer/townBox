@@ -19,6 +19,7 @@ export default class HUDScene extends Phaser.Scene {
     }
     
     create() {
+        /*
         const toolbarHeight = 50;
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
@@ -31,6 +32,7 @@ export default class HUDScene extends Phaser.Scene {
         // Define buttons
         const buttonTitles = ['Menu 1', 'Menu 2', 'Menu 3']; // Titles of your buttons
         this.buttons = buttonTitles.map((title, index) => this.createButton(title, index, screenWidth, screenHeight, toolbarHeight));
+        */
     }
     
     private createButton(title: string, index: number, screenWidth: number, screenHeight: number, toolbarHeight: number): Phaser.GameObjects.Text {

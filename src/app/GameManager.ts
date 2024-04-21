@@ -15,7 +15,6 @@ export default class GameManager {
     private eventListeners: EventListeners = {};
     private hud: HUDScene;
 
-    
     public scene: MainScene;
     public gridParams: GridParams;
 

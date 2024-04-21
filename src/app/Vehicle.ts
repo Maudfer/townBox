@@ -15,10 +15,13 @@ export default class Vehicle {
     private y: number;
 
     private depth: number;
+    private acceleration: number;
     private speed: number;
+    private topSpeed: number;
     private rotationSpeed: number;
 
     private currentTarget: PixelPosition | null;
+    private currentTargetTile: Tile | null;
     private direction: Direction;
     private movingAxis: Axis;
 
@@ -34,10 +37,13 @@ export default class Vehicle {
         this.y = y;
 
         this.depth = 0;
-        this.speed = 0.1;
+        this.acceleration = 0.001;
+        this.speed = 0.00;
+        this.topSpeed = 0.15;
         this.rotationSpeed = 0.007;
-
         this.currentTarget = null;
+        this.currentTargetTile = null;
+
         this.direction = Direction.East;
         this.movingAxis = Axis.X;
 
@@ -52,24 +58,29 @@ export default class Vehicle {
         if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
-        
-        this.updatePosition(this.movingAxis, timeDelta);
-        this.updateDirection(this.movingAxis);
-        this.updateDepth(currentTile);
 
-        if (this.isCurrentTargetReached()) {
-            this.setNextTarget(currentTile);
-        }
-    }
-
-    updatePosition(axis: Axis, timeDelta: number): void {
-        if (!this.currentTarget) {
-            return;
+        // Speed logic
+        if (this.isNearCurve()) {
+            this.topSpeed = 0.08;
+        } else {
+            this.topSpeed = 0.15;
         }
 
-        const speed = this.speed * timeDelta;
-        if (axis === Axis.X) {
-            const speedX = speed * Math.sign(this.currentTarget.x - this.x);
+        if (this.speed < this.topSpeed) {
+            this.speed += this.acceleration;
+        } else if (this.speed > this.topSpeed) {
+            this.speed -= this.acceleration;
+        }
+        const currentSpeed = this.speed * timeDelta;
+
+        console.log("speed", this.speed);
+        console.log("currentTarget", this.currentTarget);
+        console.log("isNearCurve", this.isNearCurve());
+        console.log("----------------------------------------------");
+
+        // Movement logic
+        if (this.movingAxis === Axis.X) {
+            const speedX = currentSpeed * Math.sign(this.currentTarget.x - this.x);
             let potentialX = this.x + speedX;
 
             if (Math.abs(potentialX - this.currentTarget.x) < Math.abs(speedX)) {
@@ -78,8 +89,8 @@ export default class Vehicle {
 
             this.x = potentialX;
 
-        } else if (axis === Axis.Y) {
-            const speedY = speed * Math.sign(this.currentTarget.y - this.y);
+        } else if (this.movingAxis === Axis.Y) {
+            const speedY = currentSpeed * Math.sign(this.currentTarget.y - this.y);
             let potentialY = this.y + speedY;
 
             if (Math.abs(potentialY - this.currentTarget.y) < Math.abs(speedY)) {
@@ -89,7 +100,14 @@ export default class Vehicle {
             this.y = potentialY;
 
         } else {
-            throw new Error(`[Vehicle] Invalid moving axis: ${axis}`);
+            throw new Error(`[Vehicle] Invalid moving axis: ${this.movingAxis}`);
+        }
+
+        this.updateDirection(this.movingAxis);
+        this.updateDepth(currentTile);
+
+        if (this.isCurrentTargetReached()) {
+            this.setNextTarget(currentTile);
         }
     }
 
@@ -103,7 +121,7 @@ export default class Vehicle {
             const potentialDirection = this.x < this.currentTarget.x ? Direction.East : Direction.West;
 
             this.direction = doesPositionMatchTarget ? potentialDirection : this.direction;
-    
+
             if (this.isCurrentTargetXReached()) {
                 this.movingAxis = !this.isCurrentTargetYReached() ? Axis.Y : this.movingAxis;
                 this.direction = this.isCurrentTargetYReached() ? Direction.NULL : this.direction;
@@ -112,9 +130,9 @@ export default class Vehicle {
         } else if (axis === Axis.Y) {
             const doesPositionMatchTargetY = this.y !== this.currentTarget.y;
             const potentialDirectionY = this.y < this.currentTarget.y ? Direction.South : Direction.North;
-            
+
             this.direction = doesPositionMatchTargetY ? potentialDirectionY : this.direction;
-    
+
             if (this.isCurrentTargetYReached()) {
                 this.movingAxis = !this.isCurrentTargetXReached() ? Axis.X : this.movingAxis;
                 this.direction = this.isCurrentTargetXReached() ? Direction.NULL : this.direction;
@@ -168,6 +186,7 @@ export default class Vehicle {
 
         // Determine which lane entry Point is going to be the next target
         this.currentTarget = nextTile.getLaneEntryPoint(relativeDirection);
+        this.currentTargetTile = nextTile;
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
@@ -196,24 +215,6 @@ export default class Vehicle {
         if (this.path?.length) {
             this.setNextTarget(currentTile);
         }
-    }
-
-    isCurrentTargetXReached(): boolean {
-        if (!this.currentTarget) {
-            return false;
-        }
-        return Math.abs(this.currentTarget.x - this.x) < 1;
-    }
-
-    isCurrentTargetYReached(): boolean {
-        if (!this.currentTarget) {
-            return false;
-        }
-        return Math.abs(this.currentTarget.y - this.y) < 1;
-    }
-
-    isCurrentTargetReached(): boolean {
-        return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
     }
 
     updateDepth(currentTile: Tile): void {
@@ -258,6 +259,44 @@ export default class Vehicle {
         const newRotation = ((currentRotation + rotationAmount) + 2 * Math.PI) % (2 * Math.PI);
 
         return newRotation;
+    }
+
+    isCurrentTargetXReached(): boolean {
+        if (!this.currentTarget) {
+            return false;
+        }
+        return Math.abs(this.currentTarget.x - this.x) < 1;
+    }
+
+    isCurrentTargetYReached(): boolean {
+        if (!this.currentTarget) {
+            return false;
+        }
+        return Math.abs(this.currentTarget.y - this.y) < 1;
+    }
+
+    isCurrentTargetReached(): boolean {
+        return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
+    }
+
+    isNearCurve(): boolean {
+        const nextTile = this.path[0];
+        if (!this.currentTarget || !this.currentTargetTile || !nextTile) {
+            return false;
+        }
+
+        const distanceToTarget = Math.sqrt((this.currentTarget.x - this.x) ** 2 + (this.currentTarget.y - this.y) ** 2);
+
+        // Determine if a curve is ahead
+        const currentDirection = this.movingAxis;
+        const nextDirection = (this.currentTargetTile.getCol() === nextTile.getCol()) ? Axis.Y : Axis.X;
+
+        // If moving axis and the axis to the next tile are different, a curve is coming up
+        if ((currentDirection !== nextDirection) && (distanceToTarget < 500)) {
+            return true;
+        }
+
+        return false;
     }
 
     getDepth(): number {
