@@ -8,8 +8,10 @@ import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
+import { Toolbelt } from 'types/Cursor';
 
 import config from 'json/config.json';
+import tools from 'json/toolbelt.json';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -17,6 +19,7 @@ export default class GameManager {
 
     public scene: MainScene;
     public gridParams: GridParams;
+    public toolbelt: Toolbelt;
 
     constructor() {
         const fieldParams: FieldParams = {
@@ -49,6 +52,7 @@ export default class GameManager {
         };
 
         this.gridParams = gridParams;
+        this.toolbelt = tools;
         this.scene = new MainScene(this, { key: 'MainScene', active: true });
         this.hud = new HUDScene(this, { key: 'HUDScene', active: true });
 

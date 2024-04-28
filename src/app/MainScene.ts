@@ -8,7 +8,7 @@ import Vehicle from 'app/Vehicle';
 import { directionToRadianRotation } from 'util/tools';
 
 import { PixelPosition, TilePosition } from 'types/Position';
-import { Cursor } from 'types/Cursor';
+import { Cursor, Tool } from 'types/Cursor';
 import { Image, SceneConfig } from 'types/Phaser';
 import { AssetManifest } from 'types/Assets';
 
@@ -46,7 +46,7 @@ export default class MainScene extends Phaser.Scene {
         this.load.setBaseURL(assets.baseURL);
         assets.assets.forEach(asset => {
             if (asset.type === "image") {
-                this.load.image(asset.key, asset.file);
+                this.load.image(asset.key, `${asset.key}.png`);
             }
         });
     }
@@ -59,11 +59,11 @@ export default class MainScene extends Phaser.Scene {
         }
 
         this.input.mouse.disableContextMenu();
-        this.setCursor('road', 'road_1100');
+        this.setCursor(Tool.Road);
 
         inputConfig.inputMappings.forEach(mapping => {
             this.input.keyboard?.addKey(mapping.key).on('down', () => {
-                this.setCursor(mapping.toolName, mapping.textureName);
+                this.setCursor(mapping.tool as Tool);
             });
         });
 
@@ -128,7 +128,7 @@ export default class MainScene extends Phaser.Scene {
 
     private handleHover(): void {
         const cursor = this.getCursor();
-        if (!cursor?.entity) {
+        if (!cursor?.asset) {
             return;
         }
 
@@ -150,7 +150,7 @@ export default class MainScene extends Phaser.Scene {
 
         const imageX = tileCenter.x;
         const imageY = tileCenter.y + (this.gameManager.gridParams.cells.height / 2);
-        cursor.entity.setPosition(imageX, imageY);
+        cursor.asset.setPosition(imageX, imageY);
         this.unhideCursor();
     }
 
@@ -174,28 +174,31 @@ export default class MainScene extends Phaser.Scene {
         return this.cursor;
     }
 
-    setCursor(toolName: string, textureName: string | null): void {
+    setCursor(tool: Tool): void {
         if (!this.cursor) {
             this.cursor = {
-                tool: "",
-                entity: null
+                tool,
+                asset: null
             };
         }
 
-        if (this.cursor && this.cursor.entity !== null) {
-            this.cursor.entity.destroy();
-            this.cursor.entity = null;
+        if (this.cursor && this.cursor.asset !== null) {
+            this.cursor.asset.destroy();
+            this.cursor.asset = null;
+        }
+        
+        this.cursor.tool = tool;
+        const assetName = this.gameManager.toolbelt[this.cursor.tool as Tool];
+        if (!assetName) {
+            return;
         }
 
-        this.cursor.tool = toolName;
-        if (textureName) {
-            let entity: Image;
-            entity = this.add.image(0, 0, textureName);
-            entity.setAlpha(0.5);
-            entity.setOrigin(0.5, 1);
-            entity.setDepth((this.gameManager.gridParams.rows * 10) + 1);
-            this.cursor.entity = entity;
-        }
+        const asset: Image = this.add.image(0, 0, assetName);
+        asset.setAlpha(0.5);
+        asset.setOrigin(0.5, 1);
+        asset.setDepth((this.gameManager.gridParams.rows * 10) + 1);
+
+        this.cursor.asset = asset;
     }
 
     private unhideCursor(): void {
@@ -203,7 +206,7 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const entity = this.cursor.entity;
+        const entity = this.cursor.asset;
         if (entity !== null && !entity.visible) {
             entity.setVisible(true);
         }
@@ -214,7 +217,7 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const entity = this.cursor.entity;
+        const entity = this.cursor.asset;
         if (entity !== null && entity.visible) {
             entity.setVisible(false);
         }
@@ -264,15 +267,15 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const textureName = tile.getTextureName();
-        if (textureName === null) {
+        const assetName = tile.getAssetName();
+        if (assetName === null) {
             return;
         }
 
         let image: Image;
 
         if (tile instanceof Soil) {
-            image = this.add.image(pixelPosition.x, pixelPosition.y, textureName);
+            image = this.add.image(pixelPosition.x, pixelPosition.y, assetName);
             image.setOrigin(0.5, 0.5);
 
             const angles: number[] = [0, 90, 180, 270];
@@ -283,7 +286,7 @@ export default class MainScene extends Phaser.Scene {
             // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
             const imageX = pixelPosition.x;
             const imageY = pixelPosition.y + (gridParams.cells.height / 2);
-            image = this.add.image(imageX, imageY, textureName);
+            image = this.add.image(imageX, imageY, assetName);
             image.setOrigin(0.5, 1);
         }
         image.setDepth(tile.calculateDepth());

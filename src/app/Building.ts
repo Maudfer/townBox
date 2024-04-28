@@ -5,8 +5,8 @@ import { CellParams } from 'types/Grid';
 export default class Building extends Tile {
     private entrance: PixelPosition;
 
-    constructor(row: number, col: number, textureName: string | null) {
-        super(row, col, textureName);
+    constructor(row: number, col: number, assetName: string | null) {
+        super(row, col, assetName);
         this.entrance = null;
     }
 

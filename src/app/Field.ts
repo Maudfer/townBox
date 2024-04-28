@@ -10,6 +10,7 @@ import PathFinder from 'app/PathFinder';
 import { TilePosition, PixelPosition } from 'types/Position';
 import { UpdateEvent, BuildEvent } from 'types/Events';
 import { NeighborMap } from 'types/Neighbor';
+import { Tool } from 'types/Cursor';
 
 type TileMatrix = {
     [row: number]: {
@@ -112,18 +113,19 @@ export default class Field {
         }
 
         const { row, col } = tilePosition;
-        
 
         let newTile = null;
+        const assetName = this.gameManager.toolbelt[event.tool as Tool];
+
         switch (event.tool) {
             case 'road':
                 newTile = new Road(row, col, null);
                 break;
             case 'soil':
-                newTile = new Soil(row, col, "grass");
+                newTile = new Soil(row, col, assetName);
                 break;
             default:
-                newTile = new Building(row, col, event.tool);
+                newTile = new Building(row, col, assetName);
         }
 
         const neighbors = this.getNeighbors(newTile);
@@ -210,15 +212,14 @@ export default class Field {
             return;
         }
 
-        const oldTexture = oldTile.getTextureName();
+        const oldAssetName = oldTile.getAssetName();
         const oldAsset = oldTile.getAsset();
         const oldDebugText = oldTile.getDebugText();
 
         const neighbors = this.getNeighbors(tile);
         tile.updateSelfBasedOnNeighbors(neighbors);
 
-        // TODO: Implement a better way to update the tile that doesn't rely on texture name
-        if (tile.getTextureName() !== oldTexture) {
+        if (tile.getAssetName() !== oldAssetName) {
             if (oldAsset) {
                 oldAsset.destroy();
             }

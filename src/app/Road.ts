@@ -155,7 +155,7 @@ export default class Road extends Tile {
             code += neighborsCode;
         }
 
-        this.setTextureName(code);
+        this.setAssetName(code);
     }
 
     getConnectingRoads(neighbors: NeighborMap): Tile[] {

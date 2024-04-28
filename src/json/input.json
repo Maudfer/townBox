@@ -2,53 +2,23 @@
     "inputMappings": [
         {
             "key": "F1",
-            "toolName": "building_1x1x1_1",
-            "textureName": "building_1x1x1_1"
+            "tool": "road"
         },
         {
             "key": "F2",
-            "toolName": "building_1x1x1_2",
-            "textureName": "building_1x1x1_2"
+            "tool": "soil"
         },
         {
             "key": "F3",
-            "toolName": "building_1x1x1_3",
-            "textureName": "building_1x1x1_3"
+            "tool": "house"
         },
         {
             "key": "F4",
-            "toolName": "building_1x1x1_4",
-            "textureName": "building_1x1x1_4"
+            "tool": "building1"
         },
         {
             "key": "F5",
-            "toolName": "building_1x1x1_5",
-            "textureName": "building_1x1x1_5"
-        },
-        {
-            "key": "F6",
-            "toolName": "building_1x1x1_6",
-            "textureName": "building_1x1x1_6"
-        },
-        {
-            "key": "F7",
-            "toolName": "building_1x1x2_1",
-            "textureName": "building_1x1x2_1"
-        },
-        {
-            "key": "F8",
-            "toolName": "building_1x1x2_2",
-            "textureName": "building_1x1x2_2"
-        },
-        {
-            "key": "F9",
-            "toolName": "road",
-            "textureName": "road_1100"
-        },
-        {
-            "key": "F10",
-            "toolName": "soil",
-            "textureName": "grass"
+            "tool": "building2"
         }
     ]
 }
