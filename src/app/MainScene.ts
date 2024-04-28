@@ -109,7 +109,7 @@ export default class MainScene extends Phaser.Scene {
             zoomOut: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E),
             maxZoom: 1.75,
             minZoom: 0.3,
-            zoomSpeed: 0.08, // originally was 0.02
+            zoomSpeed: 0.04, // originally was 0.02
             acceleration: 0.75, // originally was 0.06
             drag: 0.002, // originally was 0.0005
             maxSpeed: 0.45 // originally was 1.0

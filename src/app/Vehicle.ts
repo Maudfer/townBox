@@ -10,12 +10,22 @@ import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
 
+// Constants
+const NORMAL_ACCELERATION = 0.001;
+const NORMAL_TOP_SPEED = 0.150;
+
+const CURVE_ACCELERATION = 0.002;
+const CURVE_TOP_SPEED = 0.100;
+
+const INITIAL_SPEED = 0.000;
+const ROTATION_SPEED = 0.007;
+
 export default class Vehicle {
     private x: number;
     private y: number;
 
     private depth: number;
-    private acceleration: number;
+    private acceleration: number; // Acceleration is also used as deceleration
     private speed: number;
     private topSpeed: number;
     private rotationSpeed: number;
@@ -37,10 +47,10 @@ export default class Vehicle {
         this.y = y;
 
         this.depth = 0;
-        this.acceleration = 0.001;
-        this.speed = 0.00;
-        this.topSpeed = 0.15;
-        this.rotationSpeed = 0.007;
+        this.acceleration = NORMAL_ACCELERATION;
+        this.topSpeed = NORMAL_TOP_SPEED;
+        this.speed = INITIAL_SPEED;
+        this.rotationSpeed = ROTATION_SPEED;
         this.currentTarget = null;
         this.currentTargetTile = null;
 
@@ -61,39 +71,37 @@ export default class Vehicle {
 
         // Speed logic
         if (this.isNearCurve()) {
-            this.topSpeed = 0.08;
+            this.topSpeed = CURVE_TOP_SPEED;
+            this.acceleration = CURVE_ACCELERATION;
         } else {
-            this.topSpeed = 0.15;
+            this.topSpeed = NORMAL_TOP_SPEED;
+            this.acceleration = NORMAL_ACCELERATION;
         }
 
+        this.speed = this.speed < 0 ? 0 : this.speed; // Prevent negative speed
         if (this.speed < this.topSpeed) {
             this.speed += this.acceleration;
         } else if (this.speed > this.topSpeed) {
             this.speed -= this.acceleration;
         }
-        const currentSpeed = this.speed * timeDelta;
-
-        console.log("speed", this.speed);
-        console.log("currentTarget", this.currentTarget);
-        console.log("isNearCurve", this.isNearCurve());
-        console.log("----------------------------------------------");
-
+        
         // Movement logic
+        const movement = this.speed * timeDelta;
         if (this.movingAxis === Axis.X) {
-            const speedX = currentSpeed * Math.sign(this.currentTarget.x - this.x);
-            let potentialX = this.x + speedX;
+            const movementX = movement * Math.sign(this.currentTarget.x - this.x);
+            let potentialX = this.x + movementX;
 
-            if (Math.abs(potentialX - this.currentTarget.x) < Math.abs(speedX)) {
+            if (Math.abs(potentialX - this.currentTarget.x) < Math.abs(movementX)) {
                 potentialX = this.currentTarget.x; // Snap directly to target if overshooting
             }
 
             this.x = potentialX;
 
         } else if (this.movingAxis === Axis.Y) {
-            const speedY = currentSpeed * Math.sign(this.currentTarget.y - this.y);
-            let potentialY = this.y + speedY;
+            const movementY = movement * Math.sign(this.currentTarget.y - this.y);
+            let potentialY = this.y + movementY;
 
-            if (Math.abs(potentialY - this.currentTarget.y) < Math.abs(speedY)) {
+            if (Math.abs(potentialY - this.currentTarget.y) < Math.abs(movementY)) {
                 potentialY = this.currentTarget.y; // Snap directly to target if overshooting
             }
 
@@ -285,14 +293,12 @@ export default class Vehicle {
             return false;
         }
 
-        const distanceToTarget = Math.sqrt((this.currentTarget.x - this.x) ** 2 + (this.currentTarget.y - this.y) ** 2);
-
         // Determine if a curve is ahead
         const currentDirection = this.movingAxis;
         const nextDirection = (this.currentTargetTile.getCol() === nextTile.getCol()) ? Axis.Y : Axis.X;
 
         // If moving axis and the axis to the next tile are different, a curve is coming up
-        if ((currentDirection !== nextDirection) && (distanceToTarget < 500)) {
+        if ((currentDirection !== nextDirection)) {
             return true;
         }
 
