@@ -72,7 +72,7 @@ export default class MainScene extends Phaser.Scene {
                 x: this.input.activePointer.worldX,
                 y: this.input.activePointer.worldY
             };
-            this.gameManager.emit("personNeeded", pointer);
+            this.gameManager.emit("personSpawnRequest", pointer);
         });
 
         this.input.keyboard.addKey('V').on('down', () => {
@@ -80,7 +80,7 @@ export default class MainScene extends Phaser.Scene {
                 x: this.input.activePointer.worldX,
                 y: this.input.activePointer.worldY
             };
-            this.gameManager.emit("vehicleNeeded", pointer);
+            this.gameManager.emit("vehicleSpawnRequest", pointer);
         });
 
         this.input.keyboard.addKey('G').on('down', () => {
@@ -315,6 +315,16 @@ export default class MainScene extends Phaser.Scene {
                 return;
             }
 
+            const isIndoors = person.isIndoors();
+            if (isIndoors && personAsset.visible) {
+                personAsset.setVisible(false);
+                return;
+            }
+
+            if (!isIndoors && !personAsset.visible) {
+                personAsset.setVisible(true);
+            }
+
             const position = person.getPosition();
             if (position === null) {
                 return;
@@ -335,7 +345,7 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const vehicleSprite: Image = this.add.image(position.x, position.y, 'vehicle');
+        const vehicleSprite: Image = this.add.image(position.x, position.y, 'vehicle_md');
         vehicleSprite.setOrigin(0.5, 0.5);
         vehicle.setAsset(vehicleSprite);
 

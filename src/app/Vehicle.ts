@@ -18,7 +18,7 @@ const CURVE_ACCELERATION = 0.002;
 const CURVE_TOP_SPEED = 0.100;
 
 const INITIAL_SPEED = 0.000;
-const ROTATION_SPEED = 0.007;
+const ROTATION_SPEED = 0.009;
 
 export default class Vehicle {
     private x: number;

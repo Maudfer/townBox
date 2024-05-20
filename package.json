@@ -29,11 +29,13 @@
   "author": "Mauricio Fernandes",
   "license": "MIT",
   "dependencies": {
+    "@faker-js/faker": "^8.4.1",
     "app": "^0.1.0",
     "phaser": "^3.80.1"
   },
   "devDependencies": {
     "browser-sync": "^3.0.2",
+    "buffer": "^6.0.3",
     "concurrently": "^8.2.2",
     "cpy-cli": "^5.0.0",
     "cross-env": "^7.0.3",

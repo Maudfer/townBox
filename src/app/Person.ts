@@ -2,10 +2,12 @@ import Road from 'app/Road';
 import Tile from 'app/Tile';
 import Building from 'app/Building';
 import PathFinder from 'app/PathFinder';
+import SocialLife from 'app/SocialLife';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
+import { Gender } from 'types/Social';
 
 export default class Person {
     private x: number;
@@ -17,13 +19,15 @@ export default class Person {
     private currentTarget: PixelPosition | null;
     private direction: Direction;
     private movingAxis: Axis;
+    private insideBuilding: boolean;
 
     private path: Tile[];
     private currentDestination: TilePosition;
 
     private asset: Image;
-
     private redrawFunction: ((timeDelta: number) => void) | null;
+
+    public social: SocialLife;
 
     constructor(x: number, y: number) {
         this.x = x;
@@ -35,16 +39,25 @@ export default class Person {
         this.currentTarget = null;
         this.direction = Direction.East;
         this.movingAxis = Axis.X;
+        this.insideBuilding = false;
 
         this.path = [];
         this.currentDestination = null;
         this.asset = null;
 
         this.redrawFunction = null;
+        this.social = new SocialLife();
+    }
+
+    setupCitizenship(firstName: string, familyName: string, age: number, gender: Gender): void {
+        this.social.setFirstName(firstName);
+        this.social.setFamilyName(familyName);
+        this.social.setAge(age);
+        this.social.setGender(gender);
     }
 
     walk(currentTile: Tile, timeDelta: number): void {
-        if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
+        if (this.insideBuilding || !this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
             return;
         }
 
@@ -192,6 +205,14 @@ export default class Person {
 
     getDirection(): Direction {
         return this.direction;
+    }
+
+    setIndoors(insideBuilding: boolean): void {
+        this.insideBuilding = insideBuilding;
+    }
+
+    isIndoors(): boolean {
+        return this.insideBuilding;
     }
 
     redraw(timeDelta: number): void {

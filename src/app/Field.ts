@@ -3,6 +3,7 @@ import Tile from 'app/Tile';
 import Soil from 'app/Soil';
 import Road from 'app/Road';
 import Building from 'app/Building';
+import House from 'app/House';
 import Person from 'app/Person';
 import Vehicle from 'app/Vehicle';
 import PathFinder from 'app/PathFinder';
@@ -42,8 +43,8 @@ export default class Field {
 
         this.matrix = {};
         for (let row = 0; row < this.rows; row++) {
+            this.matrix[row] = {};
 
-            this.matrix[row] = {}; // Initialize the row
             for (let col = 0; col < this.cols; col++) {
                 const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
@@ -52,8 +53,8 @@ export default class Field {
         }
 
         this.gameManager.on("tileClicked", { callback: this.build, context: this });
-        this.gameManager.on("personNeeded", { callback: this.spawnPerson, context: this });
-        this.gameManager.on("vehicleNeeded", { callback: this.spawnVehicle, context: this });
+        this.gameManager.on("personSpawnRequest", { callback: this.spawnPerson, context: this });
+        this.gameManager.on("vehicleSpawnRequest", { callback: this.spawnVehicle, context: this });
         this.gameManager.on("update", { callback: this.update, context: this });
     }
 
@@ -118,11 +119,14 @@ export default class Field {
         const assetName = this.gameManager.toolbelt[event.tool as Tool];
 
         switch (event.tool) {
-            case 'road':
+            case Tool.Road:
                 newTile = new Road(row, col, null);
                 break;
-            case 'soil':
+            case Tool.Soil:
                 newTile = new Soil(row, col, assetName);
+                break;
+            case Tool.House:
+                newTile = new House(row, col, assetName);
                 break;
             default:
                 newTile = new Building(row, col, assetName);
@@ -148,21 +152,25 @@ export default class Field {
             const cellParams = this.gameManager.gridParams.cells;
             newTile.calculateEntrance(cellParams, pixelCenter);
         }
+
+        if (newTile instanceof House) {
+            this.gameManager.emit("houseBuilt", newTile);
+        }
     }
 
-    spawnPerson(pixelPosition: PixelPosition): void {
+    spawnPerson(pixelPosition: PixelPosition): Person {
         if (pixelPosition === null) {
-            return;
+            throw new Error("Invalid pixel position to spawn person");
         }
 
         const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
-            return;
+            throw new Error("Invalid tile position to spawn person");
         }
 
         const currentTile = this.getTile(tilePosition.row, tilePosition.col);
         if (currentTile === null) {
-            return;
+            throw new Error("Invalid tile to spawn person");
         }
 
         const { x, y } = pixelPosition;
@@ -171,21 +179,23 @@ export default class Field {
 
         this.people.push(person);
         this.gameManager.emit("personSpawned", person);
+        
+        return person;
     }
 
-    spawnVehicle(pixelPosition: PixelPosition): void {
+    spawnVehicle(pixelPosition: PixelPosition): Vehicle {
         if (pixelPosition === null) {
-            return;
+            throw new Error("Invalid pixel position to spawn vehicle");
         }
 
         const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
-            return;
+            throw new Error("Invalid tile position to spawn vehicle");
         }
 
         const currentTile = this.getTile(tilePosition.row, tilePosition.col);
         if (currentTile === null) {
-            return;
+            throw new Error("Invalid tile to spawn vehicle");
         }
 
         const { x, y } = pixelPosition;
@@ -194,6 +204,8 @@ export default class Field {
 
         this.vehicles.push(vehicle);
         this.gameManager.emit("vehicleSpawned", vehicle);
+
+        return vehicle;
     }
 
     replaceTile(tile: Tile): void {

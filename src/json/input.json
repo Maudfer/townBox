@@ -2,11 +2,11 @@
     "inputMappings": [
         {
             "key": "F1",
-            "tool": "road"
+            "tool": "soil"
         },
         {
             "key": "F2",
-            "tool": "soil"
+            "tool": "road"
         },
         {
             "key": "F3",

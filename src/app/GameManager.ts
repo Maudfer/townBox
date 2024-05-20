@@ -12,6 +12,7 @@ import { Toolbelt } from 'types/Cursor';
 
 import config from 'json/config.json';
 import tools from 'json/toolbelt.json';
+import City from './City';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -80,8 +81,9 @@ export default class GameManager {
             }
 
             new Field(this, fieldParams.rows, fieldParams.cols);
+            new City(this);
         }
-        this.on("sceneInitialized", {callback: postSceneInit, context: this});
+        this.on("sceneInitialized", { callback: postSceneInit, context: this });
     }
 
     tileToPixelPosition(tilePosition: TilePosition): PixelPosition {
@@ -121,21 +123,49 @@ export default class GameManager {
         return null;
     }
 
-    on<K extends keyof EventPayloads>(eventName: K, handler: Handler<EventPayloads[K]>) : void {
+    on<K extends keyof EventPayloads>(eventName: K, handler: Handler<EventPayloads[K]>): void {
         if (!this.eventListeners[eventName]) {
             this.eventListeners[eventName] = [];
         }
         this.eventListeners[eventName].push(handler);
     }
 
-    emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): void {
-        if(!payload) {
+    async emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any[]> {
+        if (!payload) {
             payload = {} as EventPayloads[K];
         }
-        
-        this.eventListeners[eventName]?.forEach(handler => {
+
+        const handlers = this.eventListeners[eventName] || [];
+        const results = await Promise.all(handlers.map(async (handler) => {
             const { callback, context } = handler;
-            context ? callback.call(context, payload) : callback(payload);
-        });
+            return context ? callback.call(context, payload) : callback(payload);
+        }));
+
+        return results;
+    }
+
+    async emitSingle<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any> {
+        if (!payload) {
+            payload = {} as EventPayloads[K];
+        }
+
+        const handlers = this.eventListeners[eventName] || [];
+        if (handlers.length > 1) {
+            throw new Error(`Multiple handlers registered for event: ${eventName}`);
+        }
+
+        if (handlers.length === 0) {
+            throw new Error(`No handlers registered for event: ${eventName}`);
+        }
+
+        const handler = handlers[0];
+        if (!handler) {
+            throw new Error(`Invalid handler for event: ${eventName}`);
+        }
+
+        const { callback, context } = handler;
+        const result = await context ? callback.call(context, payload) : callback(payload);
+
+        return result;
     }
 }
