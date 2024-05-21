@@ -1,4 +1,5 @@
 import Person from 'app/Person';
+import House from 'app/House';
 
 export enum Genders {
     Male = 'male',
@@ -16,7 +17,7 @@ export enum Relationships {
 
 export type Relationship = 'father' | 'mother' | 'child' | 'sibling';
 
-export type RelationshipList = { 
+export type RelationshipMap = { 
     [key in Relationship]?: Person[] 
 };
 
@@ -25,5 +26,22 @@ export type SocialInfo = {
     familyName: string;
     age: number;
     gender: Gender;
-    relationships: RelationshipList;
+    relationships: RelationshipMap;
+}
+
+export type RelationshipOverview = {
+    [key in Relationship]?: string[];
+};
+
+export type PersonOverview = {
+    firstName: string;
+    familyName: string;
+    age: number;
+    relationships: RelationshipOverview;
+}
+
+export type FamilyOverview = {
+    familyName: string;
+    household: House;
+    members: PersonOverview[];
 }

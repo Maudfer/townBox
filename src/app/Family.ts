@@ -4,7 +4,7 @@ import GameManager from "app/GameManager";
 import Person from 'app/Person';
 import House from 'app/House';
 
-import { Gender, Genders, Relationship, Relationships } from 'types/Social';
+import { Gender, Genders, Relationship, Relationships, FamilyOverview } from 'types/Social';
 
 const MIN_FAMILY_MEMBERS = 1;
 const MAX_FAMILY_MEMBERS = 5;
@@ -23,8 +23,8 @@ export default class Family {
         this.members = [];
     }
 
-    public async autoGenerate(gameManager:  GameManager): Promise<Person[]> {
-        const familySize = Math.floor(Math.random() * MAX_FAMILY_MEMBERS) + MIN_FAMILY_MEMBERS; // Between 1 and 5 members
+    async autoGenerate(gameManager: GameManager): Promise<Person[]> {
+        const familySize = Math.floor(Math.random() * (MAX_FAMILY_MEMBERS - MIN_FAMILY_MEMBERS + 1)) + MIN_FAMILY_MEMBERS; // Between 1 and 5 members
         const ages = this.generateAges(familySize);
 
         const familyMembers: Person[] = [];
@@ -33,7 +33,7 @@ export default class Family {
             const gender: Gender = Math.random() > 0.5 ? Genders.Male : Genders.Female;
             const firstName = fakerPT_BR.person.firstName(gender);
             const housePosition = this.household.getEntrance();
-            
+
             const age = ages[i];
             if (!age) {
                 throw new Error("Invalid age to generate family member");
@@ -46,6 +46,7 @@ export default class Family {
 
             person.setIndoors(true);
             person.social.setFirstName(firstName);
+            person.social.setFamilyName(this.familyName);
             person.social.setHome(this.household);
             person.social.setAge(age);
             person.social.setGender(gender);
@@ -56,13 +57,12 @@ export default class Family {
             familyMembers.push(person);
         }
 
-
         for (let i = 0; i < familyMembers.length; i++) {
             for (let j = 0; j < familyMembers.length; j++) {
                 const person1 = familyMembers[i];
                 const person2 = familyMembers[j];
 
-                if ( (i !== j) && person1 && person2) {
+                if (i !== j && person1 && person2) {
                     this.assignRelationship(person1, person2);
                 }
             }
@@ -89,16 +89,18 @@ export default class Family {
         return sortedAges;
     }
 
-    private assignRelationship(person1: Person, person2: Person) {
+    private assignRelationship(person1: Person, person2: Person): void {
+        if (person1.social.hasRelationship(person2)) {
+            return;
+        }
+
         const person1Info = person1.social.getInfo();
         const person2Info = person2.social.getInfo();
 
         const ageDifference = person1Info.age - person2Info.age;
         let relationship: Relationship;
 
-
-
-        if (ageDifference >= ADULT_AGE && !person1Info.relationships[Relationships.Father] && !person2Info.relationships[Relationships.Mother]) {
+        if (ageDifference >= ADULT_AGE && !person1Info.relationships[Relationships.Father] && !person1Info.relationships[Relationships.Mother]) {
             relationship = person1Info.gender === Genders.Male ? Relationships.Father : Relationships.Mother;
         } else if (ageDifference <= -ADULT_AGE) {
             relationship = Relationships.Child;
@@ -122,7 +124,13 @@ export default class Family {
         }
     }
 
-    toString(): string {
-        return `Family: ${this.familyName}, Members: ${this.members.map(member => member.toString()).join(', ')}`;
+    getOverview(): FamilyOverview {
+        const overview: FamilyOverview = {
+            familyName: this.familyName,
+            household: this.household,
+            members: this.members.map(member => member.getOverview())
+        };
+
+        return overview;
     }
 }

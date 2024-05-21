@@ -7,9 +7,11 @@ import SocialLife from 'app/SocialLife';
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
-import { Gender } from 'types/Social';
+import { Gender, Relationship, PersonOverview, RelationshipOverview } from 'types/Social';
 
 export default class Person {
+    public social: SocialLife;
+
     private x: number;
     private y: number;
 
@@ -27,9 +29,9 @@ export default class Person {
     private asset: Image;
     private redrawFunction: ((timeDelta: number) => void) | null;
 
-    public social: SocialLife;
-
     constructor(x: number, y: number) {
+        this.social = new SocialLife();
+
         this.x = x;
         this.y = y;
 
@@ -46,7 +48,6 @@ export default class Person {
         this.asset = null;
 
         this.redrawFunction = null;
-        this.social = new SocialLife();
     }
 
     setupCitizenship(firstName: string, familyName: string, age: number, gender: Gender): void {
@@ -219,5 +220,34 @@ export default class Person {
         if (this.redrawFunction) {
             this.redrawFunction(timeDelta);
         }
+    }
+
+    getOverview(): PersonOverview {
+        const socialInfo = this.social.getInfo();
+
+        const relationshipOverview: RelationshipOverview = {};
+
+        // iterate through socialInfo.relationships object and convert Person[] to string[]
+        for (const key in socialInfo.relationships) {
+            const relationship = key as Relationship;
+            const people = socialInfo.relationships[relationship];
+
+            if(!relationshipOverview[relationship]){
+                relationshipOverview[relationship] = [];
+            }
+
+            if (people) {
+                relationshipOverview[relationship] = people.map(person => person.social.getFullName());
+            }
+        }
+
+        const overview: PersonOverview = {
+            firstName: socialInfo.firstName,
+            familyName: socialInfo.familyName,
+            age: socialInfo.age,
+            relationships: relationshipOverview,
+        };
+
+        return overview;
     }
 }

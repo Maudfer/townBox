@@ -1,11 +1,11 @@
 import Person from 'app/Person';
 import House from 'app/House';
 
-import { Gender, Genders, Relationship, Relationships, RelationshipList, SocialInfo } from 'types/Social';
+import { Gender, Genders, Relationship, Relationships, RelationshipMap, SocialInfo } from 'types/Social';
 
 type Home = House | null;
 
-export default class SocialLife{
+export default class SocialLife {
     private home: Home;
 
     private firstName: string;
@@ -13,7 +13,7 @@ export default class SocialLife{
     private age: number;
     private gender: Gender;
 
-    private relationships: RelationshipList;
+    private relationships: RelationshipMap;
 
     constructor() {
         this.home = null;
@@ -22,8 +22,18 @@ export default class SocialLife{
         this.familyName = "";
         this.age = 0;
         this.gender = Genders.Male;
-        
+
         this.relationships = {};
+    }
+
+    hasRelationship(person: Person): boolean {
+        for (const relationshipType in this.relationships) {
+            const relatedPeople = this.relationships[relationshipType as Relationship];
+            if (relatedPeople && relatedPeople.includes(person)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     addRelationship(relationship: Relationship, person: Person): void {
@@ -76,9 +86,5 @@ export default class SocialLife{
             gender: this.gender,
             relationships: this.relationships,
         }
-    }
-
-    toString(): string {
-        return `${this.getFullName()}, Age: ${this.age}, Gender: ${this.gender}`;
     }
 }

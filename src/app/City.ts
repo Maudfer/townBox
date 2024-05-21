@@ -39,7 +39,7 @@ export default class City {
 
         this.population += members.length;
 
-        console.log('Family spawned', family);
+        console.log('Family spawned', family.getOverview());
     }
 
     public setupCar(vehicle: Vehicle): void {
