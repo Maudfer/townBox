@@ -100,7 +100,7 @@ export default class Family {
         const ageDifference = person1Info.age - person2Info.age;
         let relationship: Relationship;
 
-        if (ageDifference >= ADULT_AGE && !person1Info.relationships[Relationships.Father] && !person1Info.relationships[Relationships.Mother]) {
+        if (ageDifference >= ADULT_AGE) {
             relationship = person1Info.gender === Genders.Male ? Relationships.Father : Relationships.Mother;
         } else if (ageDifference <= -ADULT_AGE) {
             relationship = Relationships.Child;
