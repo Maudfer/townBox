@@ -37,13 +37,6 @@ export default class SocialLife {
     }
 
     addRelationship(relationship: Relationship, person: Person): void {
-        if (relationship === Relationships.Father || relationship === Relationships.Mother) {
-            if (this.relationships[relationship]?.length) {
-                console.warn(`Person already has a ${relationship}`, person);
-                // Already has a father/mother, so we skip adding another one
-                return;
-            }
-        }
         if (!this.relationships[relationship]) {
             this.relationships[relationship] = [];
         }
@@ -76,6 +69,21 @@ export default class SocialLife {
 
     setGender(gender: Gender): void {
         this.gender = gender;
+    }
+
+    getParents(): Person[] {
+        const parents: Person[] = [];
+        if (this.relationships[Relationships.Father]) {
+            parents.push(...this.relationships[Relationships.Father]!);
+        }
+        if (this.relationships[Relationships.Mother]) {
+            parents.push(...this.relationships[Relationships.Mother]!);
+        }
+        return parents;
+    }
+
+    getRelationships(): RelationshipMap {
+        return this.relationships;
     }
 
     getInfo(): SocialInfo {

@@ -245,9 +245,14 @@ export default class Person {
             firstName: socialInfo.firstName,
             familyName: socialInfo.familyName,
             age: socialInfo.age,
+            gender: socialInfo.gender,
             relationships: relationshipOverview,
         };
 
         return overview;
+    }
+
+    toString(): string {
+        return this.social.getFullName();
     }
 }

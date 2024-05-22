@@ -37,6 +37,7 @@ export type PersonOverview = {
     firstName: string;
     familyName: string;
     age: number;
+    gender: Gender;
     relationships: RelationshipOverview;
 }
 
