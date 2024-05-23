@@ -2,6 +2,8 @@ import Building from 'app/Building';
 import Person from 'app/Person';
 import Vehicle from 'app/Vehicle';
 
+import { HouseOverview } from 'types/Social';
+
 const MAX_RESIDENTS = 4;
 const MAX_OCCUPANTS = 10;
 const MAX_VEHICLES = 2;
@@ -80,5 +82,13 @@ export default class House extends Building {
 
     public getVehicles(): Vehicle[] {
         return this.garage;
+    }
+
+    public getOverview(): HouseOverview {
+        return {
+            maxResidents: this.maxResidents,
+            maxOccupants: this.maxOccupants,
+            maxVehicles: this.maxVehicles,
+        };
     }
 }

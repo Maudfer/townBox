@@ -1,5 +1,4 @@
 import Person from 'app/Person';
-import House from 'app/House';
 
 export enum Genders {
     Male = 'male',
@@ -11,11 +10,14 @@ export type Gender = Genders;
 export enum Relationships {
     Father = 'father',
     Mother = 'mother',
+    Grandfather = 'grandfather',
+    Grandmother = 'grandmother',
     Child = 'child',
+    Grandchild = 'grandchild',
     Sibling = 'sibling',
 }
 
-export type Relationship = 'father' | 'mother' | 'child' | 'sibling';
+export type Relationship = Relationships;
 
 export type RelationshipMap = { 
     [key in Relationship]?: Person[] 
@@ -41,8 +43,14 @@ export type PersonOverview = {
     relationships: RelationshipOverview;
 }
 
+export type HouseOverview = {
+    maxResidents: number;
+    maxOccupants: number;
+    maxVehicles: number;
+}
+
 export type FamilyOverview = {
     familyName: string;
-    household: House;
+    household: HouseOverview;
     members: PersonOverview[];
 }

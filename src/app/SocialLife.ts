@@ -43,6 +43,15 @@ export default class SocialLife {
         this.relationships[relationship]?.push(person);
     }
 
+    removeRelationship(relationship: Relationship, person: Person): void {
+        if (this.relationships[relationship]) {
+            const index = this.relationships[relationship]?.indexOf(person);
+            if (index !== undefined && index !== -1) {
+                this.relationships[relationship]?.splice(index, 1);
+            }
+        }
+    }
+
     getFullName(): string {
         return `${this.firstName} ${this.familyName}`;
     }
