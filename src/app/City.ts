@@ -19,6 +19,7 @@ export default class City {
         this.population = 0;
 
         this.gameManager.on("houseBuilt", { callback: this.setupHousehold, context: this });
+        console.log('City created:', this.name);
     }
 
     public getName(): string {
@@ -40,6 +41,7 @@ export default class City {
         this.population += members.length;
 
         console.log('Family spawned', family.getOverview());
+        console.log('City population', this.population);
     }
 
     public setupCar(vehicle: Vehicle): void {
