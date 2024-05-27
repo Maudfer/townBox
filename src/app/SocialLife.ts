@@ -55,7 +55,11 @@ export default class SocialLife {
             }
 
             if (Array.isArray(this.relationships[relationship])) {
-                this.relationships[relationship].push(person);
+                const alreadyExists = this.relationships[relationship].includes(person);
+
+                if (!alreadyExists) {
+                    this.relationships[relationship].push(person);
+                }
             }
         }
     }

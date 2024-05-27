@@ -157,7 +157,14 @@ export default class Family {
 
             personPool.push(currentPerson2);
             this.findAndAddSiblings(personPool);
-            this.tryToMarryParents(currentPerson1, currentPerson2, relationship);
+
+            if (relationship === Relationships.Father || relationship === Relationships.Mother) {
+                this.tryToMarryParents(currentPerson1, currentPerson2, relationship);
+            }
+
+            if (relationship === Relationships.Spouse) {
+                this.tryToShareChildren(currentPerson1, currentPerson2);
+            }
 
             const nextSourcePerson = personPool[Math.floor(Math.random() * personPool.length)];
             if (!nextSourcePerson) {
@@ -190,8 +197,9 @@ export default class Family {
 
                     const otherParents = otherPerson.social.queryRelationships([Relationships.Father, Relationships.Mother]);
                     const commonParents = parents.filter(parent => otherParents.includes(parent));
-    
-                    if (commonParents.length > 0) {
+                    
+                    const alreadySiblings = !person.social.hasRelationshipWith(Relationships.Sibling, otherPerson);
+                    if (commonParents.length > 0 && !alreadySiblings) {
                         person.social.addRelationship(Relationships.Sibling, otherPerson);
                         otherPerson.social.addRelationship(Relationships.Sibling, person);
                         console.log(`${person.social.getFullName()} and ${otherPerson.social.getFullName()} are now siblings.`);
@@ -211,16 +219,49 @@ export default class Family {
             return;
         }
 
-        if (relationship === Relationships.Father || relationship === Relationships.Mother) {
-            const otherParentRelationship = relationship === Relationships.Father ? Relationships.Mother : Relationships.Father;
-            const otherParent = person1.social.queryRelationship(otherParentRelationship) as Person;
-            const areSiblings = person1.social.hasRelationshipWith(Relationships.Sibling, otherParent);
-        
-            if (otherParent && otherParent instanceof Person && !areSiblings) {
-                person2.social.addRelationship(Relationships.Spouse, otherParent);
-                otherParent.social.addRelationship(Relationships.Spouse, person2);
-                console.log(`${person2.social.getFullName()} married ${otherParent.social.getFullName()}`);
+        const otherParentRelationship = relationship === Relationships.Father ? Relationships.Mother : Relationships.Father;
+        const otherParent = person1.social.queryRelationship(otherParentRelationship) as Person;
+        const areSiblings = person1.social.hasRelationshipWith(Relationships.Sibling, otherParent);
+    
+        if (otherParent && otherParent instanceof Person && !areSiblings) {
+            person2.social.addRelationship(Relationships.Spouse, otherParent);
+            otherParent.social.addRelationship(Relationships.Spouse, person2);
+            console.log(`${person2.social.getFullName()} married ${otherParent.social.getFullName()}`);
+        }
+    }
+
+    private tryToShareChildren(person1: Person, person2: Person): void {
+        /* Shared children relationship generation
+        * if Person1 and Person2 are married, check if they have children that can be shared between them
+        */
+        const baseChance = 0.75;
+        if (Math.random() > baseChance) {
+            return;
+        }
+
+        const childrenOf1 = person1.social.queryRelationship(Relationships.Child) as Person[];
+        const childrenOf2 = person2.social.queryRelationship(Relationships.Child) as Person[];
+
+        for (const child of childrenOf1) {
+            if (childrenOf2.includes(child)) {
+                continue;
             }
+
+            const relationship = person2.social.getGender() === Genders.Male ? Relationships.Father : Relationships.Mother;
+            person2.social.addRelationship(Relationships.Child, child);
+            child.social.addRelationship(relationship, person2);
+            console.log(`${person2.social.getFullName()} and ${person1.social.getFullName()} now share child ${child.social.getFullName()}`);
+        }
+
+        for (const child of childrenOf2) {
+            if (childrenOf1.includes(child)) {
+                continue;
+            }
+
+            const relationship = person1.social.getGender() === Genders.Male ? Relationships.Father : Relationships.Mother;
+            person1.social.addRelationship(Relationships.Child, child);
+            child.social.addRelationship(relationship, person1);
+            console.log(`${person1.social.getFullName()} and ${person2.social.getFullName()} now share child ${child.social.getFullName()}`);
         }
     }
 
