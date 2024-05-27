@@ -20,36 +20,101 @@ export default class SocialLife {
 
         this.firstName = "";
         this.familyName = "";
-        this.age = 0;
+        this.age = -1;
         this.gender = Genders.Male;
 
         this.relationships = {};
     }
 
-    hasRelationship(person: Person): boolean {
-        for (const relationshipType in this.relationships) {
-            const relatedPeople = this.relationships[relationshipType as Relationship];
-            if (relatedPeople && relatedPeople.includes(person)) {
-                return true;
-            }
+    hasRelationship(relationship: Relationship): boolean {
+        return !!this.relationships[relationship];
+    }
+
+    hasRelationshipWith(relationship: Relationship, person: Person): boolean {
+        if (Array.isArray(this.relationships[relationship])) {
+            return this.relationships[relationship].includes(person);
+        } else {
+            return this.relationships[relationship] === person;
         }
-        return false;
     }
 
     addRelationship(relationship: Relationship, person: Person): void {
-        if (!this.relationships[relationship]) {
-            this.relationships[relationship] = [];
-        }
-        this.relationships[relationship]?.push(person);
-    }
+        const singlePersonRelationships = [
+            Relationships.Father, 
+            Relationships.Mother, 
+            Relationships.Spouse,
+        ];
 
-    removeRelationship(relationship: Relationship, person: Person): void {
-        if (this.relationships[relationship]) {
-            const index = this.relationships[relationship]?.indexOf(person);
-            if (index !== undefined && index !== -1) {
-                this.relationships[relationship]?.splice(index, 1);
+        if (singlePersonRelationships.includes(relationship)) {
+            (this.relationships[relationship] as Person) = person; // Direct assignment for single-value relationships
+        } else {
+
+            if (!this.relationships[relationship]) {
+                // Below conversion is needed, but we know it's safe because of the singlePersonRelationships check
+                (this.relationships[relationship] as unknown as Person[]) = [];
+            }
+
+            if (Array.isArray(this.relationships[relationship])) {
+                this.relationships[relationship].push(person);
             }
         }
+    }
+
+    removeRelationship(relationship: keyof RelationshipMap, person: Person): void {
+        if (relationship === Relationships.Father || relationship === Relationships.Mother) {
+            if (this.relationships[relationship] === person) {
+                delete this.relationships[relationship]; // Remove the single-value relationship
+            }
+        } else {
+            if (Array.isArray(this.relationships[relationship])) {
+                const index = this.relationships[relationship].indexOf(person);
+
+                if (index !== -1) {
+                    this.relationships[relationship].splice(index, 1);
+                }
+            }
+        }
+    }
+
+    queryRelationships(queriedRelationships: Relationship[]): Person[] {
+        const relatedPeople: Person[] = [];
+
+        for (const relationship of queriedRelationships) {
+            if (this.relationships[relationship]) {
+                if (Array.isArray(this.relationships[relationship])) {
+                    relatedPeople.push(...this.relationships[relationship]);
+                } else {
+                    relatedPeople.push(this.relationships[relationship]);
+                }
+            }
+        }
+
+        return relatedPeople;
+    }
+
+    queryRelationship(relationship: Relationship): Person[] | Person {
+        const relatedPeople: Person[] = [];
+
+        if (this.relationships[relationship]) {
+            if (Array.isArray(this.relationships[relationship])) {
+                relatedPeople.push(...this.relationships[relationship]);
+            } else {
+                return this.relationships[relationship];
+            }
+        }
+
+        return relatedPeople;
+    }
+
+    getParents(): Person[] {
+        const parents: Person[] = [];
+        if (this.relationships[Relationships.Father]) {
+            parents.push(this.relationships[Relationships.Father]);
+        }
+        if (this.relationships[Relationships.Mother]) {
+            parents.push(this.relationships[Relationships.Mother]);
+        }
+        return parents;
     }
 
     getFullName(): string {
@@ -80,19 +145,12 @@ export default class SocialLife {
         this.gender = gender;
     }
 
-    getParents(): Person[] {
-        const parents: Person[] = [];
-        if (this.relationships[Relationships.Father]) {
-            parents.push(...this.relationships[Relationships.Father]!);
-        }
-        if (this.relationships[Relationships.Mother]) {
-            parents.push(...this.relationships[Relationships.Mother]!);
-        }
-        return parents;
+    getAge(): number {
+        return this.age;
     }
 
-    getRelationships(): RelationshipMap {
-        return this.relationships;
+    getGender(): Gender {
+        return this.gender;
     }
 
     getInfo(): SocialInfo {

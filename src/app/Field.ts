@@ -114,6 +114,10 @@ export default class Field {
         }
 
         const { row, col } = tilePosition;
+        const currentTile = this.getTile(row, col);
+        if (currentTile === null) {
+            throw new Error("Invalid tile to build on");
+        }
 
         let newTile = null;
         const assetName = this.gameManager.toolbelt[event.tool as Tool];
@@ -130,6 +134,11 @@ export default class Field {
                 break;
             default:
                 newTile = new Building(row, col, assetName);
+        }
+
+        // if new tile is instance of same as current tile, return
+        if (newTile instanceof currentTile.constructor){
+            return;
         }
 
         const neighbors = this.getNeighbors(newTile);

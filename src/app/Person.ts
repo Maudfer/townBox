@@ -7,7 +7,7 @@ import SocialLife from 'app/SocialLife';
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
-import { Gender, Relationship, PersonOverview, RelationshipOverview } from 'types/Social';
+import { Gender, RelationshipMap, PersonOverview, RelationshipMapOverview } from 'types/Social';
 
 export default class Person {
     public social: SocialLife;
@@ -225,19 +225,21 @@ export default class Person {
     getOverview(): PersonOverview {
         const socialInfo = this.social.getInfo();
 
-        const relationshipOverview: RelationshipOverview = {};
-
-        // iterate through socialInfo.relationships object and convert Person[] to string[]
+        const relationshipMapOverview: RelationshipMapOverview = {};
+        
         for (const key in socialInfo.relationships) {
-            const relationship = key as Relationship;
-            const people = socialInfo.relationships[relationship];
+            const relationship = key as keyof RelationshipMap;
+            const relatedPeople = socialInfo.relationships[relationship];
 
-            if(!relationshipOverview[relationship]){
-                relationshipOverview[relationship] = [];
+            if (!relatedPeople) {
+                continue;
             }
-
-            if (people) {
-                relationshipOverview[relationship] = people.map(person => person.social.getFullName());
+    
+            // For relationships which accept array values such as children and sbiling, we create an array overview
+            if (Array.isArray(relatedPeople)) {
+                relationshipMapOverview[relationship] = relatedPeople.map(person => person.social.getFullName()).join(', ');
+            } else{
+                relationshipMapOverview[relationship] = relatedPeople.social.getFullName();
             }
         }
 
@@ -246,7 +248,7 @@ export default class Person {
             familyName: socialInfo.familyName,
             age: socialInfo.age,
             gender: socialInfo.gender,
-            relationships: relationshipOverview,
+            relationships: relationshipMapOverview,
         };
 
         return overview;

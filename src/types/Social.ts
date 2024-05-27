@@ -3,24 +3,26 @@ import Person from 'app/Person';
 export enum Genders {
     Male = 'male',
     Female = 'female',
-}
+};
 
 export type Gender = Genders;
 
 export enum Relationships {
     Father = 'father',
     Mother = 'mother',
-    Grandfather = 'grandfather',
-    Grandmother = 'grandmother',
+    Spouse = 'spouse',
     Child = 'child',
-    Grandchild = 'grandchild',
     Sibling = 'sibling',
-}
+};
 
 export type Relationship = Relationships;
 
 export type RelationshipMap = { 
-    [key in Relationship]?: Person[] 
+    [Relationships.Father]?: Person;
+    [Relationships.Mother]?: Person;
+    [Relationships.Spouse]?: Person;
+    [Relationships.Child]?: Person[];
+    [Relationships.Sibling]?: Person[];
 };
 
 export type SocialInfo = {
@@ -29,10 +31,21 @@ export type SocialInfo = {
     age: number;
     gender: Gender;
     relationships: RelationshipMap;
-}
+};
 
-export type RelationshipOverview = {
-    [key in Relationship]?: string[];
+export type RelationshipMapOverview = {
+    [Relationships.Father]?: string;
+    [Relationships.Mother]?: string;
+    [Relationships.Spouse]?: string;
+    [Relationships.Child]?: string;
+    [Relationships.Sibling]?: string;
+};
+
+export type RelationshipProbabilities = {
+    [Relationships.Father]: number;
+    [Relationships.Mother]: number;
+    [Relationships.Spouse]: number;
+    [Relationships.Child]: number;
 };
 
 export type PersonOverview = {
@@ -40,17 +53,17 @@ export type PersonOverview = {
     familyName: string;
     age: number;
     gender: Gender;
-    relationships: RelationshipOverview;
-}
+    relationships: RelationshipMapOverview;
+};
 
 export type HouseOverview = {
     maxResidents: number;
     maxOccupants: number;
     maxVehicles: number;
-}
+};
 
 export type FamilyOverview = {
     familyName: string;
     household: HouseOverview;
     members: PersonOverview[];
-}
+};
