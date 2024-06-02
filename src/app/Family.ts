@@ -151,8 +151,8 @@ export default class Family {
             const relationship = this.createRelationship(currentPerson1, currentPerson2,probabilityMap);
             const counterpart = inverseRelationship(relationship, currentPerson1.social.getGender());
 
-            // Person1 has [relationship] Person2. We add [relationship] to Person1's relationships so Person1 *has* a [relationship] that is Person2.
-            // Person2 has [counterpart] Person1. We add [counterpart] to Person2's relationships so Person2 *has* a [counterpart] that is Person1.
+            // Person1 has [relationship], which is Person2. We add [relationship] to Person1's relationships so Person1 *has* a [relationship] that is Person2.
+            // Person2 has [counterpart], which is Person1. We add [counterpart] to Person2's relationships so Person2 *has* a [counterpart] that is Person1.
             currentPerson1.social.addRelationship(relationship, currentPerson2);
             currentPerson2.social.addRelationship(counterpart, currentPerson1);
 

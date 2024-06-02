@@ -2,8 +2,9 @@ export enum Tool {
     Soil = 'soil',
     Road = 'road',
     House = 'house',
-    Building1 = 'building1',
-    Building2 = 'building2',
+    Work = 'work',
+    /*Building1 = 'building1',
+    Building2 = 'building2',*/
 }
 
 export type Toolbelt = Record<Tool, string>;

@@ -3,6 +3,7 @@ import Tile from 'app/Tile';
 import Building from 'app/Building';
 import PathFinder from 'app/PathFinder';
 import SocialLife from 'app/SocialLife';
+import WorkLife from 'app/WorkLife';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
@@ -11,6 +12,7 @@ import { Gender, RelationshipMap, PersonOverview, RelationshipMapOverview } from
 
 export default class Person {
     public social: SocialLife;
+    public work: WorkLife;
 
     private x: number;
     private y: number;
@@ -31,6 +33,7 @@ export default class Person {
 
     constructor(x: number, y: number) {
         this.social = new SocialLife();
+        this.work = new WorkLife();
 
         this.x = x;
         this.y = y;
@@ -58,7 +61,7 @@ export default class Person {
     }
 
     walk(currentTile: Tile, timeDelta: number): void {
-        if (this.insideBuilding || !this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
+        if (this.insideBuilding || !this.asset || !this.currentTarget || !this.currentDestination /*|| !(currentTile instanceof Road)*/) {
             return;
         }
 
@@ -84,8 +87,15 @@ export default class Person {
 
         this.updateDepth(currentTile);
 
+        if (this.isDestinationReached()) {
+            this.currentTarget = null;
+            this.currentDestination = null;
+            return;
+        }
+
         if (this.isCurrentTargetReached()) {
             this.setNextTarget(currentTile);
+            return;
         }
     }
 
@@ -129,10 +139,11 @@ export default class Person {
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
-        if (!destinations.size) {
+        if (this.currentDestination) {
             return;
         }
-        if (this.currentDestination) {
+
+        if (!destinations.size) {
             return;
         }
 
@@ -172,6 +183,10 @@ export default class Person {
 
     isCurrentTargetReached(): boolean {
         return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
+    }
+
+    isDestinationReached(): boolean {
+        return !this.path.length && this.isCurrentTargetReached();
     }
 
     updateDepth(currentTile: Tile): void {

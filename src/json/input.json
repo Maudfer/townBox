@@ -14,11 +14,7 @@
         },
         {
             "key": "F4",
-            "tool": "building1"
-        },
-        {
-            "key": "F5",
-            "tool": "building2"
+            "tool": "work"
         }
     ]
 }

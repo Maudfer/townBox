@@ -2,6 +2,5 @@
     "soil": "grass",
     "road": "road_1100",
     "house": "building_1x1x1_1",
-    "building1": "building_1x1x2_1",
-    "building2": "building_1x1x2_2"
+    "work": "building_1x1x2_2"
 }

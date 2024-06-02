@@ -4,6 +4,7 @@ import Soil from 'app/Soil';
 import Road from 'app/Road';
 import Building from 'app/Building';
 import House from 'app/House';
+import Workplace from 'app/Workplace';
 import Person from 'app/Person';
 import Vehicle from 'app/Vehicle';
 import PathFinder from 'app/PathFinder';
@@ -121,19 +122,18 @@ export default class Field {
 
         let newTile = null;
         const assetName = this.gameManager.toolbelt[event.tool as Tool];
+        const tileDictionary: { [key in Tool]: () => Tile } = {
+            [Tool.Road]: () => new Road(row, col, null),
+            [Tool.Soil]: () => new Soil(row, col, assetName),
+            [Tool.House]: () => new House(row, col, assetName),
+            [Tool.Work]: () => new Workplace(row, col, assetName),
+        };
+        const tileConstructor = tileDictionary[event.tool as Tool];
 
-        switch (event.tool) {
-            case Tool.Road:
-                newTile = new Road(row, col, null);
-                break;
-            case Tool.Soil:
-                newTile = new Soil(row, col, assetName);
-                break;
-            case Tool.House:
-                newTile = new House(row, col, assetName);
-                break;
-            default:
-                newTile = new Building(row, col, assetName);
+        if (tileConstructor) {
+            newTile = tileConstructor();
+        } else {
+            newTile = new Building(row, col, assetName);
         }
 
         // if new tile is instance of same as current tile, return

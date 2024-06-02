@@ -76,3 +76,10 @@ export type FamilyOverview = {
     household: HouseOverview;
     members: PersonOverview[];
 };
+
+export type WorkplaceOverview = {
+    maxOccupants: number;
+    maxVehicles: number;
+    occupants: PersonOverview[];
+    employees: PersonOverview[];
+};
