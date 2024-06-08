@@ -62,8 +62,9 @@ export default class GameManager {
             },
             render: {
                 antialias: true,
-                roundPixels: true,
+                roundPixels: false,
             },
+            backgroundColor: '#427328',
             scene: [this.scene],
         };
 
