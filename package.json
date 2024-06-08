@@ -1,7 +1,7 @@
 {
   "name": "townbox",
   "version": "0.1.0",
-  "description": "Simple city builder in javascript using Phaser 3 engine",
+  "description": "City builder in javascript using Phaser 3 engine",
   "author": "Mauricio Fernandes",
   "license": "MIT",
   "scripts": {
