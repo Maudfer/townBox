@@ -1,4 +1,4 @@
-import Tile from 'app/Tile';
+import Tile from 'game/Tile';
 
 export default class Soil extends Tile {
     constructor(row: number, col: number, textureName: string | null) {

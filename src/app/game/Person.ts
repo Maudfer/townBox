@@ -1,13 +1,19 @@
-import Road from 'app/Road';
-import Tile from 'app/Tile';
-import Building from 'app/Building';
-import PathFinder from 'app/PathFinder';
+import Road from 'game/Road';
+import Tile from 'game/Tile';
+import Building from 'game/Building';
+import PathFinder from 'game/PathFinder';
+import SocialLife from 'game/SocialLife';
+import WorkLife from 'game/WorkLife';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
+import { Gender, RelationshipMap, PersonOverview, RelationshipMapOverview } from 'types/Social';
 
 export default class Person {
+    public social: SocialLife;
+    public work: WorkLife;
+
     private x: number;
     private y: number;
 
@@ -17,15 +23,18 @@ export default class Person {
     private currentTarget: PixelPosition | null;
     private direction: Direction;
     private movingAxis: Axis;
+    private insideBuilding: boolean;
 
     private path: Tile[];
     private currentDestination: TilePosition;
 
     private asset: Image;
-
     private redrawFunction: ((timeDelta: number) => void) | null;
 
     constructor(x: number, y: number) {
+        this.social = new SocialLife();
+        this.work = new WorkLife();
+
         this.x = x;
         this.y = y;
 
@@ -35,6 +44,7 @@ export default class Person {
         this.currentTarget = null;
         this.direction = Direction.East;
         this.movingAxis = Axis.X;
+        this.insideBuilding = false;
 
         this.path = [];
         this.currentDestination = null;
@@ -43,8 +53,15 @@ export default class Person {
         this.redrawFunction = null;
     }
 
+    setupCitizenship(firstName: string, familyName: string, age: number, gender: Gender): void {
+        this.social.setFirstName(firstName);
+        this.social.setFamilyName(familyName);
+        this.social.setAge(age);
+        this.social.setGender(gender);
+    }
+
     walk(currentTile: Tile, timeDelta: number): void {
-        if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
+        if (this.insideBuilding || !this.asset || !this.currentTarget || !this.currentDestination /*|| !(currentTile instanceof Road)*/) {
             return;
         }
 
@@ -70,8 +87,15 @@ export default class Person {
 
         this.updateDepth(currentTile);
 
+        if (this.isDestinationReached()) {
+            this.currentTarget = null;
+            this.currentDestination = null;
+            return;
+        }
+
         if (this.isCurrentTargetReached()) {
             this.setNextTarget(currentTile);
+            return;
         }
     }
 
@@ -115,10 +139,11 @@ export default class Person {
     }
 
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
-        if (!destinations.size) {
+        if (this.currentDestination) {
             return;
         }
-        if (this.currentDestination) {
+
+        if (!destinations.size) {
             return;
         }
 
@@ -160,6 +185,10 @@ export default class Person {
         return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
     }
 
+    isDestinationReached(): boolean {
+        return !this.path.length && this.isCurrentTargetReached();
+    }
+
     updateDepth(currentTile: Tile): void {
         const row = currentTile.getRow();
         this.depth = ((row + 1) * 10) + 1;
@@ -194,9 +223,53 @@ export default class Person {
         return this.direction;
     }
 
+    setIndoors(insideBuilding: boolean): void {
+        this.insideBuilding = insideBuilding;
+    }
+
+    isIndoors(): boolean {
+        return this.insideBuilding;
+    }
+
     redraw(timeDelta: number): void {
         if (this.redrawFunction) {
             this.redrawFunction(timeDelta);
         }
+    }
+
+    getOverview(): PersonOverview {
+        const socialInfo = this.social.getInfo();
+
+        const relationshipMapOverview: RelationshipMapOverview = {};
+        
+        for (const key in socialInfo.relationships) {
+            const relationship = key as keyof RelationshipMap;
+            const relatedPeople = socialInfo.relationships[relationship];
+
+            if (!relatedPeople) {
+                continue;
+            }
+    
+            // For relationships which accept array values such as children and sbiling, we create an array overview
+            if (Array.isArray(relatedPeople)) {
+                relationshipMapOverview[relationship] = relatedPeople.map(person => person.social.getFullName()).join(', ');
+            } else{
+                relationshipMapOverview[relationship] = relatedPeople.social.getFullName();
+            }
+        }
+
+        const overview: PersonOverview = {
+            firstName: socialInfo.firstName,
+            familyName: socialInfo.familyName,
+            age: socialInfo.age,
+            gender: socialInfo.gender,
+            relationships: relationshipMapOverview,
+        };
+
+        return overview;
+    }
+
+    toString(): string {
+        return this.social.getFullName();
     }
 }

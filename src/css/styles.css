@@ -1,4 +1,40 @@
-body{
+body {
     margin: 0;
     padding: 0;
+}
+
+#hud-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: block;
+    background-color: transparent;
+    pointer-events: none;
+    z-index: 100;
+    box-sizing: border-box;
+}
+
+canvas {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;  
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    z-index: 50;
+}
+
+.hud {
+}
+
+.window {
+    position: absolute;
+    pointer-events: all;
+    user-select: none;
+    cursor: pointer;
 }

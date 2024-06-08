@@ -3,143 +3,115 @@
     "assets": [
         {
             "type": "image",
-            "key": "person",
-            "file": "person.png"
+            "key": "person"
         },
         {
             "type": "image",
-            "key": "vehicle",
-            "file": "vehicle.png"
+            "key": "vehicle_md"
         },
         {
             "type": "image",
-            "key": "grass",
-            "file": "grass.png"
+            "key": "grass"
         },
         {
             "type": "image",
-            "key": "road_0011",
-            "file": "road_0011.png"
+            "key": "road_0011"
         },
         {
             "type": "image",
-            "key": "road_0101",
-            "file": "road_0101.png"
+            "key": "road_0101"
         },
         {
             "type": "image",
-            "key": "road_0110",
-            "file": "road_0110.png"
+            "key": "road_0110"
         },
         {
             "type": "image",
-            "key": "road_0111",
-            "file": "road_0111.png"
+            "key": "road_0111"
         },
         {
             "type": "image",
-            "key": "road_1001",
-            "file": "road_1001.png"
+            "key": "road_1001"
         },
         {
             "type": "image",
-            "key": "road_1010",
-            "file": "road_1010.png"
+            "key": "road_1010"
         },
         {
             "type": "image",
-            "key": "road_1011",
-            "file": "road_1011.png"
+            "key": "road_1011"
         },
         {
             "type": "image",
-            "key": "road_1100",
-            "file": "road_1100.png"
+            "key": "road_1100"
         },
         {
             "type": "image",
-            "key": "road_1101",
-            "file": "road_1101.png"
+            "key": "road_1101"
         },
         {
             "type": "image",
-            "key": "road_1110",
-            "file": "road_1110.png"
+            "key": "road_1110"
         },
         {
             "type": "image",
-            "key": "road_1111",
-            "file": "road_1111.png"
+            "key": "road_1111"
         },
         {
             "type": "image",
-            "key": "building_1x1x1_1",
-            "file": "building_1x1x1_1.png"
+            "key": "building_1x1x1_1"
         },
         {
             "type": "image",
-            "key": "building_1x1x1_2",
-            "file": "building_1x1x1_2.png"
+            "key": "building_1x1x1_2"
         },
         {
             "type": "image",
-            "key": "building_1x1x1_3",
-            "file": "building_1x1x1_3.png"
+            "key": "building_1x1x1_3"
         },
         {
             "type": "image",
-            "key": "building_1x1x1_4",
-            "file": "building_1x1x1_4.png"
+            "key": "building_1x1x1_4"
         },
         {
             "type": "image",
-            "key": "building_1x1x1_5",
-            "file": "building_1x1x1_5.png"
+            "key": "building_1x1x1_5"
         },
         {
             "type": "image",
-            "key": "building_1x1x1_6",
-            "file": "building_1x1x1_6.png"
+            "key": "building_1x1x1_6"
         },
         {
             "type": "image",
-            "key": "building_1x1x2_1",
-            "file": "building_1x1x2_1.png"
+            "key": "building_1x1x2_1"
         },
         {
             "type": "image",
-            "key": "building_1x1x2_2",
-            "file": "building_1x1x2_2.png"
+            "key": "building_1x1x2_2"
         },
         {
             "type": "image",
-            "key": "building_2x1x1_1_left",
-            "file": "building_2x1x1_1_left.png"
+            "key": "building_2x1x1_1_left"
         },
         {
             "type": "image",
-            "key": "building_2x1x1_1_right",
-            "file": "building_2x1x1_1_right.png"
+            "key": "building_2x1x1_1_right"
         },
         {
             "type": "image",
-            "key": "building_2x2x1_1_down-left",
-            "file": "building_2x2x1_1_down-left.png"
+            "key": "building_2x2x1_1_down-left"
         },
         {
             "type": "image",
-            "key": "building_2x2x1_1_down-right",
-            "file": "building_2x2x1_1_down-right.png"
+            "key": "building_2x2x1_1_down-right"
         },
         {
             "type": "image",
-            "key": "building_2x2x1_1_up-left",
-            "file": "building_2x2x1_1_up-left.png"
+            "key": "building_2x2x1_1_up-left"
         },
         {
             "type": "image",
-            "key": "building_2x2x1_1_up-right",
-            "file": "building_2x2x1_1_up-right.png"
+            "key": "building_2x2x1_1_up-right"
         }
     ]
 }

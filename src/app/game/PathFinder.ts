@@ -1,6 +1,6 @@
-import Field from 'app/Field';
-import Tile from 'app/Tile';
-import Road from 'app/Road';
+import Field from 'game/Field';
+import Tile from 'game/Tile';
+import Road from 'game/Road';
 
 import { TilePosition } from 'types/Position';
 

@@ -8,15 +8,15 @@ export default class Tile {
     protected col: number;
 
     private asset: Image;
-    private textureName: string | null;
+    private assetName: string | null;
 
     private debugText?: Phaser.GameObjects.Text;
 
-    constructor(row: number, col: number, textureName: string | null) {
+    constructor(row: number, col: number, assetName: string | null) {
         this.row = row;
         this.col = col;
         this.asset = null;
-        this.textureName = textureName;
+        this.assetName = assetName;
     }
 
     calculateDepth(): number {
@@ -55,12 +55,12 @@ export default class Tile {
         return `${this.row}-${this.col}`;
     }
 
-    getTextureName(): string | null {
-        return this.textureName;
+    getAssetName(): string | null {
+        return this.assetName;
     }
 
-    setTextureName(textureName: string | null): void {
-        this.textureName = textureName;
+    setAssetName(assetName: string): void {
+        this.assetName = assetName;
     }
 
     getAsset(): Image {

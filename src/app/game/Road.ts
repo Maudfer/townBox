@@ -1,4 +1,4 @@
-import Tile from 'app/Tile';
+import Tile from 'game/Tile';
 
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
@@ -155,7 +155,7 @@ export default class Road extends Tile {
             code += neighborsCode;
         }
 
-        this.setTextureName(code);
+        this.setAssetName(code);
     }
 
     getConnectingRoads(neighbors: NeighborMap): Tile[] {

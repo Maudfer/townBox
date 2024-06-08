@@ -1,15 +1,18 @@
-import GameManager from 'app/GameManager';
-import Tile from 'app/Tile';
-import Soil from 'app/Soil';
-import Road from 'app/Road';
-import Building from 'app/Building';
-import Person from 'app/Person';
-import Vehicle from 'app/Vehicle';
-import PathFinder from 'app/PathFinder';
+import GameManager from 'game/GameManager';
+import Tile from 'game/Tile';
+import Soil from 'game/Soil';
+import Road from 'game/Road';
+import Building from 'game/Building';
+import House from 'game/House';
+import Workplace from 'game/Workplace';
+import Person from 'game/Person';
+import Vehicle from 'game/Vehicle';
+import PathFinder from 'game/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { UpdateEvent, BuildEvent } from 'types/Events';
 import { NeighborMap } from 'types/Neighbor';
+import { Tool } from 'types/Cursor';
 
 type TileMatrix = {
     [row: number]: {
@@ -41,18 +44,18 @@ export default class Field {
 
         this.matrix = {};
         for (let row = 0; row < this.rows; row++) {
+            this.matrix[row] = {};
 
-            this.matrix[row] = {}; // Initialize the row
             for (let col = 0; col < this.cols; col++) {
                 const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
-                this.gameManager.trigger("tileSpawned", tile);
+                this.gameManager.emit("tileSpawned", tile);
             }
         }
 
         this.gameManager.on("tileClicked", { callback: this.build, context: this });
-        this.gameManager.on("personNeeded", { callback: this.spawnPerson, context: this });
-        this.gameManager.on("vehicleNeeded", { callback: this.spawnVehicle, context: this });
+        this.gameManager.on("personSpawnRequest", { callback: this.spawnPerson, context: this });
+        this.gameManager.on("vehicleSpawnRequest", { callback: this.spawnVehicle, context: this });
         this.gameManager.on("update", { callback: this.update, context: this });
     }
 
@@ -112,18 +115,30 @@ export default class Field {
         }
 
         const { row, col } = tilePosition;
-        
+        const currentTile = this.getTile(row, col);
+        if (currentTile === null) {
+            throw new Error("Invalid tile to build on");
+        }
 
         let newTile = null;
-        switch (event.tool) {
-            case 'road':
-                newTile = new Road(row, col, null);
-                break;
-            case 'soil':
-                newTile = new Soil(row, col, "grass");
-                break;
-            default:
-                newTile = new Building(row, col, event.tool);
+        const assetName = this.gameManager.toolbelt[event.tool as Tool];
+        const tileDictionary: { [key in Tool]: () => Tile } = {
+            [Tool.Road]: () => new Road(row, col, null),
+            [Tool.Soil]: () => new Soil(row, col, assetName),
+            [Tool.House]: () => new House(row, col, assetName),
+            [Tool.Work]: () => new Workplace(row, col, assetName),
+        };
+        const tileConstructor = tileDictionary[event.tool as Tool];
+
+        if (tileConstructor) {
+            newTile = tileConstructor();
+        } else {
+            newTile = new Building(row, col, assetName);
+        }
+
+        // if new tile is instance of same as current tile, return
+        if (newTile instanceof currentTile.constructor){
+            return;
         }
 
         const neighbors = this.getNeighbors(newTile);
@@ -139,28 +154,32 @@ export default class Field {
             newTile.calculateCurb(cellParams, pixelCenter);
             newTile.calculateLanes(cellParams, pixelCenter);
 
-            this.gameManager.trigger("roadBuilt", newTile);
+            this.gameManager.emit("roadBuilt", newTile);
         }
 
         if (newTile instanceof Building) {
             const cellParams = this.gameManager.gridParams.cells;
             newTile.calculateEntrance(cellParams, pixelCenter);
         }
+
+        if (newTile instanceof House) {
+            this.gameManager.emit("houseBuilt", newTile);
+        }
     }
 
-    spawnPerson(pixelPosition: PixelPosition): void {
+    spawnPerson(pixelPosition: PixelPosition): Person {
         if (pixelPosition === null) {
-            return;
+            throw new Error("Invalid pixel position to spawn person");
         }
 
         const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
-            return;
+            throw new Error("Invalid tile position to spawn person");
         }
 
         const currentTile = this.getTile(tilePosition.row, tilePosition.col);
         if (currentTile === null) {
-            return;
+            throw new Error("Invalid tile to spawn person");
         }
 
         const { x, y } = pixelPosition;
@@ -168,22 +187,24 @@ export default class Field {
         person.updateDepth(currentTile);
 
         this.people.push(person);
-        this.gameManager.trigger("personSpawned", person);
+        this.gameManager.emit("personSpawned", person);
+        
+        return person;
     }
 
-    spawnVehicle(pixelPosition: PixelPosition): void {
+    spawnVehicle(pixelPosition: PixelPosition): Vehicle {
         if (pixelPosition === null) {
-            return;
+            throw new Error("Invalid pixel position to spawn vehicle");
         }
 
         const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
-            return;
+            throw new Error("Invalid tile position to spawn vehicle");
         }
 
         const currentTile = this.getTile(tilePosition.row, tilePosition.col);
         if (currentTile === null) {
-            return;
+            throw new Error("Invalid tile to spawn vehicle");
         }
 
         const { x, y } = pixelPosition;
@@ -191,7 +212,9 @@ export default class Field {
         vehicle.updateDepth(currentTile);
 
         this.vehicles.push(vehicle);
-        this.gameManager.trigger("vehicleSpawned", vehicle);
+        this.gameManager.emit("vehicleSpawned", vehicle);
+
+        return vehicle;
     }
 
     replaceTile(tile: Tile): void {
@@ -210,15 +233,14 @@ export default class Field {
             return;
         }
 
-        const oldTexture = oldTile.getTextureName();
+        const oldAssetName = oldTile.getAssetName();
         const oldAsset = oldTile.getAsset();
         const oldDebugText = oldTile.getDebugText();
 
         const neighbors = this.getNeighbors(tile);
         tile.updateSelfBasedOnNeighbors(neighbors);
 
-        // TODO: Implement a better way to update the tile that doesn't rely on texture name
-        if (tile.getTextureName() !== oldTexture) {
+        if (tile.getAssetName() !== oldAssetName) {
             if (oldAsset) {
                 oldAsset.destroy();
             }
@@ -234,7 +256,7 @@ export default class Field {
             }
 
             this.setTile(row, col, tile);
-            this.gameManager.trigger("tileSpawned", tile);
+            this.gameManager.emit("tileSpawned", tile);
         }
 
     }

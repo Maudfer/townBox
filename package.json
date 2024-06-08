@@ -2,19 +2,17 @@
   "name": "townbox",
   "version": "0.1.0",
   "description": "Simple city builder in javascript using Phaser 3 engine",
+  "author": "Mauricio Fernandes",
+  "license": "MIT",
   "scripts": {
-    "copy-images": "cross-env cpy ./src/img/sprites/**/*.* ./bin/sprites/",
-    "copy-css": "cross-env cpy ./src/css/**/*.* ./bin/",
-    "copy-html": "cross-env cpy ./src/html/**/*.* ./bin/",
-    "watch-images": "cross-env cpy ./src/img/sprites/**/*.* ./dist/sprites/ --watch",
-    "watch-css": "cross-env cpy ./src/css/**/*.* ./dist/ --watch",
-    "watch-html": "cross-env cpy ./src/html/**/*.* ./dist/ --watch",
-    "build-dev": "cross-env parcel watch ./src/app/main.ts --dist-dir ./dist",
-    "build-prod": "cross-env parcel build ./src/app/main.ts --dist-dir ./bin",
+    "copy-images": "cross-env cpy ./src/img/sprites/**/*.* ./dist/sprites/ --watch",
+    "build-dev": "cross-env parcel watch ./src/html/index.html --dist-dir ./dist",
+    "build-prod": "cross-env parcel build ./src/html/index.html --dist-dir ./bin",
     "serve-dev": "cross-env browser-sync start --server ./dist --files ./dist",
-    "dev": "concurrently 'npm:watch-images' 'npm:watch-css' 'npm:watch-html' 'npm:build-dev' 'npm:serve-dev'",
-    "package": "concurrently 'npm:copy-images' 'npm:copy-css' 'npm:copy-html' 'npm:build-prod'"
+    "dev": "concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
+    "package": "concurrently 'npm:copy-images' 'npm:build-prod'"
   },
+
   "keywords": [
     "game",
     "phaser3",
@@ -26,19 +24,26 @@
     "sim city",
     "2D"
   ],
-  "author": "Mauricio Fernandes",
-  "license": "MIT",
+
   "dependencies": {
+    "@babel/preset-env": "^7.24.7",
+    "@babel/preset-react": "^7.24.7",
+    "@faker-js/faker": "^8.4.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
     "app": "^0.1.0",
-    "phaser": "^3.80.1"
+    "phaser": "^3.80.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "browser-sync": "^3.0.2",
+    "buffer": "^6.0.3",
     "concurrently": "^8.2.2",
     "cpy-cli": "^5.0.0",
     "cross-env": "^7.0.3",
     "parcel": "^2.12.0",
     "process": "^0.11.10",
-    "typescript": "^5.4.4"
+    "typescript": "^5.4.5"
   }
 }

@@ -1,4 +1,4 @@
-import Tile from 'app/Tile';
+import Tile from 'game/Tile';
 
 export type Neighbor = Tile | null;
 
