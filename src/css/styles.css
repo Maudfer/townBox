@@ -1,6 +1,28 @@
-body{
+body {
     margin: 0;
     padding: 0;
+}
+
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: block;
+    background-color: #00f;
+}
+
+#hud-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    display: block;
+    background-color: #f00;
 }
 
 canvas {
@@ -11,3 +33,5 @@ canvas {
     height: 100%;
     background-color: #000;
 }
+
+.hud {}

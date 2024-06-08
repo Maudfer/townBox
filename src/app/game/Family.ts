@@ -1,8 +1,8 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
-import GameManager from "app/GameManager";
-import Person from 'app/Person';
-import House from 'app/House';
+import GameManager from 'game/GameManager';
+import Person from 'game/Person';
+import House from 'game/House';
 
 import { Gender, Genders, Relationship, Relationships, RelationshipProbabilities, FamilyOverview } from 'types/Social';
 

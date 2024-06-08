@@ -1,8 +1,8 @@
-import Tile from 'app/Tile';
-import Road from 'app/Road';
-import House from 'app/House';
-import Person from 'app/Person';
-import Vehicle from 'app/Vehicle';
+import Tile from 'game/Tile';
+import Road from 'game/Road';
+import House from 'game/House';
+import Person from 'game/Person';
+import Vehicle from 'game/Vehicle';
 
 import { TilePosition, PixelPosition } from "types/Position";
 import { Tool } from "types/Cursor";

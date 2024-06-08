@@ -1,5 +1,5 @@
-import Person from 'app/Person';
-import House from 'app/House';
+import Person from 'game/Person';
+import House from 'game/House';
 
 import { Gender, Genders, Relationship, Relationships, RelationshipMap, SocialInfo } from 'types/Social';
 

@@ -1,4 +1,4 @@
-import Tile from 'app/Tile';
+import Tile from 'game/Tile';
 
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';

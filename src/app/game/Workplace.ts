@@ -1,6 +1,6 @@
-import Building from 'app/Building';
-import Person from 'app/Person';
-import Vehicle from 'app/Vehicle';
+import Building from 'game/Building';
+import Person from 'game/Person';
+import Vehicle from 'game/Vehicle';
 
 import { WorkplaceOverview } from 'types/Social';
 import { JobPosition, JobRequirements } from 'types/Work';

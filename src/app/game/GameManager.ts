@@ -1,8 +1,7 @@
 import Phaser from 'phaser';
-import Field from 'app/Field';
-import MainScene from 'app/MainScene';
-import HUDScene from 'app/HUDScene';
-import DebugTools from 'app/DebugTools';
+import Field from 'game/Field';
+import MainScene from 'game/MainScene';
+import DebugTools from 'game/DebugTools';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
@@ -16,7 +15,6 @@ import City from './City';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
-    private hud: HUDScene;
 
     public scene: MainScene;
     public gridParams: GridParams;
@@ -55,10 +53,10 @@ export default class GameManager {
         this.gridParams = gridParams;
         this.toolbelt = tools;
         this.scene = new MainScene(this, { key: 'MainScene', active: true });
-        this.hud = new HUDScene(this, { key: 'HUDScene', active: true });
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
+            parent: 'game-container',
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -67,7 +65,7 @@ export default class GameManager {
                 antialias: true,
                 roundPixels: true,
             },
-            scene: [this.scene, this.hud],
+            scene: [this.scene],
         };
 
         new Phaser.Game(phaserConfig);

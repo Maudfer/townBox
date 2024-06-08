@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
 
-import GameManager from 'app/GameManager';
-import Tile from 'app/Tile';
-import Soil from 'app/Soil';
-import Person from 'app/Person';
-import Vehicle from 'app/Vehicle';
+import GameManager from 'game/GameManager';
+import Tile from 'game/Tile';
+import Soil from 'game/Soil';
+import Person from 'game/Person';
+import Vehicle from 'game/Vehicle';
 import { directionToRadianRotation } from 'util/tools';
 
 import { PixelPosition, TilePosition } from 'types/Position';

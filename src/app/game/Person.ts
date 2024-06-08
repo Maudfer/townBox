@@ -1,9 +1,9 @@
-import Road from 'app/Road';
-import Tile from 'app/Tile';
-import Building from 'app/Building';
-import PathFinder from 'app/PathFinder';
-import SocialLife from 'app/SocialLife';
-import WorkLife from 'app/WorkLife';
+import Road from 'game/Road';
+import Tile from 'game/Tile';
+import Building from 'game/Building';
+import PathFinder from 'game/PathFinder';
+import SocialLife from 'game/SocialLife';
+import WorkLife from 'game/WorkLife';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';

@@ -1,7 +1,7 @@
-import Road from 'app/Road';
-import Tile from 'app/Tile';
-import Building from 'app/Building';
-import PathFinder from 'app/PathFinder';
+import Road from 'game/Road';
+import Tile from 'game/Tile';
+import Building from 'game/Building';
+import PathFinder from 'game/PathFinder';
 
 import { radiansToDegrees } from 'util/Math';
 import { directionToRadianRotation } from 'util/tools';

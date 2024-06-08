@@ -1,4 +1,4 @@
-import Person from 'app/Person';
+import Person from 'game/Person';
 
 export enum Genders {
     Male = 'male',

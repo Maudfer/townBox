@@ -1,4 +1,4 @@
-import Tile from 'app/Tile';
+import Tile from 'game/Tile';
 
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';

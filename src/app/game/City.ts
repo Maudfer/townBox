@@ -1,9 +1,9 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
-import GameManager from "app/GameManager";
-import House from "app/House";
-import Vehicle from "app/Vehicle";
-import Family from "app/Family";
+import GameManager from 'game/GameManager';
+import House from 'game/House';
+import Vehicle from 'game/Vehicle';
+import Family from 'game/Family';
 
 export default class City {
     private gameManager: GameManager;

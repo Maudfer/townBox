@@ -1,13 +1,13 @@
-import GameManager from 'app/GameManager';
-import Tile from 'app/Tile';
-import Soil from 'app/Soil';
-import Road from 'app/Road';
-import Building from 'app/Building';
-import House from 'app/House';
-import Workplace from 'app/Workplace';
-import Person from 'app/Person';
-import Vehicle from 'app/Vehicle';
-import PathFinder from 'app/PathFinder';
+import GameManager from 'game/GameManager';
+import Tile from 'game/Tile';
+import Soil from 'game/Soil';
+import Road from 'game/Road';
+import Building from 'game/Building';
+import House from 'game/House';
+import Workplace from 'game/Workplace';
+import Person from 'game/Person';
+import Vehicle from 'game/Vehicle';
+import PathFinder from 'game/PathFinder';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { UpdateEvent, BuildEvent } from 'types/Events';

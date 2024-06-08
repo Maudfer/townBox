@@ -1,6 +1,6 @@
-import GameManager from 'app/GameManager';
-import Tile from 'app/Tile';
-import Road from 'app/Road';
+import GameManager from 'game/GameManager';
+import Tile from 'game/Tile';
+import Road from 'game/Road';
 
 import config from 'json/config.json';
 
