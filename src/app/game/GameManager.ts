@@ -56,7 +56,6 @@ export default class GameManager {
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
-            parent: 'game-container',
             scale: {
                 mode: Phaser.Scale.RESIZE,
                 autoCenter: Phaser.Scale.CENTER_BOTH,

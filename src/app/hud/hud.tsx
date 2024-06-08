@@ -6,7 +6,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
   console.log("HUD initialized", game);
 
   return (
-    <div className="hud">
+    <div className="hud window">
       HUD
     </div>
   );
