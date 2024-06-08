@@ -16,25 +16,94 @@ body {
     pointer-events: none;
     z-index: 100;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 canvas {
     position: relative;
     display: block;
     width: 100%;
-    height: 100%;  
+    height: 100%;
     margin: 0;
     padding: 0;
     background-color: #46752f;
     z-index: 50;
 }
 
-.hud {
-}
-
 .window {
     position: absolute;
+    display: flex;
+    flex-direction: column;
     pointer-events: all;
     user-select: none;
+    background-color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    box-shadow: 0 0 5px #33333370;
+    font-family: Verdana, sans-serif;
+}
+
+.window button {
     cursor: pointer;
+    user-select: none;
+}
+
+.window .window-header {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    box-sizing: border-box;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: grab;
+}
+
+.window .window-header > h3 {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.window .window-body {
+    position: relative;
+    display: block;
+    padding: 10px;
+    background-color: #fff;
+    color: #333;
+    text-align: left;
+    box-sizing: border-box;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+.window .window-footer {
+    position: relative;
+    display: block;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    box-sizing: border-box;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.window .window-footer button {
+    position: relative;
+    display: inline-block;
+    min-width: 80px;
+    padding: 3px 5px;
+    background-color: #666;
+    color: #fff;
+    text-align: center;
+    border: 1px solid #888;
+    border-radius: 5px;
+    box-shadow: 0 0 5px #00000070;
+    font-size: 18px;
+    font-weight: bold;
 }

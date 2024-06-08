@@ -12,7 +12,6 @@
     "dev": "concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
     "package": "concurrently 'npm:copy-images' 'npm:build-prod'"
   },
-
   "keywords": [
     "game",
     "phaser3",
@@ -24,7 +23,6 @@
     "sim city",
     "2D"
   ],
-
   "dependencies": {
     "@babel/preset-env": "^7.24.7",
     "@babel/preset-react": "^7.24.7",
@@ -34,7 +32,8 @@
     "app": "^0.1.0",
     "phaser": "^3.80.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-draggable": "^4.4.6"
   },
   "devDependencies": {
     "browser-sync": "^3.0.2",

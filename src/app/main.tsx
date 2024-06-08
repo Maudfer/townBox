@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 
 import GameManager from './game/GameManager';
-import HUD from './hud/hud';
+import HUD from './hud/Hud';
 
 const main = () => {
     const game = new GameManager();
