@@ -6,6 +6,7 @@ import Vehicle from 'game/Vehicle';
 
 import { TilePosition, PixelPosition } from "types/Position";
 import { Tool } from "types/Cursor";
+import GameManager from 'game/GameManager';
 
 export type UpdateEvent = {
     time: number;
@@ -16,22 +17,9 @@ export type BuildEvent = {
     position: TilePosition;
     tool: Tool;
 };
-
-/*
-export type CitizenEvent = {
-    position: PixelPosition;
-    home: House;
-};
-
-export type CarEvent = {
-    position: PixelPosition;
-    home: House;
-    owner: Person;
-};
-*/
-
 export interface EventPayloads {
     "sceneInitialized": Phaser.Scene;
+    "gameInitialized": GameManager;
     "update": UpdateEvent;
     "tileClicked": BuildEvent;
     "personSpawnRequest": PixelPosition;

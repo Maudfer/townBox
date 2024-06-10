@@ -17,6 +17,9 @@ export default class GameManager {
     private eventListeners: EventListeners = {};
 
     public scene: MainScene;
+    public field: Field | null;
+    public city: City | null;
+
     public gridParams: GridParams;
     public toolbelt: Toolbelt;
 
@@ -52,7 +55,10 @@ export default class GameManager {
 
         this.gridParams = gridParams;
         this.toolbelt = tools;
+
         this.scene = new MainScene(this, { key: 'MainScene', active: true });
+        this.field = null; 
+        this.city = null;
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -78,8 +84,9 @@ export default class GameManager {
                 this.on("roadBuilt", { callback: debugTools.drawRoadLanes, context: this });
             }
 
-            new Field(this, fieldParams.rows, fieldParams.cols);
-            new City(this);
+            this.field = new Field(this, fieldParams.rows, fieldParams.cols);
+            this.city = new City(this);
+            this.emit("gameInitialized", this);
         }
         this.on("sceneInitialized", { callback: postSceneInit, context: this });
     }

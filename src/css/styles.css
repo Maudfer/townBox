@@ -30,80 +30,96 @@ canvas {
     z-index: 50;
 }
 
-.window {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
+.glass {
+    backdrop-filter: blur(6px);
+    background-color: #0f353bad;
+}
+
+.react-draggable {
+    will-change: transform;
     pointer-events: all;
+}
+
+.window {
+    box-sizing: border-box;
     user-select: none;
-    background-color: #fff;
-    border: 1px solid #333;
-    border-radius: 5px;
-    box-shadow: 0 0 5px #33333370;
-    font-family: Verdana, sans-serif;
+    background-color: #0000;
+    border: 2px solid #0f353b;
+    border-radius: 1px;
+    flex-direction: column;
+    font-family: system-ui;
+    display: flex;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    box-shadow: 0 0 10px #00000075;
 }
 
 .window button {
     cursor: pointer;
     user-select: none;
+    color: #fff;
+    text-align: center;
+    background-color: #092327;
+    border: 1px solid #274041;
+    border-radius: 4px;
+    padding: 4px 7px 2px;
+    font-size: 16px;
+    font-weight: bold;
+    display: inline-block;
+    position: relative;
 }
 
 .window .window-header {
-    position: relative;
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    background-color: #333;
+    box-sizing: border-box;
     color: #fff;
     text-align: center;
-    box-sizing: border-box;
-    font-size: 18px;
-    font-weight: bold;
     cursor: grab;
+    justify-content: space-between;
+    padding: 7px;
+    font-size: 18px;
+    letter-spacing: 1px;
+    display: flex;
+    position: relative;
 }
 
 .window .window-header > h3 {
     margin: 0;
     padding: 0;
     font-size: 18px;
-    font-weight: bold;
+    font-weight: 500;
 }
 
 .window .window-body {
     position: relative;
     display: block;
-    padding: 10px;
-    background-color: #fff;
-    color: #333;
-    text-align: left;
     box-sizing: border-box;
+    padding: 10px;
     font-size: 24px;
     font-weight: normal;
+    color: #fff;
+    text-align: left;
+    width: 100%;
+    height: -webkit-fill-available;
+    background-color: #0f353b;
+    box-shadow: inset 0 0 5px #00000099;
 }
 
 .window .window-footer {
-    position: relative;
-    display: block;
-    padding: 10px;
-    background-color: #333;
+    display: flex;
+    box-sizing: border-box;
     color: #fff;
     text-align: center;
-    box-sizing: border-box;
+    padding: 5px;
     font-size: 18px;
     font-weight: bold;
+    position: relative;
+    justify-content: flex-end;
 }
 
 .window .window-footer button {
-    position: relative;
-    display: inline-block;
-    min-width: 80px;
-    padding: 3px 5px;
-    background-color: #666;
-    color: #fff;
-    text-align: center;
-    border: 1px solid #888;
-    border-radius: 5px;
-    box-shadow: 0 0 5px #00000070;
-    font-size: 18px;
-    font-weight: bold;
+    letter-spacing: 1px;
+    min-width: 60px;
+    padding: 6px 7px 3px 7px;
 }
