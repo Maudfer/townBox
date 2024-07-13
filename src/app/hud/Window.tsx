@@ -5,8 +5,15 @@ import { WindowProps } from 'types/HUD';
 
 const Window: FC<WindowProps> = ({ game, title }) => {
 
+    function handleDragStart() {
+        game.emit("windowDragStart");
+    }
+
+    function handleDragStop() {
+        game.emit("windowDragStop");
+    }
+
     useEffect(() => {
-        console.log("City:", game.city);
         console.log("City name:", game.city?.getName());
     }, [game.city]);
 
@@ -22,6 +29,8 @@ const Window: FC<WindowProps> = ({ game, title }) => {
             minHeight={250}
             bounds="window"
             dragHandleClassName="window-header"
+            onDragStart={handleDragStart}
+            onDragStop={handleDragStop}
         >
             <div className="window">
                 <div className="window-header glass">

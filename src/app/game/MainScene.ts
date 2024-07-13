@@ -22,20 +22,33 @@ type Grid = Phaser.GameObjects.Grid | null;
 export default class MainScene extends Phaser.Scene {
     private gameManager: GameManager;
     private cameraController: CameraControl;
-    private cursor: Cursor;
     private grid: Grid;
+
+    private cursor: Cursor;
+    private cursorActive: boolean;
 
     constructor(gameManager: GameManager, sceneConfig: SceneConfig) {
         super(sceneConfig);
-        this.gameManager = gameManager;
 
-        this.cursor = null;
+        this.gameManager = gameManager;
         this.cameraController = null;
         this.grid = null;
+
+        this.cursor = null;
+        this.cursorActive = true;
 
         this.gameManager.on("tileSpawned", { callback: this.drawTile, context: this });
         this.gameManager.on("personSpawned", { callback: this.drawPerson, context: this });
         this.gameManager.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
+
+        let game = this;
+        this.gameManager.on("windowDragStart", { callback: function(){
+            game.cursorActive = false;
+        }, context: this });
+
+        this.gameManager.on("windowDragStop", { callback: function(){
+            game.cursorActive = true;
+        }, context: this });
     }
 
     init(_: any): void { }
@@ -132,6 +145,11 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
+        if (!this.cursorActive) {
+            this.hideCursor();
+            return;
+        }
+
         const mouseX = this.input.activePointer.worldX;
         const mouseY = this.input.activePointer.worldY;
         const mousePixelPosition: PixelPosition = { x: mouseX, y: mouseY };
@@ -155,6 +173,11 @@ export default class MainScene extends Phaser.Scene {
     }
 
     private handleClick(pointer: Pointer): void {
+        if (!this.cursorActive) {
+            this.hideCursor();
+            return;
+        }
+
         const pixelPosition: PixelPosition = { x: pointer.worldX, y: pointer.worldY };
 
         const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);

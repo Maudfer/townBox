@@ -29,4 +29,6 @@ export interface EventPayloads {
     "personSpawned": Person;
     "vehicleSpawned": Vehicle;
     "roadBuilt": Road;
+    "windowDragStart": void;
+    "windowDragStop": void;
 };
