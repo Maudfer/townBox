@@ -82,9 +82,10 @@ canvas {
     letter-spacing: 1px;
     display: flex;
     position: relative;
+    background: linear-gradient(180deg, #011a1cad, #0f353bad);
 }
 
-.window .window-header > h3 {
+.window .window-header>h3 {
     margin: 0;
     padding: 0;
     font-size: 18px;
@@ -101,6 +102,7 @@ canvas {
     color: #fff;
     text-align: left;
     width: 100%;
+    overflow: auto;
     height: -webkit-fill-available;
     background-color: #0f353b;
     box-shadow: inset 0 0 5px #00000099;
@@ -122,4 +124,21 @@ canvas {
     letter-spacing: 1px;
     min-width: 60px;
     padding: 6px 7px 3px 7px;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f353b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #0a252a;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #071a1d;
 }
