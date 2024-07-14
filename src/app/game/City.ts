@@ -5,20 +5,19 @@ import House from 'game/House';
 import Vehicle from 'game/Vehicle';
 import Family from 'game/Family';
 
-export default class City {
-    private gameManager: GameManager;
-    
+let Game: GameManager;
+export default class City {    
     private name: string;
     private population: number;
 
 
     constructor(gameManager: GameManager) {
-        this.gameManager = gameManager;
+        Game = gameManager;
 
         this.name = fakerPT_BR.location.city();
         this.population = 0;
 
-        this.gameManager.on("houseBuilt", { callback: this.setupHousehold, context: this });
+        Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
         console.log('City created:', this.name);
     }
 
@@ -36,7 +35,7 @@ export default class City {
         }
 
         const family = new Family(house);
-        const members = await family.autoGenerate(this.gameManager);
+        const members = await family.autoGenerate(Game);
 
         this.population += members.length;
 

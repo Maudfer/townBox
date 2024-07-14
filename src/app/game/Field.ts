@@ -20,8 +20,9 @@ type TileMatrix = {
     };
 };
 
+let Game: GameManager;
+
 export default class Field {
-    private gameManager: GameManager;
     private rows: number;
     private cols: number;
 
@@ -33,7 +34,8 @@ export default class Field {
     public matrix: TileMatrix;
 
     constructor(gameManager: GameManager, rows: number, cols: number) {
-        this.gameManager = gameManager;
+        Game = gameManager;
+
         this.rows = rows;
         this.cols = cols;
 
@@ -49,14 +51,14 @@ export default class Field {
             for (let col = 0; col < this.cols; col++) {
                 const tile = new Soil(row, col, "grass");
                 this.matrix[row]![col] = tile;
-                this.gameManager.emit("tileSpawned", tile);
+                Game.emit("tileSpawned", tile);
             }
         }
 
-        this.gameManager.on("tileClicked", { callback: this.handleTileClick, context: this });
-        this.gameManager.on("personSpawnRequest", { callback: this.spawnPerson, context: this });
-        this.gameManager.on("vehicleSpawnRequest", { callback: this.spawnVehicle, context: this });
-        this.gameManager.on("update", { callback: this.update, context: this });
+        Game.on("tileClicked", { callback: this.handleTileClick, context: this });
+        Game.on("personSpawnRequest", { callback: this.spawnPerson, context: this });
+        Game.on("vehicleSpawnRequest", { callback: this.spawnVehicle, context: this });
+        Game.on("update", { callback: this.update, context: this });
     }
 
     update(event: UpdateEvent): void {
@@ -66,7 +68,7 @@ export default class Field {
                 return;
             }
 
-            const currentTilePosition = this.gameManager.pixelToTilePosition(currentPixelPosition);
+            const currentTilePosition = Game.pixelToTilePosition(currentPixelPosition);
             if (currentTilePosition === null) {
                 return;
             }
@@ -87,7 +89,7 @@ export default class Field {
                 return;
             }
 
-            const currentTilePosition = this.gameManager.pixelToTilePosition(currentPixelPosition);
+            const currentTilePosition = Game.pixelToTilePosition(currentPixelPosition);
             if (currentTilePosition === null) {
                 return;
             }
@@ -115,7 +117,7 @@ export default class Field {
 
         const tileHandler = tileDictionary[event.tool as Tool];
         if (tileHandler) {
-            tileHandler(event);
+            tileHandler.call(this, event);
         } else {
             throw new Error(`Invalid tool to handle click '${event.tool}' on tile ${event.position?.row}-${event.position?.col}`);
         }
@@ -133,7 +135,7 @@ export default class Field {
         }
 
         if (tile instanceof House) {
-            this.gameManager.emit("HouseSelected", tile);
+            Game.emit("HouseSelected", tile);
         }
     }
 
@@ -159,7 +161,7 @@ export default class Field {
             return;
         }
 
-        const pixelCenter = this.gameManager.tileToPixelPosition(tilePosition);
+        const pixelCenter = Game.tileToPixelPosition(tilePosition);
         if (pixelCenter === null) {
             return;
         }
@@ -171,7 +173,7 @@ export default class Field {
         }
 
         let newTile = null;
-        const assetName = this.gameManager.toolbelt[event.tool as Tool];
+        const assetName = Game.toolbelt[event.tool as Tool];
 
         // TODO: This is a reduntant dictionary selection, refactor to just select tile class based on tool
         const tileDictionary: { [key in Tool]: (() => Tile) | null } = {
@@ -204,20 +206,20 @@ export default class Field {
         neighbors.right && this.replaceTile(neighbors.right);
 
         if (newTile instanceof Road) {
-            const cellParams = this.gameManager.gridParams.cells;
+            const cellParams = Game.gridParams.cells;
             newTile.calculateCurb(cellParams, pixelCenter);
             newTile.calculateLanes(cellParams, pixelCenter);
 
-            this.gameManager.emit("roadBuilt", newTile);
+            Game.emit("roadBuilt", newTile);
         }
 
         if (newTile instanceof Building) {
-            const cellParams = this.gameManager.gridParams.cells;
+            const cellParams = Game.gridParams.cells;
             newTile.calculateEntrance(cellParams, pixelCenter);
         }
 
         if (newTile instanceof House) {
-            this.gameManager.emit("houseBuilt", newTile);
+            Game.emit("houseBuilt", newTile);
         }
     }
 
@@ -226,7 +228,7 @@ export default class Field {
             throw new Error("Invalid pixel position to spawn person");
         }
 
-        const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
+        const tilePosition = Game.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
             throw new Error("Invalid tile position to spawn person");
         }
@@ -241,7 +243,7 @@ export default class Field {
         person.updateDepth(currentTile);
 
         this.people.push(person);
-        this.gameManager.emit("personSpawned", person);
+        Game.emit("personSpawned", person);
         
         return person;
     }
@@ -251,7 +253,7 @@ export default class Field {
             throw new Error("Invalid pixel position to spawn vehicle");
         }
 
-        const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
+        const tilePosition = Game.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
             throw new Error("Invalid tile position to spawn vehicle");
         }
@@ -266,7 +268,7 @@ export default class Field {
         vehicle.updateDepth(currentTile);
 
         this.vehicles.push(vehicle);
-        this.gameManager.emit("vehicleSpawned", vehicle);
+        Game.emit("vehicleSpawned", vehicle);
 
         return vehicle;
     }
@@ -310,7 +312,7 @@ export default class Field {
             }
 
             this.setTile(row, col, tile);
-            this.gameManager.emit("tileSpawned", tile);
+            Game.emit("tileSpawned", tile);
         }
 
     }

@@ -19,8 +19,9 @@ type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
 type Grid = Phaser.GameObjects.Grid | null;
 
+let Game: GameManager;
+
 export default class MainScene extends Phaser.Scene {
-    private gameManager: GameManager;
     private cameraController: CameraControl;
     private grid: Grid;
 
@@ -30,23 +31,23 @@ export default class MainScene extends Phaser.Scene {
     constructor(gameManager: GameManager, sceneConfig: SceneConfig) {
         super(sceneConfig);
 
-        this.gameManager = gameManager;
+        Game = gameManager;
         this.cameraController = null;
         this.grid = null;
 
         this.cursor = null;
         this.cursorActive = true;
 
-        this.gameManager.on("tileSpawned", { callback: this.drawTile, context: this });
-        this.gameManager.on("personSpawned", { callback: this.drawPerson, context: this });
-        this.gameManager.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
+        Game.on("tileSpawned", { callback: this.drawTile, context: this });
+        Game.on("personSpawned", { callback: this.drawPerson, context: this });
+        Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
 
         let game = this;
-        this.gameManager.on("windowDragStart", { callback: function(){
+        Game.on("windowDragStart", { callback: function(){
             game.cursorActive = false;
         }, context: this });
 
-        this.gameManager.on("windowDragStop", { callback: function(){
+        Game.on("windowDragStop", { callback: function(){
             game.cursorActive = true;
         }, context: this });
     }
@@ -89,7 +90,7 @@ export default class MainScene extends Phaser.Scene {
                 x: this.input.activePointer.worldX,
                 y: this.input.activePointer.worldY
             };
-            this.gameManager.emit("personSpawnRequest", pointer);
+            Game.emit("personSpawnRequest", pointer);
         });
 
         this.input.keyboard.addKey('V').on('down', () => {
@@ -97,7 +98,7 @@ export default class MainScene extends Phaser.Scene {
                 x: this.input.activePointer.worldX,
                 y: this.input.activePointer.worldY
             };
-            this.gameManager.emit("vehicleSpawnRequest", pointer);
+            Game.emit("vehicleSpawnRequest", pointer);
         });
 
         this.input.keyboard.addKey('G').on('down', () => {
@@ -133,12 +134,12 @@ export default class MainScene extends Phaser.Scene {
         };
         this.cameraController = new Phaser.Cameras.Controls.SmoothedKeyControl(cameraControlParams);
 
-        this.gameManager.emit("sceneInitialized", this);
+        Game.emit("sceneInitialized", this);
         console.info('Scene intialized.');
     }
 
     update(time: number, timeDelta: number): void {
-        this.gameManager.emit("update", { time, timeDelta });
+        Game.emit("update", { time, timeDelta });
         this.cameraController?.update(timeDelta);
         this.handleHover();
     }
@@ -158,20 +159,20 @@ export default class MainScene extends Phaser.Scene {
         const mouseY = this.input.activePointer.worldY;
         const mousePixelPosition: PixelPosition = { x: mouseX, y: mouseY };
 
-        const tilePosition = this.gameManager.pixelToTilePosition(mousePixelPosition);
+        const tilePosition = Game.pixelToTilePosition(mousePixelPosition);
         if (tilePosition === null) {
             this.hideCursor();
             return;
         }
 
-        const tileCenter = this.gameManager.tileToPixelPosition(tilePosition);
+        const tileCenter = Game.tileToPixelPosition(tilePosition);
         if (tileCenter === null) {
             this.hideCursor();
             return;
         }
 
         const imageX = tileCenter.x;
-        const imageY = tileCenter.y + (this.gameManager.gridParams.cells.height / 2);
+        const imageY = tileCenter.y + (Game.gridParams.cells.height / 2);
         cursor.asset.setPosition(imageX, imageY);
         this.unhideCursor();
     }
@@ -184,7 +185,7 @@ export default class MainScene extends Phaser.Scene {
 
         const pixelPosition: PixelPosition = { x: pointer.worldX, y: pointer.worldY };
 
-        const tilePosition = this.gameManager.pixelToTilePosition(pixelPosition);
+        const tilePosition = Game.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
             return;
         }
@@ -194,7 +195,7 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        this.gameManager.emit("tileClicked", { position: tilePosition, tool: cursor.tool });
+        Game.emit("tileClicked", { position: tilePosition, tool: cursor.tool });
     }
 
     getCursor(): Cursor {
@@ -215,7 +216,7 @@ export default class MainScene extends Phaser.Scene {
         }
         
         this.cursor.tool = tool;
-        const assetName = this.gameManager.toolbelt[this.cursor.tool as Tool];
+        const assetName = Game.toolbelt[this.cursor.tool as Tool];
         if (!assetName) {
             return;
         }
@@ -223,7 +224,7 @@ export default class MainScene extends Phaser.Scene {
         const asset: Image = this.add.image(0, 0, assetName);
         asset.setAlpha(0.5);
         asset.setOrigin(0.5, 1);
-        asset.setDepth((this.gameManager.gridParams.rows * 10) + 1);
+        asset.setDepth((Game.gridParams.rows * 10) + 1);
 
         this.cursor.asset = asset;
     }
@@ -259,7 +260,7 @@ export default class MainScene extends Phaser.Scene {
     }
 
     private drawGrid(scene: MainScene): void {
-        const gridParams = this.gameManager.gridParams;
+        const gridParams = Game.gridParams;
         const lineColor = 0x000000;
         const lineAlpha = 0.1;
 
@@ -275,21 +276,21 @@ export default class MainScene extends Phaser.Scene {
             lineColor,
             lineAlpha
         );
-        grid.setDepth((this.gameManager.gridParams.rows * 10) + 100);
+        grid.setDepth((Game.gridParams.rows * 10) + 100);
 
-        this.gameManager.gridParams.bounds = grid.getBounds();
+        Game.gridParams.bounds = grid.getBounds();
         this.grid = grid;
     }
 
     private drawTile(tile: Tile): void {
-        const gridParams = this.gameManager.gridParams;
+        const gridParams = Game.gridParams;
 
         const tilePosition: TilePosition = tile.getPosition();
         if (tilePosition === null) {
             return;
         }
 
-        const pixelPosition = this.gameManager.tileToPixelPosition(tilePosition);
+        const pixelPosition = Game.tileToPixelPosition(tilePosition);
         if (pixelPosition === null) {
             return;
         }
