@@ -3,6 +3,8 @@ import Field from 'game/Field';
 import MainScene from 'game/MainScene';
 import DebugTools from 'game/DebugTools';
 
+import City from './City';
+
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
 import { PixelPosition, TilePosition } from 'types/Position';
@@ -10,8 +12,7 @@ import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { Toolbelt } from 'types/Cursor';
 
 import config from 'json/config.json';
-import tools from 'json/toolbelt.json';
-import City from './City';
+import toolAssets from 'json/toolAssets.json';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -54,7 +55,7 @@ export default class GameManager {
         };
 
         this.gridParams = gridParams;
-        this.toolbelt = tools;
+        this.toolbelt = toolAssets as Toolbelt;
 
         this.scene = new MainScene(this, { key: 'MainScene', active: true });
         this.field = null; 

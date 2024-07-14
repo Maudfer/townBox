@@ -80,6 +80,10 @@ export default class MainScene extends Phaser.Scene {
             });
         });
 
+        this.input.keyboard.addKey('Esc').on('down', () => {
+            this.setCursor(Tool.Select);
+        });
+
         this.input.keyboard.addKey('P').on('down', () => {
             const pointer = {
                 x: this.input.activePointer.worldX,

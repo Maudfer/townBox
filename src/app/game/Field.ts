@@ -53,7 +53,7 @@ export default class Field {
             }
         }
 
-        this.gameManager.on("tileClicked", { callback: this.build, context: this });
+        this.gameManager.on("tileClicked", { callback: this.handleTileClick, context: this });
         this.gameManager.on("personSpawnRequest", { callback: this.spawnPerson, context: this });
         this.gameManager.on("vehicleSpawnRequest", { callback: this.spawnVehicle, context: this });
         this.gameManager.on("update", { callback: this.update, context: this });
@@ -103,6 +103,56 @@ export default class Field {
         });
     }
 
+    handleTileClick(event: BuildEvent): void {
+        const tileDictionary: { [key in Tool]: ((event: BuildEvent) => void) | null } = {
+            [Tool.Road]: this.build,
+            [Tool.Soil]: this.build,
+            [Tool.House]: this.build,
+            [Tool.Work]: this.build,
+            [Tool.Select]: this.select,
+            [Tool.Bulldoze]: this.bulldoze,
+        };
+
+        const tileHandler = tileDictionary[event.tool as Tool];
+        if (tileHandler) {
+            tileHandler(event);
+        } else {
+            throw new Error(`Invalid tool to handle click '${event.tool}' on tile ${event.position?.row}-${event.position?.col}`);
+        }
+    }
+
+    select(event: BuildEvent): void {
+        const tilePosition = event.position;
+        if (tilePosition === null) {
+            return;
+        }
+
+        const tile = this.getTile(tilePosition.row, tilePosition.col);
+        if (tile === null) {
+            return;
+        }
+
+        if (tile instanceof House) {
+            this.gameManager.emit("HouseSelected", tile);
+        }
+    }
+
+    bulldoze(event: BuildEvent): void {
+        const tilePosition = event.position;
+        if (tilePosition === null) {
+            return;
+        }
+
+        const tile = this.getTile(tilePosition.row, tilePosition.col);
+        if (tile instanceof House) {
+            // TODO: Implement relocateFamily
+            // tile.relocateFamily();
+        }
+
+        event.tool = Tool.Soil;
+        this.build(event);
+    }
+
     build(event: BuildEvent): void {
         const tilePosition = event.position;
         if (tilePosition === null) {
@@ -117,23 +167,27 @@ export default class Field {
         const { row, col } = tilePosition;
         const currentTile = this.getTile(row, col);
         if (currentTile === null) {
-            throw new Error("Invalid tile to build on");
+            throw new Error(`Invalid tile to build on: ${row}-${col}`);
         }
 
         let newTile = null;
         const assetName = this.gameManager.toolbelt[event.tool as Tool];
-        const tileDictionary: { [key in Tool]: () => Tile } = {
+
+        // TODO: This is a reduntant dictionary selection, refactor to just select tile class based on tool
+        const tileDictionary: { [key in Tool]: (() => Tile) | null } = {
             [Tool.Road]: () => new Road(row, col, null),
             [Tool.Soil]: () => new Soil(row, col, assetName),
             [Tool.House]: () => new House(row, col, assetName),
             [Tool.Work]: () => new Workplace(row, col, assetName),
+            [Tool.Select]: null,
+            [Tool.Bulldoze]: null,
         };
         const tileConstructor = tileDictionary[event.tool as Tool];
 
         if (tileConstructor) {
             newTile = tileConstructor();
         } else {
-            newTile = new Building(row, col, assetName);
+            throw new Error(`Invalid tool to build: ${event.tool}`);
         }
 
         // if new tile is instance of same as current tile, return

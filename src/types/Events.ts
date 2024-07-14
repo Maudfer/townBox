@@ -31,4 +31,5 @@ export interface EventPayloads {
     "roadBuilt": Road;
     "windowDragStart": void;
     "windowDragStop": void;
+    "HouseSelected": Tile;
 };
