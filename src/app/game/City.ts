@@ -38,9 +38,8 @@ export default class City {
         const members = await family.autoGenerate(Game);
 
         this.population += members.length;
-
+        house.setFamily(family);
         console.log('Family spawned', family.getOverview());
-        console.log('City population', this.population);
     }
 
     public setupCar(vehicle: Vehicle): void {

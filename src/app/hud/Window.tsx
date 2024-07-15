@@ -3,7 +3,7 @@ import { Rnd } from 'react-rnd';
 
 import { WindowProps } from 'types/HUD';
 
-const Window: FC<WindowProps> = ({ game, title }) => {
+const Window: FC<WindowProps> = ({ children, game, index, title, header, footer, onClose }) => {
 
     function handleDragStart() {
         game.emit("windowDragStart");
@@ -13,9 +13,11 @@ const Window: FC<WindowProps> = ({ game, title }) => {
         game.emit("windowDragStop");
     }
 
-    useEffect(() => {
-        console.log("City name:", game.city?.getName());
-    }, [game.city]);
+    function handleClose() {
+        if (onClose) {
+            onClose(index);
+        }
+    }
 
     return (
         <Rnd
@@ -34,21 +36,26 @@ const Window: FC<WindowProps> = ({ game, title }) => {
         >
             <div className="window">
                 <div className="window-header glass">
-                    <h3>{title}</h3>
-                    <button>X</button>
+                    {!header && (
+                        <>
+                            <h3>{title}</h3>
+                            <button onClick={handleClose}>X</button>
+                        </>
+                    )}
+                    {header}
                 </div>
 
                 <div className="window-body">
-                    <p>
-                        Game size: {game.gridParams.width}x{game.gridParams.height}
-                    </p>
-                    <p>
-                        City: {game.city?.getName()}
-                    </p>
+                    {children}
                 </div>
 
                 <div className="window-footer glass">
-                    <button>OK</button>
+                    {!footer && (
+                        <>
+                            <button onClick={handleClose}>OK</button>
+                        </>
+                    )}
+                    {footer}
                 </div>
             </div>
         </Rnd>
