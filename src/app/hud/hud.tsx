@@ -1,10 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 
-import Window from 'hud/Window';
 import HouseDetails from 'hud/windows/HouseDetails';
 import House from 'game/House';
 
-import { HUDProps, WindowData, WindowTypes  } from 'types/HUD';
+import { HUDProps, WindowData, WindowTypes, WindowPayload } from 'types/HUD';
 
 const windowMap = {
     [WindowTypes.HouseDetails]: HouseDetails,
@@ -19,29 +18,37 @@ const windowMap = {
 const HUD: FC<HUDProps> = ({ game }) => {
     const [openWindows, setOpenWindows] = useState<WindowData[]>([]);
 
-    game.on("HouseSelected", {callback: (house: House) => {
-        // if a window of type HouseDetails is already open, close it first
-        const existingWindow = openWindows.find(w => w.type === WindowTypes.HouseDetails);
-        if (existingWindow) {
-            const index = openWindows.indexOf(existingWindow);
-            closeWindow(index);
+    function openWindow(type: WindowTypes, data: WindowPayload, closeExisting: boolean = false) {
+        if (closeExisting) {
+            const existingWindow = openWindows.find(w => w.type === type);
+            if (existingWindow) {
+                const index = openWindows.indexOf(existingWindow);
+                closeWindow(index);
+            }
         }
 
         const window = {
-            type: WindowTypes.HouseDetails,
-            data: house,
+            type,
+            data,
         };
         setOpenWindows([...openWindows, window]);
-    }});
+    }
 
     function closeWindow(index: number) {
+        console.log("Close", index);
         const newWindows = [...openWindows];
         newWindows.splice(index, 1);
         setOpenWindows(newWindows);
     }
 
     useEffect(() => {
-        console.log("HUD initialized", game);
+        game.on("HouseSelected", {callback: (house: House) => {
+            openWindow(WindowTypes.HouseDetails, house, true);
+        }});
+
+        return () => {
+            game.off("HouseSelected");
+        };
     }, []);
 
     return (
@@ -63,19 +70,21 @@ const HUD: FC<HUDProps> = ({ game }) => {
                 );
             })}
 
-            <Window 
-                game={game} 
-                index={99}
-                title={'test1'}
-                onClose={closeWindow}
-            >
-                <p>
-                    Game size: {game.gridParams.width}x{game.gridParams.height}
-                </p>
-                <p>
-                    City: {game.city?.getName()}
-                </p>
-            </Window>
+            {/*
+                <Window 
+                    game={game} 
+                    index={99}
+                    title={'test1'}
+                    onClose={closeWindow}
+                >
+                    <p>
+                        Game size: {game.gridParams.width}x{game.gridParams.height}
+                    </p>
+                    <p>
+                        City: {game.city?.getName()}
+                    </p>
+                </Window>
+            */}
         </div>
     );
 };

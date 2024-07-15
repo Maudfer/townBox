@@ -136,6 +136,10 @@ export default class GameManager {
         this.eventListeners[eventName].push(handler);
     }
 
+    off<K extends keyof EventPayloads>(eventName: K): void {
+        delete this.eventListeners[eventName];
+    }
+
     async emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any[]> {
         if (!payload) {
             payload = {} as EventPayloads[K];

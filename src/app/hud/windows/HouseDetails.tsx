@@ -1,20 +1,23 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useEffect } from 'react';
 
 import Window from 'hud/Window';
+import House from 'game/House';
 
 import { DetailsWindowProps } from 'types/HUD';
 
 const HouseDetails: FC<DetailsWindowProps> = ({game, index, data, onClose}) => {
+    const house = data as House;
+    const family = house?.getFamily();
 
     useEffect(() => {
-        console.log("House details initialized", data, game);
+        console.log("House details", data);
     }, []);
 
     return (
         <Window
             game={game}
             index={index}
-            title={'House details'}
+            title={`${family?.familyName}'s House`}
             onClose={onClose}
         >
             <div className="house-details">
