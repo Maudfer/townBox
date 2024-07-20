@@ -1,5 +1,6 @@
 import { FC, useEffect, useState } from 'react';
 
+import Toolbar from 'hud/Toolbar';
 import HouseDetails from 'hud/windows/HouseDetails';
 import House from 'game/House';
 
@@ -85,6 +86,8 @@ const HUD: FC<HUDProps> = ({ game }) => {
                     </p>
                 </Window>
             */}
+
+            <Toolbar game={game} />
         </div>
     );
 };

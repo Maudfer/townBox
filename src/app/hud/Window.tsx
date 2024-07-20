@@ -1,10 +1,8 @@
-import { FC } from 'react';
-import { Rnd } from 'react-rnd';
-
+import React, { FC, useState } from 'react';
+import { Rnd, RndResizeCallback } from 'react-rnd';
 import { WindowProps } from 'types/HUD';
 
-const Window: FC<WindowProps> = ({ children, game, index, title, header, footer, onClose }) => {
-
+const Window: FC<WindowProps> = ({ children, game, index, title, header, footer, initialSize, onClose, onResize }) => {
     function handleDragStart() {
         game.emit("windowDragStart");
     }
@@ -18,14 +16,14 @@ const Window: FC<WindowProps> = ({ children, game, index, title, header, footer,
             onClose(index);
         }
     }
-
+    
     return (
         <Rnd
             default={{
                 x: 10,
                 y: 10,
-                width: 300,
-                height: 250,
+                width: initialSize?.width ?? 300,
+                height: initialSize?.height ?? 250,
             }}
             minWidth={300}
             minHeight={250}
@@ -33,6 +31,7 @@ const Window: FC<WindowProps> = ({ children, game, index, title, header, footer,
             dragHandleClassName="window-header"
             onDragStart={handleDragStart}
             onDragStop={handleDragStop}
+            onResize={onResize}
         >
             <div className="window">
                 <div className="window-header glass">

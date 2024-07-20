@@ -142,3 +142,86 @@ canvas {
 ::-webkit-scrollbar-thumb:hover {
     background: #071a1d;
 }
+
+.toolbar {
+    box-sizing: border-box;
+    backdrop-filter: blur(6px);
+    background-color: #0f353b70;
+    background: linear-gradient(180deg, #0f353b99, #0f353b33);
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    width: auto;
+    height: 65px;
+    padding: 15px 45px;
+    display: flex;
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    border-radius: 6px;
+    transform: translate(-50%);
+    box-shadow: 0 0 7px #00000047;
+}
+
+.toolbar button {
+    cursor: pointer;
+    user-select: none;
+    color: #fff;
+    text-align: center;
+    pointer-events: all;
+    background-color: #092327;
+    border: 1px solid #274041;
+    border-radius: 8px;
+    margin-top: -85px;
+    padding: 18px 10px;
+    font-weight: bold;
+    display: inline-block;
+    position: relative;
+    box-shadow: 0 0 10px #00000075;
+}
+
+.toolbar button::before {
+    content: "";
+    background: linear-gradient(180deg, #0923272e, transparent 60%);
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    transform: translate(0, 100%);
+    width: 100%;
+    height: 25px;
+    border-radius: 8px;
+}
+
+
+.house-details {
+    height: 100%;
+}
+
+#family-tree {
+    position: relative;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    height: 100%;
+}
+
+#family-tree circle {
+    fill: cadetblue;
+}
+
+#family-tree line {
+    stroke: #ccc;
+}
+
+#family-tree .nodes text {
+    text-anchor: middle;
+    fill: red;
+    font-size: 16px;
+}
+
+#family-tree .link-labels text {
+    text-anchor: middle;
+    fill: blue;
+    font-size: 14px;
+}

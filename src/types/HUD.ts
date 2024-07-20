@@ -1,5 +1,6 @@
-import GameManager from "game/GameManager";
+import { RndResizeCallback } from 'react-rnd';
 
+import GameManager from "game/GameManager";
 import House from 'game/House';
 import Workplace from 'game/Workplace';
 import Person from 'game/Person';
@@ -10,6 +11,11 @@ export interface HUDProps {
     game: GameManager;
 }
 
+export interface WindowSize {
+    width: number;
+    height: number;
+}
+
 export interface WindowProps {
     game: GameManager;
     index: number;
@@ -17,7 +23,9 @@ export interface WindowProps {
     children?: React.ReactNode;
     header?: React.ReactNode;
     footer?: React.ReactNode;
+    initialSize?: WindowSize;
     onClose?: (index: number) => void;
+    onResize?: RndResizeCallback;
 }
 
 export interface DetailsWindowProps extends WindowProps {
