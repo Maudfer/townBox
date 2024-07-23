@@ -20,11 +20,13 @@ const SPOUSE_MAX_AGE_GAP = 20;
 
 export default class Family {
     familyName: string;
+    familyId: string;
     household: House;
     members: Person[];
 
     constructor(household: House) {
         this.familyName = `${fakerPT_BR.person.lastName()} ${fakerPT_BR.person.lastName()}`;
+        this.familyId = `${this.familyName.toLowerCase().replace(" ", "-")}-${new Date().getTime()}`;
         this.household = household;
         this.members = [];
     }

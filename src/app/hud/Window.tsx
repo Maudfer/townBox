@@ -1,5 +1,5 @@
-import React, { FC, useState } from 'react';
-import { Rnd, RndResizeCallback } from 'react-rnd';
+import { FC } from 'react';
+import { Rnd } from 'react-rnd';
 import { WindowProps } from 'types/HUD';
 
 const Window: FC<WindowProps> = ({ children, game, index, title, header, footer, initialSize, onClose, onResize }) => {

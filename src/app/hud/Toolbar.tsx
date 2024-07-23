@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Icon from '@mdi/react';
 import { mdiCursorPointer, mdiOfficeBuildingPlus, mdiBulldozer, mdiCog } from '@mdi/js';
 
 import { HUDProps } from 'types/HUD';
 
-const Toolbar: React.FC<HUDProps> = ({game}) => {
+const Toolbar: React.FC<HUDProps> = (_props) => {
 
     return (
         <div className="toolbar glass">
