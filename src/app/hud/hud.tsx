@@ -1,4 +1,5 @@
 import { FC, useEffect, useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 
 import Toolbar from 'hud/Toolbar';
 import HouseDetails from 'hud/windows/HouseDetails';
@@ -62,7 +63,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
                 
                 return (
                     <WindowComponent 
-                        key={index}
+                        key={uuidv4()}
                         game={game}
                         index={index}
                         data={window.data}

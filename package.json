@@ -36,10 +36,12 @@
     "phaser": "^3.80.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-rnd": "^10.4.11"
+    "react-rnd": "^10.4.11",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/uuid": "^10.0.0",
     "browser-sync": "^3.0.2",
     "buffer": "^6.0.3",
     "concurrently": "^8.2.2",

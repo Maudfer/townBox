@@ -1,13 +1,12 @@
 import * as d3 from 'd3';
 
-import { Node, Link, FamilyTreeSelectors } from 'types/FamilyTree';
+import { Node, Link, FamilyTreeTags, d3Tag } from 'types/FamilyTree';
 import { WindowSize } from 'types/HUD';
 
 type DragBehavior = d3.DragBehavior<SVGTextElement, Node, Node | d3.SubjectPosition>;
 
-function updateLinks(linksSelector: string, links: Link[]) {
-    d3.select(linksSelector)
-        .selectAll('line')
+function updateLinks(linksTag: d3Tag, links: Link[]) {
+    linksTag.selectAll('line')
         .data(links)
         .join('line')
         .attr('x1', function (d: Link) {
@@ -24,9 +23,8 @@ function updateLinks(linksSelector: string, links: Link[]) {
         });
 }
 
-function updateLinkLabels(linkLabelsSelector: string, links: Link[]) {
-    d3.select(linkLabelsSelector)
-        .selectAll('text')
+function updateLinkLabels(linkLabelsTag: d3Tag, links: Link[]) {
+    linkLabelsTag.selectAll('text')
         .data(links)
         .join('text')
         .text(function (d: Link) {
@@ -53,9 +51,8 @@ function updateLinkLabels(linkLabelsSelector: string, links: Link[]) {
         .attr('dy', '-5');
 }
 
-function updateNodes(nodesSelector: string, nodes: Node[], dragHandler: DragBehavior) {
-    d3.select(nodesSelector)
-        .selectAll('text')
+function updateNodes(nodesTag: d3Tag, nodes: Node[], dragHandler: DragBehavior) {
+    nodesTag.selectAll('text')
         .data(nodes)
         .join('text')
         .text(function (d: Node) {
@@ -74,7 +71,7 @@ function updateNodes(nodesSelector: string, nodes: Node[], dragHandler: DragBeha
 }
 
 
-export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize, selectors: FamilyTreeSelectors): d3.Simulation<Node, Link> {
+export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize, tags: FamilyTreeTags): d3.Simulation<Node, Link> {
     const dragHandler = d3.drag<SVGTextElement, Node>()
         .on('start', (event, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -92,9 +89,9 @@ export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize,
         });
 
     const tickUpdate = () => {
-        updateLinks(selectors.linksSelector, links);
-        updateLinkLabels(selectors.linkLabelsSelector, links);
-        updateNodes(selectors.nodesSelector, nodes, dragHandler);
+        updateLinks(tags.linksTag, links);
+        updateLinkLabels(tags.linkLabelsTag, links);
+        updateNodes(tags.nodesTag, nodes, dragHandler);
     }
 
     const simulation = d3.forceSimulation(nodes)

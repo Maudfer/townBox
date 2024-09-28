@@ -7,7 +7,7 @@ import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
 
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
-import { Node, Link } from 'types/FamilyTree';
+import { Node, Link, FamilyTreeTags } from 'types/FamilyTree';
 
 const INITIAL_WIDTH = 300;
 const INITIAL_HEIGHT = 250;
@@ -26,20 +26,12 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     const family = house?.getFamily();
 
     const familyTreeId = `family-tree-${family?.familyId}`;
-    const svgSelector = `#${familyTreeId}`;
     
     const linksSelector = `#${familyTreeId} .${LINKS_CLASS}`;
     const linkLabelsSelector = `#${familyTreeId} .${LINK_LABELS_CLASS}`;
     const nodesSelector = `#${familyTreeId} .${NODES_CLASS}`;
 
-    const selectors = {
-        nodesSelector,
-        linksSelector,
-        linkLabelsSelector,
-    };
-
     const handleResize: RndResizeCallback = (_event, _direction, ref, _delta, _position) => {
-        console.log("Resizing", ref.offsetWidth, ref.offsetHeight);
         setSize({
             width: ref.offsetWidth,
             height: ref.offsetHeight,
@@ -58,7 +50,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     ];
 
     const links: Link[] = [
-        { source: 0, target: 1, label: 'Brother' },
+        { source: 0, target: 1, label: 'Father' },
         { source: 0, target: 2, label: 'Brother' },
         { source: 0, target: 3, label: 'Brother' },
         { source: 1, target: 6, label: 'Spouse' },
@@ -68,33 +60,59 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         { source: 4, target: 7, label: 'Sibling' }
     ];
 
-    function createD3Containers() {
-        d3.select(svgSelector).append('g').attr('class', LINKS_CLASS);
-        d3.select(svgSelector).append('g').attr('class', LINK_LABELS_CLASS);
-        d3.select(svgSelector).append('g').attr('class', NODES_CLASS);
-    }
+    const links2 = [
+        [
+            { source: 0, target: 1, label: 'Father' },
+            { source: 0, target: 2, label: 'Spouse' },
+            { source: 0, target: 3, label: 'Brother' },
+            { source: 1, target: 6, label: 'Spouse' },
+            { source: 3, target: 4, label: 'Spouse' },
+            { source: 3, target: 7, label: 'Spouse' },
+            { source: 4, target: 5, label: 'Sibling' },
+            { source: 4, target: 7, label: 'Sibling' }
+        ],
+        [
+            { source: 0, target: 1, label: 'Brother' },
+            { source: 0, target: 2, label: 'Brother' },
+            { source: 0, target: 3, label: 'Brother' },
+            { source: 1, target: 6, label: 'Spouse' },
+            { source: 3, target: 4, label: 'Spouse' },
+            { source: 3, target: 7, label: 'Spouse' },
+            { source: 4, target: 5, label: 'Sibling' },
+            { source: 4, target: 7, label: 'Sibling' }
+        ]
+    ];
 
-    function deleteD3Containers() {
-        d3.select(nodesSelector).remove();
-        d3.select(linksSelector).remove();
-        d3.select(linkLabelsSelector).remove();
+    function resetD3Containers(tags: FamilyTreeTags) {
+        const { nodesTag, linksTag, linkLabelsTag } = tags;
+
+        if (nodesTag) nodesTag.empty();
+        if (linksTag) linksTag.empty();
+        if (linkLabelsTag) linkLabelsTag.empty();
     }
 
     useEffect(() => {
-        console.log("House details", data);
         if (!size) {
             return;
         }
 
-        createD3Containers();
-        const familyTreeGraph = createFamilyTree(nodes, links, size, selectors);
-
-        return () => {
-            familyTreeGraph.stop();
-            familyTreeGraph.on('tick', null);
-            deleteD3Containers();
+        const nodesTag = d3.select(nodesSelector);
+        const linksTag = d3.select(linksSelector);
+        const linkLabelsTag = d3.select(linkLabelsSelector);
+    
+        const tags: FamilyTreeTags = {
+            nodesTag,
+            linksTag,
+            linkLabelsTag,
         };
 
+        resetD3Containers(tags);
+        const familyTreeGraph = createFamilyTree(nodes, links, size, tags);
+
+        return () => {
+            familyTreeGraph?.stop();
+            familyTreeGraph?.on('tick', null);
+        };
     }, [size]);
 
     return (
@@ -108,7 +126,11 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         >
             <div className="house-details">
                 <div id="family-tree">
-                    <svg id={familyTreeId} width={svgSize.width} height={svgSize.height}></svg>
+                    <svg id={familyTreeId} width={svgSize.width} height={svgSize.height}>
+                        <g className={LINKS_CLASS}></g>
+                        <g className={LINK_LABELS_CLASS}></g>
+                        <g className={NODES_CLASS}></g>
+                    </svg>
                 </div>
             </div>
         </Window>

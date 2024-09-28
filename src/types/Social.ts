@@ -16,6 +16,10 @@ export enum Relationships {
     Child = 'child',
     Grandchild = 'grandchild',
     Sibling = 'sibling',
+    Uncle = 'uncle',
+    Aunt = 'aunt',
+    Niece = 'niece',
+    Nephew = 'nephew',
 };
 
 export type Relationship = Relationships;
@@ -29,6 +33,10 @@ export type RelationshipMap = {
     [Relationships.Child]?: Person[];
     [Relationships.Grandchild]?: Person[];
     [Relationships.Sibling]?: Person[];
+    [Relationships.Uncle]?: Person[];
+    [Relationships.Aunt]?: Person[];
+    [Relationships.Niece]?: Person[];
+    [Relationships.Nephew]?: Person[];
 };
 
 export type SocialInfo = {
@@ -37,13 +45,6 @@ export type SocialInfo = {
     age: number;
     gender: Gender;
     relationships: RelationshipMap;
-};
-
-export type RelationshipProbabilities = {
-    [Relationships.Father]: number;
-    [Relationships.Mother]: number;
-    [Relationships.Spouse]: number;
-    [Relationships.Child]: number;
 };
 
 export type RelationshipMapOverview = {
@@ -55,6 +56,10 @@ export type RelationshipMapOverview = {
     [Relationships.Child]?: string;
     [Relationships.Grandchild]?: string;
     [Relationships.Sibling]?: string;
+    [Relationships.Uncle]?: string;
+    [Relationships.Aunt]?: string;
+    [Relationships.Niece]?: string;
+    [Relationships.Nephew]?: string;
 };
 
 export type PersonOverview = {

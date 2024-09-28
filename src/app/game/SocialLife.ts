@@ -80,34 +80,8 @@ export default class SocialLife {
         }
     }
 
-    queryRelationships(queriedRelationships: Relationship[]): Person[] {
-        const relatedPeople: Person[] = [];
-
-        for (const relationship of queriedRelationships) {
-            if (this.relationships[relationship]) {
-                if (Array.isArray(this.relationships[relationship])) {
-                    relatedPeople.push(...this.relationships[relationship]);
-                } else {
-                    relatedPeople.push(this.relationships[relationship]);
-                }
-            }
-        }
-
-        return relatedPeople;
-    }
-
-    queryRelationship(relationship: Relationship): Person[] | Person {
-        const relatedPeople: Person[] = [];
-
-        if (this.relationships[relationship]) {
-            if (Array.isArray(this.relationships[relationship])) {
-                relatedPeople.push(...this.relationships[relationship]);
-            } else {
-                return this.relationships[relationship];
-            }
-        }
-
-        return relatedPeople;
+    queryRelationship(relationship: Relationship): Person[] | Person | null {
+        return this.relationships[relationship] || null;
     }
 
     getParents(): Person[] {
