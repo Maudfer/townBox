@@ -5,7 +5,7 @@ import Person from 'game/Person';
 import House from 'game/House';
 
 import { FamilyTree, Node, Link } from 'types/FamilyTree';
-import { Gender, Genders, Relationship, Relationships, FamilyOverview } from 'types/Social';
+import { Gender, Genders, Relationship, Relationships, RelationshipMap, FamilyOverview } from 'types/Social';
 
 const MIN_FAMILY_MEMBERS = 1;
 const MAX_FAMILY_MEMBERS = 10;
@@ -301,37 +301,55 @@ export default class Family {
     getFamilyTree(person: Person): FamilyTree {
         const nodes: Node[] = [];
         const links: Link[] = [];
-
-        const nodeMap = new Map<Person, number>();
-        let currentIndex = 0;
-
-        function addPersonToNodes(p: Person): number {
-            if (!nodeMap.has(p)) {
-                nodeMap.set(p, currentIndex);
-                nodes.push({ name: p.social.getInfo().firstName });
-                return currentIndex++;
+        const personIndexMap = new Map<Person, number>();
+    
+        function processPerson(p: Person) {
+            if (personIndexMap.has(p)) {
+                return;
             }
-            return nodeMap.get(p)!;
-        }
-
-        function traverseRelationships(p: Person): void {
-            const personIndex = addPersonToNodes(p);
+    
+            const index = nodes.length;
+            personIndexMap.set(p, index);
+    
+            const name = p.social.getInfo().firstName;
+            nodes.push({ name });
+    
             const relationships = p.social.getInfo().relationships;
-
-            for (const [relationship, relatedPeople] of Object.entries(relationships)) {
-                if (Array.isArray(relatedPeople)) {
-                    relatedPeople.forEach((relatedPerson) => {
-                        const relatedPersonIndex = addPersonToNodes(relatedPerson);
-                        links.push({ source: personIndex, target: relatedPersonIndex, label: relationship });
+    
+            for (const key of Object.keys(relationships) as Array<keyof RelationshipMap>) {
+                const relationship = relationships[key];
+    
+                if (!relationship) {
+                    continue;
+                }
+    
+                if (Array.isArray(relationship)) {
+                    for (const relatedPerson of relationship) {
+                        processPerson(relatedPerson);
+    
+                        const sourceIndex = index;
+                        const targetIndex = personIndexMap.get(relatedPerson)!;
+                        links.push({
+                            source: sourceIndex,
+                            target: targetIndex,
+                            label: key,
+                        });
+                    }
+                } else {
+                    processPerson(relationship);
+    
+                    const sourceIndex = index;
+                    const targetIndex = personIndexMap.get(relationship)!;
+                    links.push({
+                        source: sourceIndex,
+                        target: targetIndex,
+                        label: key,
                     });
-                } else if (relatedPeople instanceof Person) {
-                    const relatedPersonIndex = addPersonToNodes(relatedPeople);
-                    links.push({ source: personIndex, target: relatedPersonIndex, label: relationship });
                 }
             }
         }
-
-        traverseRelationships(person);
+    
+        processPerson(person);
         return { nodes, links };
     }
 
