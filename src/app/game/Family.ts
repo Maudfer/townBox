@@ -298,58 +298,52 @@ export default class Family {
         return inverseMap[relationship];
     }
 
-    getFamilyTree(person: Person): FamilyTree {
+    getFamilyTree(): FamilyTree {
         const nodes: Node[] = [];
         const links: Link[] = [];
         const personIndexMap = new Map<Person, number>();
-    
-        function processPerson(p: Person) {
-            if (personIndexMap.has(p)) {
-                return;
-            }
-    
-            const index = nodes.length;
-            personIndexMap.set(p, index);
-    
-            const name = p.social.getInfo().firstName;
-            nodes.push({ name });
-    
-            const relationships = p.social.getInfo().relationships;
-    
+
+        // Build nodes
+        this.members.forEach((person, index) => {
+            personIndexMap.set(person, index);
+            nodes.push({ name: person.social.getInfo().firstName });
+        });
+
+        // Build links
+        this.members.forEach((person, index) => {
+            const relationships = person.social.getInfo().relationships;
+
             for (const key of Object.keys(relationships) as Array<keyof RelationshipMap>) {
-                const relationship = relationships[key];
-    
-                if (!relationship) {
+                const related = relationships[key];
+
+                if (!related) {
                     continue;
                 }
-    
-                if (Array.isArray(relationship)) {
-                    for (const relatedPerson of relationship) {
-                        processPerson(relatedPerson);
-    
-                        const sourceIndex = index;
-                        const targetIndex = personIndexMap.get(relatedPerson)!;
+
+                if (Array.isArray(related)) {
+                    related.forEach((relatedPerson) => {
+                        const targetIndex = personIndexMap.get(relatedPerson);
+                        if (targetIndex !== undefined) {
+                            links.push({
+                                source: index,
+                                target: targetIndex,
+                                label: key,
+                            });
+                        }
+                    });
+                } else {
+                    const targetIndex = personIndexMap.get(related);
+                    if (targetIndex !== undefined) {
                         links.push({
-                            source: sourceIndex,
+                            source: index,
                             target: targetIndex,
                             label: key,
                         });
                     }
-                } else {
-                    processPerson(relationship);
-    
-                    const sourceIndex = index;
-                    const targetIndex = personIndexMap.get(relationship)!;
-                    links.push({
-                        source: sourceIndex,
-                        target: targetIndex,
-                        label: key,
-                    });
                 }
             }
-        }
-    
-        processPerson(person);
+        });
+
         return { nodes, links };
     }
 
