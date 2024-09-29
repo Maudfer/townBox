@@ -298,6 +298,43 @@ export default class Family {
         return inverseMap[relationship];
     }
 
+    getFamilyTree(person: Person): FamilyTree {
+        const nodes: Node[] = [];
+        const links: Link[] = [];
+
+        const nodeMap = new Map<Person, number>();
+        let currentIndex = 0;
+
+        function addPersonToNodes(p: Person): number {
+            if (!nodeMap.has(p)) {
+                nodeMap.set(p, currentIndex);
+                nodes.push({ name: p.social.getInfo().firstName });
+                return currentIndex++;
+            }
+            return nodeMap.get(p)!;
+        }
+
+        function traverseRelationships(p: Person): void {
+            const personIndex = addPersonToNodes(p);
+            const relationships = p.social.getInfo().relationships;
+
+            for (const [relationship, relatedPeople] of Object.entries(relationships)) {
+                if (Array.isArray(relatedPeople)) {
+                    relatedPeople.forEach((relatedPerson) => {
+                        const relatedPersonIndex = addPersonToNodes(relatedPerson);
+                        links.push({ source: personIndex, target: relatedPersonIndex, label: relationship });
+                    });
+                } else if (relatedPeople instanceof Person) {
+                    const relatedPersonIndex = addPersonToNodes(relatedPeople);
+                    links.push({ source: personIndex, target: relatedPersonIndex, label: relationship });
+                }
+            }
+        }
+
+        traverseRelationships(person);
+        return { nodes, links };
+    }
+
     getOverview(): FamilyOverview {
         const overview: FamilyOverview = {
             familyName: this.familyName,
