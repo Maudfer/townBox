@@ -15,6 +15,14 @@
         {
             "key": "F4",
             "tool": "work"
+        },
+        {
+            "key": "F5",
+            "tool": "select"
+        },
+        {
+            "key": "F6",
+            "tool": "bulldoze"
         }
     ]
 }

@@ -3,6 +3,8 @@ export enum Tool {
     Road = 'road',
     House = 'house',
     Work = 'work',
+    Select = 'select',
+    Bulldoze = 'bulldoze',
     /*Building1 = 'building1',
     Building2 = 'building2',*/
 }

@@ -3,6 +3,8 @@ import Field from 'game/Field';
 import MainScene from 'game/MainScene';
 import DebugTools from 'game/DebugTools';
 
+import City from './City';
+
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
 import { PixelPosition, TilePosition } from 'types/Position';
@@ -10,13 +12,15 @@ import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { Toolbelt } from 'types/Cursor';
 
 import config from 'json/config.json';
-import tools from 'json/toolbelt.json';
-import City from './City';
+import toolAssets from 'json/toolAssets.json';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
 
     public scene: MainScene;
+    public field: Field | null;
+    public city: City | null;
+
     public gridParams: GridParams;
     public toolbelt: Toolbelt;
 
@@ -51,8 +55,11 @@ export default class GameManager {
         };
 
         this.gridParams = gridParams;
-        this.toolbelt = tools;
+        this.toolbelt = toolAssets as Toolbelt;
+
         this.scene = new MainScene(this, { key: 'MainScene', active: true });
+        this.field = null; 
+        this.city = null;
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -62,8 +69,9 @@ export default class GameManager {
             },
             render: {
                 antialias: true,
-                roundPixels: true,
+                roundPixels: false,
             },
+            backgroundColor: '#427328',
             scene: [this.scene],
         };
 
@@ -77,8 +85,9 @@ export default class GameManager {
                 this.on("roadBuilt", { callback: debugTools.drawRoadLanes, context: this });
             }
 
-            new Field(this, fieldParams.rows, fieldParams.cols);
-            new City(this);
+            this.field = new Field(this, fieldParams.rows, fieldParams.cols);
+            this.city = new City(this);
+            this.emit("gameInitialized", this);
         }
         this.on("sceneInitialized", { callback: postSceneInit, context: this });
     }
@@ -125,6 +134,10 @@ export default class GameManager {
             this.eventListeners[eventName] = [];
         }
         this.eventListeners[eventName].push(handler);
+    }
+
+    off<K extends keyof EventPayloads>(eventName: K): void {
+        delete this.eventListeners[eventName];
     }
 
     async emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any[]> {

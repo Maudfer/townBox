@@ -8,6 +8,7 @@ import WorkLife from 'game/WorkLife';
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
+import { FamilyTree, Node, Link } from 'types/FamilyTree';
 import { Gender, RelationshipMap, PersonOverview, RelationshipMapOverview } from 'types/Social';
 
 export default class Person {
@@ -235,6 +236,62 @@ export default class Person {
         if (this.redrawFunction) {
             this.redrawFunction(timeDelta);
         }
+    }
+
+    getFamilyTree(): FamilyTree {
+        const person: Person = this;
+        const nodes: Node[] = [];
+        const links: Link[] = [];
+        const personIndexMap = new Map<Person, number>();
+    
+        function processPerson(p: Person) {
+            if (personIndexMap.has(p)) {
+                return;
+            }
+    
+            const index = nodes.length;
+            personIndexMap.set(p, index);
+    
+            const name = p.social.getInfo().firstName;
+            nodes.push({ name });
+    
+            const relationships = p.social.getInfo().relationships;
+    
+            for (const key of Object.keys(relationships) as Array<keyof RelationshipMap>) {
+                const relationship = relationships[key];
+    
+                if (!relationship) {
+                    continue;
+                }
+    
+                if (Array.isArray(relationship)) {
+                    for (const relatedPerson of relationship) {
+                        processPerson(relatedPerson);
+    
+                        const sourceIndex = index;
+                        const targetIndex = personIndexMap.get(relatedPerson)!;
+                        links.push({
+                            source: sourceIndex,
+                            target: targetIndex,
+                            label: key,
+                        });
+                    }
+                } else {
+                    processPerson(relationship);
+    
+                    const sourceIndex = index;
+                    const targetIndex = personIndexMap.get(relationship)!;
+                    links.push({
+                        source: sourceIndex,
+                        target: targetIndex,
+                        label: key,
+                    });
+                }
+            }
+        }
+    
+        processPerson(person);
+        return { nodes, links };
     }
 
     getOverview(): PersonOverview {
