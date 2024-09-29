@@ -7,10 +7,10 @@ import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
 
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
-import { Node, Link, FamilyTreeTags } from 'types/FamilyTree';
+import { Node, Link, FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
 
-const INITIAL_WIDTH = 300;
-const INITIAL_HEIGHT = 250;
+const INITIAL_WIDTH = 350;
+const INITIAL_HEIGHT = 500;
 
 const LINKS_CLASS = 'links';
 const LINK_LABELS_CLASS = 'link-labels';
@@ -18,7 +18,9 @@ const NODES_CLASS = 'nodes';
 
 const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
     const initialSize: WindowSize = { width: INITIAL_WIDTH, height: INITIAL_HEIGHT };
-    const [size, setSize] = useState(initialSize);
+
+    const [size, setSize] = useState<WindowSize>(initialSize);
+    const [familyTree, setFamilyTree] = useState<FamilyTree>()
 
     const svgSize = { width: size.width * 0.8, height: size.height * 0.8 };
 
@@ -38,51 +40,6 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         });
     };
 
-    const nodes: Node[] = [
-        { name: 'Pedro' },
-        { name: 'Felipe' },
-        { name: 'Jack' },
-        { name: 'Howard' },
-        { name: 'Juliana' },
-        { name: 'Heloisa' },
-        { name: 'Thais' },
-        { name: 'Chris' },
-    ];
-
-    const links: Link[] = [
-        { source: 0, target: 1, label: 'Father' },
-        { source: 0, target: 2, label: 'Brother' },
-        { source: 0, target: 3, label: 'Brother' },
-        { source: 1, target: 6, label: 'Spouse' },
-        { source: 3, target: 4, label: 'Spouse' },
-        { source: 3, target: 7, label: 'Spouse' },
-        { source: 4, target: 5, label: 'Sibling' },
-        { source: 4, target: 7, label: 'Sibling' }
-    ];
-
-    const links2 = [
-        [
-            { source: 0, target: 1, label: 'Father' },
-            { source: 0, target: 2, label: 'Spouse' },
-            { source: 0, target: 3, label: 'Brother' },
-            { source: 1, target: 6, label: 'Spouse' },
-            { source: 3, target: 4, label: 'Spouse' },
-            { source: 3, target: 7, label: 'Spouse' },
-            { source: 4, target: 5, label: 'Sibling' },
-            { source: 4, target: 7, label: 'Sibling' }
-        ],
-        [
-            { source: 0, target: 1, label: 'Brother' },
-            { source: 0, target: 2, label: 'Brother' },
-            { source: 0, target: 3, label: 'Brother' },
-            { source: 1, target: 6, label: 'Spouse' },
-            { source: 3, target: 4, label: 'Spouse' },
-            { source: 3, target: 7, label: 'Spouse' },
-            { source: 4, target: 5, label: 'Sibling' },
-            { source: 4, target: 7, label: 'Sibling' }
-        ]
-    ];
-
     function resetD3Containers(tags: FamilyTreeTags) {
         const { nodesTag, linksTag, linkLabelsTag } = tags;
 
@@ -92,10 +49,19 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     }
 
     useEffect(() => {
-        if (!size) {
+        if (!family) {
             return;
         }
 
+        setFamilyTree(family.getFamilyTree());
+    }, [family]);
+
+    useEffect(() => {
+        if (!size || !familyTree) {
+            return;
+        }
+
+        const { nodes, links } = familyTree;
         const nodesTag = d3.select(nodesSelector);
         const linksTag = d3.select(linksSelector);
         const linkLabelsTag = d3.select(linkLabelsSelector);
@@ -113,7 +79,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
             familyTreeGraph?.stop();
             familyTreeGraph?.on('tick', null);
         };
-    }, [size]);
+    }, [size, familyTree]);
 
     return (
         <Window
