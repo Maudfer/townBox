@@ -4,6 +4,7 @@ import GameManager from 'game/GameManager';
 import Person from 'game/Person';
 import House from 'game/House';
 
+import { FamilyTree, Node, Link } from 'types/FamilyTree';
 import { Gender, Genders, Relationship, Relationships, FamilyOverview } from 'types/Social';
 
 const MIN_FAMILY_MEMBERS = 1;
@@ -61,16 +62,18 @@ export default class Family {
     }
 
     async autoGenerate(gameManager: GameManager): Promise<Person[]> {
-        const numberOfPeople = Math.floor(Math.random() * (MAX_FAMILY_MEMBERS - MIN_FAMILY_MEMBERS + 1)) + MIN_FAMILY_MEMBERS;
+        let numberOfPeople = Math.floor(Math.random() * (MAX_FAMILY_MEMBERS - MIN_FAMILY_MEMBERS + 1)) + MIN_FAMILY_MEMBERS;
 
         const gender = Math.random() > 0.5 ? Genders.Male : Genders.Female;
         const age = Math.floor(Math.random() * (MAX_AGE - ADULT_AGE + 1)) + ADULT_AGE;
         const name = fakerPT_BR.person.firstName(gender);
 
+        numberOfPeople--;
         const firstPerson = await this.createPerson(gameManager, age, gender, name);
 
         await this.generateBaseRelationships(gameManager, firstPerson, numberOfPeople);
-        
+        this.assignExtendedRelationships();
+
         return this.members;
     }
 
@@ -81,6 +84,7 @@ export default class Family {
         if (personAge < ADULT_AGE) return;
         if (leafDistance <= 0) return;
     
+        // Spouse creation
         const hasSpouse = person.social.hasRelationship(Relationships.Spouse);
         const shouldMarry = Math.random() < SPOUSE_PROBABILITY;
         let spouse: Person | null = null;
@@ -100,6 +104,7 @@ export default class Family {
             await this.generateBaseRelationships(gameManager, spouse, leafDistance);
         }
     
+        // Children creation
         let numberOfChildren = this.generateNumberOfChildren(!!spouse);
         if (numberOfChildren > 0) {
             for (let i = 0; i < numberOfChildren; i++) {
@@ -137,6 +142,127 @@ export default class Family {
                 leafDistance--;
                 await this.generateBaseRelationships(gameManager, child, leafDistance);
                 if (leafDistance <= 0) return;
+            }
+        }
+    }
+
+    assignExtendedRelationships(): void {
+        const parentMap = new Map<Person, Person[]>();
+        const childrenMap = new Map<Person, Person[]>();
+
+        // Build parentMap and childrenMap
+        for (const person of this.members) {
+            const parents: Person[] = [];
+
+            const father = person.social.queryRelationship(Relationships.Father) as Person | null;
+            const mother = person.social.queryRelationship(Relationships.Mother) as Person | null;
+
+            if (father) {
+                parents.push(father);
+                if (!childrenMap.has(father)) childrenMap.set(father, []);
+                childrenMap.get(father)!.push(person);
+            }
+
+            if (mother) {
+                parents.push(mother);
+                if (!childrenMap.has(mother)) childrenMap.set(mother, []);
+                childrenMap.get(mother)!.push(person);
+            }
+
+            if (parents.length > 0) {
+                parentMap.set(person, parents);
+            }
+        }
+
+        // Assign siblings
+        for (const person of this.members) {
+            const siblings = new Set<Person>();
+            const parents = parentMap.get(person) || [];
+
+            for (const parent of parents) {
+                const siblingsFromParent = childrenMap.get(parent) || [];
+                for (const sibling of siblingsFromParent) {
+                    if (sibling !== person) {
+                        siblings.add(sibling);
+                    }
+                }
+            }
+
+            for (const sibling of siblings) {
+                person.social.addRelationship(Relationships.Sibling, sibling);
+                sibling.social.addRelationship(Relationships.Sibling, person);
+            }
+        }
+
+        // Assign grandparents
+        for (const person of this.members) {
+            const grandparents = new Set<Person>();
+            const parents = parentMap.get(person) || [];
+
+            for (const parent of parents) {
+                const grandparentsOfParent = parentMap.get(parent) || [];
+                for (const grandparent of grandparentsOfParent) {
+                    grandparents.add(grandparent);
+                }
+            }
+
+            for (const grandparent of grandparents) {
+                const grandparentGender = grandparent.social.getGender();
+                const grandparentRelationship = grandparentGender === Genders.Male ? Relationships.Grandfather : Relationships.Grandmother;
+
+                person.social.addRelationship(grandparentRelationship, grandparent);
+                grandparent.social.addRelationship(Relationships.Grandchild, person);
+            }
+        }
+
+        // Assign uncles and aunts
+        for (const person of this.members) {
+            const unclesAndAunts = new Set<Person>();
+            const parents = parentMap.get(person) || [];
+
+            for (const parent of parents) {
+                const parentSiblings = parent.social.queryRelationship(Relationships.Sibling) as Person[] | null;
+                if (parentSiblings) {
+                    for (const uncleAunt of parentSiblings) {
+                        // Redundant but safe check
+                        if (uncleAunt !== parent) { 
+                            unclesAndAunts.add(uncleAunt);
+                        }
+                    }
+                }
+            }
+
+            for (const uncleAunt of unclesAndAunts) {
+                const personGender = person.social.getGender();
+                const gender = uncleAunt.social.getGender();
+                const relationship = gender === Genders.Male ? Relationships.Uncle : Relationships.Aunt;
+
+                person.social.addRelationship(relationship, uncleAunt);
+                uncleAunt.social.addRelationship(this.inverseRelationship(relationship, personGender), person);
+            }
+        }
+
+        // Assign nieces and nephews
+        for (const person of this.members) {
+            const niecesAndNephews = new Set<Person>();
+            const siblings = person.social.queryRelationship(Relationships.Sibling) as Person[] | null;
+
+            if (siblings) {
+                for (const sibling of siblings) {
+                    const siblingChildren = childrenMap.get(sibling) || [];
+                    for (const child of siblingChildren) {
+                        niecesAndNephews.add(child);
+                    }
+                }
+            }
+
+            for (const nieceNephew of niecesAndNephews) {
+                const personGender = person.social.getGender();
+                const gender = nieceNephew.social.getGender();
+                const relationship = gender === Genders.Male ? Relationships.Nephew : Relationships.Niece;
+
+                person.social.addRelationship(relationship, nieceNephew);
+                nieceNephew.social.addRelationship(this.inverseRelationship(relationship, personGender), person);
             }
         }
     }

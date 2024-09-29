@@ -10,6 +10,11 @@ export interface Link extends d3.SimulationLinkDatum<Node> {
     label: string;
 }
 
+export interface FamilyTree {
+    nodes: Node[];
+    links: Link[];
+}
+
 export type d3Tag = d3.Selection<d3.BaseType, unknown, HTMLElement, any>;
 export interface FamilyTreeTags {
     nodesTag: d3Tag;

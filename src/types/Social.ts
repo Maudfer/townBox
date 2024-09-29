@@ -39,6 +39,7 @@ export type RelationshipMap = {
     [Relationships.Nephew]?: Person[];
 };
 
+// Only used for building overviews
 export type SocialInfo = {
     firstName: string;
     familyName: string;
