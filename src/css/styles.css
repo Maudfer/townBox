@@ -16,25 +16,227 @@ body {
     pointer-events: none;
     z-index: 100;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 canvas {
     position: relative;
     display: block;
     width: 100%;
-    height: 100%;  
+    height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #000;
+    background-color: #46752f;
     z-index: 50;
 }
 
-.hud {
+.glass {
+    backdrop-filter: blur(6px);
+    background-color: #0f353bad;
+}
+
+.react-draggable {
+    will-change: transform;
+    pointer-events: all;
 }
 
 .window {
-    position: absolute;
-    pointer-events: all;
+    box-sizing: border-box;
     user-select: none;
+    background-color: #0000;
+    border: 2px solid #0f353b;
+    border-radius: 1px;
+    flex-direction: column;
+    font-family: system-ui;
+    display: flex;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+    box-shadow: 0 0 10px #00000075;
+}
+
+.window button {
     cursor: pointer;
+    user-select: none;
+    color: #fff;
+    text-align: center;
+    background-color: #092327;
+    border: 1px solid #274041;
+    border-radius: 4px;
+    padding: 4px 7px 2px;
+    font-size: 16px;
+    font-weight: bold;
+    display: inline-block;
+    position: relative;
+}
+
+.window .window-header {
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+    cursor: grab;
+    justify-content: space-between;
+    padding: 7px;
+    font-size: 18px;
+    letter-spacing: 1px;
+    display: flex;
+    position: relative;
+    background: linear-gradient(180deg, #011a1cad, #0f353bad);
+}
+
+.window .window-header>h3 {
+    margin: 0;
+    padding: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.window .window-body {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    padding: 10px;
+    font-size: 24px;
+    font-weight: normal;
+    color: #fff;
+    text-align: left;
+    width: 100%;
+    overflow: auto;
+    height: -webkit-fill-available;
+    background-color: #0f353b;
+    box-shadow: inset 0 0 5px #00000099;
+}
+
+.window .window-footer {
+    display: flex;
+    box-sizing: border-box;
+    color: #fff;
+    text-align: center;
+    padding: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    position: relative;
+    justify-content: flex-end;
+}
+
+.window .window-footer button {
+    letter-spacing: 1px;
+    min-width: 60px;
+    padding: 6px 7px 3px 7px;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f353b;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #0a252a;
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #071a1d;
+}
+
+.toolbar {
+    box-sizing: border-box;
+    backdrop-filter: blur(5px);
+    background: linear-gradient(#0f353b99, #0f353b33);
+    border-radius: 6px;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    width: auto;
+    height: 65px;
+    padding: 10px 45px;
+    display: flex;
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translate(-50%);
+    box-shadow: 0px 3px 10px #0000008c;
+    border: 1px solid #274041;
+}
+
+.toolbar button {
+    cursor: pointer;
+    user-select: none;
+    color: #fff;
+    text-align: center;
+    pointer-events: all;
+    background-color: #092327;
+    border: 1px solid #274041;
+    border-radius: 8px;
+    margin-top: -85px;
+    padding: 18px 19px;
+    font-weight: bold;
+    transition: transform .3s;
+    display: inline-block;
+    position: relative;
+    box-shadow: 0 0 10px #00000075;
+}
+
+.toolbar button::before {
+    content: "";
+    opacity: 1;
+    filter: blur(2px);
+    background: linear-gradient(#0923279c, #0000 90%);
+    border-radius: 8px;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+    width: 100%;
+    height: 25px;
+    transition: all .3s;
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    transform: translate(0, 100%);
+}
+
+.toolbar button:hover {
+    transform: translate(0, -10px);
+}
+
+.toolbar button:hover::before {
+    content: "";
+    opacity: 0.35;
+    transform: translate(0, 40px);
+}
+
+.house-details {
+    height: 100%;
+}
+
+#family-tree {
+    position: relative;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    height: 100%;
+}
+
+#family-tree circle {
+    fill: cadetblue;
+}
+
+#family-tree line {
+    stroke: #ccc;
+}
+
+#family-tree .nodes text {
+    text-anchor: middle;
+    fill: rgb(218, 218, 218);
+    font-size: 16px;
+}
+
+#family-tree .link-labels text {
+    text-anchor: middle;
+    fill: rgb(156, 156, 255);
+    font-size: 14px;
 }

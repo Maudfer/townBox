@@ -10,12 +10,19 @@ export type Gender = Genders;
 export enum Relationships {
     Father = 'father',
     Mother = 'mother',
+    StepFather = 'stepfather',
+    StepMother = 'stepmother',
     Grandfather = 'grandfather',
     Grandmother = 'grandmother',
     Spouse = 'spouse',
     Child = 'child',
+    StepChild = 'stepchild',
     Grandchild = 'grandchild',
     Sibling = 'sibling',
+    Uncle = 'uncle',
+    Aunt = 'aunt',
+    Niece = 'niece',
+    Nephew = 'nephew',
 };
 
 export type Relationship = Relationships;
@@ -23,14 +30,22 @@ export type Relationship = Relationships;
 export type RelationshipMap = { 
     [Relationships.Father]?: Person;
     [Relationships.Mother]?: Person;
+    [Relationships.StepFather]?: Person;
+    [Relationships.StepMother]?: Person;
     [Relationships.Grandfather]?: Person;
     [Relationships.Grandmother]?: Person;
     [Relationships.Spouse]?: Person;
     [Relationships.Child]?: Person[];
+    [Relationships.StepChild]?: Person[];
     [Relationships.Grandchild]?: Person[];
     [Relationships.Sibling]?: Person[];
+    [Relationships.Uncle]?: Person[];
+    [Relationships.Aunt]?: Person[];
+    [Relationships.Niece]?: Person[];
+    [Relationships.Nephew]?: Person[];
 };
 
+// Only used for building overviews
 export type SocialInfo = {
     firstName: string;
     familyName: string;
@@ -39,22 +54,22 @@ export type SocialInfo = {
     relationships: RelationshipMap;
 };
 
-export type RelationshipProbabilities = {
-    [Relationships.Father]: number;
-    [Relationships.Mother]: number;
-    [Relationships.Spouse]: number;
-    [Relationships.Child]: number;
-};
-
 export type RelationshipMapOverview = {
     [Relationships.Father]?: string;
     [Relationships.Mother]?: string;
+    [Relationships.StepFather]?: string;
+    [Relationships.StepMother]?: string;
     [Relationships.Grandfather]?: string;
     [Relationships.Grandmother]?: string;
     [Relationships.Spouse]?: string;
     [Relationships.Child]?: string;
+    [Relationships.StepChild]?: string;
     [Relationships.Grandchild]?: string;
     [Relationships.Sibling]?: string;
+    [Relationships.Uncle]?: string;
+    [Relationships.Aunt]?: string;
+    [Relationships.Niece]?: string;
+    [Relationships.Nephew]?: string;
 };
 
 export type PersonOverview = {

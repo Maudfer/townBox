@@ -2,13 +2,16 @@ import Building from 'game/Building';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 
+import Family from 'game/Family';
+
 import { HouseOverview } from 'types/Social';
 
-const MAX_RESIDENTS = 4;
+const MAX_RESIDENTS = 8;
 const MAX_OCCUPANTS = 10;
 const MAX_VEHICLES = 2;
 
 export default class House extends Building {
+    private family: Family | null;
     private residents: Person[];
 
     private occupants: Person[];
@@ -25,9 +28,18 @@ export default class House extends Building {
         this.maxOccupants = MAX_OCCUPANTS;
         this.maxVehicles = MAX_VEHICLES;
 
+        this.family = null;
         this.residents = [];
         this.occupants = [];
         this.garage = [];
+    }
+
+    public setFamily(family: Family): void {
+        this.family = family;
+    }
+
+    public getFamily(): Family | null {
+        return this.family;
     }
 
     public addResident(person: Person): void {
