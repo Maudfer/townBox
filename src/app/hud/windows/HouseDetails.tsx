@@ -7,10 +7,10 @@ import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
 
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
-import { Node, Link, FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
+import { FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
 
-const INITIAL_WIDTH = 350;
-const INITIAL_HEIGHT = 500;
+const INITIAL_WIDTH = 600;
+const INITIAL_HEIGHT = 600;
 
 const LINKS_CLASS = 'links';
 const LINK_LABELS_CLASS = 'link-labels';

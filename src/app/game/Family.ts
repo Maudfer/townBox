@@ -8,7 +8,7 @@ import { FamilyTree, Node, Link } from 'types/FamilyTree';
 import { Gender, Genders, Relationship, Relationships, RelationshipMap, FamilyOverview } from 'types/Social';
 
 const MIN_FAMILY_MEMBERS = 1;
-const MAX_FAMILY_MEMBERS = 10;
+const MAX_FAMILY_MEMBERS = 8;
 
 const MIN_AGE = 0;
 const MAX_AGE = 100;
@@ -63,28 +63,40 @@ export default class Family {
 
     async autoGenerate(gameManager: GameManager): Promise<Person[]> {
         let numberOfPeople = Math.floor(Math.random() * (MAX_FAMILY_MEMBERS - MIN_FAMILY_MEMBERS + 1)) + MIN_FAMILY_MEMBERS;
+        console.log("Generating family with", numberOfPeople, "members");
 
         const gender = Math.random() > 0.5 ? Genders.Male : Genders.Female;
         const age = Math.floor(Math.random() * (MAX_AGE - ADULT_AGE + 1)) + ADULT_AGE;
         const name = fakerPT_BR.person.firstName(gender);
 
-        numberOfPeople--;
         const firstPerson = await this.createPerson(gameManager, age, gender, name);
+        numberOfPeople--;
 
+        console.log("First person created. Credits left:", numberOfPeople);
         await this.generateBaseRelationships(gameManager, firstPerson, numberOfPeople);
+        console.log("Base relationships generated. Current size:", this.members.length);
         this.assignExtendedRelationships();
+        console.log("Extended relationships assigned Current size:", this.members.length);
 
         return this.members;
     }
 
-    private async generateBaseRelationships(gameManager: GameManager, person: Person, leafDistance: number): Promise<void> {
+    private async generateBaseRelationships(gameManager: GameManager, person: Person, creditsLeft: number): Promise<number> {
+        console.log("Generating base relationships. Credits left:", creditsLeft);
+
+        creditsLeft = await this.generateSpouse(gameManager, person, creditsLeft);
+        creditsLeft = await this.generateChildren(gameManager, person, creditsLeft);
+
+        return creditsLeft;
+    }
+
+    private async generateSpouse(gameManager: GameManager, person: Person, creditsLeft: number): Promise<number> {
         const personAge = person.social.getAge();
         const personGender = person.social.getGender();
     
-        if (personAge < ADULT_AGE) return;
-        if (leafDistance <= 0) return;
+        if (personAge < ADULT_AGE) return creditsLeft;
+        if (creditsLeft <= 0) return creditsLeft;
     
-        // Spouse creation
         const hasSpouse = person.social.hasRelationship(Relationships.Spouse);
         const shouldMarry = Math.random() < SPOUSE_PROBABILITY;
         let spouse: Person | null = null;
@@ -96,16 +108,25 @@ export default class Family {
             const spouseName = fakerPT_BR.person.firstName(spouseGender);
     
             spouse = await this.createPerson(gameManager, spouseAge, spouseGender, spouseName);
+            creditsLeft--;
     
             person.social.addRelationship(Relationships.Spouse, spouse);
             spouse.social.addRelationship(Relationships.Spouse, person);
 
-            leafDistance--;
-            await this.generateBaseRelationships(gameManager, spouse, leafDistance);
+            creditsLeft = await this.generateBaseRelationships(gameManager, spouse, creditsLeft);
         }
+        return creditsLeft;
+    }
+
+    private async generateChildren(gameManager: GameManager, person: Person, creditsLeft: number): Promise<number> {
+        const personAge = person.social.getAge();
+        const personGender = person.social.getGender();
     
-        // Children creation
-        let numberOfChildren = this.generateNumberOfChildren(!!spouse);
+        if (personAge < ADULT_AGE) return creditsLeft;
+        if (creditsLeft <= 0) return creditsLeft;
+
+        const hasSpouse = person.social.hasRelationship(Relationships.Spouse);
+        let numberOfChildren = this.generateNumberOfChildren(hasSpouse);
         if (numberOfChildren > 0) {
             for (let i = 0; i < numberOfChildren; i++) {
                 const parentAges = [personAge];
@@ -127,6 +148,7 @@ export default class Family {
                 const childName = fakerPT_BR.person.firstName(childGender);
     
                 const child = await this.createPerson(gameManager, childAge, childGender, childName);
+                creditsLeft--;
     
                 const childPersonRelationship = this.inverseRelationship(Relationships.Child, personGender);
                 person.social.addRelationship(Relationships.Child, child);
@@ -139,11 +161,12 @@ export default class Family {
                     child.social.addRelationship(childSpouseRelationship, spouse);
                 }
     
-                leafDistance--;
-                await this.generateBaseRelationships(gameManager, child, leafDistance);
-                if (leafDistance <= 0) return;
+                creditsLeft = await this.generateBaseRelationships(gameManager, child, creditsLeft);
+                if (creditsLeft <= 0) return creditsLeft;
             }
         }
+
+        return creditsLeft;
     }
 
     assignExtendedRelationships(): void {
@@ -283,10 +306,13 @@ export default class Family {
         const inverseMap: { [key in Relationship]: Relationship } = {
             [Relationships.Father]: Relationships.Child,
             [Relationships.Mother]: Relationships.Child,
+            [Relationships.StepFather]: Relationships.StepChild,
+            [Relationships.StepMother]: Relationships.StepChild,
             [Relationships.Grandfather]: Relationships.Grandchild,
             [Relationships.Grandmother]: Relationships.Grandchild,
             [Relationships.Spouse]: Relationships.Spouse,
             [Relationships.Child]: gender === Genders.Male ? Relationships.Father : Relationships.Mother,
+            [Relationships.StepChild]: gender === Genders.Male ? Relationships.StepFather : Relationships.StepMother,
             [Relationships.Grandchild]: gender === Genders.Male ? Relationships.Grandfather : Relationships.Grandmother,
             [Relationships.Sibling]: Relationships.Sibling,
             [Relationships.Uncle]: gender === Genders.Male ? Relationships.Nephew : Relationships.Niece,

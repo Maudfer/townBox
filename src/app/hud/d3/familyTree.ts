@@ -72,6 +72,7 @@ function updateNodes(nodesTag: d3Tag, nodes: Node[], dragHandler: DragBehavior) 
 
 
 export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize, tags: FamilyTreeTags): d3.Simulation<Node, Link> {
+    console.log('Creating family tree', size);
     const dragHandler = d3.drag<SVGTextElement, Node>()
         .on('start', (event, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -95,10 +96,11 @@ export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize,
     }
 
     const simulation = d3.forceSimulation(nodes)
-        .force('charge', d3.forceManyBody().strength(-100))
+        .force('charge', d3.forceManyBody().strength(-10))
         .force('center', d3.forceCenter(size.width / 2, size.height / 2))
-        .force('link', d3.forceLink<Node, Link>().links(links))
+        .force('link', d3.forceLink<Node, Link>().links(links).distance(400))
         .on('tick', tickUpdate);
 
     return simulation;
 }
+

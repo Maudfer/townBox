@@ -6,7 +6,7 @@ import Family from 'game/Family';
 
 import { HouseOverview } from 'types/Social';
 
-const MAX_RESIDENTS = 4;
+const MAX_RESIDENTS = 8;
 const MAX_OCCUPANTS = 10;
 const MAX_VEHICLES = 2;
 
