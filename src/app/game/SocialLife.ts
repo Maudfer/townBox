@@ -32,7 +32,7 @@ export default class SocialLife {
 
     hasRelationshipWith(relationship: Relationship, person: Person): boolean {
         if (Array.isArray(this.relationships[relationship])) {
-            return this.relationships[relationship].includes(person);
+            return (this.relationships[relationship] as Person[]).includes(person);
         } else {
             return this.relationships[relationship] === person;
         }
@@ -50,15 +50,14 @@ export default class SocialLife {
         } else {
 
             if (!this.relationships[relationship]) {
-                // Below conversion is needed, but we know it's safe because of the singlePersonRelationships check
                 (this.relationships[relationship] as unknown as Person[]) = [];
             }
 
             if (Array.isArray(this.relationships[relationship])) {
-                const alreadyExists = this.relationships[relationship].includes(person);
+                const alreadyExists = (this.relationships[relationship] as Person[]).includes(person);
 
                 if (!alreadyExists) {
-                    this.relationships[relationship].push(person);
+                    (this.relationships[relationship] as Person[]).push(person);
                 }
             }
         }
@@ -71,10 +70,10 @@ export default class SocialLife {
             }
         } else {
             if (Array.isArray(this.relationships[relationship])) {
-                const index = this.relationships[relationship].indexOf(person);
+                const index = (this.relationships[relationship] as Person[]).indexOf(person);
 
                 if (index !== -1) {
-                    this.relationships[relationship].splice(index, 1);
+                    (this.relationships[relationship] as Person[]).splice(index, 1);
                 }
             }
         }

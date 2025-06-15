@@ -11,6 +11,7 @@
     "serve-dev": "cross-env browser-sync start --server ./dist --files ./dist",
     "dev": "concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
     "package": "concurrently 'npm:copy-images' 'npm:build-prod'"
+    ,"test": "jest"
   },
   "keywords": [
     "game",
@@ -41,14 +42,17 @@
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "@types/jest": "^29.5.14",
     "@types/uuid": "^10.0.0",
     "browser-sync": "^3.0.2",
     "buffer": "^6.0.3",
     "concurrently": "^8.2.2",
     "cpy-cli": "^5.0.0",
     "cross-env": "^7.0.3",
+    "jest": "^30.0.0",
     "parcel": "^2.12.0",
     "process": "^0.11.10",
+    "ts-jest": "^29.4.0",
     "typescript": "^5.4.5"
   }
 }

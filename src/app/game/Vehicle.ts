@@ -225,6 +225,24 @@ export default class Vehicle {
         }
     }
 
+    setDestinationTile(currentTile: Tile, destination: TilePosition, pathFinder: PathFinder): void {
+        if (!destination || this.currentDestination) {
+            return;
+        }
+
+        this.currentDestination = destination;
+
+        const currentTilePosition = {
+            row: currentTile.getRow(),
+            col: currentTile.getCol()
+        };
+
+        this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
+        if (this.path?.length) {
+            this.setNextTarget(currentTile);
+        }
+    }
+
     updateDepth(currentTile: Tile): void {
         const row = currentTile.getRow();
         this.depth = ((row + 1) * 10) + 1;
@@ -285,6 +303,10 @@ export default class Vehicle {
 
     isCurrentTargetReached(): boolean {
         return this.isCurrentTargetXReached() && this.isCurrentTargetYReached();
+    }
+
+    isDestinationReached(): boolean {
+        return !this.path.length && this.isCurrentTargetReached();
     }
 
     isNearCurve(): boolean {

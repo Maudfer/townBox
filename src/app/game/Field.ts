@@ -78,8 +78,7 @@ export default class Field {
                 return;
             }
 
-            person.walk(currentTile, event.timeDelta);
-            person.updateDestination(currentTile, this.destinations, this.pathFinder);
+            person.update(currentTile, event.timeDelta, this.destinations, this.pathFinder);
             person.redraw(event.timeDelta);
         });
 
@@ -240,6 +239,7 @@ export default class Field {
 
         const { x, y } = pixelPosition;
         const person = new Person(x, y);
+        person.setGameManager(Game);
         person.updateDepth(currentTile);
 
         this.people.push(person);
