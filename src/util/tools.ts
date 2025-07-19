@@ -1,4 +1,4 @@
-import { degreesToRadians } from 'util/math';
+import { degreesToRadians } from 'util/Math';
 
 import { Direction } from 'types/Movement';
 

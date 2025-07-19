@@ -4,12 +4,17 @@ import Building from 'game/Building';
 import PathFinder from 'game/PathFinder';
 import SocialLife from 'game/SocialLife';
 import WorkLife from 'game/WorkLife';
+import Vehicle from 'game/Vehicle';
+import GameManager from 'game/GameManager';
+import { TravelStep } from 'types/Travel';
 
 import { TilePosition, PixelPosition } from 'types/Position';
 import { Image } from 'types/Phaser';
 import { Direction, Axis } from 'types/Movement';
 import { FamilyTree, Node, Link } from 'types/FamilyTree';
 import { Gender, RelationshipMap, PersonOverview, RelationshipMapOverview } from 'types/Social';
+
+let Game: GameManager;
 
 export default class Person {
     public social: SocialLife;
@@ -25,6 +30,10 @@ export default class Person {
     private direction: Direction;
     private movingAxis: Axis;
     private insideBuilding: boolean;
+
+    private vehicle: Vehicle | null;
+    private destinationBuilding: Building | null;
+    private travelStep: TravelStep;
 
     private path: Tile[];
     private currentDestination: TilePosition;
@@ -46,12 +55,28 @@ export default class Person {
         this.direction = Direction.East;
         this.movingAxis = Axis.X;
         this.insideBuilding = false;
+        this.vehicle = null;
+        this.destinationBuilding = null;
+        this.travelStep = TravelStep.Idle;
 
         this.path = [];
         this.currentDestination = null;
         this.asset = null;
 
         this.redrawFunction = null;
+    }
+
+    setGameManager(gameManager: GameManager): void {
+        Game = gameManager;
+    }
+
+    setVehicle(vehicle: Vehicle): void {
+        this.vehicle = vehicle;
+    }
+
+    setDestination(building: Building): void {
+        this.destinationBuilding = building;
+        this.travelStep = TravelStep.ExitingBuilding;
     }
 
     setupCitizenship(firstName: string, familyName: string, age: number, gender: Gender): void {
@@ -168,6 +193,24 @@ export default class Person {
         }
     }
 
+    setDestinationTile(currentTile: Tile, destination: TilePosition, pathFinder: PathFinder): void {
+        if (!destination) {
+            return;
+        }
+
+        this.currentDestination = destination;
+
+        const currentTilePosition = {
+            row: currentTile.getRow(),
+            col: currentTile.getCol()
+        };
+
+        this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
+        if (this.path?.length) {
+            this.setNextTarget(currentTile);
+        }
+    }
+
     isCurrentTargetXReached(): boolean {
         if (!this.currentTarget) {
             return false;
@@ -188,6 +231,88 @@ export default class Person {
 
     isDestinationReached(): boolean {
         return !this.path.length && this.isCurrentTargetReached();
+    }
+
+    private processTravel(currentTile: Tile, timeDelta: number, pathFinder: PathFinder): void {
+        if (!this.destinationBuilding) {
+            return;
+        }
+
+        switch (this.travelStep) {
+            case TravelStep.ExitingBuilding:
+                this.setIndoors(false);
+                this.currentDestination = null;
+                if (this.vehicle) {
+                    const vehiclePos = this.vehicle.getPosition();
+                    const vehicleTile = Game.pixelToTilePosition(vehiclePos);
+                    if (vehicleTile) {
+                        this.setDestinationTile(currentTile, vehicleTile, pathFinder);
+                    }
+                }
+                this.travelStep = TravelStep.WalkingToCar;
+                break;
+            case TravelStep.WalkingToCar:
+                this.walk(currentTile, timeDelta);
+                if (this.isDestinationReached()) {
+                    this.travelStep = TravelStep.EnteringCar;
+                }
+                break;
+            case TravelStep.EnteringCar:
+                // person enters vehicle
+                if (this.vehicle) {
+                    const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
+                    const destTile = this.destinationBuilding.getPosition();
+                    if (vehicleTile && destTile) {
+                        const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
+                        if (tile) {
+                            this.vehicle.setDestinationTile(tile, destTile, pathFinder);
+                        }
+                    }
+                }
+                this.travelStep = TravelStep.Driving;
+                break;
+            case TravelStep.Driving:
+                if (this.vehicle && this.vehicle.isDestinationReached()) {
+                    this.travelStep = TravelStep.ExitingCar;
+                }
+                break;
+            case TravelStep.ExitingCar:
+                // person exits vehicle
+                if (this.vehicle) {
+                    const carTilePos = Game.pixelToTilePosition(this.vehicle.getPosition());
+                    if (carTilePos) {
+                        const tile = Game.field!.getTile(carTilePos.row, carTilePos.col);
+                        if (tile) {
+                            const destTile = this.destinationBuilding.getPosition();
+                            this.setDestinationTile(tile, destTile, pathFinder);
+                        }
+                    }
+                }
+                this.travelStep = TravelStep.WalkingToDestination;
+                break;
+            case TravelStep.WalkingToDestination:
+                this.walk(currentTile, timeDelta);
+                if (this.isDestinationReached()) {
+                    this.travelStep = TravelStep.Arrived;
+                }
+                break;
+            case TravelStep.Arrived:
+                this.setIndoors(true);
+                this.destinationBuilding = null;
+                this.travelStep = TravelStep.Idle;
+                break;
+            default:
+                break;
+        }
+    }
+
+    update(currentTile: Tile, timeDelta: number, destinations: Set<string>, pathFinder: PathFinder): void {
+        if (this.destinationBuilding) {
+            this.processTravel(currentTile, timeDelta, pathFinder);
+        } else {
+            this.walk(currentTile, timeDelta);
+            this.updateDestination(currentTile, destinations, pathFinder);
+        }
     }
 
     updateDepth(currentTile: Tile): void {
