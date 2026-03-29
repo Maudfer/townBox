@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Field from 'game/Field';
 import MainScene from 'game/MainScene';
+import TitleScene from 'game/TitleScene';
 import DebugTools from 'game/DebugTools';
 
 import City from './City';
@@ -57,9 +58,11 @@ export default class GameManager {
         this.gridParams = gridParams;
         this.toolbelt = toolAssets as Toolbelt;
 
-        this.scene = new MainScene(this, { key: 'MainScene', active: true });
+        this.scene = new MainScene(this, { key: 'MainScene', active: false });
         this.field = null; 
         this.city = null;
+
+        const titleScene = new TitleScene();
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -72,7 +75,7 @@ export default class GameManager {
                 roundPixels: false,
             },
             backgroundColor: '#427328',
-            scene: [this.scene],
+            scene: [titleScene, this.scene],
         };
 
         new Phaser.Game(phaserConfig);
