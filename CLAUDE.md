@@ -16,13 +16,15 @@ together, and the working agreements ("codebase directives") that every contribu
 The prototype currently supports a handful of disconnected mechanics. Be aware that many systems
 are **partially wired** — the building blocks exist but the end-to-end loop is not fully connected.
 
-- **Tile-based world.** A 128×128 grid of tiles. You can paint **roads**, **soil/grass**,
-  **houses**, and generic **work** buildings onto the grid with the mouse. Roads auto-tile based
-  on their neighbors. Each building and road currently occupies exactly **one tile**.
-- **Tall buildings.** Some building sprites are visually taller than one tile (e.g. `1x1x2`). The
-  sprite is bottom-anchored so it extends upward, but its footprint is still a single tile. A depth
-  (z-order) system makes people and cars correctly render **in front of** a tall building when
-  they are below it, and **behind** it when they are above it.
+- **Tile-based world.** A `384 × 384` grid of tiles (`16 × 16` px each). Structures are placed as
+  **footprints** — a square block of `3 × 3` tiles — so a road or building occupies **9 tiles** and
+  renders as one `48 × 48` px sprite. You can paint **roads**, **soil/grass**, **houses**, and
+  generic **work** buildings onto the grid with the mouse; placement is centered on the hovered
+  footprint. Roads auto-tile based on their neighboring footprints.
+- **Tall buildings.** Some building sprites are visually taller than their footprint (e.g. `1x1x2`,
+  `48 × 96` px). The sprite is bottom-anchored so it extends upward, but its footprint is still a
+  single `3 × 3` block. A depth (z-order) system makes people and cars correctly render **in front
+  of** a tall building when they are below it, and **behind** it when they are above it.
 - **Families / households.** Placing a **house** spawns a household: a `Family` with procedurally
   generated `Person`s who have blood relationships (spouse, children, siblings, grandparents,
   uncles/aunts, nieces/nephews). The generator is crude, recursive, and conditional-heavy, and is
@@ -167,32 +169,43 @@ events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`,
 
 > When adding a new cross-system signal, add it to `EventPayloads` first, then wire handlers.
 
-### 4.3 Grid & coordinates
+### 4.3 Grid, tiles & footprints
 
-- The world is a `rows × cols = 128 × 128` grid. `gridWidth = gridHeight = 6144`, so each cell is
-  `48 × 48` pixels (`gridParams.cells`).
+- The world is a `rows × cols = 384 × 384` grid of **tiles**. `gridWidth = gridHeight = 6144`, so
+  each tile is `16 × 16` px (`gridParams.cells`).
+- A **footprint** is the square block of tiles a single structure occupies. `gridParams.footprint`
+  holds `{ tiles: 3, width: 48, height: 48 }`, so every structure spans a `3 × 3` tile block that
+  renders as one `48 × 48` px sprite. Footprints are aligned to a regular 3-tile lattice (this is
+  the old `128 × 128` placement grid).
+- A structure is anchored at the **center tile** of its footprint, so `tileToPixelPosition(anchor)`
+  returns the footprint's pixel center. `GameManager.footprintAnchorOf(tile)` snaps any tile to its
+  footprint's center anchor; `GameManager.footprintTiles(anchor)` enumerates the 9 tiles.
 - `GameManager.tileToPixelPosition({row, col})` returns the **pixel center** of a tile.
 - `GameManager.pixelToTilePosition({x, y})` returns the tile under a pixel (or `null` if outside
   grid bounds).
-- `Field.matrix[row][col]` holds the `Tile` instance at each cell. `Field.destinations` is a
-  `Set<"row-col">` of every building tile, used as the pool of random travel destinations.
+- `Field.matrix[row][col]` resolves each of a footprint's 9 tiles to its owning structure
+  (`Field.registerFootprint()` writes the structure into all 9 cells). `Field.destinations` is a
+  `Set<"row-col">` of every building's **anchor** tile, used as the pool of random travel
+  destinations.
 
 ### 4.4 Tiles, building & auto-tiling
 
 - Class hierarchy: `Tile` → `Soil` | `Road` | `Building`; `Building` → `House` | `Workplace`.
-- `Field.build()` (triggered by the `tileClicked` event) instantiates the correct tile for the
-  active tool, replaces the tile in the matrix, and re-evaluates the four orthogonal neighbors.
+- `Field.build()` (triggered by the `tileClicked` event) snaps the clicked tile to its footprint
+  anchor, instantiates the correct structure for the active tool, registers it across the footprint,
+  and re-evaluates the four orthogonal neighboring footprints (stepping `footprint.tiles` cells).
 - **Road auto-tiling:** `Road.updateSelfBasedOnNeighbors()` builds a 4-bit code from
-  top/bottom/left/right road neighbors and picks the matching `road_XXXX` sprite.
+  top/bottom/left/right road **footprint** neighbors and picks the matching `road_XXXX` sprite.
 - **Road waypoints:** on build, a road computes a `curb` (4 corner points, small inset — used by
-  pedestrians) and `lane` (4 corner points, larger inset — used by vehicles). Pedestrians use
-  `getClosestCurbPoint()`; vehicles use `getLaneEntryPoint(direction)` to follow correct lanes.
+  pedestrians) and `lane` (4 corner points, larger inset — used by vehicles) from the footprint's
+  pixel center and `48 × 48` px footprint size. Pedestrians use `getClosestCurbPoint()`; vehicles
+  use `getLaneEntryPoint(direction)` to follow correct lanes.
 - **Building entrance:** `Building.calculateEntrance()` stores a single pixel point just below the
-  tile center. People/cars target the entrance as the final/first waypoint of a trip.
+  footprint center. People/cars target the entrance as the final/first waypoint of a trip.
 
 ### 4.5 Depth / layering (z-order)
 
-Rendering order is driven by per-object depth values keyed off the tile **row**:
+Rendering order is driven by per-object depth values keyed off the footprint anchor **row**:
 
 - `Soil.calculateDepth()` → `0`
 - `Road.calculateDepth()` → `row * 10`
@@ -201,14 +214,16 @@ Rendering order is driven by per-object depth values keyed off the tile **row**:
 - Cursor preview → `rows * 10 + 1`; grid lines → `rows * 10 + 100`
 
 Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at
-`y = tileCenter.y + cellHeight/2`, so tall sprites extend upward out of their footprint tile while
-still sorting by their base row. This is what makes entities pass behind tall buildings above them
-and in front of buildings below them.
+`y = footprintCenter.y + footprintHeight/2`, so tall sprites extend upward out of their footprint
+while still sorting by their base row. This is what makes entities pass behind tall buildings above
+them and in front of buildings below them.
 
 ### 4.6 Pathfinding & movement
 
-- `PathFinder.findPath(start, goal)` runs A\* (Manhattan heuristic) over the tile grid. Valid
-  neighbors are road tiles or the goal tile itself. Returns an ordered `Tile[]`.
+- `PathFinder.findPath(start, goal)` snaps the endpoints to their footprint anchors and runs A\*
+  (Manhattan heuristic) over the footprint lattice (stepping `footprint.tiles` cells per move).
+  Valid neighbors are road footprints or the goal footprint itself. Returns an ordered `Tile[]` of
+  structures.
 - `Person.walk()` moves the citizen one axis at a time (X then Y) between curb waypoints, updating
   facing direction and depth as it goes.
 - `Vehicle.drive()` accelerates/decelerates, slows for curves, follows lane waypoints, and smoothly
@@ -266,6 +281,7 @@ These rules are binding for every contributor (human or AI agent).
 - **Mandatory exploration pass.** Before writing any code for a task, perform a fresh exploration
   pass on the codebase to verify every claim and reference made in the task description and plan.
   Code drifts; the task text may be stale.
+- **Always ensure test coverage.** Do not ship code that isn't tested. Wheter you write new tests or rework existing ones for changing behavior, whenever you work a task that includes new code, map the new behavior to testable assertions and make sure there are tests covering that behavior.
 - **Decide on planning depth from the exploration.** Based on the code-tour findings, decide
   whether the task needs multi-phase planning. If it does, **present a proposal/plan before
   executing**, and use this moment to ask any questions needed to resolve ambiguities. Small,
