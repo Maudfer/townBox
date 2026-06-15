@@ -109,7 +109,9 @@ export default class PathFinder {
 
             const isValid = this.field.isValidPosition(neighbor.row, neighbor.col);
             const isRoad = (neighborTile instanceof Road);
-            const isDestination = (neighbor.row === destination.row && neighbor.col === destination.col);
+            // Every cell of the destination structure shares the same anchor identifier, so this lets A* step
+            // through a building's footprint to reach its anchor cell from an adjacent road.
+            const isDestination = (neighborTile.getIdentifier() === `${destination.row}-${destination.col}`);
 
             return ( isValid && (isRoad || isDestination) );
         });
@@ -122,7 +124,7 @@ export default class PathFinder {
     }
 
     private reconstructPath(cameFrom: Map<string, string>, currentKey: string): Tile[] {
-        const path: Tile[] = [];
+        const rawPath: Tile[] = [];
         while (cameFrom.has(currentKey)) {
             const currentPos = this.getPositionFromKey(currentKey);
             if (!currentPos) {
@@ -131,10 +133,22 @@ export default class PathFinder {
 
             const tile = this.field.getTile(currentPos.row, currentPos.col);
             if (tile) {
-                path.unshift(tile);
+                rawPath.unshift(tile);
                 currentKey = cameFrom.get(currentKey) ?? "";
             }
         }
+
+        // Cells belonging to the same footprint reference the same structure instance. Collapse consecutive
+        // duplicates so movers step from footprint to footprint (using each structure's anchor) rather than
+        // re-targeting the same footprint once per fine cell.
+        const path: Tile[] = [];
+        for (const tile of rawPath) {
+            const previous = path[path.length - 1];
+            if (previous !== tile) {
+                path.push(tile);
+            }
+        }
+
         return path;
     }
 }

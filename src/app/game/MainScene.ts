@@ -172,7 +172,7 @@ export default class MainScene extends Phaser.Scene {
         }
 
         const imageX = tileCenter.x;
-        const imageY = tileCenter.y + (Game.gridParams.cells.height / 2);
+        const imageY = tileCenter.y + (Game.gridParams.footprint.height / 2);
         cursor.asset.setPosition(imageX, imageY);
         this.unhideCursor();
     }
@@ -311,9 +311,9 @@ export default class MainScene extends Phaser.Scene {
 
             image.setRotation(rotation);
         } else {
-            // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the tile
+            // We need to set the Y coordinate as a bottom value for buildings, otherwise tall buildings will be (incorrectly) centralized on the footprint
             const imageX = pixelPosition.x;
-            const imageY = pixelPosition.y + (gridParams.cells.height / 2);
+            const imageY = pixelPosition.y + (gridParams.footprint.height / 2);
             image = this.add.image(imageX, imageY, assetName);
             image.setOrigin(0.5, 1);
         }

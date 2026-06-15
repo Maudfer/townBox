@@ -9,7 +9,7 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import PathFinder from 'game/PathFinder';
 
-import { TilePosition, PixelPosition } from 'types/Position';
+import { PixelPosition } from 'types/Position';
 import { UpdateEvent, BuildEvent } from 'types/Events';
 import { NeighborMap } from 'types/Neighbor';
 import { Tool } from 'types/Cursor';
@@ -44,13 +44,21 @@ export default class Field {
         this.destinations = new Set();
         this.pathFinder = new PathFinder(this);
 
+        // The matrix is the fine tile grid. A structure (soil/road/building) spans a square footprint of
+        // footprintTiles x footprintTiles tiles, and every cell in that footprint references the same instance.
+        const footprintTiles = Game.gridParams.footprint.tiles;
+
         this.matrix = {};
         for (let row = 0; row < this.rows; row++) {
             this.matrix[row] = {};
+        }
 
-            for (let col = 0; col < this.cols; col++) {
-                const tile = new Soil(row, col, "grass");
-                this.matrix[row]![col] = tile;
+        // Fill the world with grass footprints. Each footprint is anchored on its centre tile and stamped across
+        // all of its cells, then drawn once.
+        for (let anchorRow = Math.floor(footprintTiles / 2); anchorRow < this.rows; anchorRow += footprintTiles) {
+            for (let anchorCol = Math.floor(footprintTiles / 2); anchorCol < this.cols; anchorCol += footprintTiles) {
+                const tile = new Soil(anchorRow, anchorCol, "grass");
+                this.stampFootprint(tile);
                 Game.emit("tileSpawned", tile);
             }
         }
@@ -196,25 +204,32 @@ export default class Field {
             return;
         }
 
-        const neighbors = this.getNeighbors(newTile);
+        // Stamp the new structure across its whole footprint, then auto-tile it against its neighbours.
+        this.stampFootprint(newTile);
+        newTile.updateSelfBasedOnNeighbors(this.getNeighbors(newTile));
 
-        this.replaceTile(newTile);
-        neighbors.top && this.replaceTile(neighbors.top);
-        neighbors.bottom && this.replaceTile(neighbors.bottom);
-        neighbors.left && this.replaceTile(neighbors.left);
-        neighbors.right && this.replaceTile(neighbors.right);
+        const footprintParams = Game.gridParams.footprint;
 
         if (newTile instanceof Road) {
-            const cellParams = Game.gridParams.cells;
-            newTile.calculateCurb(cellParams, pixelCenter);
-            newTile.calculateLanes(cellParams, pixelCenter);
-
-            Game.emit("roadBuilt", newTile);
+            newTile.calculateCurb(footprintParams, pixelCenter);
+            newTile.calculateLanes(footprintParams, pixelCenter);
         }
 
         if (newTile instanceof Building) {
-            const cellParams = Game.gridParams.cells;
-            newTile.calculateEntrance(cellParams, pixelCenter);
+            newTile.calculateEntrance(footprintParams, pixelCenter);
+        }
+
+        Game.emit("tileSpawned", newTile);
+
+        // Re-evaluate the neighbouring footprints so adjacent roads update their auto-tiling.
+        const neighbors = this.getNeighbors(newTile);
+        neighbors.top && this.refreshFootprint(neighbors.top);
+        neighbors.bottom && this.refreshFootprint(neighbors.bottom);
+        neighbors.left && this.refreshFootprint(neighbors.left);
+        neighbors.right && this.refreshFootprint(neighbors.right);
+
+        if (newTile instanceof Road) {
+            Game.emit("roadBuilt", newTile);
         }
 
         if (newTile instanceof House) {
@@ -273,59 +288,103 @@ export default class Field {
         return vehicle;
     }
 
-    replaceTile(tile: Tile): void {
-        if (tile === null) {
+    // Stamps a structure across every cell of its footprint and reconciles destinations and any structures it
+    // overwrites. A previously placed structure is only torn down once none of its cells reference it anymore,
+    // which lets footprints partially overlap.
+    stampFootprint(structure: Tile): void {
+        if (structure === null) {
             return;
         }
 
-        const tilePosition: TilePosition = tile.getPosition();
-        if (tilePosition === null) {
+        const footprintTiles = Game.gridParams.footprint.tiles;
+        const cells = structure.getFootprintCells(footprintTiles);
+
+        const overwritten = new Set<Tile>();
+        for (const cell of cells) {
+            if (cell === null || !this.isValidPosition(cell.row, cell.col)) {
+                continue;
+            }
+
+            const existing = this.matrix[cell.row]?.[cell.col];
+            if (existing && existing !== structure) {
+                overwritten.add(existing);
+            }
+
+            this.setTile(cell.row, cell.col, structure);
+        }
+
+        // An address is a structure's anchor cell. Buildings are travel destinations; other structures are not.
+        const anchorKey = structure.getIdentifier();
+        this.destinations.delete(anchorKey);
+        if (structure instanceof Building) {
+            this.destinations.add(anchorKey);
+        }
+
+        for (const previous of overwritten) {
+            if (this.isFootprintOrphaned(previous)) {
+                this.destroyStructure(previous);
+            }
+        }
+    }
+
+    // Re-runs auto-tiling for a structure based on its current neighbours and redraws it if its asset changed.
+    refreshFootprint(structure: Tile): void {
+        if (structure === null) {
             return;
         }
 
-        const { row, col } = tilePosition;
-        const oldTile = this.getTile(row, col);
-        if (oldTile === null) {
-            return;
+        const oldAssetName = structure.getAssetName();
+        structure.updateSelfBasedOnNeighbors(this.getNeighbors(structure));
+
+        if (structure.getAssetName() !== oldAssetName) {
+            Game.emit("tileSpawned", structure);
+        }
+    }
+
+    private isFootprintOrphaned(structure: Tile): boolean {
+        const footprintTiles = Game.gridParams.footprint.tiles;
+        const cells = structure.getFootprintCells(footprintTiles);
+
+        for (const cell of cells) {
+            if (cell === null || !this.isValidPosition(cell.row, cell.col)) {
+                continue;
+            }
+
+            if (this.matrix[cell.row]?.[cell.col] === structure) {
+                return false;
+            }
         }
 
-        const oldAssetName = oldTile.getAssetName();
-        const oldAsset = oldTile.getAsset();
-        const oldDebugText = oldTile.getDebugText();
+        return true;
+    }
 
-        const neighbors = this.getNeighbors(tile);
-        tile.updateSelfBasedOnNeighbors(neighbors);
-
-        if (tile.getAssetName() !== oldAssetName) {
-            if (oldAsset) {
-                oldAsset.destroy();
-            }
-
-            if (oldDebugText) {
-                oldDebugText.destroy();
-            }
-            
-            // Update destinations set with building tiles
-            this.destinations.delete(`${row}-${col}`);
-            if (tile instanceof Building) {
-                this.destinations.add(`${row}-${col}`);
-            }
-
-            this.setTile(row, col, tile);
-            Game.emit("tileSpawned", tile);
+    private destroyStructure(structure: Tile): void {
+        const asset = structure.getAsset();
+        if (asset) {
+            asset.destroy();
         }
 
+        const debugText = structure.getDebugText();
+        if (debugText) {
+            debugText.destroy();
+        }
+
+        this.destinations.delete(structure.getIdentifier());
     }
 
     getNeighbors(tile: Tile): NeighborMap {
         const row = tile.getRow();
         const col = tile.getCol();
 
+        // Neighbouring footprints sit one cell beyond this footprint's edge, i.e. half the footprint plus one
+        // away from the anchor centre.
+        const offset = Math.floor(Game.gridParams.footprint.tiles / 2) + 1;
+
         const neighbors: NeighborMap = {
-            top: this.isValidPosition(row - 1, col) ? this.getTile(row - 1, col) : null,
-            bottom: this.isValidPosition(row + 1, col) ? this.getTile(row + 1, col) : null,
-            left: this.isValidPosition(row, col - 1) ? this.getTile(row, col - 1) : null,
-            right: this.isValidPosition(row, col + 1) ? this.getTile(row, col + 1) : null
+            top: this.isValidPosition(row - offset, col) ? this.getTile(row - offset, col) : null,
+            bottom: this.isValidPosition(row + offset, col) ? this.getTile(row + offset, col) : null,
+            left: this.isValidPosition(row, col - offset) ? this.getTile(row, col - offset) : null,
+            right: this.isValidPosition(row, col + offset) ? this.getTile(row, col + offset) : null
         };
 
         return neighbors;
