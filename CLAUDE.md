@@ -1,6 +1,6 @@
 # TownBox
 
-TownBox is a 2D, top-down city builder prototype built on the **Phaser 3** game engine with a
+TownBox is a 2D, top-down city builder prototype built on the **Phaser 4** game engine with a
 **React 18** powered GUI, written in **TypeScript** and bundled with **Parcel**. It is an
 on-and-off personal project being refactored from a collection of isolated experiments into an
 actual game with a real gameplay loop.
@@ -54,7 +54,7 @@ day/night work commute loop, CI, and test coverage beyond a single travel test.
 
 | Concern        | Choice |
 | -------------- | ------ |
-| Engine         | Phaser `^3.80.1` |
+| Engine         | Phaser `^4.1.0` |
 | UI             | React `^18.3.1` + `react-dom`, windows via `react-rnd` |
 | Language        | TypeScript `^5.4.5` (strict mode, see `tsconfig.json`) |
 | Bundler        | Parcel `^2.12.0` |
