@@ -155,7 +155,7 @@ export default class GameManager {
         if (!this.eventListeners[eventName]) {
             this.eventListeners[eventName] = [];
         }
-        this.eventListeners[eventName].push(handler);
+        this.eventListeners[eventName]?.push(handler);
     }
 
     off<K extends keyof EventPayloads>(eventName: K): void {

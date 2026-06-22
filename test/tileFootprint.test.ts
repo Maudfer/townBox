@@ -2,12 +2,15 @@ import Tile from '../src/app/game/Tile';
 import Soil from '../src/app/game/Soil';
 import Road from '../src/app/game/Road';
 import Building from '../src/app/game/Building';
+import House from '../src/app/game/House';
 import Person from '../src/app/game/Person';
 import PathFinder from '../src/app/game/PathFinder';
 import Field from '../src/app/game/Field';
+import GameManager from '../src/app/game/GameManager';
 
 import { CellParams } from '../src/types/Grid';
 import { TilePosition } from '../src/types/Position';
+import { Tool } from '../src/types/Cursor';
 
 const FOOTPRINT_TILES = 3;
 const FOOTPRINT: CellParams = { width: 48, height: 48 };
@@ -151,3 +154,88 @@ describe('PathFinder operates on the fine grid but returns footprint-level steps
         expect(path).toEqual([roadA, building]);
     });
 });
+
+describe('Placement resolution: road grid snap & building road-side soft-snap', () => {
+    function makeField(rows: number, cols: number): Field {
+        const game = {
+            gridParams: {
+                rows,
+                cols,
+                cells: { width: 16, height: 16 },
+                footprint: { tiles: FOOTPRINT_TILES, width: 48, height: 48 },
+            },
+            emit: () => {},
+            on: () => {},
+            tileToPixelPosition: (position: TilePosition) =>
+                position === null ? null : { x: position.col * 16 + 8, y: position.row * 16 + 8 },
+        } as unknown as GameManager;
+
+        return new Field(game, rows, cols);
+    }
+
+    test('roads snap to the nearest supertile anchor (every 3rd tile)', () => {
+        const field = makeField(15, 15);
+
+        expect(field.snapToRoadGrid({ row: 0, col: 0 })).toEqual({ row: 1, col: 1 });
+        expect(field.snapToRoadGrid({ row: 2, col: 2 })).toEqual({ row: 1, col: 1 });
+        expect(field.snapToRoadGrid({ row: 3, col: 6 })).toEqual({ row: 4, col: 7 });
+        expect(field.snapToRoadGrid({ row: 5, col: 5 })).toEqual({ row: 4, col: 4 });
+        expect(field.snapToRoadGrid({ row: 6, col: 6 })).toEqual({ row: 7, col: 7 });
+    });
+
+    test('road snapping clamps to keep the footprint inside the grid', () => {
+        const field = makeField(15, 15);
+
+        // Last valid anchor on a 15-wide grid is 13 (footprint rows 12-14).
+        expect(field.snapToRoadGrid({ row: 14, col: 14 })).toEqual({ row: 13, col: 13 });
+    });
+
+    test('a building is valid only flush against a road and clear of other structures', () => {
+        const field = makeField(15, 15);
+        field.stampFootprint(new Road(7, 7, null)); // covers rows 6-8, cols 6-8
+
+        expect(field.isValidBuildingPlacement({ row: 10, col: 7 })).toBe(true);  // flush below the road
+        expect(field.isValidBuildingPlacement({ row: 7, col: 7 })).toBe(false);  // on top of the road
+        expect(field.isValidBuildingPlacement({ row: 1, col: 1 })).toBe(false);  // not next to any road
+
+        field.stampFootprint(new House(10, 7, 'house')); // occupy the previously valid spot
+        expect(field.isValidBuildingPlacement({ row: 10, col: 7 })).toBe(false); // now overlaps a building
+    });
+
+    test('a building soft-snaps to the nearest road side when the cursor is close', () => {
+        const field = makeField(15, 15);
+        field.stampFootprint(new Road(7, 7, null));
+
+        const overRoad = field.resolveBuildingPlacement({ row: 7, col: 7 });
+
+        expect(overRoad.valid).toBe(true);
+        expect(overRoad.position).not.toEqual({ row: 7, col: 7 });
+        expect(field.isValidBuildingPlacement(overRoad.position)).toBe(true);
+    });
+
+    test('a building placed too far from any road side is invalid at the raw cursor', () => {
+        const field = makeField(21, 21);
+        field.stampFootprint(new Road(10, 10, null));
+
+        const farAway = field.resolveBuildingPlacement({ row: 1, col: 1 });
+
+        expect(farAway.valid).toBe(false);
+        expect(farAway.position).toEqual({ row: 1, col: 1 });
+    });
+
+    test('resolvePlacement routes tools to the right rule', () => {
+        const field = makeField(21, 21);
+        field.stampFootprint(new Road(10, 10, null));
+
+        const road = field.resolvePlacement(Tool.Road, { row: 5, col: 5 });
+        expect(road).toEqual({ position: { row: 4, col: 4 }, valid: true });
+
+        const house = field.resolvePlacement(Tool.House, { row: 1, col: 1 });
+        expect(house.valid).toBe(false);
+
+        // Soil (and other non-snapping tools) are placed as-is.
+        const soil = field.resolvePlacement(Tool.Soil, { row: 1, col: 1 });
+        expect(soil).toEqual({ position: { row: 1, col: 1 }, valid: true });
+    });
+});
+

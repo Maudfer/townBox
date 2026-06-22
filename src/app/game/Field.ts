@@ -9,7 +9,7 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import PathFinder from 'game/PathFinder';
 
-import { PixelPosition } from 'types/Position';
+import { PixelPosition, TilePosition } from 'types/Position';
 import { UpdateEvent, BuildEvent } from 'types/Events';
 import { NeighborMap } from 'types/Neighbor';
 import { Tool } from 'types/Cursor';
@@ -19,6 +19,15 @@ type TileMatrix = {
         [col: number]: Tile;
     };
 };
+
+type PlacementResult = {
+    position: TilePosition;
+    valid: boolean;
+};
+
+// How far (in tiles) the cursor may sit from a valid road-side placement and still soft-snap to it. Beyond this
+// the building placement is considered invalid.
+const BUILDING_SNAP_RADIUS_TILES = 4;
 
 let Game: GameManager;
 
@@ -163,7 +172,21 @@ export default class Field {
     }
 
     build(event: BuildEvent): void {
-        const tilePosition = event.position;
+        let tilePosition = event.position;
+        if (tilePosition === null) {
+            return;
+        }
+
+        // Enforce placement rules authoritatively: roads snap to the supertile grid, and buildings must be a
+        // valid road-side placement (in bounds, not overlapping another structure, flush against a road).
+        if (event.tool === Tool.Road) {
+            tilePosition = this.snapToRoadGrid(tilePosition);
+        } else if (event.tool === Tool.House || event.tool === Tool.Work) {
+            if (!this.isValidBuildingPlacement(tilePosition)) {
+                return;
+            }
+        }
+
         if (tilePosition === null) {
             return;
         }
@@ -372,6 +395,155 @@ export default class Field {
         this.destinations.delete(structure.getIdentifier());
     }
 
+    // Resolves where a structure would actually be placed for the given tool, and whether that placement is
+    // valid. Roads snap to the supertile grid; buildings soft-snap to the nearest road side; everything else is
+    // placed as-is. Both the build preview and the click handler go through this so they always agree.
+    resolvePlacement(tool: Tool, position: TilePosition): PlacementResult {
+        if (position === null) {
+            return { position: null, valid: false };
+        }
+
+        if (tool === Tool.Road) {
+            return { position: this.snapToRoadGrid(position), valid: true };
+        }
+
+        if (tool === Tool.House || tool === Tool.Work) {
+            return this.resolveBuildingPlacement(position);
+        }
+
+        return { position, valid: true };
+    }
+
+    // Snaps a tile position to the nearest supertile anchor (the same anchors the soil grid uses), so roads
+    // always land footprint-aligned and connect/auto-tile correctly.
+    snapToRoadGrid(position: TilePosition): TilePosition {
+        if (position === null) {
+            return null;
+        }
+
+        const footprintTiles = Game.gridParams.footprint.tiles;
+        const half = Math.floor(footprintTiles / 2);
+
+        const snap = (value: number, maxAnchor: number): number => {
+            const index = Math.round((value - half) / footprintTiles);
+            const anchor = (index * footprintTiles) + half;
+            return Math.max(half, Math.min(anchor, maxAnchor));
+        };
+
+        return {
+            row: snap(position.row, this.rows - 1 - half),
+            col: snap(position.col, this.cols - 1 - half),
+        };
+    }
+
+    // A building placement is valid when its whole footprint is in bounds, overlaps no road/building, and is
+    // flush against at least one road side.
+    isValidBuildingPlacement(position: TilePosition): boolean {
+        if (position === null) {
+            return false;
+        }
+
+        const footprintTiles = Game.gridParams.footprint.tiles;
+        const cells = this.footprintCellsAt(position.row, position.col, footprintTiles);
+
+        for (const cell of cells) {
+            if (!this.isValidPosition(cell.row, cell.col)) {
+                return false;
+            }
+
+            const tile = this.getTile(cell.row, cell.col);
+            if (tile instanceof Road || tile instanceof Building) {
+                return false;
+            }
+        }
+
+        return this.isFootprintRoadAdjacent(position.row, position.col, footprintTiles);
+    }
+
+    // Finds the valid road-side placement closest to the cursor within the snap radius. Returns the raw position
+    // (flagged invalid) when there is no road side near enough to snap to.
+    resolveBuildingPlacement(position: TilePosition): PlacementResult {
+        if (position === null) {
+            return { position: null, valid: false };
+        }
+
+        if (this.isValidBuildingPlacement(position)) {
+            return { position, valid: true };
+        }
+
+        const cursorPixel = Game.tileToPixelPosition(position);
+
+        let best: TilePosition = null;
+        let bestDistance = Infinity;
+
+        for (let dr = -BUILDING_SNAP_RADIUS_TILES; dr <= BUILDING_SNAP_RADIUS_TILES; dr++) {
+            for (let dc = -BUILDING_SNAP_RADIUS_TILES; dc <= BUILDING_SNAP_RADIUS_TILES; dc++) {
+                const candidate: TilePosition = { row: position.row + dr, col: position.col + dc };
+                if (!this.isValidBuildingPlacement(candidate)) {
+                    continue;
+                }
+
+                const candidatePixel = Game.tileToPixelPosition(candidate);
+                if (candidatePixel === null || cursorPixel === null) {
+                    continue;
+                }
+
+                const distance = Math.pow(candidatePixel.x - cursorPixel.x, 2) + Math.pow(candidatePixel.y - cursorPixel.y, 2);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    best = candidate;
+                }
+            }
+        }
+
+        if (best !== null) {
+            return { position: best, valid: true };
+        }
+
+        return { position, valid: false };
+    }
+
+    private footprintCellsAt(row: number, col: number, footprintTiles: number): { row: number; col: number }[] {
+        const half = Math.floor(footprintTiles / 2);
+        const cells: { row: number; col: number }[] = [];
+
+        for (let r = row - half; r <= row + half; r++) {
+            for (let c = col - half; c <= col + half; c++) {
+                cells.push({ row: r, col: c });
+            }
+        }
+
+        return cells;
+    }
+
+    // Returns true when at least one cell on the ring just outside the footprint's edges is a road.
+    private isFootprintRoadAdjacent(row: number, col: number, footprintTiles: number): boolean {
+        const half = Math.floor(footprintTiles / 2);
+        const ring: { row: number; col: number }[] = [];
+
+        for (let c = col - half; c <= col + half; c++) {
+            ring.push({ row: row - half - 1, col: c });
+            ring.push({ row: row + half + 1, col: c });
+        }
+
+        for (let r = row - half; r <= row + half; r++) {
+            ring.push({ row: r, col: col - half - 1 });
+            ring.push({ row: r, col: col + half + 1 });
+        }
+
+        for (const cell of ring) {
+            if (!this.isValidPosition(cell.row, cell.col)) {
+                continue;
+            }
+
+            if (this.getTile(cell.row, cell.col) instanceof Road) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     getNeighbors(tile: Tile): NeighborMap {
         const row = tile.getRow();
         const col = tile.getCol();
@@ -397,25 +569,28 @@ export default class Field {
     }
 
     getTile(row: number, col: number): Tile | null {
-        if (!this.matrix[row]) {
+        const rowEntry = this.matrix[row];
+        if (!rowEntry) {
             console.error(`[Field] Tried to get an invalid row: ${row}`);
             return null;
         }
 
-        if (!this.matrix[row][col]) {
+        const tile = rowEntry[col];
+        if (!tile) {
             console.error(`[Field] Tried to get an invalid col: ${col}`);
             return null;
         }
 
-        return this.matrix[row][col];
+        return tile;
     }
 
     setTile(row: number, col: number, tile: Tile): void {
-        if (!this.matrix[row]) {
+        const rowEntry = this.matrix[row];
+        if (!rowEntry) {
             console.error(`[Field] Tried to set an invalid row: ${row}`);
             return;
         }
-        this.matrix[row][col] = tile;
+        rowEntry[col] = tile;
     }
 
     getRows(): number {

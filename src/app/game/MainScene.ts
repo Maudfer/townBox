@@ -165,7 +165,18 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        const tileCenter = Game.tileToPixelPosition(tilePosition);
+        // Resolve the actual placement (road grid snap / building road-side soft-snap) so the preview always
+        // shows where the structure will land, tinting red when the placement is invalid.
+        const placement = Game.field
+            ? Game.field.resolvePlacement(cursor.tool, tilePosition)
+            : { position: tilePosition, valid: true };
+
+        if (placement.position === null) {
+            this.hideCursor();
+            return;
+        }
+
+        const tileCenter = Game.tileToPixelPosition(placement.position);
         if (tileCenter === null) {
             this.hideCursor();
             return;
@@ -174,6 +185,13 @@ export default class MainScene extends Phaser.Scene {
         const imageX = tileCenter.x;
         const imageY = tileCenter.y + (Game.gridParams.footprint.height / 2);
         cursor.asset.setPosition(imageX, imageY);
+
+        if (placement.valid) {
+            cursor.asset.clearTint();
+        } else {
+            cursor.asset.setTint(0xff0000);
+        }
+
         this.unhideCursor();
     }
 
@@ -195,7 +213,17 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        Game.emit("tileClicked", { position: tilePosition, tool: cursor.tool });
+        // Place at the same resolved position the preview shows, and ignore the click when the placement is
+        // invalid (e.g. a building too far from a road side or on top of another structure).
+        const placement = Game.field
+            ? Game.field.resolvePlacement(cursor.tool, tilePosition)
+            : { position: tilePosition, valid: true };
+
+        if (!placement.valid || placement.position === null) {
+            return;
+        }
+
+        Game.emit("tileClicked", { position: placement.position, tool: cursor.tool });
     }
 
     getCursor(): Cursor {
