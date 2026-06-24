@@ -136,6 +136,7 @@ export default class SaveManager {
             people: peopleSnapshots,
             vehicles: vehicleSnapshots,
             families,
+            population: this.game.population?.getState(),
         };
     }
 
@@ -253,6 +254,11 @@ export default class SaveManager {
 
         city.setName(snapshot.city.name);
         city.setPopulation(snapshot.city.population);
+
+        // Genealogy pool (v2+). v1 saves carry none; the pool simply stays empty.
+        if (snapshot.population) {
+            this.game.population?.loadState(snapshot.population);
+        }
 
         // Structures first, so houses/workplaces exist to be referenced by people and families.
         const structureByKey = new Map<string, Tile>();

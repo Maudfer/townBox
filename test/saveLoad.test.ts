@@ -6,6 +6,7 @@ import Workplace from '../src/app/game/Workplace';
 import Family from '../src/app/game/Family';
 import GameManager from '../src/app/game/GameManager';
 import City from '../src/app/game/City';
+import Population from '../src/app/game/Population';
 
 import { SaveProvider } from '../src/app/game/save/SaveProvider';
 import { encodeBase64, decodeBase64 } from '../src/util/base64';
@@ -43,11 +44,13 @@ function makeCity(): City {
     return city as unknown as City;
 }
 
-function makeWorld(rows: number, cols: number): { game: GameManager; field: Field; city: City } {
+function makeWorld(rows: number, cols: number): { game: GameManager; field: Field; city: City; population: Population } {
     const city = makeCity();
+    const population = new Population();
     const game = {
         field: null,
         city,
+        population,
         gridParams: {
             rows,
             cols,
@@ -75,7 +78,7 @@ function makeWorld(rows: number, cols: number): { game: GameManager; field: Fiel
     const field = new Field(game, rows, cols);
     (game as unknown as { field: Field }).field = field;
 
-    return { game, field, city };
+    return { game, field, city, population };
 }
 
 describe('base64 codec', () => {
@@ -93,6 +96,24 @@ describe('SaveManager round-trip', () => {
         const source = makeWorld(15, 15);
         source.city.setName('Testville');
         source.city.setPopulation(2);
+
+        // A small genealogy pool to prove it round-trips through the save.
+        source.population.generate(99, {
+            ticksPerYear: 360,
+            founderCouples: 10,
+            generations: 2,
+            childDistribution: [0.1, 0.3, 0.4, 0.2],
+            pairingProbability: 0.8,
+            immigrantSpouseProbability: 0.4,
+            spouseMaxAgeGapYears: 12,
+            parentMinAgeYears: 20,
+            parentMaxAgeYears: 42,
+            generationGapYears: 31,
+            lifespanMeanYears: 78,
+            lifespanSpreadYears: 16,
+            maxPopulation: 2000,
+        });
+        expect(source.population.size()).toBeGreaterThan(0);
 
         const house = source.field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
         source.field.loadStructure('road', 7, 7, 'road_1100');
@@ -178,6 +199,10 @@ describe('SaveManager round-trip', () => {
         expect(restoredFamily!.familyName).toBe('Silva');
         expect(restoredFamily!.members).toHaveLength(2);
         expect((restoredHouse as House).getResidents()).toHaveLength(2);
+
+        // Genealogy pool survives the round-trip intact.
+        expect(restored.population.size()).toBe(source.population.size());
+        expect(restored.population.getState()).toEqual(source.population.getState());
     });
 
     test('load returns false when the slot is empty', async () => {

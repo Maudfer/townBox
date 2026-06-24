@@ -1,9 +1,11 @@
 import { Direction } from 'types/Movement';
 import { Gender, Relationships } from 'types/Social';
 import { JobPosition, JobRequirements } from 'types/Work';
+import { PopulationState } from 'types/Genealogy';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
-export const SAVE_VERSION = 1;
+// v1 → v2: added the genealogy `population` pool. v1 saves load with an empty pool (no migration synthesis yet).
+export const SAVE_VERSION = 2;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -72,4 +74,6 @@ export interface WorldSnapshot {
     people: PersonSnapshot[];
     vehicles: VehicleSnapshot[];
     families: FamilySnapshot[];
+    // The genealogy pool (v2+). Optional so v1 saves still parse; absent on legacy saves.
+    population?: PopulationState;
 }
