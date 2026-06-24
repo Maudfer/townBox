@@ -423,3 +423,36 @@ Each is independently mergeable and unit-tested. *Not created until this proposa
    still reproducible per save)?
 6. **`age` removal.** Confirm replacing stored `age` with `birthTick`-derived age is acceptable before
    the clock (`005`) exists (interim fixed epoch).
+
+## 11. Decisions (maintainer, 2026-06-24)
+
+The open questions are resolved as follows; the proposal above is to be read with these in force.
+
+1. **Pool size budget → ~10k+ records with compression.** Target a rich, multi-generation population
+   (~10k+ individuals across living + deceased). The `SaveProvider` gains **compression** (e.g.
+   gzip/deflate of the JSON before base64) so the snapshot stays manageable in `localStorage`.
+   `004b` owns the compression step; coordinate with the merged save model in `types/Save.ts`.
+2. **Static vs. living → living simulation from the start.** The pool **keeps simulating** births,
+   deaths, and marriages during gameplay, not just at new-save. This is the truest hard-simulation
+   model. **Consequence:** the live simulation is driven by in-game time, so `004d` (aging/death over
+   time) is **core, not optional**, and is **gated on the clock (`005`)**. Implementation therefore
+   sequences the **clock-independent foundation first** (data model, seeded RNG, pure kinship, pool
+   generation with synthetic past ticks) and wires the live tick-driven simulation once `005` lands.
+3. **`Family` → folded into `Household` + derived kinship.** The `Family` object is retired; "family"
+   is a pure query over the parent graph (`util/kinship`). `Household` is the only stored
+   living-arrangement concept. `Family.getFamilyTree`/`FamilySnapshot` are replaced by derived
+   equivalents (§7, §8).
+4. **Pool exhaustion → generate immigrants on demand.** When the unplaced-living pool is exhausted,
+   deterministically spawn an immigrant mini-family from the seeded RNG stream; placement never blocks.
+5. **Determinism vs. player order (Q5) → accepted.** Draws depend on placement order; the world stays
+   reproducible per save (the draw RNG stream is serialized). No further action.
+6. **`age` removal (Q6) → accepted.** Stored `age` is replaced by `birthTick`-derived age; an interim
+   fixed epoch (tick 0) is used until the clock (`005`) exists.
+
+### Implementation note (this branch)
+
+Per maintainer direction, implementation proceeds on this same branch
+(`task/household-generation-redesign`) rather than separate per-phase branches. Work starts with the
+**clock-independent foundation (004a: `types/Genealogy.ts`, `types/Household.ts`, `util/random.ts`,
+`util/kinship.ts`, fully unit-tested)** and builds outward; the live tick-driven simulation (Q2)
+follows once the clock (`005`) is available.
