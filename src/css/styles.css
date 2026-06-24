@@ -241,6 +241,23 @@ canvas {
     font-size: 14px;
 }
 
+.clock-widget {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #f0f7ee;
+    font-family: system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    border: 1px solid #274041;
+    box-shadow: 0 3px 12px #0000008c;
+    pointer-events: none;
+    z-index: 1000;
+}
+
 .toasts {
     position: absolute;
     top: 20px;

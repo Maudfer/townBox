@@ -6,6 +6,7 @@ import Workplace from '../src/app/game/Workplace';
 import GameManager from '../src/app/game/GameManager';
 import City from '../src/app/game/City';
 import Population from '../src/app/game/Population';
+import Clock from '../src/app/game/Clock';
 
 import { HouseholdArrangements } from '../src/types/Household';
 
@@ -45,13 +46,15 @@ function makeCity(): City {
     return city as unknown as City;
 }
 
-function makeWorld(rows: number, cols: number): { game: GameManager; field: Field; city: City; population: Population } {
+function makeWorld(rows: number, cols: number): { game: GameManager; field: Field; city: City; population: Population; clock: Clock } {
     const city = makeCity();
     const population = new Population();
+    const clock = new Clock();
     const game = {
         field: null,
         city,
         population,
+        clock,
         gridParams: {
             rows,
             cols,
@@ -79,7 +82,7 @@ function makeWorld(rows: number, cols: number): { game: GameManager; field: Fiel
     const field = new Field(game, rows, cols);
     (game as unknown as { field: Field }).field = field;
 
-    return { game, field, city, population };
+    return { game, field, city, population, clock };
 }
 
 describe('base64 codec', () => {
@@ -116,6 +119,9 @@ describe('SaveManager round-trip', () => {
         });
         expect(source.population.size()).toBeGreaterThan(0);
 
+        // Clock advanced to a known time.
+        source.clock.setElapsedMs(5 * 3_600_000 + 1_800_000); // 5.5 in-game days
+
         const house = source.field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
         source.field.loadStructure('road', 7, 7, 'road_1100');
         source.field.loadStructure('work', 10, 10, 'building_1x1x2_2') as Workplace;
@@ -126,7 +132,7 @@ describe('SaveManager round-trip', () => {
         parent.social.setAge(40);
         parent.social.setGender(Genders.Male);
         parent.social.setHome(house);
-        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: [JobRequirements.ConstructionSkill] });
+        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: [JobRequirements.ConstructionSkill], shiftStart: 540, shiftEnd: 1020 });
 
         const child = source.field.loadPerson(72, 60);
         child.social.setFirstName('Cleo');
@@ -207,6 +213,10 @@ describe('SaveManager round-trip', () => {
         // Genealogy pool survives the round-trip intact.
         expect(restored.population.size()).toBe(source.population.size());
         expect(restored.population.getState()).toEqual(source.population.getState());
+
+        // Clock state survives the round-trip.
+        expect(restored.clock.getElapsedMs()).toBe(source.clock.getElapsedMs());
+        expect(restored.clock.getTimestamp().absoluteDay).toBe(5);
     });
 
     test('load returns false when the slot is empty', async () => {

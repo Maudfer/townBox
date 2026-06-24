@@ -1,16 +1,26 @@
 import Person from 'game/Person';
 import House from 'game/House';
+import Clock from 'game/Clock';
 
 import { Gender, Genders, Relationship, Relationships, RelationshipMap, SocialInfo } from 'types/Social';
 
 type Home = House | null;
 
 export default class SocialLife {
+    // The clock is shared by all SocialLife views so age can derive from the live in-game date without each
+    // person holding a GameManager/scene reference. Set once by GameManager when the clock is created.
+    private static clock: Clock | null = null;
+
+    static setClock(clock: Clock | null): void {
+        SocialLife.clock = clock;
+    }
+
     private home: Home;
 
     private firstName: string;
     private familyName: string;
     private age: number;
+    private birthTick: number | null;
     private gender: Gender;
 
     private relationships: RelationshipMap;
@@ -21,6 +31,7 @@ export default class SocialLife {
         this.firstName = "";
         this.familyName = "";
         this.age = -1;
+        this.birthTick = null;
         this.gender = Genders.Male;
 
         this.relationships = {};
@@ -118,11 +129,26 @@ export default class SocialLife {
         this.age = age;
     }
 
+    setBirthTick(birthTick: number | null): void {
+        this.birthTick = birthTick;
+    }
+
+    getBirthTick(): number | null {
+        return this.birthTick;
+    }
+
     setGender(gender: Gender): void {
         this.gender = gender;
     }
 
+    // Age derives from the live clock when this person is backed by a genealogy birthTick; otherwise it
+    // falls back to the stored age (e.g. manually created/test people without a birthTick).
     getAge(): number {
+        if (this.birthTick !== null && SocialLife.clock) {
+            const ticksPerYear = SocialLife.clock.getTicksPerYear();
+            const age = Math.floor((SocialLife.clock.getCurrentTick() - this.birthTick) / ticksPerYear);
+            return Math.max(0, age);
+        }
         return this.age;
     }
 

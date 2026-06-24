@@ -12,7 +12,8 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 
 - **Tile-based world.** A 384×384 grid of fine tiles (16×16 px each). You can paint **roads**, **soil/grass**, **houses**, and generic **work** buildings onto the grid with the mouse. Roads auto-tile based on their neighbors. Each structure occupies a **3×3 footprint** of tiles (the legacy single 48 px tile, now subdivided), centered on the hovered tile. **Roads snap to a fixed 3×3 supertile grid** (every 3rd tile) so they always connect correctly; **buildings keep finer placement but must sit flush against a road side** (they soft-snap to the nearest road side and can't overlap roads or other buildings — invalid spots preview in red).
 - **Tall buildings.** Some building sprites are visually taller than their footprint (e.g. `1x1x2`). The sprite is bottom-anchored so it extends upward, but its footprint is a 3×3 block of tiles. A depth (z-order) system makes people and cars correctly render **in front of** a tall building when they are below it, and **behind** it when they are above it.
-- **Population & households.** A new save generates a deterministic **population pool**: thousands of `GenPerson` records across generations (mostly deceased ancestors plus a living cohort) carrying parents, partnerships, and birth/death ticks. Placing a **house** draws a coherent **household** — a *living arrangement* (nuclear family, single occupant, adult siblings, multigenerational, a minor living with a guardian because the parents are deceased, or unrelated roommates) — from that pool and materializes its living members into `Person`s. Family trees span households because everyone shares one genealogy. Kinship and age are derived from the pool, not stored. (Aging/death **over time** is not yet wired — ages are read at a fixed present epoch until the clock system lands.)
+- **Population & households.** A new save generates a deterministic **population pool**: thousands of `GenPerson` records across generations (mostly deceased ancestors plus a living cohort) carrying parents, partnerships, and birth/death ticks. Placing a **house** draws a coherent **household** — a *living arrangement* (nuclear family, single occupant, adult siblings, multigenerational, a minor living with a guardian because the parents are deceased, or unrelated roommates) — from that pool and materializes its living members into `Person`s. Family trees span households because everyone shares one genealogy. Kinship and age are derived from the pool, not stored — and **age now tracks the in-game clock** (people get older as time passes). Births and deaths *over time* (004d) are still not simulated.
+- **Clock & calendar.** In-game time advances from the frame loop: **1 in-game day = 1 real hour**, on a regular 30-day-month / 12-month-year (360-day) calendar counting from **Year 1**. A `Clock` is the single source of time; the HUD shows a live date/time widget, `timeChanged`/`newDay` events fan out on the bus, jobs carry shift start/end times, and the clock state is saved. The clock's day index is the genealogy tick (so the pool and ages stay consistent).
 - **People.** `Person`s have a `SocialLife` (relationships, home, name, age, gender) and a `WorkLife` (a job and a list of skills). People can walk on sidewalks, cross roads, and be marked as "indoors" (hidden) when inside a building.
 - **Vehicles.** Test cars can be spawned on the street and will pick **random** building destinations and drive there, following proper lanes.
 - **Pathfinding.** A shared A* pathfinder routes both people and cars over the road network. Roads expose **waypoints** — *curb* points (for pedestrians) and *lane* points (for vehicles) — so people walk sidewalks/crosswalks and cars stay in their lane.
@@ -21,7 +22,7 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-What does **not** exist yet: a clock/time system, business generation, a day/night work commute loop, and CI.
+What does **not** exist yet: business generation, a day/night work commute loop, the live births/deaths/aging simulation over time (004d), and CI.
 
 ---
 
@@ -84,6 +85,7 @@ src/
       PathFinder.ts       # A* over the tile grid (roads + destination tiles)
       Population.ts       # Genealogy pool: deterministic generation + state holder
       HouseholdDraw.ts    # Draws a coherent living household from the pool (+ immigrant fallback)
+      Clock.ts            # Single source of in-game time; advances from "update", derives the calendar
       SocialLife.ts       # Per-person relationships, home, identity
       WorkLife.ts         # Per-person job + skills
       City.ts             # City name, population, wires "houseBuilt" -> household draw + materialize
@@ -95,6 +97,7 @@ src/
       Hud.tsx             # Window manager; HouseSelected windows, save/load toasts, Ctrl+S, hudReady
       Toolbar.tsx         # Toolbar (save button wired; others not yet)
       Toasts.tsx          # Transient save/load toast notifications
+      Clock.tsx           # Persistent date/time widget (reads the timeChanged event)
       Window.tsx          # Generic draggable/resizable window (react-rnd)
       d3/familyTree.ts    # D3 force-directed family tree renderer
       windows/HouseDetails.tsx  # Window showing a household's family tree
@@ -108,9 +111,9 @@ src/
     toolAssets.json       # Tool -> default sprite key
     population.json       # Genealogy pool generation params (founders, generations, lifespans, …)
     householdDraw.json    # Household draw params (arrangement weights, adult age, …)
-  types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position,
-                          # Save, Social, Genealogy, Household, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
-  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts, familyGraph.ts
+  types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position, Save,
+                          # Social, Genealogy, Household, Time, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
+  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts, familyGraph.ts, time.ts
 test/
   personTravel.test.ts    # Person travel state-machine test
   tileFootprint.test.ts   # 3x3 footprint, depth, pathfinding, placement tests
@@ -137,7 +140,7 @@ test/
 - `emit(event, payload)` — async, fans out to all handlers (`Promise.all`).
 - `emitSingle(event, payload)` — async, expects exactly **one** handler and returns its result (used when a caller needs a return value, e.g. spawning a person and getting the instance back).
 
-All event names and payload types are declared in `types/Events.ts` (`EventPayloads`). Current events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`, `personSpawnRequest`, `vehicleSpawnRequest`, `houseBuilt`, `tileSpawned`, `personSpawned`, `vehicleSpawned`, `roadBuilt`, `windowDragStart`, `windowDragStop`, `HouseSelected`, `hudReady`, `saveGameRequest`, `gameSaved`, `saveFailed`, `gameLoaded`, `loadFailed`.
+All event names and payload types are declared in `types/Events.ts` (`EventPayloads`). Current events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`, `personSpawnRequest`, `vehicleSpawnRequest`, `houseBuilt`, `tileSpawned`, `personSpawned`, `vehicleSpawned`, `roadBuilt`, `windowDragStart`, `windowDragStop`, `HouseSelected`, `hudReady`, `saveGameRequest`, `gameSaved`, `saveFailed`, `gameLoaded`, `loadFailed`, `timeChanged`, `newDay`.
 
 > When adding a new cross-system signal, add it to `EventPayloads` first, then wire handlers.
 
@@ -187,7 +190,7 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 - **Population pool (source of truth).** `Population` (`game/Population.ts`) holds a serializable `PopulationState` (`types/Genealogy.ts`): a flat table of `GenPerson` records — identity, gender, `birthTick`/`deathTick`, parents, and partnerships — spanning many generations (mostly deceased ancestors plus a living cohort). It is generated deterministically at new-save time by the pure `generatePopulation(seed, params)` (seeded via `util/random.ts`; params in `json/population.json`) and serialized into the save. Kinship (siblings, grandparents, uncles/aunts, nieces/nephews, cousins) and age are **derived on demand** by pure functions in `util/kinship.ts`, never stored.
 - **Households (living arrangements).** A `Household` (`types/Household.ts`) is a *living arrangement* distinct from bloodline. `HouseholdDraw.selectHousehold()` (`game/HouseholdDraw.ts`) draws a coherent living group from the pool by arrangement (nuclear, single, siblings, multigenerational, guardianship, roommates), only ever selecting living, unplaced people, respecting house capacity, never reusing anyone, and generating an immigrant family when the unplaced-living pool is exhausted. The draw is deterministic (a persisted RNG stream); params live in `json/householdDraw.json`.
 - `City.setupHousehold()` runs on `houseBuilt`: it calls `Population.drawHousehold()`, **materializes** each drawn living person into a `Person` bound to the house (via `personSpawnRequest`), mirrors the pool's kinship onto the materialized residents (so the family-tree window renders), records the `Household` on the house, and adds the residents to the city population.
-- **Time/death caveat.** `deathTick` makes death representable in the data (enabling scenarios like "lives with a sibling because the parents are deceased"), but aging/death **over time** is not yet wired — ages are read at a fixed present epoch (`tick 0`) until the clock system (task 005) lands.
+- **Time/death.** Age derives from `birthTick` against the live `Clock` (`SocialLife.getAge()`), so people age as in-game time passes; the household draw uses `clock.getCurrentTick()` so composition matches the date. `deathTick` makes death representable in the data (enabling scenarios like "lives with a sibling because the parents are deceased"), but the *simulation* of births/deaths over time (004d) is not yet wired — the pool is static once generated.
 - `SocialLife` stores a `RelationshipMap` (some relationships single-valued, some arrays), the person's `home`, and identity, populated on the materialized residents. `WorkLife` stores a job and skills (defaults to one `ConstructionSkill`).
 - Relationship enums and maps live in `types/Social.ts`; genealogy/household types in `types/Genealogy.ts` / `types/Household.ts`; jobs/skills in `types/Work.ts`.
 
@@ -206,11 +209,18 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.11 Save / load (`game/save/`)
 
-- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `2`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v1` saves still load (with an empty pool). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
-- **Genealogy:** the whole `population` pool (`PopulationState`) and the `Household` records are serialized; both reference pool people by stable id, so households and cross-household genealogy restore intact.
+- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `3`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v3` added `clock` state. Older saves still load (empty pool / clock at the epoch). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
+- **Genealogy & clock:** the whole `population` pool (`PopulationState`), the `Household` records, and the `clock` (elapsed ms) are serialized; pool/household ids are stable, so households, cross-household genealogy, and the current date/time restore intact.
 - **Provider abstraction:** `SaveProvider` (`save`/`load`/`list`/`delete` over the payload string) with `LocalStorageProvider` today; swapping providers is a single change in `SaveManager`'s constructor.
 - **`SaveManager`** (`game/save/SaveManager.ts`) builds the snapshot from `Field`/`City`/`Population` and restores it. Only roads & buildings are serialized (soil is the implicit grass default); loads apply over a fresh field via `Field.loadStructure`/`loadPerson`/`loadVehicle`, which redraw through the normal `tileSpawned`/`personSpawned`/`vehicleSpawned` events but **never** emit `houseBuilt` (so loading doesn't redraw households). Restore is two-pass: create everything, then relink the graph (relationships, home, household, ownership). In-flight travel is reset to idle on load.
 - **Flow & events:** the HUD triggers saves via the `saveGameRequest` event (toolbar button / `Ctrl+S`) and renders toasts from `gameSaved`/`gameLoaded`/`saveFailed`/`loadFailed`. The HUD emits `hudReady` once its listeners are registered; `GameManager` applies a queued load (title-screen load or `config.debug.autoLoad`) only then, so toasts are never missed. Auto-load (`json/config.json` → `debug.autoLoad.{enabled,save}`) skips the splash and boots straight into the embedded save.
+
+### 4.12 Clock & calendar (`game/Clock.ts`, `util/time.ts`)
+
+- **Scale & calendar:** **1 in-game day = 1 real hour** (`MS_PER_IN_GAME_DAY`). The calendar is a regular **30-day month / 12-month year = 360 days/year** (`DAYS_PER_YEAR`), counting from **Year 1**. Time math lives in pure functions in `util/time.ts` (`timestampFromElapsed`, `absoluteDayFromElapsed`, `formatTimestamp`), unit-tested without Phaser.
+- **Single source of truth:** `Clock` (`game/Clock.ts`) accumulates elapsed real time (`advance` is the only mutator) and derives everything. `GameManager` owns it (`game.clock`), advances it from the `update` event, and emits `timeChanged` (once per in-game minute) and `newDay` (per rollover), each carrying the current `tick`. Other systems read the clock; they don't re-derive time.
+- **Genealogy contract:** `getCurrentTick()` is the absolute in-game day index — the canonical **genealogy tick** — and `getTicksPerYear()` equals `DAYS_PER_YEAR`, which must match `json/population.json`'s `ticksPerYear`. `SocialLife` holds a shared `Clock` (set by `GameManager`) so `getAge()` derives from `birthTick` live; `City`'s household draw and the family-tree window read `clock.getCurrentTick()`.
+- **Jobs:** `JobPosition` carries `shiftStart`/`shiftEnd` (minutes since midnight); seeded `Workplace` jobs default to 09:00–17:00. The day-rollover signal and shift times are what the commute (006) and the future life-event simulation (004d) hook into.
 
 ---
 

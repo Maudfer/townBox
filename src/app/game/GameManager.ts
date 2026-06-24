@@ -6,10 +6,12 @@ import DebugTools from 'game/DebugTools';
 
 import City from './City';
 import Population from 'game/Population';
+import Clock from 'game/Clock';
+import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
 
 import { EventListeners, Handler } from 'types/EventListener';
-import { EventPayloads } from 'types/Events';
+import { EventPayloads, UpdateEvent } from 'types/Events';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { Toolbelt } from 'types/Cursor';
@@ -25,6 +27,11 @@ export default class GameManager {
     public field: Field | null;
     public city: City | null;
     public population: Population | null;
+    public clock: Clock | null;
+
+    // Last emitted time markers, so time events fire only on actual change (not every frame).
+    private lastTickEmitted: number;
+    private lastMinuteEmitted: number;
 
     public gridParams: GridParams;
     public toolbelt: Toolbelt;
@@ -89,6 +96,9 @@ export default class GameManager {
         this.field = null;
         this.city = null;
         this.population = null;
+        this.clock = null;
+        this.lastTickEmitted = -1;
+        this.lastMinuteEmitted = -1;
 
         this.saveManager = new SaveManager(this);
         this.pendingLoad = null;
@@ -127,6 +137,11 @@ export default class GameManager {
                 this.on("roadBuilt", { callback: debugTools.drawRoadLanes, context: this });
             }
 
+            // Clock first: it is the single source of in-game time, read by the genealogy (via SocialLife)
+            // and the household draw. A load restores its elapsed time during deserialize.
+            this.clock = new Clock();
+            SocialLife.setClock(this.clock);
+
             this.field = new Field(this, fieldParams.rows, fieldParams.cols);
             this.city = new City(this);
 
@@ -146,6 +161,38 @@ export default class GameManager {
         // (title-screen load or debug auto-load) so success/error toasts are never missed.
         this.on("hudReady", { callback: this.applyPendingLoad, context: this });
         this.on("saveGameRequest", { callback: this.handleSaveRequest, context: this });
+        this.on("update", { callback: this.advanceTime, context: this });
+    }
+
+    // Advances the clock from the frame delta and emits time signals only when they actually change:
+    // `timeChanged` once per in-game minute (the HUD's display granularity) and `newDay` on each rollover.
+    private advanceTime(payload: UpdateEvent): void {
+        if (!this.clock) {
+            return;
+        }
+        this.clock.advance(payload.timeDelta);
+
+        const timestamp = this.clock.getTimestamp();
+        const minuteOfDay = timestamp.hour * 60 + timestamp.minute;
+
+        if (timestamp.absoluteDay !== this.lastTickEmitted) {
+            this.lastTickEmitted = timestamp.absoluteDay;
+            this.emit("newDay", { timestamp, tick: timestamp.absoluteDay });
+        }
+        if (minuteOfDay !== this.lastMinuteEmitted) {
+            this.lastMinuteEmitted = minuteOfDay;
+            this.emit("timeChanged", { timestamp, tick: timestamp.absoluteDay });
+        }
+    }
+
+    // After a load jumps the clock, reset the change markers so we don't spuriously emit a rollover.
+    private resyncTimeTracking(): void {
+        if (!this.clock) {
+            return;
+        }
+        const timestamp = this.clock.getTimestamp();
+        this.lastTickEmitted = timestamp.absoluteDay;
+        this.lastMinuteEmitted = timestamp.hour * 60 + timestamp.minute;
     }
 
     private async handleSaveRequest(): Promise<void> {
@@ -167,7 +214,12 @@ export default class GameManager {
 
         try {
             this.saveManager.deserialize(data);
+            this.resyncTimeTracking();
             this.emit("gameLoaded");
+            if (this.clock) {
+                const timestamp = this.clock.getTimestamp();
+                this.emit("timeChanged", { timestamp, tick: timestamp.absoluteDay });
+            }
         } catch (error) {
             console.error("[GameManager] Load failed:", error);
             this.emit("loadFailed", error instanceof Error ? error.message : "Unknown error");

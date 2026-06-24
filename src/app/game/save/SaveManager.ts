@@ -131,6 +131,7 @@ export default class SaveManager {
             vehicles: vehicleSnapshots,
             households,
             population: this.game.population?.getState(),
+            clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
         };
     }
 
@@ -207,6 +208,7 @@ export default class SaveManager {
             firstName: info.firstName,
             familyName: info.familyName,
             age: info.age,
+            birthTick: person.social.getBirthTick(),
             gender: info.gender,
             homeId: home ? home.getIdentifier() : null,
             relationships,
@@ -252,6 +254,11 @@ export default class SaveManager {
             this.game.population?.loadState(snapshot.population);
         }
 
+        // Clock (v3+). Older saves carry none; the clock stays at the epoch.
+        if (snapshot.clock) {
+            this.game.clock?.setElapsedMs(snapshot.clock.elapsedMs);
+        }
+
         // Structures first, so houses/workplaces exist to be referenced by people and families.
         const structureByKey = new Map<string, Tile>();
         for (const structureSnapshot of snapshot.structures) {
@@ -281,6 +288,7 @@ export default class SaveManager {
             person.social.setFirstName(personSnapshot.firstName);
             person.social.setFamilyName(personSnapshot.familyName);
             person.social.setAge(personSnapshot.age);
+            person.social.setBirthTick(personSnapshot.birthTick);
             person.social.setGender(personSnapshot.gender);
             if (personSnapshot.job) {
                 person.work.setJob(personSnapshot.job);

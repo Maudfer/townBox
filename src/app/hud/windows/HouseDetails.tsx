@@ -8,7 +8,6 @@ import { createFamilyTree } from 'hud/d3/familyTree';
 import { buildGenealogyTree } from 'util/familyGraph';
 
 const TREE_DEPTH = 2;
-const CURRENT_TICK = 0;
 
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
 import { FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
@@ -63,7 +62,8 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         const currentHousehold = house.getHousehold();
         if (population && currentHousehold && currentHousehold.memberIds.length) {
             const placed = new Set(population.getState().placedIds);
-            setFamilyTree(buildGenealogyTree(population.getPeople(), currentHousehold.memberIds, CURRENT_TICK, placed, TREE_DEPTH));
+            const currentTick = game?.clock?.getCurrentTick() ?? 0;
+            setFamilyTree(buildGenealogyTree(population.getPeople(), currentHousehold.memberIds, currentTick, placed, TREE_DEPTH));
         } else {
             setFamilyTree(house.getFamilyTree());
         }
