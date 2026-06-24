@@ -41,3 +41,23 @@ export interface PopulationState {
     people: PersonTable;
     drawSeed: number;
 }
+
+// Tunable inputs to the deterministic pool generator (src/json/population.json). All time spans are in
+// years and converted to ticks via `ticksPerYear` (the canonical genealogy tick = one in-game day; see
+// docs/tasks/005-clock-and-calendar-system.md Requirement 8). The generator anchors the present at tick 0,
+// so ancestors carry negative birthTicks.
+export interface PopulationParams {
+    ticksPerYear: number;
+    founderCouples: number;
+    generations: number;
+    childDistribution: number[]; // probability weights for 0, 1, 2, … children per couple
+    pairingProbability: number; // chance an eligible adult seeks a partner each generation
+    immigrantSpouseProbability: number; // chance an unpaired adult gets a fresh (parentless) spouse
+    spouseMaxAgeGapYears: number;
+    parentMinAgeYears: number;
+    parentMaxAgeYears: number;
+    generationGapYears: number; // average parent age at a child's birth; anchors founder birth dates
+    lifespanMeanYears: number;
+    lifespanSpreadYears: number;
+    maxPopulation: number; // hard cap so generation always terminates
+}
