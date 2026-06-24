@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import Toolbar from 'hud/Toolbar';
 import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
+import Clock from 'hud/Clock';
 import HouseDetails from 'hud/windows/HouseDetails';
 import House from 'game/House';
 
@@ -128,6 +129,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
                 </Window>
             */}
 
+            <Clock game={game} />
             <Toolbar game={game} />
             <Toasts toasts={toasts} />
         </div>

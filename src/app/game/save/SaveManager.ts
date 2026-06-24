@@ -205,6 +205,7 @@ export default class SaveManager {
             y: position?.y ?? 0,
             direction: person.getDirection(),
             indoors: person.isIndoors(),
+            personId: person.social.getPersonId(),
             firstName: info.firstName,
             familyName: info.familyName,
             age: info.age,
@@ -289,6 +290,7 @@ export default class SaveManager {
             person.social.setFamilyName(personSnapshot.familyName);
             person.social.setAge(personSnapshot.age);
             person.social.setBirthTick(personSnapshot.birthTick);
+            person.social.setPersonId(personSnapshot.personId);
             person.social.setGender(personSnapshot.gender);
             if (personSnapshot.job) {
                 person.work.setJob(personSnapshot.job);

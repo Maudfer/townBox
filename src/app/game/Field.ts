@@ -607,6 +607,16 @@ export default class Field {
         return this.people;
     }
 
+    // Despawns a person: destroys its sprite and drops it from the update list. Used when a resident dies.
+    removePerson(person: Person): void {
+        const index = this.people.indexOf(person);
+        if (index === -1) {
+            return;
+        }
+        this.people.splice(index, 1);
+        person.getAsset()?.destroy();
+    }
+
     getVehicles(): Vehicle[] {
         return this.vehicles;
     }

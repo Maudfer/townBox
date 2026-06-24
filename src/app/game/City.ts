@@ -9,6 +9,7 @@ import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { ageAt, relationshipLabel } from 'util/kinship';
 import { Household } from 'types/Household';
 import { PersonId } from 'types/Genealogy';
+import { NewDayEvent } from 'types/Time';
 
 let Game: GameManager;
 
@@ -24,6 +25,7 @@ export default class City {
         this.population = 0;
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
+        Game.on("newDay", { callback: this.handleNewDay, context: this });
         console.log('City created:', this.name);
     }
 
@@ -79,8 +81,9 @@ export default class City {
             person.social.setHome(house);
             const age = ageAt(genPerson, currentTick, ticksPerYear);
             person.setupCitizenship(genPerson.firstName, genPerson.familyName, age, genPerson.gender);
-            // Link to the genealogy birthTick so age keeps deriving from the clock as time passes.
+            // Link to the genealogy record so age derives from the clock and deaths can be reconciled later.
             person.social.setBirthTick(genPerson.birthTick);
+            person.social.setPersonId(memberId);
 
             house.addResident(person);
             house.addOccupant(person);
@@ -111,6 +114,47 @@ export default class City {
 
         this.population += personByGenId.size;
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
+    }
+
+    // Advances the living-population simulation each day (it only does work on year rollovers) and reconciles
+    // the world: materialized residents who died are removed from their house, household, and the field.
+    // Public so it is unit-testable; in production it is invoked via the "newDay" event.
+    public handleNewDay(event: NewDayEvent): void {
+        const population = Game.population;
+        const clock = Game.clock;
+        const field = Game.field;
+        if (!population || !clock || !field) {
+            return;
+        }
+
+        const result = population.simulate(event.tick, clock.getTicksPerYear());
+        if (result.died.length === 0) {
+            return;
+        }
+        const dead = new Set(result.died);
+
+        for (const person of [...field.getPeople()]) {
+            const personId = person.social.getPersonId();
+            if (!personId || !dead.has(personId)) {
+                continue;
+            }
+
+            const home = person.social.getHome();
+            if (home) {
+                home.removeResident(person);
+                home.removeOccupant(person);
+                const household = home.getHousehold();
+                if (household) {
+                    household.memberIds = household.memberIds.filter(memberId => memberId !== personId);
+                    if (household.headId === personId) {
+                        household.headId = household.memberIds[0] ?? household.headId;
+                    }
+                }
+            }
+
+            field.removePerson(person);
+            this.population = Math.max(0, this.population - 1);
+        }
     }
 
     public setupCar(vehicle: Vehicle): void {

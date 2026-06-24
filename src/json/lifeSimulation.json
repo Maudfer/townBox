@@ -1,0 +1,10 @@
+{
+    "mortalityBase": 0.0002,
+    "mortalityGrowth": 0.085,
+    "maxMortality": 0.9,
+    "maxAgeYears": 110,
+    "annualBirthProbability": 0.12,
+    "fertileMinAgeYears": 18,
+    "fertileMaxAgeYears": 45,
+    "maxCatchUpYears": 200
+}

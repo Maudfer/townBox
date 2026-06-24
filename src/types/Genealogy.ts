@@ -44,6 +44,26 @@ export interface PopulationState {
     drawSeed: number;
     placedIds: PersonId[];
     nextSeq: number;
+    lastSimulatedYear: number; // highest in-game year the life simulation has applied
+}
+
+// Tunable inputs to the live life-event simulation (src/json/lifeSimulation.json). Mortality is a
+// Gompertz curve: annual death probability = mortalityBase * exp(mortalityGrowth * ageYears), clamped.
+export interface SimulationParams {
+    mortalityBase: number;
+    mortalityGrowth: number;
+    maxMortality: number; // clamp on annual death probability
+    maxAgeYears: number; // hard cap: nobody outlives this
+    annualBirthProbability: number; // per fertile couple per year
+    fertileMinAgeYears: number;
+    fertileMaxAgeYears: number;
+    maxCatchUpYears: number; // bound on years simulated in one call (e.g. after a big load jump)
+}
+
+// What one simulation pass changed, so callers can reconcile materialized residents.
+export interface SimulationResult {
+    died: PersonId[];
+    born: PersonId[];
 }
 
 // Tunable inputs to the deterministic pool generator (src/json/population.json). All time spans are in
