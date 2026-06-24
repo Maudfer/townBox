@@ -12,14 +12,14 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 
 - **Tile-based world.** A 384×384 grid of fine tiles (16×16 px each). You can paint **roads**, **soil/grass**, **houses**, and generic **work** buildings onto the grid with the mouse. Roads auto-tile based on their neighbors. Each structure occupies a **3×3 footprint** of tiles (the legacy single 48 px tile, now subdivided), centered on the hovered tile. **Roads snap to a fixed 3×3 supertile grid** (every 3rd tile) so they always connect correctly; **buildings keep finer placement but must sit flush against a road side** (they soft-snap to the nearest road side and can't overlap roads or other buildings — invalid spots preview in red).
 - **Tall buildings.** Some building sprites are visually taller than their footprint (e.g. `1x1x2`). The sprite is bottom-anchored so it extends upward, but its footprint is a 3×3 block of tiles. A depth (z-order) system makes people and cars correctly render **in front of** a tall building when they are below it, and **behind** it when they are above it.
-- **Families / households.** Placing a **house** spawns a household: a `Family` with procedurally generated `Person`s who have blood relationships (spouse, children, siblings, grandparents, uncles/aunts, nieces/nephews). The generator is crude, recursive, and conditional-heavy, and is slated for replacement (see the household-generation task).
+- **Population & households.** A new save generates a deterministic **population pool**: thousands of `GenPerson` records across generations (mostly deceased ancestors plus a living cohort) carrying parents, partnerships, and birth/death ticks. Placing a **house** draws a coherent **household** — a *living arrangement* (nuclear family, single occupant, adult siblings, multigenerational, a minor living with a guardian because the parents are deceased, or unrelated roommates) — from that pool and materializes its living members into `Person`s. Family trees span households because everyone shares one genealogy. Kinship and age are derived from the pool, not stored. (Aging/death **over time** is not yet wired — ages are read at a fixed present epoch until the clock system lands.)
 - **People.** `Person`s have a `SocialLife` (relationships, home, name, age, gender) and a `WorkLife` (a job and a list of skills). People can walk on sidewalks, cross roads, and be marked as "indoors" (hidden) when inside a building.
 - **Vehicles.** Test cars can be spawned on the street and will pick **random** building destinations and drive there, following proper lanes.
 - **Pathfinding.** A shared A* pathfinder routes both people and cars over the road network. Roads expose **waypoints** — *curb* points (for pedestrians) and *lane* points (for vehicles) — so people walk sidewalks/crosswalks and cars stay in their lane.
 - **Travel state machine.** A `Person` has a `TravelStep` state machine intended to drive the exit-house → walk-to-car → drive → walk-to-building → enter loop. It is **only partially wired**: car spawning/parking and despawning on enter/exit are not connected.
 - **React HUD.** A fully functional windowing system (drag/resize via `react-rnd`) exists but is **largely unused**. Clicking a house with the Select tool opens a window that renders the family/household tree as a D3 force graph. The toolbar buttons are currently **not wired** to tools.
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
-- **Save / load.** The entire game state (tiles/roads/buildings, families & relationships, people, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
+- **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
 What does **not** exist yet: a clock/time system, business generation, a day/night work commute loop, and CI.
 
@@ -77,19 +77,20 @@ src/
       Soil.ts             # Grass/ground tile
       Road.ts             # Road tile: auto-tiling, curb (pedestrian) & lane (vehicle) waypoints
       Building.ts         # Base building: entrance point + depth
-      House.ts            # Residence: family, residents, occupants, garage
+      House.ts            # Residence: household, residents, occupants, garage; family-tree export
       Workplace.ts        # Work building: employees, available jobs (skill-matched hiring)
       Person.ts           # Citizen: position, walking, travel state machine, family tree export
       Vehicle.ts          # Car: driving, acceleration, lane following, rotation/curving
       PathFinder.ts       # A* over the tile grid (roads + destination tiles)
-      Family.ts           # Household generation (recursive relationship builder)
+      Population.ts       # Genealogy pool: deterministic generation + state holder
+      HouseholdDraw.ts    # Draws a coherent living household from the pool (+ immigrant fallback)
       SocialLife.ts       # Per-person relationships, home, identity
       WorkLife.ts         # Per-person job + skills
-      City.ts             # City name, population, wires "houseBuilt" -> household setup
+      City.ts             # City name, population, wires "houseBuilt" -> household draw + materialize
       DebugTools.ts       # Optional debug overlays (curbs, lanes, tile depth)
       save/SaveProvider.ts       # Storage backend interface (base64 payload)
       save/LocalStorageProvider.ts # localStorage-backed SaveProvider
-      save/SaveManager.ts        # Serialize/deserialize the whole world; base64 + provider
+      save/SaveManager.ts        # Serialize/deserialize the whole world; deflate (pako) + base64 + provider
     hud/                  # React GUI
       Hud.tsx             # Window manager; HouseSelected windows, save/load toasts, Ctrl+S, hudReady
       Toolbar.tsx         # Toolbar (save button wired; others not yet)
@@ -105,9 +106,11 @@ src/
     config.json           # Debug flags (masterSwitch gates overlays; debug.autoLoad embeds a save)
     input.json            # Keyboard -> tool mappings (F1..F6)
     toolAssets.json       # Tool -> default sprite key
-  types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement,
-                          # Position, Save, Social, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
-  util/                   # Math.ts, tools.ts, base64.ts (helpers)
+    population.json       # Genealogy pool generation params (founders, generations, lifespans, …)
+    householdDraw.json    # Household draw params (arrangement weights, adult age, …)
+  types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position,
+                          # Save, Social, Genealogy, Household, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
+  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts (helpers)
 test/
   personTravel.test.ts    # Person travel state-machine test
   tileFootprint.test.ts   # 3x3 footprint, depth, pathfinding, placement tests
@@ -181,10 +184,12 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.8 Households & social model
 
-- `City.setupHousehold()` runs on `houseBuilt`: it creates a `Family`, calls `autoGenerate()`, and adds the members to the city population.
-- `Family.autoGenerate()` recursively allocates a random number of members ("credits") and builds spouse/child relationships, then `assignExtendedRelationships()` derives siblings, grandparents, uncles/aunts, nieces/nephews.
-- `SocialLife` stores a `RelationshipMap` (some relationships single-valued, some arrays), the person's `home`, and identity. `WorkLife` stores a job and skills (defaults to one `ConstructionSkill`).
-- Relationship enums and maps live in `types/Social.ts`; jobs/skills in `types/Work.ts`.
+- **Population pool (source of truth).** `Population` (`game/Population.ts`) holds a serializable `PopulationState` (`types/Genealogy.ts`): a flat table of `GenPerson` records — identity, gender, `birthTick`/`deathTick`, parents, and partnerships — spanning many generations (mostly deceased ancestors plus a living cohort). It is generated deterministically at new-save time by the pure `generatePopulation(seed, params)` (seeded via `util/random.ts`; params in `json/population.json`) and serialized into the save. Kinship (siblings, grandparents, uncles/aunts, nieces/nephews, cousins) and age are **derived on demand** by pure functions in `util/kinship.ts`, never stored.
+- **Households (living arrangements).** A `Household` (`types/Household.ts`) is a *living arrangement* distinct from bloodline. `HouseholdDraw.selectHousehold()` (`game/HouseholdDraw.ts`) draws a coherent living group from the pool by arrangement (nuclear, single, siblings, multigenerational, guardianship, roommates), only ever selecting living, unplaced people, respecting house capacity, never reusing anyone, and generating an immigrant family when the unplaced-living pool is exhausted. The draw is deterministic (a persisted RNG stream); params live in `json/householdDraw.json`.
+- `City.setupHousehold()` runs on `houseBuilt`: it calls `Population.drawHousehold()`, **materializes** each drawn living person into a `Person` bound to the house (via `personSpawnRequest`), mirrors the pool's kinship onto the materialized residents (so the family-tree window renders), records the `Household` on the house, and adds the residents to the city population.
+- **Time/death caveat.** `deathTick` makes death representable in the data (enabling scenarios like "lives with a sibling because the parents are deceased"), but aging/death **over time** is not yet wired — ages are read at a fixed present epoch (`tick 0`) until the clock system (task 005) lands.
+- `SocialLife` stores a `RelationshipMap` (some relationships single-valued, some arrays), the person's `home`, and identity, populated on the materialized residents. `WorkLife` stores a job and skills (defaults to one `ConstructionSkill`).
+- Relationship enums and maps live in `types/Social.ts`; genealogy/household types in `types/Genealogy.ts` / `types/Household.ts`; jobs/skills in `types/Work.ts`.
 
 ### 4.9 React HUD
 
@@ -201,9 +206,10 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.11 Save / load (`game/save/`)
 
-- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON and base64-encoded (`util/base64.ts`). A top-level `version` field (`SAVE_VERSION`) is reserved for migrations. The id-based model is what lets the cyclic relationship/ownership graph survive a JSON round-trip.
-- **Provider abstraction:** `SaveProvider` (`save`/`load`/`list`/`delete` over the base64 string) with `LocalStorageProvider` today; swapping providers is a single change in `SaveManager`'s constructor.
-- **`SaveManager`** (`game/save/SaveManager.ts`) builds the snapshot from `Field`/`City` and restores it. Only roads & buildings are serialized (soil is the implicit grass default); loads apply over a fresh field via `Field.loadStructure`/`loadPerson`/`loadVehicle`, which redraw through the normal `tileSpawned`/`personSpawned`/`vehicleSpawned` events but **never** emit `houseBuilt` (so loading doesn't regenerate families). Restore is two-pass: create everything, then relink the graph (relationships, home, family, ownership). In-flight travel is reset to idle on load.
+- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `2`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v1` saves still load (with an empty pool). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
+- **Genealogy:** the whole `population` pool (`PopulationState`) and the `Household` records are serialized; both reference pool people by stable id, so households and cross-household genealogy restore intact.
+- **Provider abstraction:** `SaveProvider` (`save`/`load`/`list`/`delete` over the payload string) with `LocalStorageProvider` today; swapping providers is a single change in `SaveManager`'s constructor.
+- **`SaveManager`** (`game/save/SaveManager.ts`) builds the snapshot from `Field`/`City`/`Population` and restores it. Only roads & buildings are serialized (soil is the implicit grass default); loads apply over a fresh field via `Field.loadStructure`/`loadPerson`/`loadVehicle`, which redraw through the normal `tileSpawned`/`personSpawned`/`vehicleSpawned` events but **never** emit `houseBuilt` (so loading doesn't redraw households). Restore is two-pass: create everything, then relink the graph (relationships, home, household, ownership). In-flight travel is reset to idle on load.
 - **Flow & events:** the HUD triggers saves via the `saveGameRequest` event (toolbar button / `Ctrl+S`) and renders toasts from `gameSaved`/`gameLoaded`/`saveFailed`/`loadFailed`. The HUD emits `hudReady` once its listeners are registered; `GameManager` applies a queued load (title-screen load or `config.debug.autoLoad`) only then, so toasts are never missed. Auto-load (`json/config.json` → `debug.autoLoad.{enabled,save}`) skips the splash and boots straight into the embedded save.
 
 ---

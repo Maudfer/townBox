@@ -25,9 +25,9 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     const svgSize = { width: size.width * 0.8, height: size.height * 0.8 };
 
     const house = data as House;
-    const family = house?.getFamily();
+    const household = house?.getHousehold();
 
-    const familyTreeId = `family-tree-${family?.familyId}`;
+    const familyTreeId = `family-tree-${household?.id}`;
     
     const linksSelector = `#${familyTreeId} .${LINKS_CLASS}`;
     const linkLabelsSelector = `#${familyTreeId} .${LINK_LABELS_CLASS}`;
@@ -49,12 +49,12 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     }
 
     useEffect(() => {
-        if (!family) {
+        if (!house) {
             return;
         }
 
-        setFamilyTree(family.getFamilyTree());
-    }, [family]);
+        setFamilyTree(house.getFamilyTree());
+    }, [house]);
 
     useEffect(() => {
         if (!size || !familyTree) {
@@ -85,7 +85,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         <Window
             game={game}
             index={index}
-            title={`Casa ${family?.familyName}`}
+            title={`Casa ${house?.getHouseholdName() ?? ''}`}
             initialSize={initialSize}
             onClose={onClose}
             onResize={handleResize}

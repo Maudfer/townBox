@@ -7,13 +7,13 @@ import House from 'game/House';
 import Workplace from 'game/Workplace';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
-import Family from 'game/Family';
 
 import { SaveProvider } from 'game/save/SaveProvider';
 import LocalStorageProvider from 'game/save/LocalStorageProvider';
 
 import { compress, decompress } from 'util/compress';
 import { Relationships } from 'types/Social';
+import { Household } from 'types/Household';
 import {
     SAVE_VERSION,
     WorldSnapshot,
@@ -21,7 +21,6 @@ import {
     StructureType,
     PersonSnapshot,
     VehicleSnapshot,
-    FamilySnapshot,
     RelationshipSnapshot,
 } from 'types/Save';
 
@@ -91,7 +90,7 @@ export default class SaveManager {
         vehicles.forEach(vehicle => vehicleIds.set(vehicle, uuidv4()));
 
         const structures: StructureSnapshot[] = [];
-        const families: FamilySnapshot[] = [];
+        const households: Household[] = [];
 
         for (const structure of field.getStructures()) {
             const structureSnapshot = this.serializeStructure(structure, personIds, vehicleIds);
@@ -101,14 +100,9 @@ export default class SaveManager {
             structures.push(structureSnapshot);
 
             if (structure instanceof House) {
-                const family = structure.getFamily();
-                if (family) {
-                    families.push({
-                        familyId: family.familyId,
-                        familyName: family.familyName,
-                        householdId: structure.getIdentifier(),
-                        memberIds: this.idsFor(family.members, personIds),
-                    });
+                const household = structure.getHousehold();
+                if (household) {
+                    households.push(household);
                 }
             }
         }
@@ -135,7 +129,7 @@ export default class SaveManager {
             structures,
             people: peopleSnapshots,
             vehicles: vehicleSnapshots,
-            families,
+            households,
             population: this.game.population?.getState(),
         };
     }
@@ -164,8 +158,6 @@ export default class SaveManager {
         };
 
         if (structure instanceof House) {
-            const family = structure.getFamily();
-            snapshot.familyId = family ? family.familyId : null;
             snapshot.residentIds = this.idsFor(structure.getResidents(), personIds);
             snapshot.occupantIds = this.idsFor(structure.getOccupants(), personIds);
             snapshot.garageIds = this.idsFor(structure.getVehicles(), vehicleIds);
@@ -333,23 +325,12 @@ export default class SaveManager {
             }
         }
 
-        // Families.
-        for (const familySnapshot of snapshot.families) {
-            if (!familySnapshot.householdId) {
-                continue;
+        // Households (v2+). Records reference pool people by id; restored straight onto the house.
+        for (const household of snapshot.households ?? []) {
+            const house = structureByKey.get(household.houseKey);
+            if (house instanceof House) {
+                house.setHousehold(household);
             }
-            const house = structureByKey.get(familySnapshot.householdId);
-            if (!(house instanceof House)) {
-                continue;
-            }
-
-            const family = new Family(house);
-            family.familyId = familySnapshot.familyId;
-            family.familyName = familySnapshot.familyName;
-            family.members = familySnapshot.memberIds
-                .map(id => personById.get(id))
-                .filter((member): member is Person => member !== undefined);
-            house.setFamily(family);
         }
 
         // Building occupancy.

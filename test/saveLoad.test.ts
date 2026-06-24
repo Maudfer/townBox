@@ -3,10 +3,11 @@ import Field from '../src/app/game/Field';
 import House from '../src/app/game/House';
 import Road from '../src/app/game/Road';
 import Workplace from '../src/app/game/Workplace';
-import Family from '../src/app/game/Family';
 import GameManager from '../src/app/game/GameManager';
 import City from '../src/app/game/City';
 import Population from '../src/app/game/Population';
+
+import { HouseholdArrangements } from '../src/types/Household';
 
 import { SaveProvider } from '../src/app/game/save/SaveProvider';
 import { encodeBase64, decodeBase64 } from '../src/util/base64';
@@ -140,10 +141,13 @@ describe('SaveManager round-trip', () => {
         house.addResident(parent);
         house.addResident(child);
 
-        const family = new Family(house);
-        family.familyName = 'Silva';
-        family.members = [parent, child];
-        house.setFamily(family);
+        house.setHousehold({
+            id: 'hh-4-4',
+            houseKey: house.getIdentifier(),
+            headId: 'p0',
+            memberIds: ['p0', 'p1'],
+            arrangement: HouseholdArrangements.Nuclear,
+        });
 
         const sourceManager = new SaveManager(source.game, provider);
         await sourceManager.save('slot1');
@@ -193,11 +197,11 @@ describe('SaveManager round-trip', () => {
         // Home linkage resolves to the restored house instance
         expect(restoredParent.social.getHome()).toBe(restoredHouse);
 
-        // Family + occupancy
-        const restoredFamily = (restoredHouse as House).getFamily();
-        expect(restoredFamily).not.toBeNull();
-        expect(restoredFamily!.familyName).toBe('Silva');
-        expect(restoredFamily!.members).toHaveLength(2);
+        // Household + occupancy
+        const restoredHousehold = (restoredHouse as House).getHousehold();
+        expect(restoredHousehold).not.toBeNull();
+        expect(restoredHousehold!.arrangement).toBe(HouseholdArrangements.Nuclear);
+        expect(restoredHousehold!.memberIds).toEqual(['p0', 'p1']);
         expect((restoredHouse as House).getResidents()).toHaveLength(2);
 
         // Genealogy pool survives the round-trip intact.

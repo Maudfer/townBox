@@ -2,6 +2,7 @@ import { Direction } from 'types/Movement';
 import { Gender, Relationships } from 'types/Social';
 import { JobPosition, JobRequirements } from 'types/Work';
 import { PopulationState } from 'types/Genealogy';
+import { Household } from 'types/Household';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool. v1 saves load with an empty pool (no migration synthesis yet).
@@ -20,7 +21,6 @@ export interface StructureSnapshot {
     col: number;
     assetName: string | null;
     // Building occupancy (ids reference people/vehicles by their snapshot id).
-    familyId?: string | null;
     residentIds?: string[];
     occupantIds?: string[];
     employeeIds?: string[];
@@ -60,20 +60,14 @@ export interface CitySnapshot {
     population: number;
 }
 
-export interface FamilySnapshot {
-    familyId: string;
-    familyName: string;
-    householdId: string | null; // house anchor "row-col"
-    memberIds: string[];
-}
-
 export interface WorldSnapshot {
     version: number;
     city: CitySnapshot;
     structures: StructureSnapshot[];
     people: PersonSnapshot[];
     vehicles: VehicleSnapshot[];
-    families: FamilySnapshot[];
+    // Household records reference pool people by id; the pool itself is serialized below.
+    households: Household[];
     // The genealogy pool (v2+). Optional so v1 saves still parse; absent on legacy saves.
     population?: PopulationState;
 }
