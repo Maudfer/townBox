@@ -12,7 +12,7 @@ import Family from 'game/Family';
 import { SaveProvider } from 'game/save/SaveProvider';
 import LocalStorageProvider from 'game/save/LocalStorageProvider';
 
-import { encodeBase64, decodeBase64 } from 'util/base64';
+import { compress, decompress } from 'util/compress';
 import { Relationships } from 'types/Social';
 import {
     SAVE_VERSION,
@@ -71,7 +71,7 @@ export default class SaveManager {
 
     serialize(): string {
         const snapshot = this.buildSnapshot();
-        return encodeBase64(JSON.stringify(snapshot));
+        return compress(JSON.stringify(snapshot));
     }
 
     buildSnapshot(): WorldSnapshot {
@@ -244,7 +244,7 @@ export default class SaveManager {
             throw new Error('[SaveManager] Cannot deserialize before the field and city exist');
         }
 
-        const snapshot = JSON.parse(decodeBase64(data)) as WorldSnapshot;
+        const snapshot = JSON.parse(decompress(data)) as WorldSnapshot;
         if (!snapshot || typeof snapshot.version !== 'number') {
             throw new Error('[SaveManager] Invalid or corrupt save data');
         }
