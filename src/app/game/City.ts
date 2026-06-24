@@ -12,9 +12,7 @@ import { PersonId } from 'types/Genealogy';
 
 let Game: GameManager;
 
-// Households are drawn at the present moment. Until the clock (005) exists, "now" is tick 0.
-const CURRENT_TICK = 0;
-export default class City {    
+export default class City {
     private name: string;
     private population: number;
 
@@ -55,9 +53,13 @@ export default class City {
             throw new Error("Cannot setup household before the population pool exists");
         }
 
-        const ticksPerYear = DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        // Draw at the current in-game moment so household composition (who is alive, who is an adult) is
+        // coherent with the date. Falls back to the pool's default scale only if the clock is missing.
+        const clock = Game.clock;
+        const currentTick = clock ? clock.getCurrentTick() : 0;
+        const ticksPerYear = clock ? clock.getTicksPerYear() : DEFAULT_POPULATION_PARAMS.ticksPerYear;
         const capacity = house.getOverview().maxResidents;
-        const selection = population.drawHousehold(CURRENT_TICK, capacity, ticksPerYear);
+        const selection = population.drawHousehold(currentTick, capacity, ticksPerYear);
         const pool = population.getPeople();
 
         // Materialize each drawn pool person into a live Person bound to this house.
@@ -75,8 +77,10 @@ export default class City {
 
             person.setIndoors(true);
             person.social.setHome(house);
-            const age = ageAt(genPerson, CURRENT_TICK, ticksPerYear);
+            const age = ageAt(genPerson, currentTick, ticksPerYear);
             person.setupCitizenship(genPerson.firstName, genPerson.familyName, age, genPerson.gender);
+            // Link to the genealogy birthTick so age keeps deriving from the clock as time passes.
+            person.social.setBirthTick(genPerson.birthTick);
 
             house.addResident(person);
             house.addOccupant(person);
