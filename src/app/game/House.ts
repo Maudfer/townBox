@@ -2,16 +2,16 @@ import Building from 'game/Building';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 
-import Family from 'game/Family';
-
-import { HouseOverview } from 'types/Social';
+import { Household } from 'types/Household';
+import { FamilyTree, Node, Link } from 'types/FamilyTree';
+import { HouseOverview, RelationshipMap } from 'types/Social';
 
 const MAX_RESIDENTS = 8;
 const MAX_OCCUPANTS = 10;
 const MAX_VEHICLES = 2;
 
 export default class House extends Building {
-    private family: Family | null;
+    private household: Household | null;
     private residents: Person[];
 
     private occupants: Person[];
@@ -28,18 +28,68 @@ export default class House extends Building {
         this.maxOccupants = MAX_OCCUPANTS;
         this.maxVehicles = MAX_VEHICLES;
 
-        this.family = null;
+        this.household = null;
         this.residents = [];
         this.occupants = [];
         this.garage = [];
     }
 
-    public setFamily(family: Family): void {
-        this.family = family;
+    public setHousehold(household: Household): void {
+        this.household = household;
     }
 
-    public getFamily(): Family | null {
-        return this.family;
+    public getHousehold(): Household | null {
+        return this.household;
+    }
+
+    // Display name for the household: the most common surname among its residents.
+    public getHouseholdName(): string {
+        const counts = new Map<string, number>();
+        for (const resident of this.residents) {
+            const surname = resident.social.getInfo().familyName;
+            counts.set(surname, (counts.get(surname) ?? 0) + 1);
+        }
+        let best = '';
+        let bestCount = 0;
+        for (const [surname, count] of counts) {
+            if (count > bestCount) {
+                best = surname;
+                bestCount = count;
+            }
+        }
+        return best;
+    }
+
+    // Builds the family-tree graph from the current residents' relationships (links are kept within the
+    // household). Cross-household trees derived from the genealogy pool are a later UI enhancement.
+    public getFamilyTree(): FamilyTree {
+        const nodes: Node[] = [];
+        const links: Link[] = [];
+        const personIndexMap = new Map<Person, number>();
+
+        this.residents.forEach((person, index) => {
+            personIndexMap.set(person, index);
+            nodes.push({ name: person.social.getInfo().firstName });
+        });
+
+        this.residents.forEach((person, index) => {
+            const relationships = person.social.getInfo().relationships;
+            for (const key of Object.keys(relationships) as Array<keyof RelationshipMap>) {
+                const related = relationships[key];
+                if (!related) {
+                    continue;
+                }
+                const relatedPeople = Array.isArray(related) ? related : [related];
+                for (const relatedPerson of relatedPeople) {
+                    const targetIndex = personIndexMap.get(relatedPerson);
+                    if (targetIndex !== undefined) {
+                        links.push({ source: index, target: targetIndex, label: key });
+                    }
+                }
+            }
+        });
+
+        return { nodes, links };
     }
 
     public addResident(person: Person): void {

@@ -1,0 +1,15 @@
+{
+    "ticksPerYear": 360,
+    "founderCouples": 500,
+    "generations": 6,
+    "childDistribution": [0.05, 0.15, 0.3, 0.3, 0.15, 0.05],
+    "pairingProbability": 0.82,
+    "immigrantSpouseProbability": 0.5,
+    "spouseMaxAgeGapYears": 12,
+    "parentMinAgeYears": 20,
+    "parentMaxAgeYears": 42,
+    "generationGapYears": 31,
+    "lifespanMeanYears": 78,
+    "lifespanSpreadYears": 16,
+    "maxPopulation": 15000
+}

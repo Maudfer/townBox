@@ -10,8 +10,8 @@
     "build-prod": "cross-env parcel build ./src/html/index.html --dist-dir ./bin",
     "serve-dev": "cross-env browser-sync start --server ./dist --files ./dist",
     "dev": "concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
-    "package": "concurrently 'npm:copy-images' 'npm:build-prod'"
-    ,"test": "jest"
+    "package": "concurrently 'npm:copy-images' 'npm:build-prod'",
+    "test": "jest"
   },
   "keywords": [
     "game",
@@ -34,6 +34,7 @@
     "@types/react-dom": "^18.3.0",
     "app": "^0.1.0",
     "d3": "^7.9.0",
+    "pako": "^2.2.0",
     "phaser": "^4.1.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -43,6 +44,7 @@
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/jest": "^29.5.14",
+    "@types/pako": "^2.0.4",
     "@types/uuid": "^10.0.0",
     "browser-sync": "^3.0.2",
     "buffer": "^6.0.3",

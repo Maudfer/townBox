@@ -1,0 +1,12 @@
+{
+    "adultAgeYears": 18,
+    "maxRoommates": 3,
+    "arrangementWeights": {
+        "nuclear": 0.45,
+        "single": 0.2,
+        "multigen": 0.1,
+        "siblings": 0.1,
+        "guardianship": 0.05,
+        "roommates": 0.1
+    }
+}

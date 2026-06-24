@@ -5,6 +5,10 @@ import * as d3 from 'd3';
 import House from 'game/House';
 import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
+import { buildGenealogyTree } from 'util/familyGraph';
+
+const TREE_DEPTH = 2;
+const CURRENT_TICK = 0;
 
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
 import { FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
@@ -25,9 +29,9 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     const svgSize = { width: size.width * 0.8, height: size.height * 0.8 };
 
     const house = data as House;
-    const family = house?.getFamily();
+    const household = house?.getHousehold();
 
-    const familyTreeId = `family-tree-${family?.familyId}`;
+    const familyTreeId = `family-tree-${household?.id}`;
     
     const linksSelector = `#${familyTreeId} .${LINKS_CLASS}`;
     const linkLabelsSelector = `#${familyTreeId} .${LINK_LABELS_CLASS}`;
@@ -49,12 +53,21 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     }
 
     useEffect(() => {
-        if (!family) {
+        if (!house) {
             return;
         }
 
-        setFamilyTree(family.getFamilyTree());
-    }, [family]);
+        // Prefer the genealogy pool (cross-household tree incl. deceased ancestors); fall back to the
+        // residents-only tree when no pool/household is available (e.g. legacy saves).
+        const population = game?.population;
+        const currentHousehold = house.getHousehold();
+        if (population && currentHousehold && currentHousehold.memberIds.length) {
+            const placed = new Set(population.getState().placedIds);
+            setFamilyTree(buildGenealogyTree(population.getPeople(), currentHousehold.memberIds, CURRENT_TICK, placed, TREE_DEPTH));
+        } else {
+            setFamilyTree(house.getFamilyTree());
+        }
+    }, [house, game]);
 
     useEffect(() => {
         if (!size || !familyTree) {
@@ -85,7 +98,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         <Window
             game={game}
             index={index}
-            title={`Casa ${family?.familyName}`}
+            title={`Casa ${house?.getHouseholdName() ?? ''}`}
             initialSize={initialSize}
             onClose={onClose}
             onResize={handleResize}

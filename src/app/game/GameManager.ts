@@ -5,6 +5,7 @@ import TitleScene from 'game/TitleScene';
 import DebugTools from 'game/DebugTools';
 
 import City from './City';
+import Population from 'game/Population';
 import SaveManager from 'game/save/SaveManager';
 
 import { EventListeners, Handler } from 'types/EventListener';
@@ -23,6 +24,7 @@ export default class GameManager {
     public scene: MainScene;
     public field: Field | null;
     public city: City | null;
+    public population: Population | null;
 
     public gridParams: GridParams;
     public toolbelt: Toolbelt;
@@ -84,8 +86,9 @@ export default class GameManager {
         this.toolbelt = toolAssets as Toolbelt;
 
         this.scene = new MainScene(this, { key: 'MainScene', active: false });
-        this.field = null; 
+        this.field = null;
         this.city = null;
+        this.population = null;
 
         this.saveManager = new SaveManager(this);
         this.pendingLoad = null;
@@ -126,6 +129,15 @@ export default class GameManager {
 
             this.field = new Field(this, fieldParams.rows, fieldParams.cols);
             this.city = new City(this);
+
+            // Genealogy pool: a fresh game generates a new pool from a random world seed; a load leaves it
+            // empty here and restores the saved pool into this instance during deserialize.
+            this.population = new Population();
+            if (this.pendingLoad === null) {
+                const worldSeed = (Math.random() * 0x100000000) >>> 0;
+                this.population.generate(worldSeed);
+            }
+
             this.emit("gameInitialized", this);
         }
         this.on("sceneInitialized", { callback: postSceneInit, context: this });
