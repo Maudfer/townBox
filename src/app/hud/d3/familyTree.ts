@@ -56,7 +56,8 @@ function updateNodes(nodesTag: d3Tag, nodes: Node[], dragHandler: DragBehavior) 
         .data(nodes)
         .join('text')
         .text(function (d: Node) {
-            return d.name;
+            // Mark the deceased so cross-household trees read clearly (e.g. orphans' late parents).
+            return d.alive === false ? `${d.name} †` : d.name;
         })
         .attr('x', function (d: Node) {
             return d.x ?? 0;
@@ -66,6 +67,16 @@ function updateNodes(nodesTag: d3Tag, nodes: Node[], dragHandler: DragBehavior) 
         })
         .attr('dy', function () {
             return 5;
+        })
+        // Deceased people are dimmed; members of this household are emphasised.
+        .attr('opacity', function (d: Node) {
+            return d.alive === false ? 0.45 : 1;
+        })
+        .attr('font-weight', function (d: Node) {
+            return d.isSubject ? 'bold' : 'normal';
+        })
+        .attr('font-style', function (d: Node) {
+            return d.alive === false ? 'italic' : 'normal';
         })
         .call(dragHandler as any);
 }

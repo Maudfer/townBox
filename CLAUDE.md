@@ -110,7 +110,7 @@ src/
     householdDraw.json    # Household draw params (arrangement weights, adult age, …)
   types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position,
                           # Save, Social, Genealogy, Household, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
-  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts (helpers)
+  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts, familyGraph.ts
 test/
   personTravel.test.ts    # Person travel state-machine test
   tileFootprint.test.ts   # 3x3 footprint, depth, pathfinding, placement tests
@@ -193,7 +193,7 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.9 React HUD
 
-- `Hud.tsx` is a window manager. It listens for `HouseSelected` and opens a `HouseDetails` window (deduped) that renders the household's family tree via `hud/d3/familyTree.ts`.
+- `Hud.tsx` is a window manager. It listens for `HouseSelected` and opens a `HouseDetails` window (deduped) that renders the household's family tree via `hud/d3/familyTree.ts`. The tree is derived from the genealogy pool (`util/familyGraph.ts`), so it spans households and includes deceased ancestors (shown dimmed/†); it falls back to a residents-only tree when no pool is available.
 - `Window.tsx` wraps `react-rnd` and emits `windowDragStart`/`windowDragStop` so the Phaser cursor can be suppressed while interacting with UI.
 - The simulation core (`game/`) must remain free of React imports. The HUD talks to the game **only through the `GameManager` event bus**, never by reaching into game internals directly.
 

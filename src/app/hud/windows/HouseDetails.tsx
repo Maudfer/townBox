@@ -5,6 +5,10 @@ import * as d3 from 'd3';
 import House from 'game/House';
 import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
+import { buildGenealogyTree } from 'util/familyGraph';
+
+const TREE_DEPTH = 2;
+const CURRENT_TICK = 0;
 
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
 import { FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
@@ -53,8 +57,17 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
             return;
         }
 
-        setFamilyTree(house.getFamilyTree());
-    }, [house]);
+        // Prefer the genealogy pool (cross-household tree incl. deceased ancestors); fall back to the
+        // residents-only tree when no pool/household is available (e.g. legacy saves).
+        const population = game?.population;
+        const currentHousehold = house.getHousehold();
+        if (population && currentHousehold && currentHousehold.memberIds.length) {
+            const placed = new Set(population.getState().placedIds);
+            setFamilyTree(buildGenealogyTree(population.getPeople(), currentHousehold.memberIds, CURRENT_TICK, placed, TREE_DEPTH));
+        } else {
+            setFamilyTree(house.getFamilyTree());
+        }
+    }, [house, game]);
 
     useEffect(() => {
         if (!size || !familyTree) {
