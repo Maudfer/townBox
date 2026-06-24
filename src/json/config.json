@@ -3,6 +3,10 @@
         "masterSwitch": false,
         "drawCurbs": true,
         "drawLanes": true,
-        "drawTileDepth": false
+        "drawTileDepth": false,
+        "autoLoad": {
+            "enabled": false,
+            "save": ""
+        }
     }
 }

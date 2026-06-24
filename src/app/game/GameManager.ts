@@ -5,12 +5,14 @@ import TitleScene from 'game/TitleScene';
 import DebugTools from 'game/DebugTools';
 
 import City from './City';
+import SaveManager from 'game/save/SaveManager';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads } from 'types/Events';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { Toolbelt } from 'types/Cursor';
+import { DEFAULT_SAVE_SLOT } from 'types/Save';
 
 import config from 'json/config.json';
 import toolAssets from 'json/toolAssets.json';
@@ -24,6 +26,10 @@ export default class GameManager {
 
     public gridParams: GridParams;
     public toolbelt: Toolbelt;
+
+    public saveManager: SaveManager;
+    private pendingLoad: string | null;
+    private skipSplash: boolean;
 
     constructor() {
         // A structure (road/building/soil) occupies a square footprint of FOOTPRINT_TILES x FOOTPRINT_TILES tiles.
@@ -81,7 +87,18 @@ export default class GameManager {
         this.field = null; 
         this.city = null;
 
-        const titleScene = new TitleScene();
+        this.saveManager = new SaveManager(this);
+        this.pendingLoad = null;
+        this.skipSplash = false;
+
+        // Debug auto-load: if a build ships with an embedded save, queue it and skip the splash screen.
+        const autoLoad = config.debug.autoLoad;
+        if (autoLoad && autoLoad.enabled && autoLoad.save) {
+            this.pendingLoad = autoLoad.save;
+            this.skipSplash = true;
+        }
+
+        const titleScene = new TitleScene(this);
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
             type: Phaser.AUTO,
@@ -112,6 +129,52 @@ export default class GameManager {
             this.emit("gameInitialized", this);
         }
         this.on("sceneInitialized", { callback: postSceneInit, context: this });
+
+        // The HUD signals readiness once its event listeners are registered; only then do we apply a queued load
+        // (title-screen load or debug auto-load) so success/error toasts are never missed.
+        this.on("hudReady", { callback: this.applyPendingLoad, context: this });
+        this.on("saveGameRequest", { callback: this.handleSaveRequest, context: this });
+    }
+
+    private async handleSaveRequest(): Promise<void> {
+        try {
+            await this.saveManager.save(DEFAULT_SAVE_SLOT);
+            this.emit("gameSaved");
+        } catch (error) {
+            console.error("[GameManager] Save failed:", error);
+            this.emit("saveFailed", error instanceof Error ? error.message : "Unknown error");
+        }
+    }
+
+    private applyPendingLoad(): void {
+        if (this.pendingLoad === null) {
+            return;
+        }
+        const data = this.pendingLoad;
+        this.pendingLoad = null;
+
+        try {
+            this.saveManager.deserialize(data);
+            this.emit("gameLoaded");
+        } catch (error) {
+            console.error("[GameManager] Load failed:", error);
+            this.emit("loadFailed", error instanceof Error ? error.message : "Unknown error");
+        }
+    }
+
+    // Queues a save (from a storage slot) to be applied once the game scene and HUD are ready. Returns false when
+    // no save exists in that slot. Used by the title screen's "Load Game" option.
+    async prepareLoad(slot: string = DEFAULT_SAVE_SLOT): Promise<boolean> {
+        const data = await this.saveManager.getProvider().load(slot);
+        if (!data) {
+            return false;
+        }
+        this.pendingLoad = data;
+        return true;
+    }
+
+    shouldSkipSplash(): boolean {
+        return this.skipSplash;
     }
 
     tileToPixelPosition(tilePosition: TilePosition): PixelPosition {

@@ -93,6 +93,10 @@ export default class Workplace extends Building {
         return this.employees;
     }
 
+    public addEmployee(person: Person): void {
+        this.employees.push(person);
+    }
+
     public addOccupant(person: Person): void {
         if (this.occupants.length >= this.maxOccupants) {
             return;

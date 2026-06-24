@@ -32,4 +32,10 @@ export interface EventPayloads {
     "windowDragStart": void;
     "windowDragStop": void;
     "HouseSelected": House;
+    "hudReady": void;
+    "saveGameRequest": void;
+    "gameSaved": void;
+    "saveFailed": string;
+    "gameLoaded": void;
+    "loadFailed": string;
 };

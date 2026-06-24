@@ -18,9 +18,10 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Pathfinding.** A shared A* pathfinder routes both people and cars over the road network. Roads expose **waypoints** — *curb* points (for pedestrians) and *lane* points (for vehicles) — so people walk sidewalks/crosswalks and cars stay in their lane.
 - **Travel state machine.** A `Person` has a `TravelStep` state machine intended to drive the exit-house → walk-to-car → drive → walk-to-building → enter loop. It is **only partially wired**: car spawning/parking and despawning on enter/exit are not connected.
 - **React HUD.** A fully functional windowing system (drag/resize via `react-rnd`) exists but is **largely unused**. Clicking a house with the Select tool opens a window that renders the family/household tree as a D3 force graph. The toolbar buttons are currently **not wired** to tools.
-- **Title screen.** A `TitleScene` splash with a "Start Game" button that transitions to the main scene.
+- **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
+- **Save / load.** The entire game state (tiles/roads/buildings, families & relationships, people, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-What does **not** exist yet: a clock/time system, a save/load system, business generation, a day/night work commute loop, CI, and test coverage beyond a single travel test.
+What does **not** exist yet: a clock/time system, business generation, a day/night work commute loop, and CI.
 
 ---
 
@@ -86,9 +87,13 @@ src/
       WorkLife.ts         # Per-person job + skills
       City.ts             # City name, population, wires "houseBuilt" -> household setup
       DebugTools.ts       # Optional debug overlays (curbs, lanes, tile depth)
+      save/SaveProvider.ts       # Storage backend interface (base64 payload)
+      save/LocalStorageProvider.ts # localStorage-backed SaveProvider
+      save/SaveManager.ts        # Serialize/deserialize the whole world; base64 + provider
     hud/                  # React GUI
-      Hud.tsx             # Window manager; opens HouseDetails on "HouseSelected"
-      Toolbar.tsx         # Toolbar (buttons currently not wired)
+      Hud.tsx             # Window manager; HouseSelected windows, save/load toasts, Ctrl+S, hudReady
+      Toolbar.tsx         # Toolbar (save button wired; others not yet)
+      Toasts.tsx          # Transient save/load toast notifications
       Window.tsx          # Generic draggable/resizable window (react-rnd)
       d3/familyTree.ts    # D3 force-directed family tree renderer
       windows/HouseDetails.tsx  # Window showing a household's family tree
@@ -97,14 +102,16 @@ src/
   img/                    # Source art (.xcf) + sprites/
   json/
     assets.json           # Sprite manifest loaded by MainScene.preload
-    config.json           # Debug flags (masterSwitch gates debug overlays)
+    config.json           # Debug flags (masterSwitch gates overlays; debug.autoLoad embeds a save)
     input.json            # Keyboard -> tool mappings (F1..F6)
     toolAssets.json       # Tool -> default sprite key
   types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement,
-                          # Position, Social, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
-  util/                   # Math.ts, tools.ts (helpers, e.g. directionToRadianRotation)
+                          # Position, Save, Social, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
+  util/                   # Math.ts, tools.ts, base64.ts (helpers)
 test/
-  personTravel.test.ts    # The only existing test
+  personTravel.test.ts    # Person travel state-machine test
+  tileFootprint.test.ts   # 3x3 footprint, depth, pathfinding, placement tests
+  saveLoad.test.ts        # Save/load round-trip + base64 tests
 ```
 
 ---
@@ -127,7 +134,7 @@ test/
 - `emit(event, payload)` — async, fans out to all handlers (`Promise.all`).
 - `emitSingle(event, payload)` — async, expects exactly **one** handler and returns its result (used when a caller needs a return value, e.g. spawning a person and getting the instance back).
 
-All event names and payload types are declared in `types/Events.ts` (`EventPayloads`). Current events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`, `personSpawnRequest`, `vehicleSpawnRequest`, `houseBuilt`, `tileSpawned`, `personSpawned`, `vehicleSpawned`, `roadBuilt`, `windowDragStart`, `windowDragStop`, `HouseSelected`.
+All event names and payload types are declared in `types/Events.ts` (`EventPayloads`). Current events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`, `personSpawnRequest`, `vehicleSpawnRequest`, `houseBuilt`, `tileSpawned`, `personSpawned`, `vehicleSpawned`, `roadBuilt`, `windowDragStart`, `windowDragStop`, `HouseSelected`, `hudReady`, `saveGameRequest`, `gameSaved`, `saveFailed`, `gameLoaded`, `loadFailed`.
 
 > When adding a new cross-system signal, add it to `EventPayloads` first, then wire handlers.
 
@@ -190,6 +197,14 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 - `F1..F6` select tools (soil, road, house, work, select, bulldoze); `Esc` selects the Select tool.
 - `P` spawns a person at the cursor; `V` spawns a vehicle; `G` toggles the grid overlay.
 - `W/A/S/D` pan the camera; `Q/E` zoom.
+- `Ctrl+S` saves the game (handled in the React HUD, which suppresses the browser save dialog).
+
+### 4.11 Save / load (`game/save/`)
+
+- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON and base64-encoded (`util/base64.ts`). A top-level `version` field (`SAVE_VERSION`) is reserved for migrations. The id-based model is what lets the cyclic relationship/ownership graph survive a JSON round-trip.
+- **Provider abstraction:** `SaveProvider` (`save`/`load`/`list`/`delete` over the base64 string) with `LocalStorageProvider` today; swapping providers is a single change in `SaveManager`'s constructor.
+- **`SaveManager`** (`game/save/SaveManager.ts`) builds the snapshot from `Field`/`City` and restores it. Only roads & buildings are serialized (soil is the implicit grass default); loads apply over a fresh field via `Field.loadStructure`/`loadPerson`/`loadVehicle`, which redraw through the normal `tileSpawned`/`personSpawned`/`vehicleSpawned` events but **never** emit `houseBuilt` (so loading doesn't regenerate families). Restore is two-pass: create everything, then relink the graph (relationships, home, family, ownership). In-flight travel is reset to idle on load.
+- **Flow & events:** the HUD triggers saves via the `saveGameRequest` event (toolbar button / `Ctrl+S`) and renders toasts from `gameSaved`/`gameLoaded`/`saveFailed`/`loadFailed`. The HUD emits `hudReady` once its listeners are registered; `GameManager` applies a queued load (title-screen load or `config.debug.autoLoad`) only then, so toasts are never missed. Auto-load (`json/config.json` → `debug.autoLoad.{enabled,save}`) skips the splash and boots straight into the embedded save.
 
 ---
 

@@ -600,4 +600,110 @@ export default class Field {
     getCols(): number {
         return this.cols;
     }
+
+    // --- Save/load support -------------------------------------------------
+
+    getPeople(): Person[] {
+        return this.people;
+    }
+
+    getVehicles(): Vehicle[] {
+        return this.vehicles;
+    }
+
+    // Returns the distinct placed structures (roads & buildings). Soil/grass is the implicit default and is not
+    // included, since loads are applied over a fresh, all-grass field.
+    getStructures(): Tile[] {
+        const seen = new Set<Tile>();
+        const structures: Tile[] = [];
+
+        for (let row = 0; row < this.rows; row++) {
+            const rowEntry = this.matrix[row];
+            if (!rowEntry) {
+                continue;
+            }
+
+            for (let col = 0; col < this.cols; col++) {
+                const tile = rowEntry[col];
+                if (!tile) {
+                    continue;
+                }
+
+                if ((tile instanceof Road || tile instanceof Building) && !seen.has(tile)) {
+                    seen.add(tile);
+                    structures.push(tile);
+                }
+            }
+        }
+
+        return structures;
+    }
+
+    // Places a structure during load: stamps its footprint, recomputes waypoints/entrance and draws it, but does
+    // NOT emit houseBuilt/roadBuilt — so loading never regenerates families or re-runs build side effects. The
+    // saved assetName (e.g. a road's auto-tile code) is authoritative and kept as-is.
+    loadStructure(type: 'road' | 'house' | 'work', row: number, col: number, assetName: string | null): Tile | null {
+        let structure: Tile;
+        switch (type) {
+            case 'road':
+                structure = new Road(row, col, assetName);
+                break;
+            case 'house':
+                structure = new House(row, col, assetName);
+                break;
+            case 'work':
+                structure = new Workplace(row, col, assetName);
+                break;
+            default:
+                return null;
+        }
+
+        const pixelCenter = Game.tileToPixelPosition({ row, col });
+        this.stampFootprint(structure);
+
+        const footprintParams = Game.gridParams.footprint;
+        if (structure instanceof Road && pixelCenter) {
+            structure.calculateCurb(footprintParams, pixelCenter);
+            structure.calculateLanes(footprintParams, pixelCenter);
+        }
+        if (structure instanceof Building && pixelCenter) {
+            structure.calculateEntrance(footprintParams, pixelCenter);
+        }
+
+        Game.emit("tileSpawned", structure);
+        return structure;
+    }
+
+    loadPerson(x: number, y: number): Person {
+        const person = new Person(x, y);
+        person.setGameManager(Game);
+
+        const tilePosition = Game.pixelToTilePosition({ x, y });
+        if (tilePosition) {
+            const tile = this.getTile(tilePosition.row, tilePosition.col);
+            if (tile) {
+                person.updateDepth(tile);
+            }
+        }
+
+        this.people.push(person);
+        Game.emit("personSpawned", person);
+        return person;
+    }
+
+    loadVehicle(x: number, y: number): Vehicle {
+        const vehicle = new Vehicle(x, y);
+
+        const tilePosition = Game.pixelToTilePosition({ x, y });
+        if (tilePosition) {
+            const tile = this.getTile(tilePosition.row, tilePosition.col);
+            if (tile) {
+                vehicle.updateDepth(tile);
+            }
+        }
+
+        this.vehicles.push(vehicle);
+        Game.emit("vehicleSpawned", vehicle);
+        return vehicle;
+    }
 }
