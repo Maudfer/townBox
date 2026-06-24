@@ -15,6 +15,12 @@ export interface CellParams {
     height: number;
 }
 
+export interface FootprintParams {
+    tiles: number;
+    width: number;
+    height: number;
+}
+
 export interface GridParams {
     width: number;
     height: number;
@@ -23,5 +29,6 @@ export interface GridParams {
     gridX: number;
     gridY: number;
     cells: CellParams;
+    footprint: FootprintParams;
     bounds?: Phaser.Geom.Rectangle;
 }

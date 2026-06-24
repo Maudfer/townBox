@@ -26,9 +26,19 @@ export default class GameManager {
     public toolbelt: Toolbelt;
 
     constructor() {
-        const fieldParams: FieldParams = {
+        // A structure (road/building/soil) occupies a square footprint of FOOTPRINT_TILES x FOOTPRINT_TILES tiles.
+        // The world keeps the same number of footprints as the legacy tile grid (128x128), but each footprint is
+        // now subdivided into finer tiles, giving placement granularity at the sub-footprint level.
+        const FOOTPRINT_TILES = 3;
+
+        const footprintParams: FieldParams = {
             rows: 128,
             cols: 128
+        };
+
+        const fieldParams: FieldParams = {
+            rows: footprintParams.rows * FOOTPRINT_TILES,
+            cols: footprintParams.cols * FOOTPRINT_TILES
         };
 
         const screenParams: ScreenParams = {
@@ -38,6 +48,9 @@ export default class GameManager {
 
         const gridWidth = 6144;
         const gridHeight = 6144;
+
+        const cellWidth = gridWidth / fieldParams.cols;
+        const cellHeight = gridHeight / fieldParams.rows;
 
         const gridParams: GridParams = {
             width: gridWidth,
@@ -50,8 +63,14 @@ export default class GameManager {
             gridY: screenParams.height / 2,
 
             cells: {
-                width: gridWidth / fieldParams.cols,
-                height: gridHeight / fieldParams.rows,
+                width: cellWidth,
+                height: cellHeight,
+            },
+
+            footprint: {
+                tiles: FOOTPRINT_TILES,
+                width: cellWidth * FOOTPRINT_TILES,
+                height: cellHeight * FOOTPRINT_TILES,
             },
         };
 
@@ -136,7 +155,7 @@ export default class GameManager {
         if (!this.eventListeners[eventName]) {
             this.eventListeners[eventName] = [];
         }
-        this.eventListeners[eventName].push(handler);
+        this.eventListeners[eventName]?.push(handler);
     }
 
     off<K extends keyof EventPayloads>(eventName: K): void {

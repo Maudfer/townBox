@@ -10,8 +10,8 @@ This document is the canonical, high-level description of the project for AI age
 
 The prototype currently supports a handful of disconnected mechanics. Be aware that many systems are **partially wired** — the building blocks exist but the end-to-end loop is not fully connected.
 
-- **Tile-based world.** A 128×128 grid of tiles. You can paint **roads**, **soil/grass**, **houses**, and generic **work** buildings onto the grid with the mouse. Roads auto-tile based on their neighbors. Each building and road currently occupies exactly **one tile**.
-- **Tall buildings.** Some building sprites are visually taller than one tile (e.g. `1x1x2`). The sprite is bottom-anchored so it extends upward, but its footprint is still a single tile. A depth (z-order) system makes people and cars correctly render **in front of** a tall building when they are below it, and **behind** it when they are above it.
+- **Tile-based world.** A 384×384 grid of fine tiles (16×16 px each). You can paint **roads**, **soil/grass**, **houses**, and generic **work** buildings onto the grid with the mouse. Roads auto-tile based on their neighbors. Each structure occupies a **3×3 footprint** of tiles (the legacy single 48 px tile, now subdivided), centered on the hovered tile. **Roads snap to a fixed 3×3 supertile grid** (every 3rd tile) so they always connect correctly; **buildings keep finer placement but must sit flush against a road side** (they soft-snap to the nearest road side and can't overlap roads or other buildings — invalid spots preview in red).
+- **Tall buildings.** Some building sprites are visually taller than their footprint (e.g. `1x1x2`). The sprite is bottom-anchored so it extends upward, but its footprint is a 3×3 block of tiles. A depth (z-order) system makes people and cars correctly render **in front of** a tall building when they are below it, and **behind** it when they are above it.
 - **Families / households.** Placing a **house** spawns a household: a `Family` with procedurally generated `Person`s who have blood relationships (spouse, children, siblings, grandparents, uncles/aunts, nieces/nephews). The generator is crude, recursive, and conditional-heavy, and is slated for replacement (see the household-generation task).
 - **People.** `Person`s have a `SocialLife` (relationships, home, name, age, gender) and a `WorkLife` (a job and a list of skills). People can walk on sidewalks, cross roads, and be marked as "indoors" (hidden) when inside a building.
 - **Vehicles.** Test cars can be spawned on the street and will pick **random** building destinations and drive there, following proper lanes.
@@ -133,34 +133,37 @@ All event names and payload types are declared in `types/Events.ts` (`EventPaylo
 
 ### 4.3 Grid & coordinates
 
-- The world is a `rows × cols = 128 × 128` grid. `gridWidth = gridHeight = 6144`, so each cell is `48 × 48` pixels (`gridParams.cells`).
+- The world is a `rows × cols = 384 × 384` fine-tile grid. `gridWidth = gridHeight = 6144`, so each tile is `16 × 16` pixels (`gridParams.cells`). A **structure** (soil/road/building) spans a `gridParams.footprint.tiles` × `gridParams.footprint.tiles` footprint — currently `3 × 3` tiles = `48 × 48` px (`gridParams.footprint`), matching the legacy single-tile size.
 - `GameManager.tileToPixelPosition({row, col})` returns the **pixel center** of a tile.
 - `GameManager.pixelToTilePosition({x, y})` returns the tile under a pixel (or `null` if outside grid bounds).
-- `Field.matrix[row][col]` holds the `Tile` instance at each cell. `Field.destinations` is a `Set<"row-col">` of every building tile, used as the pool of random travel destinations.
+- `Field.matrix[row][col]` holds a `Tile` reference at each cell. A structure's `(row, col)` is its footprint **anchor (center)**, and **all 9 cells of a footprint reference the same instance** — so `instanceof Road`/`Building` checks keep working everywhere. `Field.destinations` is a `Set<"row-col">` of every building **anchor** (an address == a footprint's anchor cell), used as the pool of random travel destinations.
 
 ### 4.4 Tiles, building & auto-tiling
 
 - Class hierarchy: `Tile` → `Soil` | `Road` | `Building`; `Building` → `House` | `Workplace`.
-- `Field.build()` (triggered by the `tileClicked` event) instantiates the correct tile for the active tool, replaces the tile in the matrix, and re-evaluates the four orthogonal neighbors.
-- **Road auto-tiling:** `Road.updateSelfBasedOnNeighbors()` builds a 4-bit code from top/bottom/left/right road neighbors and picks the matching `road_XXXX` sprite.
-- **Road waypoints:** on build, a road computes a `curb` (4 corner points, small inset — used by pedestrians) and `lane` (4 corner points, larger inset — used by vehicles). Pedestrians use `getClosestCurbPoint()`; vehicles use `getLaneEntryPoint(direction)` to follow correct lanes.
-- **Building entrance:** `Building.calculateEntrance()` stores a single pixel point just below the tile center. People/cars target the entrance as the final/first waypoint of a trip.
+- `Field.build()` (triggered by the `tileClicked` event) instantiates the correct structure anchored on the hovered tile, **stamps it across its 3×3 footprint** (`Field.stampFootprint`, via `Tile.getFootprintCells`), and re-evaluates the four neighboring footprints (`Field.refreshFootprint`). Overlapping placement is allowed: a previously placed structure is only torn down once none of its cells reference it anymore.
+- **Placement rules (`Field.resolvePlacement`).** Both the build preview (`MainScene.handleHover`) and the click (`MainScene.handleClick`) resolve placement through one method so they always agree:
+  - **Roads snap to the supertile grid** (`Field.snapToRoadGrid`) — the hovered anchor rounds to the nearest `3k+1` tile (the same anchors the soil grid uses), so adjacent roads are always footprint-aligned and connect/auto-tile correctly.
+  - **Buildings soft-snap to road sides** (`Field.resolveBuildingPlacement` / `isValidBuildingPlacement`): a building keeps the finer granularity but must be in bounds, not overlap any road/building, and sit flush against a road (a cell on the ring just outside the footprint is a road). When the cursor is within `BUILDING_SNAP_RADIUS_TILES` of a valid road-side spot it snaps to the closest one; otherwise the placement is invalid. Invalid building previews are tinted red and clicks are rejected. `Field.build()` re-enforces these rules authoritatively.
+- **Road auto-tiling:** `Road.updateSelfBasedOnNeighbors()` builds a 4-bit code from top/bottom/left/right road neighbors and picks the matching `road_XXXX` sprite. `Field.getNeighbors()` looks one cell **beyond the footprint edge** (offset `floor(footprint/2) + 1`) so adjacent footprints connect.
+- **Road waypoints:** on build, a road computes a `curb` (pedestrians) and `lane` (vehicles) from the **footprint** size (`gridParams.footprint`, 48 px) and anchor center, so the corner insets match the legacy single-tile values. Pedestrians use `getClosestCurbPoint()`; vehicles use `getLaneEntryPoint(direction)`.
+- **Building entrance:** `Building.calculateEntrance()` stores a single pixel point just below the footprint center. People/cars target the entrance as the final/first waypoint of a trip.
 
 ### 4.5 Depth / layering (z-order)
 
-Rendering order is driven by per-object depth values keyed off the tile **row**:
+Rendering order is driven by per-object depth values keyed off the structure's **anchor row**:
 
 - `Soil.calculateDepth()` → `0`
 - `Road.calculateDepth()` → `row * 10`
 - `Building.calculateDepth()` → `(row + 1) * 10`
-- `Person` / `Vehicle` depth → `(row + 1) * 10 + 1`
+- `Person` / `Vehicle` depth → `(row + 1) * 10 + 1` (using the anchor row of the footprint they currently stand on)
 - Cursor preview → `rows * 10 + 1`; grid lines → `rows * 10 + 100`
 
-Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = tileCenter.y + cellHeight/2`, so tall sprites extend upward out of their footprint tile while still sorting by their base row. This is what makes entities pass behind tall buildings above them and in front of buildings below them.
+Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = tileCenter.y + footprintHeight/2`, so tall sprites extend upward out of their footprint while still sorting by their base row. This is what makes entities pass behind tall buildings above them and in front of buildings below them.
 
 ### 4.6 Pathfinding & movement
 
-- `PathFinder.findPath(start, goal)` runs A* (Manhattan heuristic) over the tile grid. Valid neighbors are road tiles or the goal tile itself. Returns an ordered `Tile[]`.
+- `PathFinder.findPath(start, goal)` runs A* (Manhattan heuristic) over the fine tile grid. Valid neighbors are road tiles or any cell of the goal structure's footprint (so a road can reach a building's anchor through its footprint). It then **collapses consecutive cells of the same footprint** so the returned `Tile[]` is a footprint-level path (one step per structure, anchored).
 - `Person.walk()` moves the citizen one axis at a time (X then Y) between curb waypoints, updating facing direction and depth as it goes.
 - `Vehicle.drive()` accelerates/decelerates, slows for curves, follows lane waypoints, and smoothly rotates (`curve()`) toward its heading.
 - `updateDestination()` (on both Person and Vehicle) picks a **random** building from `Field.destinations` when idle — this is placeholder behavior, not the real commute loop.

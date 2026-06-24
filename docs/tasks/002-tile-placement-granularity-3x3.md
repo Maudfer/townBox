@@ -103,3 +103,39 @@ I just wanna make sure we got our terminology right here: After this rework, eve
   I want the tiling system to allow for more positioning flexibility than it currently does. Right now, each building and road all occupy one single tile. There are tall buildings which occupy multiple tiles visually, because they are tall, but their base still take up one single tile. Let's break the current tile in 3x3 smaller tiles, meaning a building that occupies 1 tile in the current system will take up 9 tiles in the new system. This will allow for much more granular placing of buildings and roads, and also allow for larger buildings and roads in the future. But beware: Changing this has implications for how we place down roads and buildings, which should still work with the mouse being at the center of the building/road being placed. It also has implications on addresses: Right now a person's home or work is a single tile. We need an abstraction to solve this. The way people and cars move from one waypoint to the other and one tile to the other and the entire pathfinding system has to keep working, it will need adjustments. The building entrance coordinate system will need adjustments. The building preview system will need adjustments. Tall buildings need to keep working, the layering system that makes people and cars correctly move in front of tall buildings when below them and behing tall buildings when above them, will need adjustments.
 ```
 So to be clear: After this rework is done, I expect finer placement granularity than what we have today. Whatever abstractions you come up with like Lot, Plot, etc, should be able to overlap, because placement granularity for a building is now finer. Again, solving potential problems with the location/address/coordinates of a building or road on this new system is in the scope of this task.
+
+## Follow-up scope (added after the first implementation landed)
+
+After living with the finer grid, the granular placement is great for buildings but causes problems
+for roads. Two additional, related requirements are now part of this task:
+
+### F1. Roads snap to a fixed 3×3 "supertile" grid
+
+Finer placement granularity does **not** work well for roads: two road footprints can end up
+touching but not correctly connected (e.g. horizontally adjacent but vertically offset by a single
+tile — a third of a road — so they look joined but their lanes/curbs and auto-tiling don't line up).
+
+Decision: **roads snap to a fixed grid of 3×3-tile supertiles** (every 3rd tile, horizontally and
+vertically — the same anchors the soil/grass footprints already use). This guarantees adjacent roads
+are always footprint-aligned and connect/auto-tile correctly.
+
+- Implementation is free to choose between a dedicated "supertile/supergrid" abstraction or a purely
+  mathematical snap (round the hovered anchor to the nearest supertile anchor). Pick whichever yields
+  the cleaner code for our use case — it only affects code organization, not behavior.
+- The **road build preview must snap too**, so the user always sees exactly where a road will land.
+
+### F2. Buildings are restricted to road sides (soft-snap + invalid feedback)
+
+Buildings keep the finer placement, but with new rules:
+
+- A building may **not** be placed on top of an existing road or another existing building.
+- A building must be placed against a **road side**. Use a **soft-snap** system: when the cursor is
+  close to a road side, the building snaps to the closest valid road-side placement, while still
+  letting the user choose any road side they want by moving the cursor.
+- If the user intentionally moves the cursor **too far from any road side to snap**, show the preview
+  at the raw cursor position with a **red tint** to indicate an invalid placement (and reject the
+  click).
+- Likewise, if the cursor is intentionally over another building (or a road), show the red-tinted
+  invalid preview and reject the click.
+
+Both the preview and the actual placement must agree on the resolved position and validity.

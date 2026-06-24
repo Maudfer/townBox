@@ -55,6 +55,21 @@ export default class Tile {
         return `${this.row}-${this.col}`;
     }
 
+    // Returns every tile cell covered by this structure's footprint, centered on its anchor (row, col).
+    // A footprintTiles of 1 yields just the anchor cell; 3 yields the surrounding 3x3 block, and so on.
+    getFootprintCells(footprintTiles: number): TilePosition[] {
+        const half = Math.floor(footprintTiles / 2);
+        const cells: TilePosition[] = [];
+
+        for (let row = this.row - half; row <= this.row + half; row++) {
+            for (let col = this.col - half; col <= this.col + half; col++) {
+                cells.push({ row, col });
+            }
+        }
+
+        return cells;
+    }
+
     getAssetName(): string | null {
         return this.assetName;
     }
