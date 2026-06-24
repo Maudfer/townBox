@@ -132,7 +132,7 @@ describe('SaveManager round-trip', () => {
         parent.social.setAge(40);
         parent.social.setGender(Genders.Male);
         parent.social.setHome(house);
-        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: [JobRequirements.ConstructionSkill] });
+        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: [JobRequirements.ConstructionSkill], shiftStart: 540, shiftEnd: 1020 });
 
         const child = source.field.loadPerson(72, 60);
         child.social.setFirstName('Cleo');

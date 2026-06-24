@@ -3,7 +3,7 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 
 import { WorkplaceOverview } from 'types/Social';
-import { JobPosition, JobRequirements } from 'types/Work';
+import { JobPosition, JobRequirements, DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from 'types/Work';
 
 const MAX_OCCUPANTS = 100;
 const MAX_VEHICLES = 40;
@@ -40,6 +40,8 @@ export default class Workplace extends Building {
                 requirements: [
                     JobRequirements.ConstructionSkill,
                 ],
+                shiftStart: DEFAULT_SHIFT_START,
+                shiftEnd: DEFAULT_SHIFT_END,
             });
         }
     }
