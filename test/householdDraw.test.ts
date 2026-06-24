@@ -30,7 +30,7 @@ function makeState(people: GenPerson[], drawSeed = 1): PopulationState {
     for (const p of people) {
         table[p.id] = p;
     }
-    return { worldSeed: 0, people: table, drawSeed, placedIds: [], nextSeq: people.length };
+    return { worldSeed: 0, people: table, drawSeed, placedIds: [], nextSeq: people.length, lastSimulatedYear: 0 };
 }
 
 function weights(only: HouseholdArrangements): DrawParams {

@@ -1,16 +1,115 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
 import { SeededRandom } from 'util/random';
-import { isAliveAt } from 'util/kinship';
+import { isAliveAt, spouseAt } from 'util/kinship';
 
 import { selectHousehold, HouseholdSelection } from 'game/HouseholdDraw';
 
 import { Genders, Gender } from 'types/Social';
-import { GenPerson, PersonId, PersonTable, PopulationState, PopulationParams } from 'types/Genealogy';
+import { GenPerson, PersonId, PersonTable, PopulationState, PopulationParams, SimulationParams, SimulationResult } from 'types/Genealogy';
 
 import populationConfig from 'json/population.json';
+import lifeSimulationConfig from 'json/lifeSimulation.json';
 
 export const DEFAULT_POPULATION_PARAMS: PopulationParams = populationConfig as PopulationParams;
+export const DEFAULT_SIMULATION_PARAMS: SimulationParams = lifeSimulationConfig as SimulationParams;
+
+// Annual probability of death at a given age (Gompertz), clamped; certain death at/over the age cap.
+export function annualMortality(ageYears: number, params: SimulationParams): number {
+    if (ageYears >= params.maxAgeYears) {
+        return 1;
+    }
+    const q = params.mortalityBase * Math.exp(params.mortalityGrowth * Math.max(0, ageYears));
+    return Math.min(params.maxMortality, q);
+}
+
+// Advances the living population by whole in-game years up to `currentTick`: applies age-based mortality and
+// births to married, fertile couples. Pure given the world seed (each year derives its own RNG stream), so it
+// is deterministic and reproducible across save/load. Mutates the pool (deathTicks, new children,
+// lastSimulatedYear) and returns what changed so callers can reconcile materialized residents.
+export function simulatePopulation(
+    state: PopulationState,
+    currentTick: number,
+    ticksPerYear: number,
+    params: SimulationParams = DEFAULT_SIMULATION_PARAMS
+): SimulationResult {
+    const result: SimulationResult = { died: [], born: [] };
+    if (ticksPerYear <= 0) {
+        return result;
+    }
+
+    const currentYear = Math.floor(currentTick / ticksPerYear);
+    const fromYear = state.lastSimulatedYear + 1;
+    const toYear = Math.min(currentYear, state.lastSimulatedYear + params.maxCatchUpYears);
+
+    for (let year = fromYear; year <= toYear; year++) {
+        simulateYear(state, year, ticksPerYear, params, result);
+    }
+    state.lastSimulatedYear = Math.max(state.lastSimulatedYear, currentYear);
+    return result;
+}
+
+function simulateYear(
+    state: PopulationState,
+    year: number,
+    ticksPerYear: number,
+    params: SimulationParams,
+    result: SimulationResult
+): void {
+    const pool = state.people;
+    const tick = year * ticksPerYear;
+    // Each year gets its own deterministic stream derived from the world seed; seed faker likewise so
+    // newborn names are reproducible across save/load.
+    const rng = new SeededRandom(state.worldSeed).fork(year);
+    fakerPT_BR.seed((state.worldSeed ^ (year * 0x9e3779b1)) >>> 0);
+
+    // Snapshot the living before mutating, so newborns aren't processed in the same year.
+    const living = Object.values(pool).filter(person => isAliveAt(person, tick));
+
+    // Mortality.
+    for (const person of living) {
+        const ageYears = (tick - person.birthTick) / ticksPerYear;
+        if (rng.chance(annualMortality(ageYears, params))) {
+            person.deathTick = tick;
+            result.died.push(person.id);
+        }
+    }
+
+    // Births: married, fertile women still alive after this year's mortality.
+    for (const woman of living) {
+        if (woman.gender !== Genders.Female || woman.deathTick !== null) {
+            continue;
+        }
+        const ageYears = (tick - woman.birthTick) / ticksPerYear;
+        if (ageYears < params.fertileMinAgeYears || ageYears > params.fertileMaxAgeYears) {
+            continue;
+        }
+        const partnerId = spouseAt(pool, woman.id, tick);
+        if (!partnerId) {
+            continue;
+        }
+        const partner = pool[partnerId];
+        if (!partner || partner.deathTick !== null) {
+            continue;
+        }
+        if (rng.chance(params.annualBirthProbability)) {
+            const id = `p${state.nextSeq++}`;
+            const gender = rng.chance(0.5) ? Genders.Male : Genders.Female;
+            pool[id] = {
+                id,
+                firstName: fakerPT_BR.person.firstName(gender),
+                familyName: partner.familyName,
+                gender,
+                birthTick: tick,
+                deathTick: null,
+                fatherId: partner.id,
+                motherId: woman.id,
+                partnerships: [],
+            };
+            result.born.push(id);
+        }
+    }
+}
 
 // The present epoch. Ages are derived against the clock's current tick at runtime; generation anchors "now"
 // at tick 0 so ancestors have negative birthTicks and the living cohort straddles it.
@@ -237,6 +336,7 @@ export function generatePopulation(seed: number, params: PopulationParams): Popu
         drawSeed: rng.getState(),
         placedIds: [],
         nextSeq: counter,
+        lastSimulatedYear: 0,
     };
 }
 
@@ -247,7 +347,7 @@ export default class Population {
     private state: PopulationState;
 
     constructor(state?: PopulationState) {
-        this.state = state ?? { worldSeed: 0, people: {}, drawSeed: 0, placedIds: [], nextSeq: 0 };
+        this.state = state ?? { worldSeed: 0, people: {}, drawSeed: 0, placedIds: [], nextSeq: 0, lastSimulatedYear: 0 };
     }
 
     generate(seed: number, params: PopulationParams = DEFAULT_POPULATION_PARAMS): void {
@@ -269,6 +369,12 @@ export default class Population {
         const selection = selectHousehold(this.state, rng, currentTick, capacity, ticksPerYear);
         this.state.drawSeed = rng.getState();
         return selection;
+    }
+
+    // Advances the live population (mortality + births) up to the current tick. Returns what changed so the
+    // caller can despawn materialized residents who died.
+    simulate(currentTick: number, ticksPerYear: number, params: SimulationParams = DEFAULT_SIMULATION_PARAMS): SimulationResult {
+        return simulatePopulation(this.state, currentTick, ticksPerYear, params);
     }
 
     getPerson(id: PersonId): GenPerson | null {
