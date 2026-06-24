@@ -22,6 +22,9 @@ Always run `npm test` before opening the PR.**
 | 007 | [Business generation](007-business-generation.md) | Feature |
 | 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test |
 | 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test |
+| 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time.md) | Feature |
+| 011 | [Emergent re-housing of household survivors](011-emergent-rehousing.md) | Feature |
+| 012 | [Live-app verification of clock & population](012-live-app-verification-clock-population.md) | Verification |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
