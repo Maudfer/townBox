@@ -74,6 +74,14 @@ export default class Person {
         this.vehicle = vehicle;
     }
 
+    getVehicle(): Vehicle | null {
+        return this.vehicle;
+    }
+
+    setDirection(direction: Direction): void {
+        this.direction = direction;
+    }
+
     setDestination(building: Building): void {
         this.destinationBuilding = building;
         this.travelStep = TravelStep.ExitingBuilding;

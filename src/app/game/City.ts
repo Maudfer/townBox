@@ -29,6 +29,14 @@ export default class City {
         this.name = name;
     }
 
+    public getPopulation(): number {
+        return this.population;
+    }
+
+    public setPopulation(population: number): void {
+        this.population = population;
+    }
+
     public async setupHousehold(house: House): Promise<void> {
         if (!house) {
             throw new Error("Invalid house to setup household");

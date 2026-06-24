@@ -14,7 +14,7 @@ Always run `npm test` before opening the PR.**
 | # | Task | Type |
 |---|------|------|
 | 001 | [Upgrade Phaser 3 → 4](001-upgrade-phaser-4.md) | Maintenance |
-| 002 | [Subdivide each tile into 3×3 sub-tiles](002-subdivide-tiles-3x3.md) | Feature |
+| 002 | [Subdivide each tile into 3×3 sub-tiles](002-tile-placement-granularity-3x3.md) | Feature |
 | 003 | [Save & load system](003-save-load-system.md) | Feature |
 | 004 | [Household generation redesign](004-household-generation-redesign.md) | Planning |
 | 005 | [Clock & calendar system](005-clock-and-calendar-system.md) | Feature |

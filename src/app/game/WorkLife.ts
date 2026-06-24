@@ -23,6 +23,10 @@ export default class WorkLife {
         this.job = job;
     }
 
+    public setSkills(skills: JobRequirements[]): void {
+        this.skills = skills;
+    }
+
     getInfo(): WorkInfo {
         return {
             job: this.job,

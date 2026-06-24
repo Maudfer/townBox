@@ -1,11 +1,23 @@
 import Phaser from 'phaser';
 
+import GameManager from 'game/GameManager';
+import { DEFAULT_SAVE_SLOT } from 'types/Save';
+
 export default class TitleScene extends Phaser.Scene {
-    constructor() {
+    private gameManager: GameManager;
+
+    constructor(game: GameManager) {
         super({ key: 'TitleScene' });
+        this.gameManager = game;
     }
 
     create(): void {
+        // Debug auto-load boots straight into the restored game, bypassing the splash.
+        if (this.gameManager.shouldSkipSplash()) {
+            this.scene.start('MainScene');
+            return;
+        }
+
         const width  = this.cameras.main.width;
         const height = this.cameras.main.height;
 
@@ -125,15 +137,64 @@ export default class TitleScene extends Phaser.Scene {
                 duration: 80,
                 ease: 'Power2',
                 yoyo: true,
-                onComplete: () => {
-                    this.cameras.main.fadeOut(600, 0, 0, 0);
-                    this.cameras.main.once(
-                        Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
-                        () => this.scene.start('MainScene')
-                    );
-                },
+                onComplete: () => this.transitionToGame(),
             });
         });
+
+        // ── Load button ──────────────────────────────────────────────────────
+        const loadBtnY = btnY + 72;
+
+        const loadBg = this.add.rectangle(cx, loadBtnY, 220, 46, 0x07181b)
+            .setStrokeStyle(2, 0x2c6a72)
+            .setInteractive({ useHandCursor: true })
+            .setAlpha(0);
+
+        const loadText = this.add.text(cx, loadBtnY, 'Load Game', {
+            fontSize: '18px',
+            fontFamily: 'system-ui, sans-serif',
+            fontStyle: 'bold',
+            color: '#bfe0c4',
+        }).setOrigin(0.5).setAlpha(0);
+
+        this.tweens.add({
+            targets: [loadBg, loadText],
+            alpha: 1,
+            duration: 600,
+            ease: 'Power2',
+            delay: 850,
+        });
+
+        loadBg.on('pointerover', () => {
+            loadBg.setFillStyle(0x0c2429);
+            loadBg.setStrokeStyle(2, 0x4aa0ac);
+        });
+
+        loadBg.on('pointerout', () => {
+            loadBg.setFillStyle(0x07181b);
+            loadBg.setStrokeStyle(2, 0x2c6a72);
+        });
+
+        loadBg.on('pointerdown', () => {
+            this.handleLoadClick(loadText);
+        });
+    }
+
+    private transitionToGame(): void {
+        this.cameras.main.fadeOut(600, 0, 0, 0);
+        this.cameras.main.once(
+            Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+            () => this.scene.start('MainScene')
+        );
+    }
+
+    private async handleLoadClick(loadText: Phaser.GameObjects.Text): Promise<void> {
+        const hasSave = await this.gameManager.prepareLoad(DEFAULT_SAVE_SLOT);
+        if (!hasSave) {
+            loadText.setText('No save found');
+            this.time.delayedCall(1500, () => loadText.setText('Load Game'));
+            return;
+        }
+        this.transitionToGame();
     }
 
     private _drawGrid(width: number, height: number): void {
