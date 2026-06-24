@@ -6,6 +6,7 @@ import Vehicle from 'game/Vehicle';
 
 import { TilePosition, PixelPosition } from "types/Position";
 import { Tool } from "types/Cursor";
+import { TimeChangedEvent, NewDayEvent } from "types/Time";
 import GameManager from 'game/GameManager';
 
 export type UpdateEvent = {
@@ -38,4 +39,6 @@ export interface EventPayloads {
     "saveFailed": string;
     "gameLoaded": void;
     "loadFailed": string;
+    "timeChanged": TimeChangedEvent;
+    "newDay": NewDayEvent;
 };
