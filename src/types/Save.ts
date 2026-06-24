@@ -37,6 +37,7 @@ export interface PersonSnapshot {
     direction: Direction;
     indoors: boolean;
     // SocialLife
+    personId: string | null; // link to the genealogy pool record (for age + death reconciliation)
     firstName: string;
     familyName: string;
     age: number;

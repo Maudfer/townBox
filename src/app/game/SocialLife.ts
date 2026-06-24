@@ -3,6 +3,7 @@ import House from 'game/House';
 import Clock from 'game/Clock';
 
 import { Gender, Genders, Relationship, Relationships, RelationshipMap, SocialInfo } from 'types/Social';
+import { PersonId } from 'types/Genealogy';
 
 type Home = House | null;
 
@@ -17,6 +18,9 @@ export default class SocialLife {
 
     private home: Home;
 
+    // Links this materialized person back to its genealogy pool record (null for manually created people).
+    private personId: PersonId | null;
+
     private firstName: string;
     private familyName: string;
     private age: number;
@@ -27,6 +31,7 @@ export default class SocialLife {
 
     constructor() {
         this.home = null;
+        this.personId = null;
 
         this.firstName = "";
         this.familyName = "";
@@ -135,6 +140,14 @@ export default class SocialLife {
 
     getBirthTick(): number | null {
         return this.birthTick;
+    }
+
+    setPersonId(personId: PersonId | null): void {
+        this.personId = personId;
+    }
+
+    getPersonId(): PersonId | null {
+        return this.personId;
     }
 
     setGender(gender: Gender): void {
