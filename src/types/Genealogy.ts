@@ -35,11 +35,15 @@ export interface GenPerson {
 export type PersonTable = Record<PersonId, GenPerson>;
 
 // The full, serializable population state. `drawSeed` is the placement-draw RNG state that must persist so
-// reloading reproduces subsequent household draws (see SeededRandom.getState/setState).
+// reloading reproduces subsequent household draws (see SeededRandom.getState/setState). `placedIds` is the
+// set of people already bound to a household (so a later draw never reuses them); `nextSeq` is the next id
+// suffix for people added after generation (immigrants on pool exhaustion).
 export interface PopulationState {
     worldSeed: number;
     people: PersonTable;
     drawSeed: number;
+    placedIds: PersonId[];
+    nextSeq: number;
 }
 
 // Tunable inputs to the deterministic pool generator (src/json/population.json). All time spans are in

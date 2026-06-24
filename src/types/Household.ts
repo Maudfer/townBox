@@ -26,3 +26,10 @@ export interface Household {
     memberIds: PersonId[]; // currently-living residents
     arrangement: HouseholdArrangement;
 }
+
+// Tunable inputs to the household draw (src/json/householdDraw.json).
+export interface DrawParams {
+    adultAgeYears: number;
+    maxRoommates: number;
+    arrangementWeights: Record<HouseholdArrangement, number>;
+}

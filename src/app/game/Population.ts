@@ -3,6 +3,8 @@ import { fakerPT_BR } from '@faker-js/faker';
 import { SeededRandom } from 'util/random';
 import { isAliveAt } from 'util/kinship';
 
+import { selectHousehold, HouseholdSelection } from 'game/HouseholdDraw';
+
 import { Genders, Gender } from 'types/Social';
 import { GenPerson, PersonId, PersonTable, PopulationState, PopulationParams } from 'types/Genealogy';
 
@@ -233,6 +235,8 @@ export function generatePopulation(seed: number, params: PopulationParams): Popu
         worldSeed: seed,
         people,
         drawSeed: rng.getState(),
+        placedIds: [],
+        nextSeq: counter,
     };
 }
 
@@ -243,7 +247,7 @@ export default class Population {
     private state: PopulationState;
 
     constructor(state?: PopulationState) {
-        this.state = state ?? { worldSeed: 0, people: {}, drawSeed: 0 };
+        this.state = state ?? { worldSeed: 0, people: {}, drawSeed: 0, placedIds: [], nextSeq: 0 };
     }
 
     generate(seed: number, params: PopulationParams = DEFAULT_POPULATION_PARAMS): void {
@@ -256,6 +260,15 @@ export default class Population {
 
     loadState(state: PopulationState): void {
         this.state = state;
+    }
+
+    // Draws a coherent living household for a newly placed house, advancing (and persisting) the draw RNG so
+    // reloads reproduce the sequence. Mutates state (placed people, any immigrants).
+    drawHousehold(currentTick: number, capacity: number, ticksPerYear: number = DEFAULT_POPULATION_PARAMS.ticksPerYear): HouseholdSelection {
+        const rng = new SeededRandom(this.state.drawSeed);
+        const selection = selectHousehold(this.state, rng, currentTick, capacity, ticksPerYear);
+        this.state.drawSeed = rng.getState();
+        return selection;
     }
 
     getPerson(id: PersonId): GenPerson | null {
