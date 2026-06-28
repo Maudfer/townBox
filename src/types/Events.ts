@@ -33,6 +33,7 @@ export interface EventPayloads {
     "gameInitialized": GameManager;
     "update": UpdateEvent;
     "tileClicked": BuildEvent;
+    "toolSelected": Tool;
     "personSpawnRequest": PixelPosition;
     "vehicleSpawnRequest": PixelPosition;
     "houseBuilt": House;

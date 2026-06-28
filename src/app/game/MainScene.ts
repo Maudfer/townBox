@@ -76,14 +76,18 @@ export default class MainScene extends Phaser.Scene {
         this.input.mouse.disableContextMenu();
         this.setCursor(Tool.Road);
 
+        // Tool selection flows through the `toolSelected` bus event so the keyboard and the React toolbar
+        // stay in sync (task 030): both the keys below and the toolbar emit it; the scene consumes it here.
+        Game.on("toolSelected", { callback: (tool: Tool) => this.setCursor(tool), context: this });
+
         inputConfig.inputMappings.forEach(mapping => {
             this.input.keyboard?.addKey(mapping.key).on('down', () => {
-                this.setCursor(mapping.tool as Tool);
+                Game.emit("toolSelected", mapping.tool as Tool);
             });
         });
 
         this.input.keyboard.addKey('Esc').on('down', () => {
-            this.setCursor(Tool.Select);
+            Game.emit("toolSelected", Tool.Select);
         });
 
         // Debug-only spawn keys (P: person, V: vehicle). Off by default so the only people/cars in normal play
