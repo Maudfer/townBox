@@ -9,6 +9,7 @@ import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
 import JobMarket from 'game/JobMarket';
+import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
@@ -105,6 +106,8 @@ export default class City {
             person.social.setPersonId(memberId);
             // Deterministic, age-aware skill set (task 014) so hiring (015) has something to match.
             person.work.setSkills(assignSkills(memberId, age, population.getState().worldSeed));
+            // Seed starting funds (task 017). Newborns (materializeNewborns) start at 0.
+            Game.economy?.setPersonBalance(memberId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds);
 
             house.addResident(person);
             house.addOccupant(person);
@@ -163,6 +166,8 @@ export default class City {
 
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
+        // Seed starting capital (task 017), scaled by size so bigger establishments start with more.
+        Game.economy?.setBusinessBalance(workplace.getIdentifier(), DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size);
 
         console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${size}, ${business.positions.length} positions)`);
     }
@@ -199,9 +204,10 @@ export default class City {
             return;
         }
 
-        // Employment market over the current materialized people, so get_job/layoff events hire/fire for real.
+        // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
+        // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
         const jobMarket = new JobMarket(personByGenId, field);
-        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, jobMarket);
+        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null });
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
         // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.

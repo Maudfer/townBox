@@ -133,6 +133,7 @@ export default class SaveManager {
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
             eventHistory: this.game.eventEngine?.getHistory(),
+            economy: this.game.economy?.getState(),
         };
     }
 
@@ -268,6 +269,11 @@ export default class SaveManager {
         // Event history (v5+). Older saves carry none; history stays empty.
         if (snapshot.eventHistory) {
             this.game.eventEngine?.loadHistory(snapshot.eventHistory);
+        }
+
+        // Economy (v6+). Older saves carry none; balances stay empty.
+        if (snapshot.economy) {
+            this.game.economy?.loadState(snapshot.economy);
         }
 
         // Structures first, so houses/workplaces exist to be referenced by people and families.

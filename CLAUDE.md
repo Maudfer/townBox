@@ -24,7 +24,9 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-What does **not** exist yet: the **economy** (money, prices, P&L, bankruptcy — the framework carries design-for fields but the money loop is unbuilt), and CI.
+- **Money (task 017).** A serializable `Economy` holds per-person and per-business **balances** with a single ledger primitive (`transfer`), seeded at household/business placement (`json/economy.json`) and saved. The event engine reads it as the `money` Context attribute and moves money via the `adjustMoney` effect (through a `MoneyLedger` adapter). The actual **money flows** — wages, cost of living, business P&L, bankruptcy, eviction — are not built yet (tasks 018–022).
+
+What does **not** exist yet: the **economy money loop** (wages, prices, P&L, bankruptcy → eviction — money balances exist, but nothing earns/spends yet; tasks 018–022/035), and CI.
 
 ---
 
@@ -90,6 +92,8 @@ src/
       BusinessGen.ts      # Engine A: pure generateBusiness() — expands blueprint job curves by size
       EventCompiler.ts    # Engine B: compileEvents() -> dependency/exclusion/topo graph (NPM-like)
       EventEngine.ts      # Engine B: per-day life-event runtime over materialized people (+ history)
+      JobMarket.ts        # Employment adapter: skill+distance hiring/firing for get_job/layoff events
+      Economy.ts          # Money balances (person + business) + the ledger primitive (transfer)
       Clock.ts            # Single source of in-game time; advances from "update", derives the calendar
       SocialLife.ts       # Per-person relationships, home, identity
       WorkLife.ts         # Per-person job + skills
@@ -124,6 +128,8 @@ src/
     jobs.json             # Job reference table: title, salary, required skills, design-for strain/admiration
     materials.json        # Material reference table (stub; design-for prices)
     events.json           # Engine B life-event manifest (roles, probability, effects)
+    skills.json           # Skill-assignment weights/age bands (util/skills.ts)
+    economy.json          # Starting balances (person funds, business capital)
   types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position, Save,
                           # Social, Genealogy, Household, Time, Travel, Work, FamilyTree, HUD, Neighbor, Phaser,
                           # Simulation (Context), Business, LifeEvent)
@@ -229,7 +235,7 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.11 Save / load (`game/save/`)
 
-- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `5`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v3` added `clock` state; `v4` added the per-workplace `business`; `v5` added the per-person `eventHistory` table. Older saves still load (empty pool/clock/business/history). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
+- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `6`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v3` added `clock` state; `v4` added the per-workplace `business`; `v5` added the per-person `eventHistory` table; `v6` added the `economy` (money balances). Older saves still load (empty pool/clock/business/history/balances). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
 - **Genealogy, clock, businesses & events:** the whole `population` pool (`PopulationState`), the `Household` records, the `clock` (elapsed ms), each work building's generated `business`, and the per-person `eventHistory` (a side-table keyed by pool `personId`) are serialized; ids are stable, so households, cross-household genealogy, the current date/time, businesses, and event history restore intact.
 - **Provider abstraction:** `SaveProvider` (`save`/`load`/`list`/`delete` over the payload string) with `LocalStorageProvider` today; swapping providers is a single change in `SaveManager`'s constructor.
 - **`SaveManager`** (`game/save/SaveManager.ts`) builds the snapshot from `Field`/`City`/`Population` and restores it. Only roads & buildings are serialized (soil is the implicit grass default); loads apply over a fresh field via `Field.loadStructure`/`loadPerson`/`loadVehicle`, which redraw through the normal `tileSpawned`/`personSpawned`/`vehicleSpawned` events but **never** emit `houseBuilt` (so loading doesn't redraw households). Restore is two-pass: create everything, then relink the graph (relationships, home, household, ownership). In-flight travel is reset to idle on load.

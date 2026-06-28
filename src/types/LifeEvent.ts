@@ -77,6 +77,13 @@ export interface DayResult {
     signals: { signal: string; personId: string | null; tick: number }[];
 }
 
+// The money adapter the event runtime consults so the pure engine can read wealth (the `money` Context
+// attribute) and apply the `adjustMoney` effect without importing the Economy/Field layer (task 017).
+export interface MoneyLedger {
+    getPersonBalance(personId: string): number;
+    adjustPerson(personId: string, delta: number): void;
+}
+
 // The employment adapter the event runtime consults so the pure engine can reason about (and effect) hiring
 // without importing the materialized Workplace/Field layer (task 015). The concrete implementation lives in
 // game/JobMarket.ts; the engine depends only on this interface, keeping it scene-free. All methods key on the

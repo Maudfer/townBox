@@ -16,6 +16,7 @@ import {
     EventHistoryTable,
     DayResult,
     JobMarket,
+    MoneyLedger,
 } from 'types/LifeEvent';
 
 import { compileEvents, EventGraph } from 'game/EventCompiler';
@@ -46,8 +47,9 @@ export default class EventEngine {
     private history: EventHistoryTable;
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
-    // Employment adapter for the current simulateDay pass (task 015); null in pure/test runs without a market.
-    private jobMarket: JobMarket | null;
+    // Adapters bound for the current simulateDay pass; null in pure/test runs that don't provide them.
+    private jobMarket: JobMarket | null; // employment (task 015)
+    private ledger: MoneyLedger | null; // money (task 017)
 
     constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST) {
         this.manifest = manifest;
@@ -55,6 +57,7 @@ export default class EventEngine {
         this.history = {};
         this.overlay = {};
         this.jobMarket = null;
+        this.ledger = null;
     }
 
     getGraph(): EventGraph {
@@ -119,6 +122,9 @@ export default class EventEngine {
                 // True when there is a reachable open position the person's skills can fill. Gates get_job
                 // eligibility so the per-day roll only happens when a hire is actually possible.
                 return this.jobMarket ? this.jobMarket.canHire(id) : false;
+            case 'money':
+                // Wealth derives from the economy ledger (task 017); 0 in pure/test runs without one.
+                return this.ledger ? this.ledger.getPersonBalance(id) : 0;
             default:
                 return this.overlay[id]?.[attr];
         }
@@ -273,9 +279,15 @@ export default class EventEngine {
             case 'releaseSlot':
                 this.jobMarket?.fire(subjectId);
                 return true;
-            // adjustMoney's economy backing lands in a later phase (013f / tasks 017+); no-op for now.
-            case 'adjustMoney':
+            // Credit/debit the target's balance via the economy ledger (task 017). The amount Curve is a
+            // constant for now (no driver); economy events refine this later.
+            case 'adjustMoney': {
+                const targetId = effect.target ? roleMap[effect.target] : subjectId;
+                if (this.ledger && targetId) {
+                    this.ledger.adjustPerson(targetId, effect.amount ? evaluateCurve(effect.amount, 0) : 0);
+                }
                 return true;
+            }
         }
     }
 
@@ -333,11 +345,18 @@ export default class EventEngine {
 
     // Advances all materialized agents by one day. Mutates the pool (deaths/marriages/births) and the engine's
     // history/overlay; returns what changed for the caller to reconcile the materialized world.
-    simulateDay(state: PopulationState, agentIds: PersonId[], tick: number, ticksPerYear: number, jobMarket: JobMarket | null = null): DayResult {
+    simulateDay(
+        state: PopulationState,
+        agentIds: PersonId[],
+        tick: number,
+        ticksPerYear: number,
+        adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null } = {}
+    ): DayResult {
         const result: DayResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1)) >>> 0);
-        this.jobMarket = jobMarket;
+        this.jobMarket = adapters.jobMarket ?? null;
+        this.ledger = adapters.ledger ?? null;
 
         const agents = [...agentIds].sort();
         for (const agentId of agents) {
@@ -384,6 +403,7 @@ export default class EventEngine {
         }
 
         this.jobMarket = null;
+        this.ledger = null;
         return result;
     }
 }
