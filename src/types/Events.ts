@@ -19,6 +19,15 @@ export type BuildEvent = {
     position: TilePosition;
     tool: Tool;
 };
+
+// A notable city happening surfaced to the HUD feed (task 029). `person` (when set) is the materialized
+// subject, so a feed entry can open that person's inspector on click. `tick` dates the entry.
+export type CityEvent = {
+    kind: string;
+    tick: number;
+    message: string;
+    person: Person | null;
+};
 export interface EventPayloads {
     "sceneInitialized": Phaser.Scene;
     "gameInitialized": GameManager;
@@ -45,4 +54,5 @@ export interface EventPayloads {
     "loadFailed": string;
     "timeChanged": TimeChangedEvent;
     "newDay": NewDayEvent;
+    "cityEvent": CityEvent;
 };

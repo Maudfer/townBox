@@ -13,6 +13,8 @@ import JobMarket from 'game/JobMarket';
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
+import { notificationForSignal } from 'util/notifications';
+import { DayResult } from 'types/LifeEvent';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
@@ -206,7 +208,43 @@ export default class City {
         if (result.died.length > 0) {
             this.resolveRehousing(event.tick, ticksPerYear);
         }
+        // Surface the day's notable happenings to the HUD feed (task 029).
+        this.announceCityEvents(result, personByGenId, event.tick);
         // Remaining signals (partnershipFormed, hired, …) are consumed by later economy/commute phases.
+    }
+
+    // Translates the day's deaths, births, and event signals into cityEvent feed entries (task 029). The
+    // single place that maps the simulation's outcomes to player-facing notifications.
+    private announceCityEvents(result: DayResult, personByGenId: Map<PersonId, Person>, tick: number): void {
+        const population = Game.population;
+        const nameOf = (id: PersonId): string => {
+            const person = personByGenId.get(id);
+            if (person) {
+                return person.social.getFullName();
+            }
+            const record = population?.getPerson(id);
+            return record ? `${record.firstName} ${record.familyName}` : 'Someone';
+        };
+
+        for (const id of result.died) {
+            this.announce('death', tick, `${nameOf(id)} passed away`, personByGenId.get(id) ?? null);
+        }
+        for (const birth of result.born) {
+            this.announce('birth', tick, `${nameOf(birth.motherId)} had a baby`, personByGenId.get(birth.id) ?? null);
+        }
+        for (const signal of result.signals) {
+            if (!signal.personId) {
+                continue;
+            }
+            const notification = notificationForSignal(signal.signal, nameOf(signal.personId));
+            if (notification) {
+                this.announce(notification.kind, tick, notification.message, personByGenId.get(signal.personId) ?? null);
+            }
+        }
+    }
+
+    private announce(kind: string, tick: number, message: string, person: Person | null): void {
+        Game.emit("cityEvent", { kind, tick, message, person });
     }
 
     // Removes materialized residents who died this day from their house, household, and the field.
