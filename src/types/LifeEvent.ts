@@ -76,3 +76,14 @@ export interface DayResult {
     born: { id: string; motherId: string; fatherId: string }[];
     signals: { signal: string; personId: string | null; tick: number }[];
 }
+
+// The employment adapter the event runtime consults so the pure engine can reason about (and effect) hiring
+// without importing the materialized Workplace/Field layer (task 015). The concrete implementation lives in
+// game/JobMarket.ts; the engine depends only on this interface, keeping it scene-free. All methods key on the
+// genealogy PersonId. `hire` returns whether a slot was actually acquired (false aborts the get_job event).
+export interface JobMarket {
+    isEmployed(personId: string): boolean;
+    canHire(personId: string): boolean;
+    hire(personId: string): boolean;
+    fire(personId: string): void;
+}

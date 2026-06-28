@@ -92,13 +92,13 @@
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
                 { "attr": "age", "op": ">=", "value": 18 },
-                { "attr": "employed", "op": "==", "value": false }
+                { "attr": "employed", "op": "==", "value": false },
+                { "attr": "canBeHired", "op": "==", "value": true }
             ] } }
         },
         "probability": { "perYear": 4 },
         "effects": [
             { "type": "acquireSlot", "resource": "job", "target": "subject" },
-            { "type": "setAttr", "attr": "employed", "value": true },
             { "type": "emit", "signal": "hired", "target": "subject" }
         ]
     },
@@ -106,13 +106,13 @@
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
-                { "attr": "employed", "op": "==", "value": true }
+                { "attr": "employed", "op": "==", "value": true },
+                { "not": { "hasEvent": "get_job", "withinDays": 30 } }
             ] } }
         },
         "probability": { "perYear": 0.5 },
         "effects": [
             { "type": "releaseSlot", "resource": "job", "target": "subject" },
-            { "type": "setAttr", "attr": "employed", "value": false },
             { "type": "emit", "signal": "laidOff", "target": "subject" }
         ]
     },

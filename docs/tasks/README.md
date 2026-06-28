@@ -27,7 +27,7 @@ Always run `npm test` before opening the PR.**
 | 012 | [Live-app verification of clock & population](012-live-app-verification-clock-population.md) | Verification |
 | 013 | [File-based procedural simulation framework (blueprints + life events)](013-procedural-simulation-framework_DONE.md) | Planning |
 | 014 | [People skills model & assignment](014-people-skills-model_DONE.md) | Feature |
-| 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring.md) | Feature |
+| 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring_DONE.md) | Feature |
 | 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning.md) | Feature |
 | 017 | [Money model: wallets & ledger](017-money-model.md) | Economy |
 | 018 | [Wages & payroll](018-wages-and-payroll.md) | Economy |
