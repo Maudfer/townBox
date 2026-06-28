@@ -304,3 +304,61 @@ canvas {
         transform: translateX(0);
     }
 }
+
+.city-feed {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 280px;
+    max-height: 40vh;
+    display: flex;
+    flex-direction: column;
+    color: #e8f5e9;
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    border: 1px solid #274041;
+    border-radius: 6px;
+    box-shadow: 0 3px 12px #0000008c;
+    pointer-events: all;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.city-feed-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid #ffffff1a;
+}
+
+.city-feed-list {
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.city-feed-entry {
+    padding: 4px 12px;
+    line-height: 1.4;
+}
+
+.city-feed-entry.clickable {
+    cursor: pointer;
+}
+
+.city-feed-entry.clickable:hover {
+    background-color: #ffffff14;
+}
+
+.city-feed-date {
+    opacity: 0.55;
+    font-size: 11px;
+}
+
+.city-feed-empty {
+    padding: 8px 12px;
+    opacity: 0.55;
+}
