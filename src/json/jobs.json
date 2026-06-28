@@ -1,0 +1,12 @@
+{
+    "checkout_clerk": { "title": "Checkout Clerk", "salary": 1300, "requiredSkills": ["RetailSkill"], "physicalStrain": 0.3, "mentalStrain": 0.3, "socialAdmiration": 0.2 },
+    "restocker": { "title": "Restocker", "salary": 1200, "requiredSkills": ["LogisticsSkill"], "physicalStrain": 0.6, "mentalStrain": 0.2, "socialAdmiration": 0.1 },
+    "janitor": { "title": "Janitor", "salary": 1100, "requiredSkills": ["CleaningSkill"], "physicalStrain": 0.7, "mentalStrain": 0.1, "socialAdmiration": 0.1 },
+    "manager": { "title": "Manager", "salary": 3200, "requiredSkills": ["ManagementSkill"], "physicalStrain": 0.2, "mentalStrain": 0.7, "socialAdmiration": 0.7 },
+    "doctor": { "title": "Doctor", "salary": 6000, "requiredSkills": ["MedicalSkill"], "physicalStrain": 0.4, "mentalStrain": 0.9, "socialAdmiration": 0.9 },
+    "nurse": { "title": "Nurse", "salary": 2800, "requiredSkills": ["MedicalSkill"], "physicalStrain": 0.6, "mentalStrain": 0.7, "socialAdmiration": 0.6 },
+    "teacher": { "title": "Teacher", "salary": 2400, "requiredSkills": ["TeachingSkill"], "physicalStrain": 0.2, "mentalStrain": 0.6, "socialAdmiration": 0.6 },
+    "cook": { "title": "Cook", "salary": 1800, "requiredSkills": ["CookingSkill"], "physicalStrain": 0.6, "mentalStrain": 0.4, "socialAdmiration": 0.3 },
+    "waiter": { "title": "Waiter", "salary": 1300, "requiredSkills": ["RetailSkill"], "physicalStrain": 0.5, "mentalStrain": 0.3, "socialAdmiration": 0.2 },
+    "laborer": { "title": "Laborer", "salary": 1400, "requiredSkills": ["ConstructionSkill"], "physicalStrain": 0.8, "mentalStrain": 0.2, "socialAdmiration": 0.2 }
+}

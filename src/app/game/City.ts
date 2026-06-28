@@ -2,14 +2,24 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import GameManager from 'game/GameManager';
 import House from 'game/House';
+import Workplace from 'game/Workplace';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
+import { generateBusiness } from 'game/BusinessGen';
 
 import { ageAt, relationshipLabel } from 'util/kinship';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 import { Household } from 'types/Household';
 import { PersonId } from 'types/Genealogy';
+import { BusinessBlueprintTable, JobTable } from 'types/Business';
 import { NewDayEvent } from 'types/Time';
+
+import businessesConfig from 'json/businesses.json';
+import jobsConfig from 'json/jobs.json';
+
+const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
+const JOBS = jobsConfig as unknown as JobTable;
 
 let Game: GameManager;
 
@@ -25,6 +35,7 @@ export default class City {
         this.population = 0;
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
+        Game.on("workplaceBuilt", { callback: this.setupBusiness, context: this });
         Game.on("newDay", { callback: this.handleNewDay, context: this });
         console.log('City created:', this.name);
     }
@@ -114,6 +125,36 @@ export default class City {
 
         this.population += personByGenId.size;
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
+    }
+
+    // Generates a business for a newly placed work building (Engine A). Deterministic per save + location: the
+    // seed is the world seed mixed with the workplace's anchor key, so the same building at the same spot
+    // always yields the same business, and it survives save/load without a persisted cursor. Picks a blueprint,
+    // draws a size, names it, expands its job positions, and assigns it to the workplace.
+    public setupBusiness(workplace: Workplace): void {
+        if (!workplace) {
+            throw new Error("Invalid workplace to setup business");
+        }
+
+        const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS);
+        if (blueprintKeys.length === 0) {
+            return;
+        }
+
+        const worldSeed = Game.population ? Game.population.getState().worldSeed : 0;
+        const seed = (worldSeed ^ hashStringToSeed(workplace.getIdentifier())) >>> 0;
+        const rng = new SeededRandom(seed);
+        fakerPT_BR.seed(seed);
+
+        const blueprintKey = rng.pick(blueprintKeys);
+        const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
+        const size = rng.nextInt(blueprint.size.min, blueprint.size.max);
+        const name = fakerPT_BR.company.name();
+
+        const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
+        workplace.setBusiness(business);
+
+        console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${size}, ${business.positions.length} positions)`);
     }
 
     // Advances the living-population simulation each day (it only does work on year rollovers) and reconciles

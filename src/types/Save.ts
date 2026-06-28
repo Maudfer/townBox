@@ -3,11 +3,13 @@ import { Gender, Relationships } from 'types/Social';
 import { JobPosition, JobRequirements } from 'types/Work';
 import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
+import { BusinessInstance } from 'types/Business';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool (v1 saves load with an empty pool); families → households.
 // v2 → v3: added `clock` state (older saves load with the clock at the epoch).
-export const SAVE_VERSION = 3;
+// v3 → v4: added per-workplace `business` (older saves load with no business; positions stay unseeded).
+export const SAVE_VERSION = 4;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -26,6 +28,8 @@ export interface StructureSnapshot {
     occupantIds?: string[];
     employeeIds?: string[];
     garageIds?: string[];
+    // The generated business on a work building (v4+). Absent on houses/roads and on legacy saves.
+    business?: BusinessInstance;
 }
 
 export type RelationshipSnapshot = Partial<Record<Relationships, string | string[]>>;

@@ -166,6 +166,10 @@ export default class SaveManager {
             snapshot.employeeIds = this.idsFor(structure.getEmployees(), personIds);
             snapshot.occupantIds = this.idsFor(structure.getOccupants(), personIds);
             snapshot.garageIds = this.idsFor(structure.getVehicles(), vehicleIds);
+            const business = structure.getBusiness();
+            if (business) {
+                snapshot.business = business;
+            }
         }
 
         return snapshot;
@@ -351,6 +355,9 @@ export default class SaveManager {
                 this.restorePeople(structureSnapshot.occupantIds, personById, person => structure.addOccupant(person));
                 this.restoreVehicles(structureSnapshot.garageIds, vehicleById, vehicle => structure.addVehicle(vehicle));
             } else if (structure instanceof Workplace) {
+                if (structureSnapshot.business) {
+                    structure.setBusiness(structureSnapshot.business);
+                }
                 this.restorePeople(structureSnapshot.employeeIds, personById, person => structure.addEmployee(person));
                 this.restorePeople(structureSnapshot.occupantIds, personById, person => structure.addOccupant(person));
                 this.restoreVehicles(structureSnapshot.garageIds, vehicleById, vehicle => structure.addVehicle(vehicle));

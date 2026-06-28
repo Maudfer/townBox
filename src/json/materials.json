@@ -1,0 +1,7 @@
+{
+    "groceries_wholesale": { "label": "Wholesale Groceries", "basePrice": 8 },
+    "medical_supplies": { "label": "Medical Supplies", "basePrice": 25 },
+    "school_supplies": { "label": "School Supplies", "basePrice": 6 },
+    "food_ingredients": { "label": "Food Ingredients", "basePrice": 10 },
+    "building_materials": { "label": "Building Materials", "basePrice": 18 }
+}

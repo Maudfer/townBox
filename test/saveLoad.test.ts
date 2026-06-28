@@ -124,7 +124,17 @@ describe('SaveManager round-trip', () => {
 
         const house = source.field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
         source.field.loadStructure('road', 7, 7, 'road_1100');
-        source.field.loadStructure('work', 10, 10, 'building_1x1x2_2') as Workplace;
+        const work = source.field.loadStructure('work', 10, 10, 'building_1x1x2_2') as Workplace;
+        work.setBusiness({
+            blueprintKey: 'supermarket',
+            name: 'Round-Trip Mart',
+            lineOfWork: 'Super Market',
+            size: 4,
+            positions: [
+                { title: 'Checkout Clerk', salary: 1300, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 },
+                { title: 'Janitor', salary: 1100, requirements: [JobRequirements.CleaningSkill], shiftStart: 540, shiftEnd: 1020 },
+            ],
+        });
 
         const parent = source.field.loadPerson(72, 56);
         parent.social.setFirstName('Bob');
@@ -175,6 +185,14 @@ describe('SaveManager round-trip', () => {
         expect(restoredHouse).toBeInstanceOf(House);
         expect(restored.field.getTile(7, 7)).toBeInstanceOf(Road);
         expect(restored.field.getTile(10, 10)).toBeInstanceOf(Workplace);
+
+        // Business round-trips on the work building (v4).
+        const restoredBusiness = (restored.field.getTile(10, 10) as Workplace).getBusiness();
+        expect(restoredBusiness).not.toBeNull();
+        expect(restoredBusiness!.name).toBe('Round-Trip Mart');
+        expect(restoredBusiness!.lineOfWork).toBe('Super Market');
+        expect(restoredBusiness!.size).toBe(4);
+        expect(restoredBusiness!.positions).toHaveLength(2);
 
         // People + identity
         const people = restored.field.getPeople();
