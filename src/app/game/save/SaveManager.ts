@@ -132,6 +132,7 @@ export default class SaveManager {
             households,
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
+            eventHistory: this.game.eventEngine?.getHistory(),
         };
     }
 
@@ -262,6 +263,11 @@ export default class SaveManager {
         // Clock (v3+). Older saves carry none; the clock stays at the epoch.
         if (snapshot.clock) {
             this.game.clock?.setElapsedMs(snapshot.clock.elapsedMs);
+        }
+
+        // Event history (v5+). Older saves carry none; history stays empty.
+        if (snapshot.eventHistory) {
+            this.game.eventEngine?.loadHistory(snapshot.eventHistory);
         }
 
         // Structures first, so houses/workplaces exist to be referenced by people and families.

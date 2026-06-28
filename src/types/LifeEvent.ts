@@ -61,3 +61,18 @@ export interface EventDefinition {
 
 // The manifest (src/json/events.json) keyed by event id.
 export type EventManifest = Record<string, EventDefinition>;
+
+// Per-person event history — the compact "space for time" record the runtime reads for hasEvent() queries
+// (docs/tasks/013 §5.3). One entry per event id the person has experienced.
+export type EventHistory = Record<string, { count: number; lastTick: number }>;
+
+// All event history, keyed by genealogy PersonId. Serialized in the save as a side-table so GenPerson stays
+// pure and history survives de/re-materialization.
+export type EventHistoryTable = Record<string, EventHistory>;
+
+// What one day of event simulation changed, so the caller can reconcile the materialized world.
+export interface DayResult {
+    died: string[];
+    born: { id: string; motherId: string; fatherId: string }[];
+    signals: { signal: string; personId: string | null; tick: number }[];
+}

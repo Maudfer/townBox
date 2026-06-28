@@ -31,7 +31,8 @@ export function simulatePopulation(
     state: PopulationState,
     currentTick: number,
     ticksPerYear: number,
-    params: SimulationParams = DEFAULT_SIMULATION_PARAMS
+    params: SimulationParams = DEFAULT_SIMULATION_PARAMS,
+    excludeIds: Set<PersonId> = new Set()
 ): SimulationResult {
     const result: SimulationResult = { died: [], born: [] };
     if (ticksPerYear <= 0) {
@@ -43,7 +44,7 @@ export function simulatePopulation(
     const toYear = Math.min(currentYear, state.lastSimulatedYear + params.maxCatchUpYears);
 
     for (let year = fromYear; year <= toYear; year++) {
-        simulateYear(state, year, ticksPerYear, params, result);
+        simulateYear(state, year, ticksPerYear, params, result, excludeIds);
     }
     state.lastSimulatedYear = Math.max(state.lastSimulatedYear, currentYear);
     return result;
@@ -54,7 +55,8 @@ function simulateYear(
     year: number,
     ticksPerYear: number,
     params: SimulationParams,
-    result: SimulationResult
+    result: SimulationResult,
+    excludeIds: Set<PersonId>
 ): void {
     const pool = state.people;
     const tick = year * ticksPerYear;
@@ -63,8 +65,10 @@ function simulateYear(
     const rng = new SeededRandom(state.worldSeed).fork(year);
     fakerPT_BR.seed((state.worldSeed ^ (year * 0x9e3779b1)) >>> 0);
 
-    // Snapshot the living before mutating, so newborns aren't processed in the same year.
-    const living = Object.values(pool).filter(person => isAliveAt(person, tick));
+    // Snapshot the living before mutating, so newborns aren't processed in the same year. Materialized
+    // (on-map) people are excluded — their life events are owned by the per-day event engine (Engine B),
+    // so the coarse pool sim only advances the off-map population. See docs/tasks/013 §1 decision 4.
+    const living = Object.values(pool).filter(person => isAliveAt(person, tick) && !excludeIds.has(person.id));
 
     // Mortality.
     for (const person of living) {
@@ -373,8 +377,8 @@ export default class Population {
 
     // Advances the live population (mortality + births) up to the current tick. Returns what changed so the
     // caller can despawn materialized residents who died.
-    simulate(currentTick: number, ticksPerYear: number, params: SimulationParams = DEFAULT_SIMULATION_PARAMS): SimulationResult {
-        return simulatePopulation(this.state, currentTick, ticksPerYear, params);
+    simulate(currentTick: number, ticksPerYear: number, params: SimulationParams = DEFAULT_SIMULATION_PARAMS, excludeIds?: Set<PersonId>): SimulationResult {
+        return simulatePopulation(this.state, currentTick, ticksPerYear, params, excludeIds);
     }
 
     getPerson(id: PersonId): GenPerson | null {

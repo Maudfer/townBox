@@ -157,26 +157,53 @@ export default class City {
         console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${size}, ${business.positions.length} positions)`);
     }
 
-    // Advances the living-population simulation each day (it only does work on year rollovers) and reconciles
-    // the world: materialized residents who died are removed from their house, household, and the field.
-    // Public so it is unit-testable; in production it is invoked via the "newDay" event.
-    public handleNewDay(event: NewDayEvent): void {
+    // Runs the daily life simulation and reconciles the materialized world (docs/tasks/013 §5.7, §9). Each
+    // in-game day: the off-map pool advances via the coarse yearly sim (excluding materialized people), and the
+    // per-day event engine (Engine B) runs detailed life events over materialized people — deaths despawn the
+    // resident, births materialize a newborn into the mother's house. Public for unit testing; invoked via
+    // "newDay" in production.
+    public async handleNewDay(event: NewDayEvent): Promise<void> {
         const population = Game.population;
         const clock = Game.clock;
         const field = Game.field;
         if (!population || !clock || !field) {
             return;
         }
+        const ticksPerYear = clock.getTicksPerYear();
 
-        const result = population.simulate(event.tick, clock.getTicksPerYear());
-        if (result.died.length === 0) {
+        // Index materialized (on-map) people by their pool id.
+        const personByGenId = new Map<PersonId, Person>();
+        for (const person of field.getPeople()) {
+            const id = person.social.getPersonId();
+            if (id) {
+                personByGenId.set(id, person);
+            }
+        }
+        const materializedIds = new Set(personByGenId.keys());
+
+        // Coarse off-map pool sim: materialized people are excluded (Engine B owns their life events).
+        population.simulate(event.tick, ticksPerYear, undefined, materializedIds);
+
+        const engine = Game.eventEngine;
+        if (!engine) {
             return;
         }
-        const dead = new Set(result.died);
 
-        for (const person of [...field.getPeople()]) {
-            const personId = person.social.getPersonId();
-            if (!personId || !dead.has(personId)) {
+        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear);
+        this.reconcileDeaths(result.died, personByGenId);
+        await this.materializeNewborns(result.born, personByGenId);
+        // result.signals (rehousingNeeded, partnershipFormed, hired, …) are consumed by phase 013e handlers.
+    }
+
+    // Removes materialized residents who died this day from their house, household, and the field.
+    private reconcileDeaths(diedIds: PersonId[], personByGenId: Map<PersonId, Person>): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        for (const personId of diedIds) {
+            const person = personByGenId.get(personId);
+            if (!person) {
                 continue;
             }
 
@@ -195,6 +222,50 @@ export default class City {
 
             field.removePerson(person);
             this.population = Math.max(0, this.population - 1);
+        }
+    }
+
+    // Materializes newborns of materialized mothers into the mother's house, mirroring setupHousehold's
+    // materialization. The newborn already exists in the genealogy pool (the birth effect appended it).
+    private async materializeNewborns(born: { id: PersonId; motherId: PersonId; fatherId: PersonId }[], personByGenId: Map<PersonId, Person>): Promise<void> {
+        const population = Game.population;
+        const clock = Game.clock;
+        if (!population || !clock) {
+            return;
+        }
+
+        for (const birth of born) {
+            const mother = personByGenId.get(birth.motherId);
+            const home = mother?.social.getHome();
+            if (!mother || !(home instanceof House)) {
+                continue;
+            }
+            const genChild = population.getPerson(birth.id);
+            if (!genChild) {
+                continue;
+            }
+
+            const person: Person = await Game.emitSingle("personSpawnRequest", home.getEntrance());
+            if (!person) {
+                continue;
+            }
+
+            person.setIndoors(true);
+            person.social.setHome(home);
+            person.setupCitizenship(genChild.firstName, genChild.familyName, 0, genChild.gender);
+            person.social.setBirthTick(genChild.birthTick);
+            person.social.setPersonId(birth.id);
+
+            home.addResident(person);
+            home.addOccupant(person);
+            personByGenId.set(birth.id, person);
+
+            const household = home.getHousehold();
+            if (household) {
+                household.memberIds.push(birth.id);
+            }
+
+            this.population += 1;
         }
     }
 

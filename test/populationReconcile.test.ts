@@ -3,6 +3,7 @@ import House from '../src/app/game/House';
 import City from '../src/app/game/City';
 import Population from '../src/app/game/Population';
 import Clock from '../src/app/game/Clock';
+import EventEngine from '../src/app/game/EventEngine';
 import GameManager from '../src/app/game/GameManager';
 
 import { GenPerson, PersonTable, PopulationState } from '../src/types/Genealogy';
@@ -30,10 +31,12 @@ function person(id: string, gender: Gender, ageYears: number, tickNow: number): 
 function makeGame(rows: number, cols: number): { game: GameManager; field: Field; population: Population; clock: Clock } {
     const population = new Population();
     const clock = new Clock();
+    const eventEngine = new EventEngine();
     const game = {
         field: null,
         population,
         clock,
+        eventEngine,
         gridParams: { rows, cols, cells: { width: 16, height: 16 }, footprint: { tiles: 3, width: 48, height: 48 } },
         tileToPixelPosition: (position: TilePosition) => (position === null ? null : { x: position.col * 16 + 8, y: position.row * 16 + 8 }),
         pixelToTilePosition: (pixel: PixelPosition) => {
@@ -56,7 +59,7 @@ function makeGame(rows: number, cols: number): { game: GameManager; field: Field
 }
 
 describe('City.handleNewDay — death reconciliation', () => {
-    test('a resident who dies is removed from the field, house, household, and population count', () => {
+    test('a resident who dies is removed from the field, house, household, and population count', async () => {
         const tickNow = 1 * TPY; // one year in
         const { game, field, population, clock } = makeGame(15, 15);
         const city = new City(game);
@@ -93,9 +96,9 @@ describe('City.handleNewDay — death reconciliation', () => {
         });
         city.setPopulation(2);
 
-        city.handleNewDay({ tick: tickNow, timestamp: clock.getTimestamp() });
+        await city.handleNewDay({ tick: tickNow, timestamp: clock.getTimestamp() });
 
-        // The ancient died and was fully removed; the child remains.
+        // The ancient died (via the event engine) and was fully removed; the child remains.
         expect(population.getPerson('old')!.deathTick).not.toBeNull();
         expect(field.getPeople()).toContain(childPerson);
         expect(field.getPeople()).not.toContain(oldPerson);
