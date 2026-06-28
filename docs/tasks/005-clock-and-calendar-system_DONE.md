@@ -19,7 +19,7 @@ systems (commutes, businesses) can react to time of day.
 - **Jobs:** `types/Work.ts` defines `JobPosition` (`title`, `salary`, `requirements`). `Workplace`
   seeds 10 `Constructor` jobs. There are **no shift times** today.
 - **UI:** the React HUD (`Hud.tsx`) and toolbar exist. There is no place that currently shows time.
-- **Save/load** is being added in `003-save-load-system.md`; the clock state must be part of the
+- **Save/load** is being added in `003-save-load-system_DONE.md`; the clock state must be part of the
   serialized snapshot.
 
 ## Goals / Requirements
@@ -43,7 +43,7 @@ systems (commutes, businesses) can react to time of day.
    shifts is `006-job-commute-pathfinding.md`; this task only adds the data and sensible defaults.)
 6. **Save/load compatibility.** Clock state (elapsed in-game time / current timestamp and the epoch)
    must serialize and restore correctly with the save system so loading resumes at the saved time.
-   Coordinate with `003-save-load-system.md`.
+   Coordinate with `003-save-load-system_DONE.md`.
 7. **Tests.** Add unit tests for time math (real-time → in-game date/time conversion, day rollover,
    year counting from Year 1). `npm test` passes.
 
@@ -101,7 +101,7 @@ systems (commutes, businesses) can react to time of day.
 
 - Pause / fast-forward / time-scaling controls (can be a follow-up).
 - The **life-event simulation itself** — births, deaths, and aging *progressing over time* — driven by
-  the calendar. That is `004d` in `004-household-generation-redesign.md`. This task only provides the
+  the calendar. That is `004d` in `004-household-generation-redesign_DONE.md`. This task only provides the
   tick contract and the day-rollover signal `004d` consumes (Requirement 8), and wires the existing
   time-relative read hooks (`ageAt`/`isAliveAt`/`spouseAt`, derived `getAge()`); it does **not** mutate
   the population over time.

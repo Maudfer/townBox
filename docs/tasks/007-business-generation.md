@@ -3,7 +3,7 @@
 - **Type:** Feature / Simulation
 - **Labels:** `feature`, `simulation`, `jobs`, `data`
 
-> **Superseded by [013-procedural-simulation-framework.md](013-procedural-simulation-framework.md).**
+> **Superseded by [013-procedural-simulation-framework_DONE.md](013-procedural-simulation-framework_DONE.md).**
 > Business/job/skill generation is reworked as **Engine A** (generative blueprints) + reference tables on
 > the new framework's shared substrate, with hiring modelled as resource-trading **events** (Engine B)
 > rather than a bespoke pass. The data files and `workplaceBuilt` wiring described below land as framework
@@ -112,5 +112,5 @@ this task is about the data and simulation, **not visuals**.
   compute home↔workplace distance; Manhattan or Euclidean tile distance is fine — document the
   choice.
 - Keep generation deterministic/seedable where feasible to support save reproducibility and tests.
-- Coordinate with `003-save-load-system.md` (businesses, jobs, and employment must serialize) and
-  `004-household-generation-redesign.md` (skills may be assigned during person generation).
+- Coordinate with `003-save-load-system_DONE.md` (businesses, jobs, and employment must serialize) and
+  `004-household-generation-redesign_DONE.md` (skills may be assigned during person generation).

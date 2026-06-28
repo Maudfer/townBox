@@ -2,7 +2,7 @@ import { Curve } from 'util/curve';
 import { JobPosition } from 'types/Work';
 
 // Engine A (generative blueprints) data model for the procedural simulation framework
-// (docs/tasks/013-procedural-simulation-framework.md §4, §6). A blueprint describes *how to generate* a
+// (docs/tasks/013-procedural-simulation-framework_DONE.md §4, §6). A blueprint describes *how to generate* a
 // business of a given size; a BusinessInstance is the concrete result placed on a Workplace. Jobs are a flat
 // reference table both this engine and (later) Engine B events read.
 

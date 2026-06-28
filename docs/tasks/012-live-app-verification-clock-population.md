@@ -44,6 +44,6 @@ behave correctly end-to-end and look right.
 
 ## Notes
 
-- Covers `005-clock-and-calendar-system.md` and the `004d` work in
-  `004-household-generation-redesign.md`. Consider whether a lightweight Playwright/Claude-preview smoke
+- Covers `005-clock-and-calendar-system_DONE.md` and the `004d` work in
+  `004-household-generation-redesign_DONE.md`. Consider whether a lightweight Playwright/Claude-preview smoke
   check could automate part of this.

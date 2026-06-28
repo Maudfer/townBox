@@ -1,5 +1,5 @@
 // Declarative boolean predicates over a SimulationContext. This is the eligibility language of the
-// procedural simulation framework (docs/tasks/013-procedural-simulation-framework.md): Engine B uses it for
+// procedural simulation framework (docs/tasks/013-procedural-simulation-framework_DONE.md): Engine B uses it for
 // event requirements, and Engine A can use it for conditional composition. A predicate is a small JSON AST
 // so it lives entirely in manifests; evaluatePredicate is pure given (pred, ctx), delegating all data access
 // to the Context interface, so it is unit-testable with a plain fixture context (no scene, no engine).

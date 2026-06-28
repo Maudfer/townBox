@@ -1,5 +1,5 @@
 // Declarative scalar curves: a value that scales with a single numeric input. This is the shared math of
-// the procedural simulation framework (docs/tasks/013-procedural-simulation-framework.md) — Engine A uses
+// the procedural simulation framework (docs/tasks/013-procedural-simulation-framework_DONE.md) — Engine A uses
 // curves for size-driven quantities (how many clerks a supermarket of size N needs), and Engine B uses the
 // exact same type for probability gradients (how likely pregnancy is at age N). Pure and deterministic:
 // evaluateCurve is a total function of (curve, x), so manifests are fully unit-testable without a scene.

@@ -3,7 +3,7 @@ import { Gender } from 'types/Social';
 // The genealogy is the source of truth for people: a flat, serializable population of individuals across
 // many generations (mostly deceased ancestors plus a living cohort). It is pure data with no Phaser/React
 // references — game/Person instances are materialized views onto these records (referenced by PersonId).
-// See docs/tasks/004-household-generation-redesign.md.
+// See docs/tasks/004-household-generation-redesign_DONE.md.
 
 export type PersonId = string;
 
@@ -68,7 +68,7 @@ export interface SimulationResult {
 
 // Tunable inputs to the deterministic pool generator (src/json/population.json). All time spans are in
 // years and converted to ticks via `ticksPerYear` (the canonical genealogy tick = one in-game day; see
-// docs/tasks/005-clock-and-calendar-system.md Requirement 8). The generator anchors the present at tick 0,
+// docs/tasks/005-clock-and-calendar-system_DONE.md Requirement 8). The generator anchors the present at tick 0,
 // so ancestors carry negative birthTicks.
 export interface PopulationParams {
     ticksPerYear: number;

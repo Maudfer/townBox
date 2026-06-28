@@ -1,5 +1,5 @@
 // A point in in-game time. `absoluteDay` is the canonical genealogy tick: the integer day index counted
-// from the Year 1 epoch (day 0 = the first day of Year 1). See docs/tasks/005-clock-and-calendar-system.md.
+// from the Year 1 epoch (day 0 = the first day of Year 1). See docs/tasks/005-clock-and-calendar-system_DONE.md.
 export interface Timestamp {
     year: number; // 1-based
     month: number; // 1..MONTHS_PER_YEAR

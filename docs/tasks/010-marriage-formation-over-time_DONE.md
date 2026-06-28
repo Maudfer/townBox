@@ -6,7 +6,7 @@
 > **Status: placeholder.** Created as a backlog stub from the 004d follow-up notes. **Not yet detailed —
 > run a fresh exploration pass before implementing** (verify the references below against current code).
 
-> **Absorbed by [013-procedural-simulation-framework.md](013-procedural-simulation-framework.md).**
+> **Absorbed by [013-procedural-simulation-framework_DONE.md](013-procedural-simulation-framework_DONE.md).**
 > Marriage-over-time becomes a `marriage` **event** in the new framework's event manifest (Engine B),
 > resolved by the dependency/capability system, and lands as framework phase **013e**. The goals below
 > still describe the desired behaviour, but implement them as an event definition + handler under 013, not
@@ -50,9 +50,9 @@ makes the genealogy feel static over long play and starves the birth system of n
 ## Out of scope
 
 - Divorce / separation modeling beyond what `endTick` already allows.
-- Re-housing newlyweds into shared homes (see `011-emergent-rehousing.md`).
+- Re-housing newlyweds into shared homes (see `011-emergent-rehousing_DONE.md`).
 
 ## Notes
 
-- Builds directly on `004d` (`docs/tasks/004-household-generation-redesign.md`). Coordinate with the
+- Builds directly on `004d` (`docs/tasks/004-household-generation-redesign_DONE.md`). Coordinate with the
   save system — partnerships already serialize as part of the pool.

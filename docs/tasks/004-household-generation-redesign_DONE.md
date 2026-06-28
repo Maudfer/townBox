@@ -64,8 +64,8 @@ The proposal must address, at minimum:
    stateful recursion.
 7. **Integration points.** Specify how the new system interacts with: the `houseBuilt` flow and
    `City`, the `Person`/`SocialLife` model and `types/Social.ts`, the save/load system
-   (see `003-save-load-system.md` — genealogy must be serializable; the pool likely lives in the
-   save), and the future clock system (see `005-clock-and-calendar-system.md`).
+   (see `003-save-load-system_DONE.md` — genealogy must be serializable; the pool likely lives in the
+   save), and the future clock system (see `005-clock-and-calendar-system_DONE.md`).
 8. **Migration.** Describe how to retire `Family.autoGenerate()`'s recursive logic and what changes
    to `Family.ts` / `SocialLife.ts` / `types/Social.ts` are implied.
 
@@ -122,8 +122,8 @@ Confirmed against the source on branch `task/household-generation-redesign`:
   `home: House | null`, `firstName`, `familyName`, `age`, `gender` (`SocialLife.ts`). Extended kinship
   is **materialized and stored redundantly** rather than derived.
 - **No time/age/death.** Confirmed there is no clock, date, aging, or death anywhere (consistent with
-  `005-clock-and-calendar-system.md` §Background). `age` is a static integer set at creation.
-- **Save/load is already merged (drift vs. task text).** `003-save-load-system.md` is **done**
+  `005-clock-and-calendar-system_DONE.md` §Background). `age` is a static integer set at creation.
+- **Save/load is already merged (drift vs. task text).** `003-save-load-system_DONE.md` is **done**
   (commit `a860250`). The shipped model (`types/Save.ts`, `SaveManager.ts`) serializes only
   *materialized* entities: `PersonSnapshot` carries identity + a `RelationshipSnapshot` of id→id edges;
   `FamilySnapshot` carries `familyId`/`familyName`/`householdId`/`memberIds`. There is **no population

@@ -2,7 +2,7 @@ import { Predicate } from 'util/predicate';
 import { Curve } from 'util/curve';
 import { Value } from 'types/Simulation';
 
-// Engine B — life-event manifest schema (docs/tasks/013-procedural-simulation-framework.md §5). An event is a
+// Engine B — life-event manifest schema (docs/tasks/013-procedural-simulation-framework_DONE.md §5). An event is a
 // flat, self-describing record: who participates (roles), how likely it is (probability), and what it does
 // (effects). Events never reference each other for compatibility; the compiler (game/EventCompiler.ts) derives
 // dependencies and mutual exclusivity structurally from each event's own requirements + effects.

@@ -240,7 +240,7 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.13 Procedural simulation framework (businesses + life events)
 
-The data-driven framework that generates content and drives dynamic behaviour from JSON manifests. Design and rationale: `docs/tasks/013-procedural-simulation-framework.md`. **It is two engines over a shared substrate, not one recursive tree.**
+The data-driven framework that generates content and drives dynamic behaviour from JSON manifests. Design and rationale: `docs/tasks/013-procedural-simulation-framework_DONE.md`. **It is two engines over a shared substrate, not one recursive tree.**
 
 - **Substrate (pure, scene-free).** `util/curve.ts` — declarative scalar `Curve`s (`const/linear/sqrt/log/logistic/step`) used both for Engine A size-scaling and Engine B probability gradients. `util/predicate.ts` — a JSON `Predicate` AST (`all/any/not`, attr comparisons, `hasEvent` with recency/count, `role/where`) evaluated against a `SimulationContext` (`types/Simulation.ts`: `getAttr`/`hasEvent`/`role`). Both are fully unit-tested with fixtures.
 - **Engine A — business blueprints.** `json/businesses.json` declares lines of work; each job's position count is a `Curve` over the business **size**. `game/BusinessGen.ts` `generateBusiness(blueprint, jobs, name, size)` (pure) expands those curves into `JobPosition`s. `City.setupBusiness()` runs on `workplaceBuilt`, deterministically (seed = world seed ^ anchor key) picking a blueprint, drawing a size, naming it (faker), and assigning a `BusinessInstance` to the `Workplace`. `json/jobs.json` is the job/skill reference table; `json/materials.json` is a design-for stub. Economic fields (salary, prices, P&L) are present but **not yet simulated**.
@@ -262,6 +262,7 @@ These rules are binding for every contributor (human or AI agent).
 - **Always ensure test coverage.** Do not ship code that isn't tested. Whether you write new tests or rework existing ones for changing behavior, whenever you work a task that includes new code, map the new behavior to testable assertions and make sure there are tests covering that behavior.
 - **Decide on planning depth from the exploration.** Based on the code-tour findings, decide whether the task needs multi-phase planning. If it does, **present a proposal/plan before executing**, and use this moment to ask any questions needed to resolve ambiguities. Small, unambiguous tasks can proceed directly.
 - **Finishing a task:** open a **Pull Request**. When finishing, you may **propose** new follow-up tasks for anything left undone.
+- **Marking a task done:** when a task's work is completed/merged, **rename its file to append `_DONE` before the `.md` extension** (e.g. `005-clock-and-calendar-system_DONE.md`), update its link in `docs/tasks/README.md`, and fix any other references to the old filename (other task files, `CLAUDE.md`, source-comment links). This keeps the backlog's completion state visible at a glance. Always do this as part of finishing a task.
 
 ### 5.2 Branching & merging
 

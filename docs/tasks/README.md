@@ -13,19 +13,19 @@ Always run `npm test` before opening the PR.**
 
 | # | Task | Type |
 |---|------|------|
-| 001 | [Upgrade Phaser 3 → 4](001-upgrade-phaser-4.md) | Maintenance |
-| 002 | [Subdivide each tile into 3×3 sub-tiles](002-tile-placement-granularity-3x3.md) | Feature |
-| 003 | [Save & load system](003-save-load-system.md) | Feature |
-| 004 | [Household generation redesign](004-household-generation-redesign.md) | Planning |
-| 005 | [Clock & calendar system](005-clock-and-calendar-system.md) | Feature |
+| 001 | [Upgrade Phaser 3 → 4](001-upgrade-phaser-4_DONE.md) | Maintenance |
+| 002 | [Subdivide each tile into 3×3 sub-tiles](002-tile-placement-granularity-3x3_DONE.md) | Feature |
+| 003 | [Save & load system](003-save-load-system_DONE.md) | Feature |
+| 004 | [Household generation redesign](004-household-generation-redesign_DONE.md) | Planning |
+| 005 | [Clock & calendar system](005-clock-and-calendar-system_DONE.md) | Feature |
 | 006 | [Job commute pathfinding loop](006-job-commute-pathfinding.md) | Feature |
 | 007 | [Business generation](007-business-generation.md) | Feature |
 | 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test |
 | 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test |
-| 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time.md) | Feature |
-| 011 | [Emergent re-housing of household survivors](011-emergent-rehousing.md) | Feature |
+| 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time_DONE.md) | Feature |
+| 011 | [Emergent re-housing of household survivors](011-emergent-rehousing_DONE.md) | Feature |
 | 012 | [Live-app verification of clock & population](012-live-app-verification-clock-population.md) | Verification |
-| 013 | [File-based procedural simulation framework (blueprints + life events)](013-procedural-simulation-framework.md) | Planning |
+| 013 | [File-based procedural simulation framework (blueprints + life events)](013-procedural-simulation-framework_DONE.md) | Planning |
 | 014 | [People skills model & assignment](014-people-skills-model.md) | Feature |
 | 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring.md) | Feature |
 | 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning.md) | Feature |
@@ -56,7 +56,7 @@ Always run `npm test` before opening the PR.**
 
 ### Procedural-framework follow-ups (014–036)
 
-Tasks 014–036 wire the procedural simulation framework ([013](013-procedural-simulation-framework.md)) into
+Tasks 014–036 wire the procedural simulation framework ([013](013-procedural-simulation-framework_DONE.md)) into
 an actual gameplay loop — no loose ends, everything in use during play. Rough phases & order:
 
 - **Employment & movement:** 014 → 015 → (006, 016). Hiring unlocks the commute and retires the
