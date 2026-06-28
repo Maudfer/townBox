@@ -38,8 +38,8 @@ Always run `npm test` before opening the PR.**
 | 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation.md) | Feature |
 | 024 | [Adult children move out / new-household formation](024-adult-children-move-out.md) | Feature |
 | 025 | [Structure teardown on bulldoze](025-structure-teardown.md) | Feature |
-| 026 | [Entity selection model (people & buildings)](026-entity-selection-model.md) | UI |
-| 027 | [Person inspector window (with event log)](027-person-inspector-window.md) | UI |
+| 026 | [Entity selection model (people & buildings)](026-entity-selection-model_DONE.md) | UI |
+| 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI |
 | 028 | [Workplace / business inspector window](028-workplace-inspector-window.md) | UI |
 | 029 | [City event feed / notifications](029-city-event-feed.md) | UI |
 | 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools.md) | UI |

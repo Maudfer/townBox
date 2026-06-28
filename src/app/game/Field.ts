@@ -29,6 +29,9 @@ type PlacementResult = {
 // the building placement is considered invalid.
 const BUILDING_SNAP_RADIUS_TILES = 4;
 
+// How close (in world pixels) the Select cursor must be to a person sprite to pick it (task 026).
+const SELECT_RADIUS_PX = 12;
+
 let Game: GameManager;
 
 export default class Field {
@@ -131,7 +134,8 @@ export default class Field {
             [Tool.Soil]: this.build,
             [Tool.House]: this.build,
             [Tool.Work]: this.build,
-            [Tool.Select]: this.select,
+            // Select is routed through Field.selectAt (pixel-based, people-aware) from MainScene, not tileClicked.
+            [Tool.Select]: null,
             [Tool.Bulldoze]: this.bulldoze,
         };
 
@@ -143,20 +147,56 @@ export default class Field {
         }
     }
 
-    select(event: BuildEvent): void {
-        const tilePosition = event.position;
+    // The Select tool's universal inspector pick (task 026): a person sprite under the cursor takes priority,
+    // otherwise the structure at that tile. Emits the matching selection event for the HUD to open a window.
+    selectAt(pixelPosition: PixelPosition): void {
+        if (pixelPosition === null) {
+            return;
+        }
+
+        const person = this.findPersonAt(pixelPosition);
+        if (person) {
+            Game.emit("PersonSelected", person);
+            return;
+        }
+
+        const tilePosition = Game.pixelToTilePosition(pixelPosition);
         if (tilePosition === null) {
             return;
         }
-
         const tile = this.getTile(tilePosition.row, tilePosition.col);
-        if (tile === null) {
-            return;
-        }
-
         if (tile instanceof House) {
             Game.emit("HouseSelected", tile);
+        } else if (tile instanceof Workplace) {
+            Game.emit("WorkplaceSelected", tile);
         }
+    }
+
+    // The nearest visible (not indoors) person within SELECT_RADIUS_PX of the pixel, or null. People are
+    // sprites tracked outside the tile matrix, so selection hit-tests their live positions.
+    findPersonAt(pixelPosition: PixelPosition): Person | null {
+        if (pixelPosition === null) {
+            return null;
+        }
+        let best: Person | null = null;
+        let bestDistanceSq = SELECT_RADIUS_PX * SELECT_RADIUS_PX;
+        for (const person of this.people) {
+            if (person.isIndoors()) {
+                continue;
+            }
+            const position = person.getPosition();
+            if (position === null) {
+                continue;
+            }
+            const dx = position.x - pixelPosition.x;
+            const dy = position.y - pixelPosition.y;
+            const distanceSq = dx * dx + dy * dy;
+            if (distanceSq <= bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                best = person;
+            }
+        }
+        return best;
     }
 
     bulldoze(event: BuildEvent): void {

@@ -112,7 +112,8 @@ export default class MainScene extends Phaser.Scene {
         });
 
         this.input.on('pointermove', (pointer: Pointer) => {
-            if (pointer.isDown) {
+            // Drag-paint for build/bulldoze tools; the Select (inspector) tool only acts on a discrete click.
+            if (pointer.isDown && this.getCursor()?.tool !== Tool.Select) {
                 this.handleClick(pointer);
             }
         });
@@ -209,13 +210,20 @@ export default class MainScene extends Phaser.Scene {
 
         const pixelPosition: PixelPosition = { x: pointer.worldX, y: pointer.worldY };
 
-        const tilePosition = Game.pixelToTilePosition(pixelPosition);
-        if (tilePosition === null) {
+        const cursor = this.getCursor();
+        if (cursor === null) {
             return;
         }
 
-        const cursor = this.getCursor();
-        if (cursor === null) {
+        // The Select tool is the universal inspector: hit-test people first, then the structure (Field.selectAt
+        // needs the pixel position, which the tile-based tileClicked flow would discard).
+        if (cursor.tool === Tool.Select) {
+            Game.field?.selectAt(pixelPosition);
+            return;
+        }
+
+        const tilePosition = Game.pixelToTilePosition(pixelPosition);
+        if (tilePosition === null) {
             return;
         }
 
