@@ -1,0 +1,15 @@
+{
+    "workingAgeYears": 16,
+    "adult": { "minSkills": 1, "maxSkills": 3 },
+    "minor": { "minSkills": 0, "maxSkills": 1 },
+    "weights": {
+        "ConstructionSkill": 1.0,
+        "RetailSkill": 1.2,
+        "LogisticsSkill": 1.0,
+        "CleaningSkill": 1.0,
+        "CookingSkill": 0.8,
+        "TeachingSkill": 0.6,
+        "ManagementSkill": 0.5,
+        "MedicalSkill": 0.4
+    }
+}

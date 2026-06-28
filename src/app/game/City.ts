@@ -10,6 +10,7 @@ import { generateBusiness } from 'game/BusinessGen';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
+import { assignSkills } from 'util/skills';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
@@ -97,6 +98,8 @@ export default class City {
             // Link to the genealogy record so age derives from the clock and deaths can be reconciled later.
             person.social.setBirthTick(genPerson.birthTick);
             person.social.setPersonId(memberId);
+            // Deterministic, age-aware skill set (task 014) so hiring (015) has something to match.
+            person.work.setSkills(assignSkills(memberId, age, population.getState().worldSeed));
 
             house.addResident(person);
             house.addOccupant(person);
@@ -261,6 +264,8 @@ export default class City {
             person.setupCitizenship(genChild.firstName, genChild.familyName, 0, genChild.gender);
             person.social.setBirthTick(genChild.birthTick);
             person.social.setPersonId(birth.id);
+            // Newborns are minors → typically no specialised skills yet (task 014); they acquire them with age.
+            person.work.setSkills(assignSkills(birth.id, 0, population.getState().worldSeed));
 
             home.addResident(person);
             home.addOccupant(person);
