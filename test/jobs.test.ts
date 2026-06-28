@@ -2,7 +2,7 @@ import Workplace from '../src/app/game/Workplace';
 import Person from '../src/app/game/Person';
 import { generateBusiness } from '../src/app/game/BusinessGen';
 import { BusinessBlueprint, JobTable } from '../src/types/Business';
-import { DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from '../src/types/Work';
+import { DEFAULT_SHIFT_START, DEFAULT_SHIFT_END, JobRequirements } from '../src/types/Work';
 
 const jobs: JobTable = {
     laborer: { title: 'Laborer', salary: 1400, requiredSkills: ['ConstructionSkill'] },
@@ -17,7 +17,8 @@ const blueprint: BusinessBlueprint = {
 describe('workplace hiring against a generated business', () => {
     test('a workplace with no business has no jobs to offer', () => {
         const workplace = new Workplace(0, 0, null);
-        const person = new Person(0, 0); // default WorkLife has the ConstructionSkill
+        const person = new Person(0, 0);
+        person.work.setSkills([JobRequirements.ConstructionSkill]); // skilled, but there are no jobs to fill
         expect(workplace.hire(person)).toBeNull();
     });
 
@@ -25,7 +26,8 @@ describe('workplace hiring against a generated business', () => {
         const workplace = new Workplace(0, 0, null);
         workplace.setBusiness(generateBusiness('construction_site', blueprint, jobs, 'Acme Build', 2));
 
-        const person = new Person(0, 0); // default ConstructionSkill matches the laborer requirement
+        const person = new Person(0, 0);
+        person.work.setSkills([JobRequirements.ConstructionSkill]); // matches the laborer requirement
         const job = workplace.hire(person);
 
         expect(job).not.toBeNull();

@@ -31,3 +31,19 @@ export type WorkInfo = {
     job: JobPosition | null;
     skills: JobRequirements[];
 };
+
+// How many skills a person is given, by life stage. Adults carry a small specialised set; minors (below the
+// working age) carry few/none and acquire more later (education events, task 032).
+export interface SkillCountRange {
+    minSkills: number;
+    maxSkills: number;
+}
+
+// Tunable inputs to deterministic skill assignment (src/json/skills.json). `weights` is keyed by
+// JobRequirements value → relative likelihood of that skill being drawn. See util/skills.ts.
+export interface SkillAssignmentParams {
+    workingAgeYears: number;
+    adult: SkillCountRange;
+    minor: SkillCountRange;
+    weights: Record<string, number>;
+}
