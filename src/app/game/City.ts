@@ -8,18 +8,20 @@ import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
 
-import { ageAt, relationshipLabel } from 'util/kinship';
+import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { Household } from 'types/Household';
-import { PersonId } from 'types/Genealogy';
+import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
 import { NewDayEvent } from 'types/Time';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
+import householdDrawConfig from 'json/householdDraw.json';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
+const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 
 let Game: GameManager;
 
@@ -192,7 +194,11 @@ export default class City {
         const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear);
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
-        // result.signals (rehousingNeeded, partnershipFormed, hired, …) are consumed by phase 013e handlers.
+        // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
+        if (result.died.length > 0) {
+            this.resolveRehousing(event.tick, ticksPerYear);
+        }
+        // Remaining signals (partnershipFormed, hired, …) are consumed by later economy/commute phases.
     }
 
     // Removes materialized residents who died this day from their house, household, and the field.
@@ -266,6 +272,95 @@ export default class City {
             }
 
             this.population += 1;
+        }
+    }
+
+    // Relocates survivors of households left incoherent by a death — primarily a minor whose only adult
+    // (guardian/parent) died, leaving them "living alone" (task 011 / docs/tasks/013 §10). Each orphaned minor
+    // is moved into a living relative's placed household (sibling → aunt/uncle → grandparent priority) that has
+    // capacity. Public for unit testing; in production it runs from handleNewDay after death reconciliation.
+    public resolveRehousing(tick: number, ticksPerYear: number): void {
+        const field = Game.field;
+        const population = Game.population;
+        if (!field || !population) {
+            return;
+        }
+        const pool = population.getPeople();
+
+        const byGenId = new Map<PersonId, Person>();
+        for (const person of field.getPeople()) {
+            const id = person.social.getPersonId();
+            if (id) {
+                byGenId.set(id, person);
+            }
+        }
+
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House)) {
+                continue;
+            }
+            const household = structure.getHousehold();
+            if (!household) {
+                continue;
+            }
+
+            const livingMembers = household.memberIds.filter(id => byGenId.has(id) && pool[id] && isAliveAt(pool[id]!, tick));
+            if (livingMembers.length === 0) {
+                continue;
+            }
+            const hasAdult = livingMembers.some(id => ageAt(pool[id]!, tick, ticksPerYear) >= ADULT_AGE_YEARS);
+            if (hasAdult) {
+                continue; // a coherent guardian remains
+            }
+
+            // No adult present: relocate each minor to a relative's adult household.
+            for (const minorId of [...livingMembers]) {
+                const target = this.findGuardianHouse(minorId, pool, byGenId, structure, tick, ticksPerYear);
+                if (target) {
+                    this.relocateMember(minorId, byGenId, structure, target);
+                }
+            }
+        }
+    }
+
+    private findGuardianHouse(minorId: PersonId, pool: PersonTable, byGenId: Map<PersonId, Person>, currentHouse: House, tick: number, ticksPerYear: number): House | null {
+        const relativeFinders = [siblingsOf, unclesAuntsOf, grandparentsOf];
+        for (const find of relativeFinders) {
+            const candidates = find(pool, minorId).filter(id =>
+                byGenId.has(id) && pool[id] && isAliveAt(pool[id]!, tick) && ageAt(pool[id]!, tick, ticksPerYear) >= ADULT_AGE_YEARS
+            );
+            for (const relativeId of candidates.sort()) {
+                const home = byGenId.get(relativeId)!.social.getHome();
+                if (home instanceof House && home !== currentHouse && home.getResidents().length < home.getOverview().maxResidents) {
+                    return home;
+                }
+            }
+        }
+        return null;
+    }
+
+    private relocateMember(personId: PersonId, byGenId: Map<PersonId, Person>, fromHouse: House, toHouse: House): void {
+        const person = byGenId.get(personId);
+        if (!person) {
+            return;
+        }
+
+        fromHouse.removeResident(person);
+        fromHouse.removeOccupant(person);
+        const fromHousehold = fromHouse.getHousehold();
+        if (fromHousehold) {
+            fromHousehold.memberIds = fromHousehold.memberIds.filter(id => id !== personId);
+            if (fromHousehold.headId === personId) {
+                fromHousehold.headId = fromHousehold.memberIds[0] ?? fromHousehold.headId;
+            }
+        }
+
+        toHouse.addResident(person);
+        toHouse.addOccupant(person);
+        person.social.setHome(toHouse);
+        const toHousehold = toHouse.getHousehold();
+        if (toHousehold && !toHousehold.memberIds.includes(personId)) {
+            toHousehold.memberIds.push(personId);
         }
     }
 
