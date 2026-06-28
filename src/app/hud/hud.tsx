@@ -6,6 +6,7 @@ import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
 import Clock from 'hud/Clock';
 import HouseDetails from 'hud/windows/HouseDetails';
 import PersonDetails from 'hud/windows/PersonDetails';
+import WorkplaceDetails from 'hud/windows/WorkplaceDetails';
 import House from 'game/House';
 import Person from 'game/Person';
 import Workplace from 'game/Workplace';
@@ -19,7 +20,7 @@ type OpenMode = 'append' | 'replaceType' | 'dedupeData';
 
 const windowMap = {
     [WindowTypes.HouseDetails]: HouseDetails,
-    [WindowTypes.WorkplaceDetails]: null,
+    [WindowTypes.WorkplaceDetails]: WorkplaceDetails,
     [WindowTypes.PersonDetails]: PersonDetails,
     [WindowTypes.VehicleDetails]: null,
     [WindowTypes.CityDetails]: null,

@@ -40,7 +40,7 @@ Always run `npm test` before opening the PR.**
 | 025 | [Structure teardown on bulldoze](025-structure-teardown.md) | Feature |
 | 026 | [Entity selection model (people & buildings)](026-entity-selection-model_DONE.md) | UI |
 | 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI |
-| 028 | [Workplace / business inspector window](028-workplace-inspector-window.md) | UI |
+| 028 | [Workplace / business inspector window](028-workplace-inspector-window_DONE.md) | UI |
 | 029 | [City event feed / notifications](029-city-event-feed.md) | UI |
 | 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools.md) | UI |
 | 031 | [City overview / dashboard window](031-city-overview-window.md) | UI |

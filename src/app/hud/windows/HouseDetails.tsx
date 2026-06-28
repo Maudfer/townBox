@@ -104,6 +104,22 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
             onResize={handleResize}
         >
             <div className="house-details">
+                {house && house.getResidents().length > 0 && (
+                    <div className="house-residents" style={{ padding: '0 8px 4px' }}>
+                        <h4 style={{ margin: '4px 0' }}>Residents</h4>
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                            {house.getResidents().map((resident, residentIndex) => (
+                                <li
+                                    key={residentIndex}
+                                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                    onClick={() => game.emit('PersonSelected', resident)}
+                                >
+                                    {resident.social.getFullName()} <small>({resident.social.getAge()})</small>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
                 <div id="family-tree">
                     <svg id={familyTreeId} width={svgSize.width} height={svgSize.height}>
                         <g className={LINKS_CLASS}></g>
