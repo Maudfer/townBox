@@ -258,6 +258,10 @@ export default class Field {
         if (newTile instanceof House) {
             Game.emit("houseBuilt", newTile);
         }
+
+        if (newTile instanceof Workplace) {
+            Game.emit("workplaceBuilt", newTile);
+        }
     }
 
     spawnPerson(pixelPosition: PixelPosition): Person {

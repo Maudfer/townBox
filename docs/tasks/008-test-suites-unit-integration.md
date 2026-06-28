@@ -27,7 +27,7 @@ Also wire up an `npm` script to **generate test coverage**.
   relationship logic, `WorkLife`/`Workplace` hiring, `GameManager` tile↔pixel coordinate math).
   React/Phaser rendering is the part that needs an in-browser (Playwright) harness.
 - **Debug save / auto-load:** the debug auto-load capability comes from
-  `003-save-load-system.md` (ship a build with an embedded save that bypasses the splash). The
+  `003-save-load-system_DONE.md` (ship a build with an embedded save that bypasses the splash). The
   integration suite depends on it.
 
 ## Goals / Requirements
@@ -96,7 +96,7 @@ Also wire up an `npm` script to **generate test coverage**.
 
 ## Notes
 
-- The integration suite depends on `003-save-load-system.md` (debug auto-load + committed fixture
+- The integration suite depends on `003-save-load-system_DONE.md` (debug auto-load + committed fixture
   save). Sequence accordingly; if `003` is not yet merged, scope the integration harness to what is
   bootable and expand once auto-load lands (call this out in the plan).
 - Some integration cases depend on `005` (clock widget) and the save toast from `003`; gate those

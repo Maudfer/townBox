@@ -132,6 +132,7 @@ export default class SaveManager {
             households,
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
+            eventHistory: this.game.eventEngine?.getHistory(),
         };
     }
 
@@ -166,6 +167,10 @@ export default class SaveManager {
             snapshot.employeeIds = this.idsFor(structure.getEmployees(), personIds);
             snapshot.occupantIds = this.idsFor(structure.getOccupants(), personIds);
             snapshot.garageIds = this.idsFor(structure.getVehicles(), vehicleIds);
+            const business = structure.getBusiness();
+            if (business) {
+                snapshot.business = business;
+            }
         }
 
         return snapshot;
@@ -260,6 +265,11 @@ export default class SaveManager {
             this.game.clock?.setElapsedMs(snapshot.clock.elapsedMs);
         }
 
+        // Event history (v5+). Older saves carry none; history stays empty.
+        if (snapshot.eventHistory) {
+            this.game.eventEngine?.loadHistory(snapshot.eventHistory);
+        }
+
         // Structures first, so houses/workplaces exist to be referenced by people and families.
         const structureByKey = new Map<string, Tile>();
         for (const structureSnapshot of snapshot.structures) {
@@ -351,6 +361,9 @@ export default class SaveManager {
                 this.restorePeople(structureSnapshot.occupantIds, personById, person => structure.addOccupant(person));
                 this.restoreVehicles(structureSnapshot.garageIds, vehicleById, vehicle => structure.addVehicle(vehicle));
             } else if (structure instanceof Workplace) {
+                if (structureSnapshot.business) {
+                    structure.setBusiness(structureSnapshot.business);
+                }
                 this.restorePeople(structureSnapshot.employeeIds, personById, person => structure.addEmployee(person));
                 this.restorePeople(structureSnapshot.occupantIds, personById, person => structure.addOccupant(person));
                 this.restoreVehicles(structureSnapshot.garageIds, vehicleById, vehicle => structure.addVehicle(vehicle));

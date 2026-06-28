@@ -3,17 +3,18 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 
 import { WorkplaceOverview } from 'types/Social';
-import { JobPosition, JobRequirements, DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from 'types/Work';
+import { JobPosition } from 'types/Work';
+import { BusinessInstance } from 'types/Business';
 
 const MAX_OCCUPANTS = 100;
 const MAX_VEHICLES = 40;
-const STARTING_POSITIONS = 10;
 
 type PotentialJob = JobPosition | null;
 
 export default class Workplace extends Building {
     private employees: Person[];
     private avaiableJobs: JobPosition[];
+    private business: BusinessInstance | null;
 
     private occupants: Person[];
     private garage: Vehicle[];
@@ -26,6 +27,7 @@ export default class Workplace extends Building {
 
         this.employees = [];
         this.avaiableJobs = [];
+        this.business = null;
 
         this.maxOccupants = MAX_OCCUPANTS;
         this.maxVehicles = MAX_VEHICLES;
@@ -33,17 +35,20 @@ export default class Workplace extends Building {
         this.occupants = [];
         this.garage = [];
 
-        for (let i = 0; i < STARTING_POSITIONS; i++) {
-            this.avaiableJobs.push({
-                title: 'Constructor',
-                salary: 1400,
-                requirements: [
-                    JobRequirements.ConstructionSkill,
-                ],
-                shiftStart: DEFAULT_SHIFT_START,
-                shiftEnd: DEFAULT_SHIFT_END,
-            });
-        }
+        // Jobs are no longer seeded here: a business (and its open positions) is generated on the
+        // `workplaceBuilt` event by City.setupBusiness (Engine A), or restored from a save. See docs/tasks/013.
+    }
+
+    // Assigns a generated/restored business: stores its identity and opens all of its positions for hiring.
+    // (Open/filled reconciliation across save/load gains slot identity in phase 013d, when hiring becomes an
+    // event; for now all of the instance's positions are treated as open.)
+    public setBusiness(business: BusinessInstance): void {
+        this.business = business;
+        this.avaiableJobs = [...business.positions];
+    }
+
+    public getBusiness(): BusinessInstance | null {
+        return this.business;
     }
 
     public hire(person: Person): PotentialJob {

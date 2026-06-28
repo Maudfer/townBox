@@ -1,6 +1,7 @@
 import Tile from 'game/Tile';
 import Road from 'game/Road';
 import House from 'game/House';
+import Workplace from 'game/Workplace';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 
@@ -26,6 +27,7 @@ export interface EventPayloads {
     "personSpawnRequest": PixelPosition;
     "vehicleSpawnRequest": PixelPosition;
     "houseBuilt": House;
+    "workplaceBuilt": Workplace;
     "tileSpawned": Tile;
     "personSpawned": Person;
     "vehicleSpawned": Vehicle;

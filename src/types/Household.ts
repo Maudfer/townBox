@@ -4,7 +4,7 @@ import { PersonId } from 'types/Genealogy';
 // blood/marriage relations (the genealogy). This separation is what lets the model express arrangements
 // the old single-family system could not: roommates, a child living with an adult sibling because the
 // parents are deceased, single occupants, multi-generational homes, etc.
-// See docs/tasks/004-household-generation-redesign.md.
+// See docs/tasks/004-household-generation-redesign_DONE.md.
 
 export type HouseholdId = string;
 

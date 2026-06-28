@@ -1,0 +1,64 @@
+{
+    "supermarket": {
+        "friendlyName": "Super Market",
+        "size": { "min": 1, "max": 10 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 6, "value": 2 }] } },
+            "checkout_clerk": { "count": { "mode": "logistic", "floor": 1, "ceiling": 24, "midpoint": 5, "steepness": 0.6 } },
+            "restocker": { "count": { "mode": "linear", "base": 1, "perUnit": 1.2, "max": 18 } },
+            "janitor": { "count": { "mode": "sqrt", "base": 1, "coeff": 0.9, "max": 4 } }
+        },
+        "materialsPerMonth": { "groceries_wholesale": { "qty": { "mode": "linear", "base": 50, "perUnit": 40 } } },
+        "products": {},
+        "economics": { "priceMarkup": 1.35, "fixedCostsPerMonth": { "mode": "linear", "base": 800, "perUnit": 600 } }
+    },
+    "hospital": {
+        "friendlyName": "Hospital",
+        "size": { "min": 2, "max": 12 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 5, "value": 2 }, { "at": 9, "value": 3 }] } },
+            "doctor": { "count": { "mode": "linear", "base": 2, "perUnit": 2.5, "max": 40 } },
+            "nurse": { "count": { "mode": "linear", "base": 3, "perUnit": 4, "max": 80 } },
+            "janitor": { "count": { "mode": "sqrt", "base": 1, "coeff": 1.4, "max": 12 } }
+        },
+        "materialsPerMonth": { "medical_supplies": { "qty": { "mode": "linear", "base": 100, "perUnit": 120 } } },
+        "products": {},
+        "economics": { "priceMarkup": 1.8, "fixedCostsPerMonth": { "mode": "linear", "base": 4000, "perUnit": 2500 } }
+    },
+    "school": {
+        "friendlyName": "School",
+        "size": { "min": 1, "max": 8 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 5, "value": 2 }] } },
+            "teacher": { "count": { "mode": "linear", "base": 2, "perUnit": 3, "max": 40 } },
+            "janitor": { "count": { "mode": "sqrt", "base": 1, "coeff": 1.0, "max": 6 } }
+        },
+        "materialsPerMonth": { "school_supplies": { "qty": { "mode": "linear", "base": 30, "perUnit": 25 } } },
+        "products": {},
+        "economics": { "priceMarkup": 1.1, "fixedCostsPerMonth": { "mode": "linear", "base": 1500, "perUnit": 900 } }
+    },
+    "restaurant": {
+        "friendlyName": "Restaurant",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "cook": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } },
+            "waiter": { "count": { "mode": "linear", "base": 2, "perUnit": 1.5, "max": 12 } },
+            "janitor": { "count": { "mode": "sqrt", "base": 1, "coeff": 0.6, "max": 3 } }
+        },
+        "materialsPerMonth": { "food_ingredients": { "qty": { "mode": "linear", "base": 40, "perUnit": 35 } } },
+        "products": {},
+        "economics": { "priceMarkup": 2.2, "fixedCostsPerMonth": { "mode": "linear", "base": 1200, "perUnit": 700 } }
+    },
+    "construction_site": {
+        "friendlyName": "Construction Site",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "laborer": { "count": { "mode": "linear", "base": 4, "perUnit": 4, "max": 40 } }
+        },
+        "materialsPerMonth": { "building_materials": { "qty": { "mode": "linear", "base": 80, "perUnit": 90 } } },
+        "products": {},
+        "economics": { "priceMarkup": 1.25, "fixedCostsPerMonth": { "mode": "linear", "base": 2000, "perUnit": 1500 } }
+    }
+}

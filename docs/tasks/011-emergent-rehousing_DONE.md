@@ -6,6 +6,12 @@
 > **Status: placeholder.** Created as a backlog stub from the 004d follow-up notes. **Not yet detailed —
 > run a fresh exploration pass before implementing** (verify the references below against current code).
 
+> **Absorbed by [013-procedural-simulation-framework_DONE.md](013-procedural-simulation-framework_DONE.md).**
+> Re-housing becomes an **effect/signal handler** driven by Engine B events (death, marriage, birth) — the
+> `emit`-style effects in 013 §5.8 hand off to the materialized-world reconciliation that relocates
+> survivors. Lands as framework phase **013e**. The goals below still describe the desired behaviour;
+> implement them as the event-driven handler under 013, not as a standalone system.
+
 ## Summary
 
 When the live simulation changes a household — most importantly when a **death** leaves a household in
@@ -45,5 +51,5 @@ rather than continuing to "live" by themselves.
 
 ## Notes
 
-- Direct follow-up to `004d` (`docs/tasks/004-household-generation-redesign.md`); pairs naturally with
-  `010-marriage-formation-over-time.md` (newlyweds may also merge households).
+- Direct follow-up to `004d` (`docs/tasks/004-household-generation-redesign_DONE.md`); pairs naturally with
+  `010-marriage-formation-over-time_DONE.md` (newlyweds may also merge households).

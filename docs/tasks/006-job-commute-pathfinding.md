@@ -3,6 +3,21 @@
 - **Type:** Feature / Gameplay loop
 - **Labels:** `feature`, `simulation`, `pathfinding`, `gameplay-loop`
 
+> **Note:** scope unchanged, but the **job/employer assignment** this task consumes now comes from
+> [013-procedural-simulation-framework_DONE.md](013-procedural-simulation-framework_DONE.md) (Engine A businesses +
+> Engine B hiring events), not the old 007. Implement the commute against the jobs/workplaces the framework
+> assigns; the temporary fixture note below still applies if 013 hiring is not yet merged.
+>
+> **Now unblocked by [015-skill-matched-hiring.md](015-skill-matched-hiring.md).** Once 015 lands, employed
+> residents have a real `WorkLife.job` (with `shiftStart`/`shiftEnd` from the clock work in 005) at a real
+> `Workplace`, so the commute can be driven for actual employees. Verify against current code during the
+> exploration pass: `Person.processTravel()` / `TravelStep` (`types/Travel.ts`) is **partially wired** — the
+> state machine advances but car spawn/park/despawn (`TravelStep.WalkingToCar`/`EnteringCar`/`ExitingCar`)
+> and the trigger to *start* a commute on shift boundaries are not connected. Departures should be driven by
+> the clock's `timeChanged`/`newDay` signals against each employee's shift times. Retiring the placeholder
+> random-destination wandering for employed residents is shared with
+> [016-retire-debug-spawning.md](016-retire-debug-spawning.md).
+
 ## Summary
 
 Connect the existing **job system** to **pathfinding and the clock** so that employed people living
@@ -27,7 +42,7 @@ in, and **despawns the car as they enter the building**.
 - **Movement primitives:** `PathFinder.findPath(start, goal)` returns a `Tile[]`; `Person.walk()`
   follows curb waypoints; `Vehicle.drive()` follows lane waypoints. `Field.update()` calls these
   each frame. `Field.spawnVehicle(pixelPosition)` creates a `Vehicle` and emits `vehicleSpawned`.
-- **Clock:** the day-rollover / time-of-day signals from `005-clock-and-calendar-system.md` and the
+- **Clock:** the day-rollover / time-of-day signals from `005-clock-and-calendar-system_DONE.md` and the
   job **shift start/end times** added there are the intended scheduling triggers.
 - **Indoors handling:** `Person.setIndoors(true/false)` toggles visibility; `MainScene.drawPerson`
   hides indoor people.

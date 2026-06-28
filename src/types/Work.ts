@@ -1,5 +1,15 @@
+// Skill identifiers. These double as person skills (WorkLife) and job requirements (jobs.json
+// `requiredSkills` reference these string values). Skills stay simple strings — no manifest of their own —
+// per the procedural simulation framework design (docs/tasks/013).
 export enum JobRequirements {
     ConstructionSkill = "ConstructionSkill",
+    RetailSkill = "RetailSkill",
+    LogisticsSkill = "LogisticsSkill",
+    CleaningSkill = "CleaningSkill",
+    ManagementSkill = "ManagementSkill",
+    MedicalSkill = "MedicalSkill",
+    TeachingSkill = "TeachingSkill",
+    CookingSkill = "CookingSkill",
 }
 
 export type JobRequirement = JobRequirements;

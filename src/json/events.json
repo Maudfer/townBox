@@ -1,0 +1,128 @@
+{
+    "death": {
+        "roles": {
+            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+        },
+        "probability": {
+            "perYear": 0.01,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "step", "points": [
+                    { "at": 0, "value": 0.2 }, { "at": 50, "value": 1 }, { "at": 70, "value": 5 },
+                    { "at": 85, "value": 20 }, { "at": 100, "value": 60 }, { "at": 110, "value": 100 } ] } }
+            ]
+        },
+        "effects": [
+            { "type": "setDeath" },
+            { "type": "emit", "signal": "rehousingNeeded", "target": "subject" }
+        ]
+    },
+    "had_sex": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 16 }
+            ] } },
+            "partner": { "bind": "partnerOf:subject" }
+        },
+        "probability": { "perYear": 60 },
+        "effects": []
+    },
+    "pregnancy": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "gender", "op": "==", "value": "female" },
+                { "attr": "age", "op": ">=", "value": 16 },
+                { "hasEvent": "had_sex", "withinDays": 280 },
+                { "not": { "hasEvent": "pregnancy", "withinDays": 300 } }
+            ] } },
+            "father": { "bind": "partnerOf:subject" }
+        },
+        "probability": {
+            "perYear": 0.6,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "step", "points": [
+                    { "at": 16, "value": 0.4 }, { "at": 24, "value": 1 }, { "at": 35, "value": 0.5 }, { "at": 45, "value": 0.05 } ] } }
+            ]
+        },
+        "effects": [
+            { "type": "birth", "mother": "subject", "father": "father" },
+            { "type": "emit", "signal": "rehousingNeeded", "target": "subject" }
+        ]
+    },
+    "marriage": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 18 },
+                { "attr": "marital", "op": "in", "value": ["single", "divorced", "widowed"] }
+            ] } },
+            "partner": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 18 },
+                { "attr": "marital", "op": "in", "value": ["single", "divorced", "widowed"] }
+            ] } }
+        },
+        "probability": {
+            "perYear": 0.1,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "logistic", "floor": 0.2, "ceiling": 1, "midpoint": 26, "steepness": 0.3 } }
+            ]
+        },
+        "effects": [
+            { "type": "marry", "role": "partner" },
+            { "type": "emit", "signal": "partnershipFormed", "target": "subject" }
+        ]
+    },
+    "divorce": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "marital", "op": "==", "value": "married" }
+            ] } },
+            "partner": { "bind": "partnerOf:subject" }
+        },
+        "probability": { "perYear": 0.02 },
+        "effects": [
+            { "type": "divorce" }
+        ]
+    },
+    "get_job": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 18 },
+                { "attr": "employed", "op": "==", "value": false }
+            ] } }
+        },
+        "probability": { "perYear": 4 },
+        "effects": [
+            { "type": "acquireSlot", "resource": "job", "target": "subject" },
+            { "type": "setAttr", "attr": "employed", "value": true },
+            { "type": "emit", "signal": "hired", "target": "subject" }
+        ]
+    },
+    "layoff": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "employed", "op": "==", "value": true }
+            ] } }
+        },
+        "probability": { "perYear": 0.5 },
+        "effects": [
+            { "type": "releaseSlot", "resource": "job", "target": "subject" },
+            { "type": "setAttr", "attr": "employed", "value": false },
+            { "type": "emit", "signal": "laidOff", "target": "subject" }
+        ]
+    },
+    "fell_ill": {
+        "roles": {
+            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+        },
+        "probability": { "perYear": 2 },
+        "effects": [
+            { "type": "emit", "signal": "fellIll", "target": "subject" }
+        ]
+    }
+}

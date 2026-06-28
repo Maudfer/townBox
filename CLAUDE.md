@@ -14,6 +14,8 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Tall buildings.** Some building sprites are visually taller than their footprint (e.g. `1x1x2`). The sprite is bottom-anchored so it extends upward, but its footprint is a 3×3 block of tiles. A depth (z-order) system makes people and cars correctly render **in front of** a tall building when they are below it, and **behind** it when they are above it.
 - **Population & households.** A new save generates a deterministic **population pool**: thousands of `GenPerson` records across generations (mostly deceased ancestors plus a living cohort) carrying parents, partnerships, and birth/death ticks. Placing a **house** draws a coherent **household** — a *living arrangement* (nuclear family, single occupant, adult siblings, multigenerational, a minor living with a guardian because the parents are deceased, or unrelated roommates) — from that pool and materializes its living members into `Person`s. Family trees span households because everyone shares one genealogy. Kinship and age are derived from the pool, not stored — and **age tracks the in-game clock** (people get older as time passes). The pool is also **simulated live**: each in-game year, age-based mortality and births advance the population, and residents who die are removed from their house and the map.
 - **Clock & calendar.** In-game time advances from the frame loop: **1 in-game day = 1 real hour**, on a regular 30-day-month / 12-month-year (360-day) calendar counting from **Year 1**. A `Clock` is the single source of time; the HUD shows a live date/time widget, `timeChanged`/`newDay` events fan out on the bus, jobs carry shift start/end times, and the clock state is saved. The clock's day index is the genealogy tick (so the pool and ages stay consistent).
+- **Businesses.** Placing a **work** building generates a **business** from a JSON **blueprint** (Engine A of the procedural framework, §4.13): a line of work (supermarket, hospital, school, restaurant, construction site), a generated name, a drawn **size**, and a set of **job positions** whose counts scale with size via declarative **curves** (e.g. a supermarket's clerks scale faster and higher than its janitors). Jobs and their required **skills** are JSON reference tables. Generation is deterministic per world seed + building location.
+- **Life events.** A data-driven **event engine** (Engine B, §4.13) runs detailed life events (death, marriage, divorce, sex, pregnancy/birth, …) over **materialized** people each in-game day. Events are flat JSON records with eligibility predicates, age/state probability gradients, and effects; a load-time compiler derives their dependency/exclusivity graph (NPM-style). Deaths despawn residents and **re-house** orphaned minors with a living relative; births materialize a newborn into the mother's house. The off-map genealogy pool keeps its coarse yearly demographic sim, excluding materialized people (whom the event engine now owns).
 - **People.** `Person`s have a `SocialLife` (relationships, home, name, age, gender) and a `WorkLife` (a job and a list of skills). People can walk on sidewalks, cross roads, and be marked as "indoors" (hidden) when inside a building.
 - **Vehicles.** Test cars can be spawned on the street and will pick **random** building destinations and drive there, following proper lanes.
 - **Pathfinding.** A shared A* pathfinder routes both people and cars over the road network. Roads expose **waypoints** — *curb* points (for pedestrians) and *lane* points (for vehicles) — so people walk sidewalks/crosswalks and cars stay in their lane.
@@ -22,7 +24,7 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-What does **not** exist yet: business generation, a day/night work commute loop, and CI.
+What does **not** exist yet: a day/night work **commute loop** (jobs/employers are assigned, but the home↔work travel loop is unwired), the **economy** (money, prices, P&L, bankruptcy — the framework carries design-for fields but the money loop is unbuilt), and CI.
 
 ---
 
@@ -83,12 +85,15 @@ src/
       Person.ts           # Citizen: position, walking, travel state machine, family tree export
       Vehicle.ts          # Car: driving, acceleration, lane following, rotation/curving
       PathFinder.ts       # A* over the tile grid (roads + destination tiles)
-      Population.ts       # Genealogy pool: deterministic generation + state holder
+      Population.ts       # Genealogy pool: deterministic generation + coarse off-map yearly sim + state holder
       HouseholdDraw.ts    # Draws a coherent living household from the pool (+ immigrant fallback)
+      BusinessGen.ts      # Engine A: pure generateBusiness() — expands blueprint job curves by size
+      EventCompiler.ts    # Engine B: compileEvents() -> dependency/exclusion/topo graph (NPM-like)
+      EventEngine.ts      # Engine B: per-day life-event runtime over materialized people (+ history)
       Clock.ts            # Single source of in-game time; advances from "update", derives the calendar
       SocialLife.ts       # Per-person relationships, home, identity
       WorkLife.ts         # Per-person job + skills
-      City.ts             # City name, population, wires "houseBuilt" -> household draw + materialize
+      City.ts             # Wires houseBuilt->household, workplaceBuilt->business, newDay->event sim + rehousing
       DebugTools.ts       # Optional debug overlays (curbs, lanes, tile depth)
       save/SaveProvider.ts       # Storage backend interface (base64 payload)
       save/LocalStorageProvider.ts # localStorage-backed SaveProvider
@@ -111,14 +116,24 @@ src/
     toolAssets.json       # Tool -> default sprite key
     population.json       # Genealogy pool generation params (founders, generations, lifespans, …)
     householdDraw.json    # Household draw params (arrangement weights, adult age, …)
-    lifeSimulation.json   # Live mortality/fertility params (death curve, birth rate, age cap, …)
+    lifeSimulation.json   # Coarse off-map mortality/fertility params (death curve, birth rate, age cap, …)
+    businesses.json       # Engine A blueprints: lines of work, size range, per-job count curves, economics
+    jobs.json             # Job reference table: title, salary, required skills, design-for strain/admiration
+    materials.json        # Material reference table (stub; design-for prices)
+    events.json           # Engine B life-event manifest (roles, probability, effects)
   types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position, Save,
-                          # Social, Genealogy, Household, Time, Travel, Work, FamilyTree, HUD, Neighbor, Phaser)
-  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts, familyGraph.ts, time.ts
+                          # Social, Genealogy, Household, Time, Travel, Work, FamilyTree, HUD, Neighbor, Phaser,
+                          # Simulation (Context), Business, LifeEvent)
+  util/                   # Math.ts, tools.ts, base64.ts, random.ts, kinship.ts, compress.ts, familyGraph.ts,
+                          # time.ts, curve.ts (scaling/gradient curves), predicate.ts (eligibility AST)
 test/
   personTravel.test.ts    # Person travel state-machine test
   tileFootprint.test.ts   # 3x3 footprint, depth, pathfinding, placement tests
   saveLoad.test.ts        # Save/load round-trip + base64 tests
+  curve.test.ts / predicate.test.ts            # Substrate (curves + predicates)
+  businessGen.test.ts / businessSetup.test.ts  # Engine A generation + placement wiring
+  eventCompiler.test.ts / eventEngine.test.ts  # Engine B compiler + per-day runtime
+  cityLifeEvents.test.ts / rehousing.test.ts   # Birth materialization + orphan re-housing
 ```
 
 ---
@@ -141,7 +156,7 @@ test/
 - `emit(event, payload)` — async, fans out to all handlers (`Promise.all`).
 - `emitSingle(event, payload)` — async, expects exactly **one** handler and returns its result (used when a caller needs a return value, e.g. spawning a person and getting the instance back).
 
-All event names and payload types are declared in `types/Events.ts` (`EventPayloads`). Current events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`, `personSpawnRequest`, `vehicleSpawnRequest`, `houseBuilt`, `tileSpawned`, `personSpawned`, `vehicleSpawned`, `roadBuilt`, `windowDragStart`, `windowDragStop`, `HouseSelected`, `hudReady`, `saveGameRequest`, `gameSaved`, `saveFailed`, `gameLoaded`, `loadFailed`, `timeChanged`, `newDay`.
+All event names and payload types are declared in `types/Events.ts` (`EventPayloads`). Current events include: `sceneInitialized`, `gameInitialized`, `update`, `tileClicked`, `personSpawnRequest`, `vehicleSpawnRequest`, `houseBuilt`, `workplaceBuilt`, `tileSpawned`, `personSpawned`, `vehicleSpawned`, `roadBuilt`, `windowDragStart`, `windowDragStop`, `HouseSelected`, `hudReady`, `saveGameRequest`, `gameSaved`, `saveFailed`, `gameLoaded`, `loadFailed`, `timeChanged`, `newDay`.
 
 > When adding a new cross-system signal, add it to `EventPayloads` first, then wire handlers.
 
@@ -191,7 +206,7 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 - **Population pool (source of truth).** `Population` (`game/Population.ts`) holds a serializable `PopulationState` (`types/Genealogy.ts`): a flat table of `GenPerson` records — identity, gender, `birthTick`/`deathTick`, parents, and partnerships — spanning many generations (mostly deceased ancestors plus a living cohort). It is generated deterministically at new-save time by the pure `generatePopulation(seed, params)` (seeded via `util/random.ts`; params in `json/population.json`) and serialized into the save. Kinship (siblings, grandparents, uncles/aunts, nieces/nephews, cousins) and age are **derived on demand** by pure functions in `util/kinship.ts`, never stored.
 - **Households (living arrangements).** A `Household` (`types/Household.ts`) is a *living arrangement* distinct from bloodline. `HouseholdDraw.selectHousehold()` (`game/HouseholdDraw.ts`) draws a coherent living group from the pool by arrangement (nuclear, single, siblings, multigenerational, guardianship, roommates), only ever selecting living, unplaced people, respecting house capacity, never reusing anyone, and generating an immigrant family when the unplaced-living pool is exhausted. The draw is deterministic (a persisted RNG stream); params live in `json/householdDraw.json`.
 - `City.setupHousehold()` runs on `houseBuilt`: it calls `Population.drawHousehold()`, **materializes** each drawn living person into a `Person` bound to the house (via `personSpawnRequest`), mirrors the pool's kinship onto the materialized residents (so the family-tree window renders), records the `Household` on the house, and adds the residents to the city population.
-- **Time, aging & the live simulation.** Age derives from `birthTick` against the live `Clock` (`SocialLife.getAge()`), so people age as in-game time passes; the household draw uses `clock.getCurrentTick()` so composition matches the date. `City` advances the population each `newDay` (work happens on year rollovers) via `Population.simulate()` → `simulatePopulation()` (`game/Population.ts`): age-based **mortality** sets `deathTick`, married fertile couples have **children** (appended to the pool), and the result's `died` ids drive reconciliation — a materialized resident who dies is removed from the field (`Field.removePerson`), their house, and the `Household.memberIds` (head reassigned), decrementing the city population. Materialized people carry their pool `personId` (`SocialLife`) so deaths can be matched back. The simulation is deterministic (each year forks an RNG from the world seed) and bounded on catch-up after a load. Tunables in `json/lifeSimulation.json`.
+- **Time, aging & the live simulation.** Age derives from `birthTick` against the live `Clock` (`SocialLife.getAge()`), so people age as in-game time passes; the household draw uses `clock.getCurrentTick()` so composition matches the date. `City.handleNewDay()` runs each `newDay` and drives **two** simulations (§4.13): the **coarse** off-map pool sim (`Population.simulate()` → `simulatePopulation()`, age-based mortality + couple fertility, yearly, **excluding materialized people**), and the per-day **event engine** (Engine B) over materialized people, whose `died`/`born` results drive reconciliation — a dead resident is removed from the field (`Field.removePerson`), their house, and the `Household.memberIds` (head reassigned), orphaned minors are **re-housed** with a living relative, and newborns are materialized into the mother's house. Materialized people carry their pool `personId` (`SocialLife`) so events match back. Both sims are deterministic (each tick/year forks an RNG from the world seed). Coarse tunables in `json/lifeSimulation.json`; event definitions in `json/events.json`.
 - `SocialLife` stores a `RelationshipMap` (some relationships single-valued, some arrays), the person's `home`, and identity, populated on the materialized residents. `WorkLife` stores a job and skills (defaults to one `ConstructionSkill`).
 - Relationship enums and maps live in `types/Social.ts`; genealogy/household types in `types/Genealogy.ts` / `types/Household.ts`; jobs/skills in `types/Work.ts`.
 
@@ -210,8 +225,8 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 
 ### 4.11 Save / load (`game/save/`)
 
-- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `3`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v3` added `clock` state. Older saves still load (empty pool / clock at the epoch). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
-- **Genealogy & clock:** the whole `population` pool (`PopulationState`), the `Household` records, and the `clock` (elapsed ms) are serialized; pool/household ids are stable, so households, cross-household genealogy, and the current date/time restore intact.
+- **Format:** an id-based normalized `WorldSnapshot` (`types/Save.ts`) — people/vehicles get stable ids, structures/houses are referenced by their anchor key — serialized to JSON, deflated with `pako` and base64-encoded (`util/compress.ts`; payloads without the compression marker fall back to legacy plain base64). A top-level `version` field (`SAVE_VERSION`, now `5`) drives migrations: `v2` added the genealogy `population` pool and replaced per-house `families` with `households`; `v3` added `clock` state; `v4` added the per-workplace `business`; `v5` added the per-person `eventHistory` table. Older saves still load (empty pool/clock/business/history). The id-based model lets the cyclic relationship/ownership graph survive a JSON round-trip.
+- **Genealogy, clock, businesses & events:** the whole `population` pool (`PopulationState`), the `Household` records, the `clock` (elapsed ms), each work building's generated `business`, and the per-person `eventHistory` (a side-table keyed by pool `personId`) are serialized; ids are stable, so households, cross-household genealogy, the current date/time, businesses, and event history restore intact.
 - **Provider abstraction:** `SaveProvider` (`save`/`load`/`list`/`delete` over the payload string) with `LocalStorageProvider` today; swapping providers is a single change in `SaveManager`'s constructor.
 - **`SaveManager`** (`game/save/SaveManager.ts`) builds the snapshot from `Field`/`City`/`Population` and restores it. Only roads & buildings are serialized (soil is the implicit grass default); loads apply over a fresh field via `Field.loadStructure`/`loadPerson`/`loadVehicle`, which redraw through the normal `tileSpawned`/`personSpawned`/`vehicleSpawned` events but **never** emit `houseBuilt` (so loading doesn't redraw households). Restore is two-pass: create everything, then relink the graph (relationships, home, household, ownership). In-flight travel is reset to idle on load.
 - **Flow & events:** the HUD triggers saves via the `saveGameRequest` event (toolbar button / `Ctrl+S`) and renders toasts from `gameSaved`/`gameLoaded`/`saveFailed`/`loadFailed`. The HUD emits `hudReady` once its listeners are registered; `GameManager` applies a queued load (title-screen load or `config.debug.autoLoad`) only then, so toasts are never missed. Auto-load (`json/config.json` → `debug.autoLoad.{enabled,save}`) skips the splash and boots straight into the embedded save.
@@ -221,7 +236,17 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 - **Scale & calendar:** **1 in-game day = 1 real hour** (`MS_PER_IN_GAME_DAY`). The calendar is a regular **30-day month / 12-month year = 360 days/year** (`DAYS_PER_YEAR`), counting from **Year 1**. Time math lives in pure functions in `util/time.ts` (`timestampFromElapsed`, `absoluteDayFromElapsed`, `formatTimestamp`), unit-tested without Phaser.
 - **Single source of truth:** `Clock` (`game/Clock.ts`) accumulates elapsed real time (`advance` is the only mutator) and derives everything. `GameManager` owns it (`game.clock`), advances it from the `update` event, and emits `timeChanged` (once per in-game minute) and `newDay` (per rollover), each carrying the current `tick`. Other systems read the clock; they don't re-derive time.
 - **Genealogy contract:** `getCurrentTick()` is the absolute in-game day index — the canonical **genealogy tick** — and `getTicksPerYear()` equals `DAYS_PER_YEAR`, which must match `json/population.json`'s `ticksPerYear`. `SocialLife` holds a shared `Clock` (set by `GameManager`) so `getAge()` derives from `birthTick` live; `City`'s household draw and the family-tree window read `clock.getCurrentTick()`.
-- **Jobs:** `JobPosition` carries `shiftStart`/`shiftEnd` (minutes since midnight); seeded `Workplace` jobs default to 09:00–17:00. The `newDay` signal drives the live population simulation (§4.8); shift times are what the commute (006) will hook into.
+- **Jobs:** `JobPosition` carries `shiftStart`/`shiftEnd` (minutes since midnight); seeded `Workplace` jobs default to 09:00–17:00. The `newDay` signal drives the live simulation (§4.8, §4.13); shift times are what the commute (006) will hook into.
+
+### 4.13 Procedural simulation framework (businesses + life events)
+
+The data-driven framework that generates content and drives dynamic behaviour from JSON manifests. Design and rationale: `docs/tasks/013-procedural-simulation-framework_DONE.md`. **It is two engines over a shared substrate, not one recursive tree.**
+
+- **Substrate (pure, scene-free).** `util/curve.ts` — declarative scalar `Curve`s (`const/linear/sqrt/log/logistic/step`) used both for Engine A size-scaling and Engine B probability gradients. `util/predicate.ts` — a JSON `Predicate` AST (`all/any/not`, attr comparisons, `hasEvent` with recency/count, `role/where`) evaluated against a `SimulationContext` (`types/Simulation.ts`: `getAttr`/`hasEvent`/`role`). Both are fully unit-tested with fixtures.
+- **Engine A — business blueprints.** `json/businesses.json` declares lines of work; each job's position count is a `Curve` over the business **size**. `game/BusinessGen.ts` `generateBusiness(blueprint, jobs, name, size)` (pure) expands those curves into `JobPosition`s. `City.setupBusiness()` runs on `workplaceBuilt`, deterministically (seed = world seed ^ anchor key) picking a blueprint, drawing a size, naming it (faker), and assigning a `BusinessInstance` to the `Workplace`. `json/jobs.json` is the job/skill reference table; `json/materials.json` is a design-for stub. Economic fields (salary, prices, P&L) are present but **not yet simulated**.
+- **Engine B — life events.** `json/events.json` is a flat manifest of events: `roles` (the implicit `subject` plus co-participants bound by indexed relation `partnerOf:subject` or candidate `where` search), a per-year `probability` with `Curve` factors, and a closed, typed `effects` vocabulary (`setDeath/marry/divorce/birth/setAttr/acquireSlot/releaseSlot/adjustMoney/emit`). `game/EventCompiler.ts` `compileEvents()` derives — NPM-style, from each event's own requirements + effects — a `dependsOn`/`excludes`/`topoOrder`/`indexKeys` graph plus validation warnings; **mutual exclusivity is derived, never authored** (e.g. death sets `alive=false`, so it excludes every event requiring `alive=true`). `game/EventEngine.ts` runs the per-day resolver over **materialized people only**: per agent it walks the topo order, checks eligibility, rolls the per-day hazard (per-year ÷ `ticksPerYear`), applies effects (mutating the pool + a per-person attribute overlay), records history, and queues signals. Deterministic per world seed + tick.
+- **Cadence & ownership.** Engine B runs on `newDay` from `City.handleNewDay` (§4.8); the coarse off-map pool sim (`Population.simulate`) **excludes materialized people**, so death/marriage/birth for on-map people are owned solely by Engine B. Marriage-over-time (task 010) and orphan re-housing (task 011) are realized as event effects/handlers, not separate systems.
+- **Flexibility line.** Adding events/businesses/jobs/curves/gradients is **pure data** (files only); adding a new primitive effect kind or Context attribute is a **code change**. No scripting in manifests (keeps the compiler, determinism, and saves sound).
 
 ---
 
@@ -237,6 +262,7 @@ These rules are binding for every contributor (human or AI agent).
 - **Always ensure test coverage.** Do not ship code that isn't tested. Whether you write new tests or rework existing ones for changing behavior, whenever you work a task that includes new code, map the new behavior to testable assertions and make sure there are tests covering that behavior.
 - **Decide on planning depth from the exploration.** Based on the code-tour findings, decide whether the task needs multi-phase planning. If it does, **present a proposal/plan before executing**, and use this moment to ask any questions needed to resolve ambiguities. Small, unambiguous tasks can proceed directly.
 - **Finishing a task:** open a **Pull Request**. When finishing, you may **propose** new follow-up tasks for anything left undone.
+- **Marking a task done:** when a task's work is completed/merged, **rename its file to append `_DONE` before the `.md` extension** (e.g. `005-clock-and-calendar-system_DONE.md`), update its link in `docs/tasks/README.md`, and fix any other references to the old filename (other task files, `CLAUDE.md`, source-comment links). This keeps the backlog's completion state visible at a glance. Always do this as part of finishing a task.
 
 ### 5.2 Branching & merging
 
