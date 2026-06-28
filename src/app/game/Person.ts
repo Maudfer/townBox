@@ -41,6 +41,10 @@ export default class Person {
     private path: Tile[];
     private currentDestination: TilePosition;
 
+    // Free-roaming flag: only debug-spawned test people wander to random buildings. Materialized residents
+    // never wander — they move only with purpose (the commute, task 006). Off by default (task 016).
+    private wander: boolean;
+
     private asset: Image;
     private redrawFunction: ((timeDelta: number) => void) | null;
 
@@ -65,9 +69,15 @@ export default class Person {
 
         this.path = [];
         this.currentDestination = null;
+        this.wander = false;
         this.asset = null;
 
         this.redrawFunction = null;
+    }
+
+    // Marks this person as a free-roaming test entity (debug spawns only). Residents are never wanderers.
+    enableWander(): void {
+        this.wander = true;
     }
 
     setGameManager(gameManager: GameManager): void {
@@ -345,7 +355,10 @@ export default class Person {
             this.processTravel(currentTile, timeDelta, pathFinder);
         } else {
             this.walk(currentTile, timeDelta);
-            this.updateDestination(currentTile, destinations, pathFinder);
+            // Only debug test people wander; residents stay put until dispatched (commute, task 006).
+            if (this.wander) {
+                this.updateDestination(currentTile, destinations, pathFinder);
+            }
         }
     }
 

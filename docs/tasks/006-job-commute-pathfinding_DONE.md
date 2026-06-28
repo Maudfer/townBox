@@ -16,7 +16,7 @@
 > and the trigger to *start* a commute on shift boundaries are not connected. Departures should be driven by
 > the clock's `timeChanged`/`newDay` signals against each employee's shift times. Retiring the placeholder
 > random-destination wandering for employed residents is shared with
-> [016-retire-debug-spawning.md](016-retire-debug-spawning.md).
+> [016-retire-debug-spawning_DONE.md](016-retire-debug-spawning_DONE.md).
 
 ## Summary
 

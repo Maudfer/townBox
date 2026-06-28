@@ -1,6 +1,7 @@
 {
     "debug": {
         "masterSwitch": false,
+        "spawnKeys": false,
         "drawCurbs": true,
         "drawLanes": true,
         "drawTileDepth": false,
