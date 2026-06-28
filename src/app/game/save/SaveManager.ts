@@ -364,7 +364,11 @@ export default class SaveManager {
                 if (structureSnapshot.business) {
                     structure.setBusiness(structureSnapshot.business);
                 }
-                this.restorePeople(structureSnapshot.employeeIds, personById, person => structure.addEmployee(person));
+                // Rebuild the employee<->employer link so the commute (006) knows where each employee works.
+                this.restorePeople(structureSnapshot.employeeIds, personById, person => {
+                    structure.addEmployee(person);
+                    person.work.setWorkplace(structure);
+                });
                 this.restorePeople(structureSnapshot.occupantIds, personById, person => structure.addOccupant(person));
                 this.restoreVehicles(structureSnapshot.garageIds, vehicleById, vehicle => structure.addVehicle(vehicle));
             }

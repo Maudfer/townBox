@@ -33,6 +33,9 @@ export default class Person {
 
     private vehicle: Vehicle | null;
     private destinationBuilding: Building | null;
+    // The building the person is currently in/at (home or workplace). Null is treated as "at home". Set on
+    // arrival; drives the commute scheduler's home<->work decisions (task 006).
+    private currentBuilding: Building | null;
     private travelStep: TravelStep;
 
     private path: Tile[];
@@ -57,6 +60,7 @@ export default class Person {
         this.insideBuilding = false;
         this.vehicle = null;
         this.destinationBuilding = null;
+        this.currentBuilding = null;
         this.travelStep = TravelStep.Idle;
 
         this.path = [];
@@ -85,6 +89,19 @@ export default class Person {
     setDestination(building: Building): void {
         this.destinationBuilding = building;
         this.travelStep = TravelStep.ExitingBuilding;
+    }
+
+    getCurrentBuilding(): Building | null {
+        return this.currentBuilding;
+    }
+
+    setCurrentBuilding(building: Building | null): void {
+        this.currentBuilding = building;
+    }
+
+    // Not currently on a commute (available to be dispatched home/to work).
+    isIdle(): boolean {
+        return this.travelStep === TravelStep.Idle && this.destinationBuilding === null;
     }
 
     setupCitizenship(firstName: string, familyName: string, age: number, gender: Gender): void {
@@ -306,6 +323,15 @@ export default class Person {
                 break;
             case TravelStep.Arrived:
                 this.setIndoors(true);
+                // Record where we now are (home or workplace) for the commute scheduler.
+                this.currentBuilding = this.destinationBuilding;
+                // Park-and-despawn the commute car: drop it from the field and clear the link so no sprite or
+                // update entry leaks.
+                if (this.vehicle) {
+                    Game.field?.removeVehicle(this.vehicle);
+                    this.vehicle.setControlled(false);
+                    this.vehicle = null;
+                }
                 this.destinationBuilding = null;
                 this.travelStep = TravelStep.Idle;
                 break;

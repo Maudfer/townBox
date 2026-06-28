@@ -19,12 +19,12 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **People.** `Person`s have a `SocialLife` (relationships, home, name, age, gender) and a `WorkLife` (a job and a list of skills). People can walk on sidewalks, cross roads, and be marked as "indoors" (hidden) when inside a building.
 - **Vehicles.** Test cars can be spawned on the street and will pick **random** building destinations and drive there, following proper lanes.
 - **Pathfinding.** A shared A* pathfinder routes both people and cars over the road network. Roads expose **waypoints** — *curb* points (for pedestrians) and *lane* points (for vehicles) — so people walk sidewalks/crosswalks and cars stay in their lane.
-- **Travel state machine.** A `Person` has a `TravelStep` state machine intended to drive the exit-house → walk-to-car → drive → walk-to-building → enter loop. It is **only partially wired**: car spawning/parking and despawning on enter/exit are not connected.
+- **Daily commute (task 006).** Employed residents commute home↔work each day: at shift start a car is spawned at the origin building's entrance and the `Person`'s `TravelStep` machine drives exit-house → walk-to-car → drive → walk-to-building → enter, despawning the car on arrival; the reverse runs at shift end. The scheduler is `City.handleCommute` (on `timeChanged`), reading each employee's shift times and `WorkLife.getWorkplace()`. Commute cars are flagged "controlled" so the placeholder random-destination wandering doesn't hijack them.
 - **React HUD.** A fully functional windowing system (drag/resize via `react-rnd`) exists but is **largely unused**. Clicking a house with the Select tool opens a window that renders the family/household tree as a D3 force graph. The toolbar buttons are currently **not wired** to tools.
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-What does **not** exist yet: a day/night work **commute loop** (jobs/employers are assigned, but the home↔work travel loop is unwired), the **economy** (money, prices, P&L, bankruptcy — the framework carries design-for fields but the money loop is unbuilt), and CI.
+What does **not** exist yet: the **economy** (money, prices, P&L, bankruptcy — the framework carries design-for fields but the money loop is unbuilt), and CI.
 
 ---
 
@@ -195,11 +195,11 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 - `PathFinder.findPath(start, goal)` runs A* (Manhattan heuristic) over the fine tile grid. Valid neighbors are road tiles or any cell of the goal structure's footprint (so a road can reach a building's anchor through its footprint). It then **collapses consecutive cells of the same footprint** so the returned `Tile[]` is a footprint-level path (one step per structure, anchored).
 - `Person.walk()` moves the citizen one axis at a time (X then Y) between curb waypoints, updating facing direction and depth as it goes.
 - `Vehicle.drive()` accelerates/decelerates, slows for curves, follows lane waypoints, and smoothly rotates (`curve()`) toward its heading.
-- `updateDestination()` (on both Person and Vehicle) picks a **random** building from `Field.destinations` when idle — this is placeholder behavior, not the real commute loop.
+- `updateDestination()` (on both Person and Vehicle) picks a **random** building from `Field.destinations` when idle — placeholder wandering for un-owned/test entities. `Field.update` skips it for **controlled** (commute) cars, and retiring it for residents is task 016.
 
-### 4.7 Travel state machine (`Person`)
+### 4.7 Travel state machine & commute (`Person`)
 
-`types/Travel.ts` defines `TravelStep`: `Idle → ExitingBuilding → WalkingToCar → EnteringCar → Driving → ExitingCar → WalkingToDestination → Arrived`. `Person.processTravel()` advances the machine, but vehicle spawn/parking/despawn and the trigger to start a commute are **not yet connected**.
+`types/Travel.ts` defines `TravelStep`: `Idle → ExitingBuilding → WalkingToCar → EnteringCar → Driving → ExitingCar → WalkingToDestination → Arrived`. `Person.processTravel()` advances the machine and is now driven end-to-end by the commute (task 006): `City.startCommute` spawns/assigns the car and calls `Person.setDestination(building)`; `Arrived` records the `currentBuilding` (home/workplace, for the scheduler) and despawns the car via `Field.removeVehicle`. `City.handleCommute` (on `timeChanged`) dispatches employed, idle residents against their job's `shiftStart`/`shiftEnd` and `WorkLife.getWorkplace()` (the employer reference set on hire by `JobMarket`, restored on load).
 
 ### 4.8 Households & social model
 

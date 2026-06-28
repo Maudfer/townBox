@@ -38,6 +38,10 @@ export default class Vehicle {
     private path: Tile[];
     private currentDestination: TilePosition;
 
+    // When true, the vehicle is driven by a commuter's travel state machine and must NOT pick its own random
+    // destination (Field skips updateDestination for it). Test/idle cars stay false and wander.
+    private controlled: boolean;
+
     private asset: Image;
 
     private redrawFunction: ((timeDelta: number) => void) | null;
@@ -59,9 +63,18 @@ export default class Vehicle {
 
         this.path = [];
         this.currentDestination = null;
+        this.controlled = false;
         this.asset = null;
 
         this.redrawFunction = null;
+    }
+
+    setControlled(controlled: boolean): void {
+        this.controlled = controlled;
+    }
+
+    isControlled(): boolean {
+        return this.controlled;
     }
 
     drive(currentTile: Tile, timeDelta: number): void {

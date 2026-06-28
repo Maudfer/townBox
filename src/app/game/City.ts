@@ -3,6 +3,7 @@ import { fakerPT_BR } from '@faker-js/faker';
 import GameManager from 'game/GameManager';
 import House from 'game/House';
 import Workplace from 'game/Workplace';
+import Building from 'game/Building';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
@@ -15,7 +16,7 @@ import { assignSkills } from 'util/skills';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
-import { NewDayEvent } from 'types/Time';
+import { NewDayEvent, TimeChangedEvent } from 'types/Time';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -41,6 +42,7 @@ export default class City {
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
         Game.on("workplaceBuilt", { callback: this.setupBusiness, context: this });
         Game.on("newDay", { callback: this.handleNewDay, context: this });
+        Game.on("timeChanged", { callback: this.handleCommute, context: this });
         console.log('City created:', this.name);
     }
 
@@ -370,6 +372,53 @@ export default class City {
         if (toHousehold && !toHousehold.memberIds.includes(personId)) {
             toHousehold.memberIds.push(personId);
         }
+    }
+
+    // Schedule-driven commute (task 006). On each in-game minute, dispatch employed, idle residents: out to
+    // work once their shift has started, back home once it has ended. Each trip spawns a car at the origin's
+    // entrance and drives the Person's TravelStep machine (walk → drive → walk), despawning the car on arrival.
+    // Public for unit testing; invoked via the "timeChanged" event in production.
+    public handleCommute(event: TimeChangedEvent): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        const minuteOfDay = event.timestamp.hour * 60 + event.timestamp.minute;
+
+        for (const person of field.getPeople()) {
+            const job = person.work.getJob();
+            const workplace = person.work.getWorkplace();
+            const home = person.social.getHome();
+            if (!job || !workplace || !home || !person.isIdle()) {
+                continue;
+            }
+
+            const current = person.getCurrentBuilding() ?? home;
+            const shouldBeAtWork = minuteOfDay >= job.shiftStart && minuteOfDay < job.shiftEnd;
+
+            if (shouldBeAtWork && current !== workplace) {
+                this.startCommute(person, workplace);
+            } else if (!shouldBeAtWork && current === workplace) {
+                this.startCommute(person, home);
+            }
+        }
+    }
+
+    private startCommute(person: Person, destination: Building): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        const origin = person.getCurrentBuilding() ?? person.social.getHome();
+        const entrance = origin ? origin.getEntrance() : null;
+        if (!entrance) {
+            return;
+        }
+
+        const vehicle = field.spawnVehicle(entrance);
+        vehicle.setControlled(true);
+        person.setVehicle(vehicle);
+        person.setDestination(destination);
     }
 
     public setupCar(vehicle: Vehicle): void {
