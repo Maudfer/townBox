@@ -18,7 +18,7 @@ Always run `npm test` before opening the PR.**
 | 003 | [Save & load system](003-save-load-system_DONE.md) | Feature |
 | 004 | [Household generation redesign](004-household-generation-redesign_DONE.md) | Planning |
 | 005 | [Clock & calendar system](005-clock-and-calendar-system_DONE.md) | Feature |
-| 006 | [Job commute pathfinding loop](006-job-commute-pathfinding.md) | Feature |
+| 006 | [Job commute pathfinding loop](006-job-commute-pathfinding_DONE.md) | Feature |
 | 007 | [Business generation](007-business-generation.md) | Feature |
 | 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test |
 | 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test |

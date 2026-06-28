@@ -51,6 +51,7 @@ export default class JobMarket implements IJobMarket {
             return false;
         }
         match.person.work.setJob(job);
+        match.person.work.setWorkplace(match.workplace); // employer reference for the commute (task 006)
         return true;
     }
 

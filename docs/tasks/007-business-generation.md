@@ -92,7 +92,7 @@ this task is about the data and simulation, **not visuals**.
 ## Out of scope
 
 - Visuals / multiple work-building art (one type for now, like the single house type).
-- The commute loop itself (`006-job-commute-pathfinding.md`) — this task only assigns jobs/employers.
+- The commute loop itself (`006-job-commute-pathfinding_DONE.md`) — this task only assigns jobs/employers.
 - Wages economy, firing/turnover simulation, and business finances.
 - Re-running hiring over time as new residents arrive (initial hiring at placement is enough; a
   follow-up can add ongoing recruitment).

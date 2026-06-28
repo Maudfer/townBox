@@ -40,7 +40,7 @@ systems (commutes, businesses) can react to time of day.
    internals.
 5. **Jobs get shifts.** Extend `JobPosition` (`types/Work.ts`) with **shift start and end times**
    (time-of-day). Update the seeded jobs in `Workplace` accordingly. (Wiring commutes to these
-   shifts is `006-job-commute-pathfinding.md`; this task only adds the data and sensible defaults.)
+   shifts is `006-job-commute-pathfinding_DONE.md`; this task only adds the data and sensible defaults.)
 6. **Save/load compatibility.** Clock state (elapsed in-game time / current timestamp and the epoch)
    must serialize and restore correctly with the save system so loading resumes at the saved time.
    Coordinate with `003-save-load-system_DONE.md`.

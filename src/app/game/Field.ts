@@ -116,7 +116,11 @@ export default class Field {
             }
 
             vehicle.drive(currentTile, event.timeDelta);
-            vehicle.updateDestination(currentTile, this.destinations, this.pathFinder);
+            // Commute cars are driven by their owner's travel state machine; only un-owned (test/idle) cars
+            // pick a random destination to wander to.
+            if (!vehicle.isControlled()) {
+                vehicle.updateDestination(currentTile, this.destinations, this.pathFinder);
+            }
             vehicle.redraw(event.timeDelta);
         });
     }
@@ -623,6 +627,17 @@ export default class Field {
 
     getVehicles(): Vehicle[] {
         return this.vehicles;
+    }
+
+    // Despawns a vehicle: destroys its sprite and drops it from the update list. Used when a commute car is
+    // parked/abandoned at the destination on arrival.
+    removeVehicle(vehicle: Vehicle): void {
+        const index = this.vehicles.indexOf(vehicle);
+        if (index === -1) {
+            return;
+        }
+        this.vehicles.splice(index, 1);
+        vehicle.getAsset()?.destroy();
     }
 
     // Returns the distinct placed structures (roads & buildings). Soil/grass is the implicit default and is not
