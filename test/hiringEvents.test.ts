@@ -62,7 +62,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
         const market = fakeMarket();
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, market);
+        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket: market });
 
         expect(market.employed.has('a')).toBe(true);
         expect(result.signals.map(s => s.signal)).toContain('hired');
@@ -85,7 +85,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
         const market = fakeMarket(false); // canHire true, but hire fails (slot taken this tick)
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, market);
+        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket: market });
 
         expect(market.employed.has('a')).toBe(false);
         expect(result.signals).toEqual([]);
@@ -99,7 +99,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
         market.employed.add('a');
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, market);
+        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket: market });
 
         expect(market.employed.has('a')).toBe(false);
         expect(result.signals.map(s => s.signal)).toContain('laidOff');

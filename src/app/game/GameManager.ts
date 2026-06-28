@@ -8,6 +8,7 @@ import City from './City';
 import Population from 'game/Population';
 import Clock from 'game/Clock';
 import EventEngine from 'game/EventEngine';
+import Economy from 'game/Economy';
 import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
 
@@ -30,6 +31,7 @@ export default class GameManager {
     public population: Population | null;
     public clock: Clock | null;
     public eventEngine: EventEngine | null;
+    public economy: Economy | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastTickEmitted: number;
@@ -100,6 +102,7 @@ export default class GameManager {
         this.population = null;
         this.clock = null;
         this.eventEngine = null;
+        this.economy = null;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
 
@@ -159,6 +162,10 @@ export default class GameManager {
             // Engine B (life events): owns the compiled event graph + per-person history. Runs over
             // materialized people each day via City.handleNewDay; a load restores its history during deserialize.
             this.eventEngine = new EventEngine();
+
+            // Economy: per-person/business money balances + the ledger. A load restores balances during
+            // deserialize; balances are otherwise seeded at household/business placement.
+            this.economy = new Economy();
 
             this.emit("gameInitialized", this);
         }

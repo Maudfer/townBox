@@ -29,7 +29,7 @@ Always run `npm test` before opening the PR.**
 | 014 | [People skills model & assignment](014-people-skills-model_DONE.md) | Feature |
 | 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring_DONE.md) | Feature |
 | 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning_DONE.md) | Feature |
-| 017 | [Money model: wallets & ledger](017-money-model.md) | Economy |
+| 017 | [Money model: wallets & ledger](017-money-model_DONE.md) | Economy |
 | 018 | [Wages & payroll](018-wages-and-payroll.md) | Economy |
 | 019 | [Cost of living & household spending](019-cost-of-living.md) | Economy |
 | 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics.md) | Economy |

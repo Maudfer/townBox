@@ -34,11 +34,13 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
     }
 
     const positions = summarizePositions(business.positions, workplace.getOpenPositions());
+    const balance = game.economy?.getBusinessBalance(workplace.getIdentifier());
 
     return (
         <Window game={game} index={index} title={business.name} initialSize={INITIAL_SIZE} onClose={onClose}>
             <div style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
                 <p><strong>{business.lineOfWork}</strong> &nbsp; <small>size {business.size}</small></p>
+                {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
 
                 <section>
                     <h4>Positions</h4>

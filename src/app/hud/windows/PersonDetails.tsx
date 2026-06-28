@@ -45,6 +45,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     const overview = person.getOverview();
 
     const personId = person.social.getPersonId();
+    const balance = personId ? game.economy?.getPersonBalance(personId) : undefined;
     const history = game.eventEngine?.getHistory() ?? {};
     const events = personId ? history[personId] ?? {} : {};
     const logEntries = Object.entries(events).sort((a, b) => b[1].lastTick - a[1].lastTick);
@@ -57,6 +58,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                 <section>
                     <p><strong>Age:</strong> {age} &nbsp; <strong>Gender:</strong> {info.gender}</p>
                     <p><strong>Home:</strong> {home ? `${home.getHouseholdName()} household` : 'Homeless'}</p>
+                    {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
                 </section>
 
                 <section>
