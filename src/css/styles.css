@@ -198,6 +198,12 @@ canvas {
     transform: translate(0, 100%);
 }
 
+.toolbar button.active {
+    background-color: #0f4a52;
+    border-color: #5cb8c4;
+    box-shadow: 0 0 12px #3a8f9988;
+}
+
 .toolbar button:hover {
     transform: translate(0, -10px);
 }

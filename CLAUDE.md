@@ -20,7 +20,7 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Vehicles.** Test cars can be spawned on the street and will pick **random** building destinations and drive there, following proper lanes.
 - **Pathfinding.** A shared A* pathfinder routes both people and cars over the road network. Roads expose **waypoints** — *curb* points (for pedestrians) and *lane* points (for vehicles) — so people walk sidewalks/crosswalks and cars stay in their lane.
 - **Daily commute (task 006).** Employed residents commute home↔work each day: at shift start a car is spawned at the origin building's entrance and the `Person`'s `TravelStep` machine drives exit-house → walk-to-car → drive → walk-to-building → enter, despawning the car on arrival; the reverse runs at shift end. The scheduler is `City.handleCommute` (on `timeChanged`), reading each employee's shift times and `WorkLife.getWorkplace()`. Commute cars are flagged "controlled" so the placeholder random-destination wandering doesn't hijack them.
-- **React HUD.** A fully functional windowing system (drag/resize via `react-rnd`) exists but is **largely unused**. Clicking a house with the Select tool opens a window that renders the family/household tree as a D3 force graph. The toolbar buttons are currently **not wired** to tools.
+- **React HUD.** A windowing system (drag/resize via `react-rnd`) plus a wired **toolbar** (tool buttons emit `toolSelected`, synced with the F1–F6 keys, active tool highlighted), a persistent **clock** and **city event feed**, and inspector windows. The **Select tool** opens an inspector for whatever is clicked — a person, a workplace (business/positions/employees), or a house (family tree + clickable resident list).
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
@@ -100,12 +100,15 @@ src/
       save/SaveManager.ts        # Serialize/deserialize the whole world; deflate (pako) + base64 + provider
     hud/                  # React GUI
       Hud.tsx             # Window manager; HouseSelected windows, save/load toasts, Ctrl+S, hudReady
-      Toolbar.tsx         # Toolbar (save button wired; others not yet)
+      Toolbar.tsx         # Toolbar: tool buttons emit toolSelected (synced with F1-F6), active-tool highlight
       Toasts.tsx          # Transient save/load toast notifications
       Clock.tsx           # Persistent date/time widget (reads the timeChanged event)
+      Feed.tsx            # Persistent city event feed (reads the cityEvent event)
       Window.tsx          # Generic draggable/resizable window (react-rnd)
       d3/familyTree.ts    # D3 force-directed family tree renderer
-      windows/HouseDetails.tsx  # Window showing a household's family tree
+      windows/HouseDetails.tsx      # Household family tree + clickable resident list
+      windows/PersonDetails.tsx     # Person inspector: identity, work, relationships, life-event log
+      windows/WorkplaceDetails.tsx  # Business inspector: positions (filled/open) + employees
   css/styles.css
   html/index.html         # Loads main.tsx, has #hud-container
   img/                    # Source art (.xcf) + sprites/

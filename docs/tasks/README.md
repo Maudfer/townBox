@@ -42,7 +42,7 @@ Always run `npm test` before opening the PR.**
 | 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI |
 | 028 | [Workplace / business inspector window](028-workplace-inspector-window_DONE.md) | UI |
 | 029 | [City event feed / notifications](029-city-event-feed_DONE.md) | UI |
-| 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools.md) | UI |
+| 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI |
 | 031 | [City overview / dashboard window](031-city-overview-window.md) | UI |
 | 032 | [Expand the life-event manifest](032-expand-life-events.md) | Content |
 | 033 | [Expand business blueprints](033-expand-business-blueprints.md) | Content |
