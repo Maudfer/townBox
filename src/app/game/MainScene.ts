@@ -14,6 +14,7 @@ import { AssetManifest } from 'types/Assets';
 
 import assetManifest from 'json/assets.json';
 import inputConfig from 'json/input.json';
+import config from 'json/config.json';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
@@ -85,21 +86,26 @@ export default class MainScene extends Phaser.Scene {
             this.setCursor(Tool.Select);
         });
 
-        this.input.keyboard.addKey('P').on('down', () => {
-            const pointer = {
-                x: this.input.activePointer.worldX,
-                y: this.input.activePointer.worldY
-            };
-            Game.emit("personSpawnRequest", pointer);
-        });
+        // Debug-only spawn keys (P: person, V: vehicle). Off by default so the only people/cars in normal play
+        // are placed by the simulation (households, newborns, commuters). See task 016.
+        if (config.debug.spawnKeys) {
+            this.input.keyboard.addKey('P').on('down', async () => {
+                const pointer = {
+                    x: this.input.activePointer.worldX,
+                    y: this.input.activePointer.worldY
+                };
+                const person = await Game.emitSingle("personSpawnRequest", pointer);
+                person?.enableWander();
+            });
 
-        this.input.keyboard.addKey('V').on('down', () => {
-            const pointer = {
-                x: this.input.activePointer.worldX,
-                y: this.input.activePointer.worldY
-            };
-            Game.emit("vehicleSpawnRequest", pointer);
-        });
+            this.input.keyboard.addKey('V').on('down', () => {
+                const pointer = {
+                    x: this.input.activePointer.worldX,
+                    y: this.input.activePointer.worldY
+                };
+                Game.emit("vehicleSpawnRequest", pointer);
+            });
+        }
 
         this.input.keyboard.addKey('G').on('down', () => {
             this.toggleGrid();

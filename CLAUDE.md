@@ -219,7 +219,7 @@ Building sprites use origin `(0.5, 1)` (bottom-anchored) and are drawn at `y = t
 ### 4.10 Input (`json/input.json` + `MainScene`)
 
 - `F1..F6` select tools (soil, road, house, work, select, bulldoze); `Esc` selects the Select tool.
-- `P` spawns a person at the cursor; `V` spawns a vehicle; `G` toggles the grid overlay.
+- `G` toggles the grid overlay. `P` (spawn a wandering test person) / `V` (spawn a test car) are **debug-only**, gated behind `json/config.json` `debug.spawnKeys` (off by default) — in normal play all people/cars come from the simulation (households, newborns, commuters). See task 016.
 - `W/A/S/D` pan the camera; `Q/E` zoom.
 - `Ctrl+S` saves the game (handled in the React HUD, which suppresses the browser save dialog).
 
