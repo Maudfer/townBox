@@ -6,6 +6,13 @@
 > **Status: placeholder.** Created as a backlog stub from the 004d follow-up notes. **Not yet detailed —
 > run a fresh exploration pass before implementing** (verify the references below against current code).
 
+> **Absorbed by [013-procedural-simulation-framework.md](013-procedural-simulation-framework.md).**
+> Marriage-over-time becomes a `marriage` **event** in the new framework's event manifest (Engine B),
+> resolved by the dependency/capability system, and lands as framework phase **013e**. The goals below
+> still describe the desired behaviour, but implement them as an event definition + handler under 013, not
+> as a standalone sim system. (The off-map *coarse* pool is deliberately out of scope until it is replaced
+> wholesale — see 013 §1 decision 4.)
+
 ## Summary
 
 Extend the live population simulation so that **unpaired living adults form new partnerships

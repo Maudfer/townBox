@@ -6,6 +6,12 @@
 > **Status: placeholder.** Created as a backlog stub from the 004d follow-up notes. **Not yet detailed —
 > run a fresh exploration pass before implementing** (verify the references below against current code).
 
+> **Absorbed by [013-procedural-simulation-framework.md](013-procedural-simulation-framework.md).**
+> Re-housing becomes an **effect/signal handler** driven by Engine B events (death, marriage, birth) — the
+> `emit`-style effects in 013 §5.8 hand off to the materialized-world reconciliation that relocates
+> survivors. Lands as framework phase **013e**. The goals below still describe the desired behaviour;
+> implement them as the event-driven handler under 013, not as a standalone system.
+
 ## Summary
 
 When the live simulation changes a household — most importantly when a **death** leaves a household in

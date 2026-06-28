@@ -3,6 +3,11 @@
 - **Type:** Feature / Gameplay loop
 - **Labels:** `feature`, `simulation`, `pathfinding`, `gameplay-loop`
 
+> **Note:** scope unchanged, but the **job/employer assignment** this task consumes now comes from
+> [013-procedural-simulation-framework.md](013-procedural-simulation-framework.md) (Engine A businesses +
+> Engine B hiring events), not the old 007. Implement the commute against the jobs/workplaces the framework
+> assigns; the temporary fixture note below still applies if 013 hiring is not yet merged.
+
 ## Summary
 
 Connect the existing **job system** to **pathfinding and the clock** so that employed people living

@@ -3,6 +3,13 @@
 - **Type:** Feature / Simulation
 - **Labels:** `feature`, `simulation`, `jobs`, `data`
 
+> **Superseded by [013-procedural-simulation-framework.md](013-procedural-simulation-framework.md).**
+> Business/job/skill generation is reworked as **Engine A** (generative blueprints) + reference tables on
+> the new framework's shared substrate, with hiring modelled as resource-trading **events** (Engine B)
+> rather than a bespoke pass. The data files and `workplaceBuilt` wiring described below land as framework
+> phase **013b**; hiring/layoff as phase **013d**. This stub is retained for historical context — implement
+> via 013, not from this text.
+
 ## Summary
 
 When a **work-type building** is placed, generate a **business** for it: a generated **name** and a
