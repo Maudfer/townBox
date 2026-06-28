@@ -30,6 +30,11 @@ export default class WorkLife {
         this.job = job;
     }
 
+    // Clears employment (e.g. on layoff/retirement). Employment state derives from whether a job is set.
+    public clearJob(): void {
+        this.job = null;
+    }
+
     public setSkills(skills: JobRequirements[]): void {
         this.skills = skills;
     }

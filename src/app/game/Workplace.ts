@@ -51,6 +51,11 @@ export default class Workplace extends Building {
         return this.business;
     }
 
+    // The open (unfilled) positions still available for hiring.
+    public getOpenPositions(): JobPosition[] {
+        return [...this.avaiableJobs];
+    }
+
     public hire(person: Person): PotentialJob {
         if(!person){
             console.error(person);
@@ -62,18 +67,22 @@ export default class Workplace extends Building {
             return null;
         }
 
-        const job = this.avaiableJobs.find(job => {
-            return job.requirements.every(requirement => {
-                return skills.includes(requirement);
-            });
+        // Take the first open position whose requirements the person meets, removing it from the open pool so
+        // filled/open counts stay correct.
+        const index = this.avaiableJobs.findIndex(job => {
+            return job.requirements.every(requirement => skills.includes(requirement));
         });
 
-        if (job) {
-            this.employees.push(person);
-            return job;
+        if (index === -1) {
+            return null;
         }
 
-        return null;
+        const [job] = this.avaiableJobs.splice(index, 1);
+        if (!job) {
+            return null;
+        }
+        this.employees.push(person);
+        return job;
     }
 
     public layoff(person: Person): PotentialJob {

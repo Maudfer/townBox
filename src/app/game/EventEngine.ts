@@ -15,6 +15,7 @@ import {
     Effect,
     EventHistoryTable,
     DayResult,
+    JobMarket,
 } from 'types/LifeEvent';
 
 import { compileEvents, EventGraph } from 'game/EventCompiler';
@@ -43,14 +44,17 @@ export default class EventEngine {
     private manifest: EventManifest;
     private graph: EventGraph;
     private history: EventHistoryTable;
-    // Event-driven attributes not derived from the pool (e.g. employed, marital after divorce/widowhood).
+    // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
+    // Employment adapter for the current simulateDay pass (task 015); null in pure/test runs without a market.
+    private jobMarket: JobMarket | null;
 
     constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST) {
         this.manifest = manifest;
         this.graph = compileEvents(manifest);
         this.history = {};
         this.overlay = {};
+        this.jobMarket = null;
     }
 
     getGraph(): EventGraph {
@@ -108,7 +112,13 @@ export default class EventEngine {
                 return (this.overlay[id]?.['marital'] as Value) ?? 'single';
             }
             case 'employed':
-                return this.overlay[id]?.['employed'] ?? false;
+                // Employment derives from a real assigned job via the market (task 015); without a market
+                // (pure/test runs), nobody is employed.
+                return this.jobMarket ? this.jobMarket.isEmployed(id) : false;
+            case 'canBeHired':
+                // True when there is a reachable open position the person's skills can fill. Gates get_job
+                // eligibility so the per-day roll only happens when a hire is actually possible.
+                return this.jobMarket ? this.jobMarket.canHire(id) : false;
             default:
                 return this.overlay[id]?.[attr];
         }
@@ -194,14 +204,20 @@ export default class EventEngine {
         return 1 - Math.pow(1 - annual, 1 / ticksPerYear);
     }
 
-    private applyEffects(event: EventDefinition, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: DayResult, rng: SeededRandom): void {
+    // Applies an event's effects in order. Returns false if an effect failed to commit (currently only a failed
+    // acquireSlot — e.g. the last matching job slot was taken earlier the same day), which aborts the event so
+    // it is not recorded. Aborting effects must therefore come first (get_job lists acquireSlot first).
+    private applyEffects(event: EventDefinition, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: DayResult, rng: SeededRandom): boolean {
         const subjectId = roleMap[ROLE_SUBJECT]!;
         for (const effect of event.effects) {
-            this.applyEffect(effect, subjectId, roleMap, state, tick, result, rng);
+            if (!this.applyEffect(effect, subjectId, roleMap, state, tick, result, rng)) {
+                return false;
+            }
         }
+        return true;
     }
 
-    private applyEffect(effect: Effect, subjectId: PersonId, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: DayResult, rng: SeededRandom): void {
+    private applyEffect(effect: Effect, subjectId: PersonId, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: DayResult, rng: SeededRandom): boolean {
         switch (effect.type) {
             case 'setDeath': {
                 const record = state.people[subjectId];
@@ -209,7 +225,7 @@ export default class EventEngine {
                     record.deathTick = tick;
                     result.died.push(subjectId);
                 }
-                return;
+                return true;
             }
             case 'marry': {
                 const partnerId = effect.role ? roleMap[effect.role] : undefined;
@@ -218,7 +234,7 @@ export default class EventEngine {
                     this.setOverlay(subjectId, 'marital', 'married');
                     this.setOverlay(partnerId, 'marital', 'married');
                 }
-                return;
+                return true;
             }
             case 'divorce': {
                 const partnerId = spouseAt(state.people, subjectId, tick);
@@ -227,7 +243,7 @@ export default class EventEngine {
                 if (partnerId) {
                     this.setOverlay(partnerId, 'marital', 'divorced');
                 }
-                return;
+                return true;
             }
             case 'birth': {
                 const motherId = effect.mother ? roleMap[effect.mother] : subjectId;
@@ -236,26 +252,30 @@ export default class EventEngine {
                     const childId = this.birth(state, motherId, fatherId, tick, rng);
                     result.born.push({ id: childId, motherId, fatherId });
                 }
-                return;
+                return true;
             }
             case 'setAttr': {
                 if (effect.attr !== undefined && effect.value !== undefined) {
                     this.setOverlay(subjectId, effect.attr, effect.value);
                 }
-                return;
+                return true;
             }
             case 'emit': {
                 const targetId = effect.target ? roleMap[effect.target] ?? null : subjectId;
                 result.signals.push({ signal: effect.signal ?? 'unknown', personId: targetId, tick });
-                return;
+                return true;
             }
-            // acquireSlot / releaseSlot / adjustMoney are part of the vocabulary but their resource/economy
-            // backing lands in later phases; they are no-ops here (the accompanying setAttr/emit carry the
-            // visible effect). See docs/tasks/013 §12 (013e/013f).
+            // Acquire/release a job slot via the employment market (task 015). acquireSlot is a real
+            // precondition: if no slot can be filled (no market, or a same-day race took the last one), it
+            // returns false and aborts the event.
             case 'acquireSlot':
+                return this.jobMarket ? this.jobMarket.hire(subjectId) : false;
             case 'releaseSlot':
+                this.jobMarket?.fire(subjectId);
+                return true;
+            // adjustMoney's economy backing lands in a later phase (013f / tasks 017+); no-op for now.
             case 'adjustMoney':
-                return;
+                return true;
         }
     }
 
@@ -313,10 +333,11 @@ export default class EventEngine {
 
     // Advances all materialized agents by one day. Mutates the pool (deaths/marriages/births) and the engine's
     // history/overlay; returns what changed for the caller to reconcile the materialized world.
-    simulateDay(state: PopulationState, agentIds: PersonId[], tick: number, ticksPerYear: number): DayResult {
+    simulateDay(state: PopulationState, agentIds: PersonId[], tick: number, ticksPerYear: number, jobMarket: JobMarket | null = null): DayResult {
         const result: DayResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1)) >>> 0);
+        this.jobMarket = jobMarket;
 
         const agents = [...agentIds].sort();
         for (const agentId of agents) {
@@ -351,7 +372,10 @@ export default class EventEngine {
                     continue;
                 }
 
-                this.applyEffects(event, roleMap, state, tick, result, rng);
+                const committed = this.applyEffects(event, roleMap, state, tick, result, rng);
+                if (!committed) {
+                    continue; // event aborted (e.g. job slot taken this tick) — treat as if it never fired
+                }
                 this.recordEvent(agentId, eventId, tick);
                 for (const excluded of this.graph.excludes[eventId] ?? []) {
                     excludedToday.add(excluded);
@@ -359,6 +383,7 @@ export default class EventEngine {
             }
         }
 
+        this.jobMarket = null;
         return result;
     }
 }

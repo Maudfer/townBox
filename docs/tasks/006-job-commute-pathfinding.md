@@ -8,7 +8,7 @@
 > Engine B hiring events), not the old 007. Implement the commute against the jobs/workplaces the framework
 > assigns; the temporary fixture note below still applies if 013 hiring is not yet merged.
 >
-> **Now unblocked by [015-skill-matched-hiring.md](015-skill-matched-hiring.md).** Once 015 lands, employed
+> **Now unblocked by [015-skill-matched-hiring_DONE.md](015-skill-matched-hiring_DONE.md).** Once 015 lands, employed
 > residents have a real `WorkLife.job` (with `shiftStart`/`shiftEnd` from the clock work in 005) at a real
 > `Workplace`, so the commute can be driven for actual employees. Verify against current code during the
 > exploration pass: `Person.processTravel()` / `TravelStep` (`types/Travel.ts`) is **partially wired** — the

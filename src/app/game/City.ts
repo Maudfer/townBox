@@ -7,6 +7,7 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
+import JobMarket from 'game/JobMarket';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
@@ -194,7 +195,9 @@ export default class City {
             return;
         }
 
-        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear);
+        // Employment market over the current materialized people, so get_job/layoff events hire/fire for real.
+        const jobMarket = new JobMarket(personByGenId, field);
+        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, jobMarket);
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
         // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
