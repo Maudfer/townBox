@@ -5,16 +5,22 @@ import Toolbar from 'hud/Toolbar';
 import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
 import Clock from 'hud/Clock';
 import HouseDetails from 'hud/windows/HouseDetails';
+import PersonDetails from 'hud/windows/PersonDetails';
 import House from 'game/House';
+import Person from 'game/Person';
+import Workplace from 'game/Workplace';
 
 import { HUDProps, WindowData, WindowTypes, WindowPayload } from 'types/HUD';
 
 const TOAST_DURATION_MS = 3200;
 
+// How a newly requested window reconciles with already-open ones.
+type OpenMode = 'append' | 'replaceType' | 'dedupeData';
+
 const windowMap = {
     [WindowTypes.HouseDetails]: HouseDetails,
     [WindowTypes.WorkplaceDetails]: null,
-    [WindowTypes.PersonDetails]: null,
+    [WindowTypes.PersonDetails]: PersonDetails,
     [WindowTypes.VehicleDetails]: null,
     [WindowTypes.CityDetails]: null,
     [WindowTypes.GameOptions]: null,
@@ -33,36 +39,35 @@ const HUD: FC<HUDProps> = ({ game }) => {
         }, TOAST_DURATION_MS);
     }
 
-    function openWindow(type: WindowTypes, data: WindowPayload, closeExisting: boolean = false) {
-        if (closeExisting) {
-            const existingWindow = openWindows.find(w => w.type === type);
-            if (existingWindow) {
-                const index = openWindows.indexOf(existingWindow);
-                closeWindow(index);
+    // Functional updates so handlers registered once (in effects) never act on a stale window list.
+    // - replaceType: at most one window of this type (e.g. the house tree) — used for singletons.
+    // - dedupeData: allow many of this type but not the same entity twice (e.g. several person windows).
+    function openWindow(type: WindowTypes, data: WindowPayload, mode: OpenMode = 'append') {
+        setOpenWindows(prev => {
+            if (mode === 'replaceType') {
+                return [...prev.filter(w => w.type !== type), { type, data }];
             }
-        }
-
-        const window = {
-            type,
-            data,
-        };
-        setOpenWindows([...openWindows, window]);
+            if (mode === 'dedupeData' && prev.some(w => w.type === type && w.data === data)) {
+                return prev;
+            }
+            return [...prev, { type, data }];
+        });
     }
 
     function closeWindow(index: number) {
-        console.log("Close", index);
-        const newWindows = [...openWindows];
-        newWindows.splice(index, 1);
-        setOpenWindows(newWindows);
+        setOpenWindows(prev => prev.filter((_, i) => i !== index));
     }
 
     useEffect(() => {
-        game.on("HouseSelected", {callback: (house: House) => {
-            openWindow(WindowTypes.HouseDetails, house, true);
-        }});
+        // Selection events are HUD-only (no game-side handler), so game.off here is safe.
+        game.on("HouseSelected", { callback: (house: House) => openWindow(WindowTypes.HouseDetails, house, 'replaceType') });
+        game.on("PersonSelected", { callback: (person: Person) => openWindow(WindowTypes.PersonDetails, person, 'dedupeData') });
+        game.on("WorkplaceSelected", { callback: (workplace: Workplace) => openWindow(WindowTypes.WorkplaceDetails, workplace, 'dedupeData') });
 
         return () => {
             game.off("HouseSelected");
+            game.off("PersonSelected");
+            game.off("WorkplaceSelected");
         };
     }, []);
 

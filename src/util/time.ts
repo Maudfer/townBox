@@ -38,3 +38,15 @@ export function formatTimestamp(timestamp: Timestamp): string {
     const pad = (value: number): string => value.toString().padStart(2, '0');
     return `Year ${timestamp.year}, ${pad(timestamp.month)}/${pad(timestamp.day)} ${pad(timestamp.hour)}:${pad(timestamp.minute)}`;
 }
+
+// "Year 1, 01/01"-style date label for an absolute day index (a genealogy tick) — used by the event log
+// (task 027) to date past events. Pure and unit-testable.
+export function formatDay(absoluteDay: number): string {
+    const day = Math.max(0, Math.floor(absoluteDay));
+    const year = Math.floor(day / DAYS_PER_YEAR) + 1;
+    const dayOfYear = day % DAYS_PER_YEAR;
+    const month = Math.floor(dayOfYear / DAYS_PER_MONTH) + 1;
+    const dayOfMonth = (dayOfYear % DAYS_PER_MONTH) + 1;
+    const pad = (value: number): string => value.toString().padStart(2, '0');
+    return `Year ${year}, ${pad(month)}/${pad(dayOfMonth)}`;
+}

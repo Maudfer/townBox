@@ -35,6 +35,8 @@ export interface EventPayloads {
     "windowDragStart": void;
     "windowDragStop": void;
     "HouseSelected": House;
+    "PersonSelected": Person;
+    "WorkplaceSelected": Workplace;
     "hudReady": void;
     "saveGameRequest": void;
     "gameSaved": void;
