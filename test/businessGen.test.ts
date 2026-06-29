@@ -14,6 +14,7 @@ const jobs: JobTable = {
 
 const blueprint: BusinessBlueprint = {
     friendlyName: 'Shop',
+    category: 'groceries',
     size: { min: 1, max: 10 },
     jobs: {
         clerk: { count: { mode: 'linear', base: 1, perUnit: 2 } }, // 1 + 2*size
@@ -53,6 +54,7 @@ describe('generateBusiness', () => {
     test('skips blueprint jobs that have no definition', () => {
         const withGhost: BusinessBlueprint = {
             friendlyName: 'Ghost Shop',
+            category: 'groceries',
             size: { min: 1, max: 1 },
             jobs: { ghost: { count: { mode: 'const', value: 5 } } },
         };

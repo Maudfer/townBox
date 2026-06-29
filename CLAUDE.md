@@ -24,9 +24,9 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-- **Money (task 017).** A serializable `Economy` holds per-person and per-business **balances** with a single ledger primitive (`transfer`), seeded at household/business placement (`json/economy.json`) and saved. The event engine reads it as the `money` Context attribute and moves money via the `adjustMoney` effect (through a `MoneyLedger` adapter). A monthly economic tick (`City.processMonthlyEconomy`, gated by `Economy.lastEconomyMonth`) runs **wages** (task 018), **cost of living** (task 019: households accrue `arrears` when they can't pay), and **business P&L** (task 020: revenue = materials × markup, minus materials/fixed/payroll, applied to the balance; a sustainedly-profitable, fully-staffed business **grows**). The placeholder seed numbers run most businesses at a loss — balance/demand tuning is tasks 033/035. Still missing: **bankruptcy** and **eviction** (tasks 021/022), business **shrink-via-layoffs**, and a real **demand/products** model (035).
+- **Money (task 017).** A serializable `Economy` holds per-person and per-business **balances** with a single ledger primitive (`transfer`), seeded at household/business placement (`json/economy.json`) and saved. The event engine reads it as the `money` Context attribute and moves money via the `adjustMoney` effect (through a `MoneyLedger` adapter). A monthly economic tick (`City.processMonthlyEconomy`, gated by `Economy.lastEconomyMonth`) runs **wages** (018), **cost of living** (019: households accrue `arrears` when they can't pay), and **demand-driven business P&L** (020 + 033a): households generate per-category demand (`json/demand.json`), businesses **compete** for it by capacity (`staffing × throughputPerEmployee`), and `revenue = unitsSold × price`, minus materials/fixed/payroll, applied to the balance; a sustainedly-profitable, fully-staffed business **grows**. So an oversupplied category, an understaffed business, or thin margins lose money. Seed numbers are a starting point (tuning + many more blueprints is task 033b). Still missing: **bankruptcy** and **eviction** (021/022), business **shrink-via-layoffs**, and the B2B **products/supply chain** (035).
 
-What does **not** exist yet: **bankruptcy → eviction** (tasks 021/022 — money flows both ways now, but insolvent businesses/households aren't yet closed/evicted), a demand-driven economy + business shrink (035), and CI.
+What does **not** exist yet: **bankruptcy → eviction** (tasks 021/022 — money flows both ways and revenue is demand-driven now, but insolvent businesses/households aren't yet closed/evicted), business shrink + the products supply chain (035), and CI.
 
 ---
 
@@ -129,7 +129,8 @@ src/
     materials.json        # Material reference table (stub; design-for prices)
     events.json           # Engine B life-event manifest (roles, probability, effects)
     skills.json           # Skill-assignment weights/age bands (util/skills.ts)
-    economy.json          # Starting balances (person funds, business capital)
+    economy.json          # Economy tunables (starting balances, cost of living, growth cadence)
+    demand.json           # Demand model: per-category per-capita demand, throughput, unit price (task 033)
   types/                  # Shared TypeScript types (Assets, Cursor, Events, Grid, Movement, Position, Save,
                           # Social, Genealogy, Household, Time, Travel, Work, FamilyTree, HUD, Neighbor, Phaser,
                           # Simulation (Context), Business, LifeEvent)

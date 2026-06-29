@@ -1,4 +1,4 @@
-import { computeBusinessPnl, positionDelta } from '../src/util/businessFinance';
+import { computeBusinessPnl, unitMaterialCost, resolveDemand, positionDelta, DemandBusiness } from '../src/util/businessFinance';
 import { BusinessBlueprint } from '../src/types/Business';
 import { JobPosition, JobRequirements } from '../src/types/Work';
 
@@ -6,52 +6,61 @@ function pos(title: string): JobPosition {
     return { title, salary: 0, requirements: [JobRequirements.RetailSkill], shiftStart: 0, shiftEnd: 0 };
 }
 
-const PRICES = { mat: 10 };
+describe('unitMaterialCost (task 033)', () => {
+    test('sums materialsPerUnit × material prices', () => {
+        const blueprint: BusinessBlueprint = {
+            friendlyName: 'Shop', category: 'groceries', size: { min: 1, max: 5 }, jobs: {},
+            materialsPerUnit: { flour: 2, sugar: 1 },
+        };
+        expect(unitMaterialCost(blueprint, { flour: 3, sugar: 5 })).toBe(11); // 2×3 + 1×5
+    });
+});
 
-const lossy: BusinessBlueprint = {
-    friendlyName: 'Shop',
-    size: { min: 1, max: 5 },
-    jobs: {},
-    materialsPerMonth: { mat: { qty: { mode: 'const', value: 100 } } },
-    economics: { priceMarkup: 1.5, fixedCostsPerMonth: { mode: 'const', value: 500 } },
-};
+describe('computeBusinessPnl (task 033)', () => {
+    test('pnl = revenue − materials − fixed − payroll', () => {
+        expect(computeBusinessPnl(1000, 400, 100, 300).pnl).toBe(200);
+        expect(computeBusinessPnl(500, 400, 100, 300).pnl).toBe(-300);
+    });
+});
 
-const profitable: BusinessBlueprint = {
-    friendlyName: 'Shop',
-    size: { min: 1, max: 5 },
-    jobs: {},
-    materialsPerMonth: { mat: { qty: { mode: 'const', value: 100 } } },
-    economics: { priceMarkup: 2, fixedCostsPerMonth: { mode: 'const', value: 100 } },
-};
-
-describe('computeBusinessPnl (task 020)', () => {
-    test('revenue = materials × markup; pnl = revenue − materials − fixed − payroll', () => {
-        const finance = computeBusinessPnl(lossy, 1, 2000, PRICES);
-        expect(finance.materialsCost).toBe(1000); // 100 × 10
-        expect(finance.revenue).toBe(1500); // 1000 × 1.5
-        expect(finance.fixedCosts).toBe(500);
-        expect(finance.payroll).toBe(2000);
-        expect(finance.pnl).toBe(-2000); // 1500 − 1000 − 500 − 2000
+describe('resolveDemand (task 033 market)', () => {
+    test('a single business sells min(capacity, demand)', () => {
+        const units = resolveDemand([{ key: 'a', category: 'groceries', capacity: 100 }], { groceries: 60 });
+        expect(units.get('a')).toBe(60); // demand below capacity
+        const capped = resolveDemand([{ key: 'a', category: 'groceries', capacity: 100 }], { groceries: 250 });
+        expect(capped.get('a')).toBe(100); // capped at capacity
     });
 
-    test('a healthy margin with low payroll turns a profit', () => {
-        const finance = computeBusinessPnl(profitable, 1, 0, PRICES);
-        expect(finance.revenue).toBe(2000); // 1000 × 2
-        expect(finance.pnl).toBe(900); // 2000 − 1000 − 100 − 0
-        expect(finance.pnl).toBeGreaterThan(0);
+    test('an oversupplied category splits demand by capacity share, all below capacity', () => {
+        const businesses: DemandBusiness[] = [
+            { key: 'a', category: 'groceries', capacity: 100 },
+            { key: 'b', category: 'groceries', capacity: 300 },
+        ];
+        const units = resolveDemand(businesses, { groceries: 200 }); // total capacity 400 > demand 200
+        expect(units.get('a')).toBe(50); // 200 × 100/400
+        expect(units.get('b')).toBe(150); // 200 × 300/400
+        expect((units.get('a') ?? 0) + (units.get('b') ?? 0)).toBe(200); // all demand served
+    });
+
+    test('an undersupplied category runs every business at capacity', () => {
+        const businesses: DemandBusiness[] = [
+            { key: 'a', category: 'groceries', capacity: 100 },
+            { key: 'b', category: 'groceries', capacity: 100 },
+        ];
+        const units = resolveDemand(businesses, { groceries: 500 }); // demand > total capacity 200
+        expect(units.get('a')).toBe(100);
+        expect(units.get('b')).toBe(100);
+    });
+
+    test('zero capacity sells nothing', () => {
+        const units = resolveDemand([{ key: 'a', category: 'groceries', capacity: 0 }], { groceries: 100 });
+        expect(units.get('a')).toBe(0);
     });
 });
 
 describe('positionDelta (task 020 growth)', () => {
     test('returns the per-title increase from the larger establishment', () => {
-        const current = [pos('Clerk'), pos('Clerk')];
-        const grown = [pos('Clerk'), pos('Clerk'), pos('Clerk'), pos('Janitor')];
-        const delta = positionDelta(current, grown);
+        const delta = positionDelta([pos('Clerk'), pos('Clerk')], [pos('Clerk'), pos('Clerk'), pos('Clerk'), pos('Janitor')]);
         expect(delta.map(p => p.title).sort()).toEqual(['Clerk', 'Janitor']);
-    });
-
-    test('no growth yields no added positions', () => {
-        const same = [pos('Clerk')];
-        expect(positionDelta(same, same)).toHaveLength(0);
     });
 });

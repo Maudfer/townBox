@@ -16,23 +16,27 @@ import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
 import { DAYS_PER_MONTH } from 'util/time';
-import { computeBusinessPnl, positionDelta } from 'util/businessFinance';
+import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, DemandBusiness } from 'util/businessFinance';
+import { evaluateCurve } from 'util/curve';
 import { DayResult } from 'types/LifeEvent';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
+import { DemandTable } from 'types/Demand';
 import { NewDayEvent, TimeChangedEvent } from 'types/Time';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
 import householdDrawConfig from 'json/householdDraw.json';
 import materialsConfig from 'json/materials.json';
+import demandConfig from 'json/demand.json';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
 const MATERIAL_PRICES: Record<string, number> = Object.fromEntries(
     Object.entries(materialsConfig as Record<string, { basePrice: number }>).map(([key, value]) => [key, value.basePrice])
 );
+const DEMAND_TABLE = demandConfig as unknown as DemandTable;
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 
 let Game: GameManager;
@@ -281,10 +285,11 @@ export default class City {
         this.runCostOfLiving(tick);
     }
 
-    // Monthly business P&L (task 020): revenue (materials sold at markup) minus materials, fixed costs, and
-    // payroll (already paid in runPayroll, so only the income side is applied to the balance here). Records the
-    // P&L and a profit/loss streak; a sustainedly profitable, fully-staffed business grows (appending open
-    // positions for more hiring). Sustained losses just bleed the balance — bankruptcy/closure is task 021.
+    // Monthly business P&L driven by the demand model (task 033): households generate per-category demand,
+    // businesses compete for it by capacity (staffing × throughput), and revenue = unitsSold × price. P&L =
+    // revenue − materials − fixed − payroll (payroll already debited by runPayroll, so only the income side is
+    // applied here). Records P&L + a profit/loss streak; a sustainedly profitable, fully-staffed business grows.
+    // Sustained losses just bleed the balance — bankruptcy/closure is task 021.
     private runBusinessEconomics(tick: number): void {
         const field = Game.field;
         const economy = Game.economy;
@@ -292,6 +297,17 @@ export default class City {
             return;
         }
 
+        // City-wide demand per category from the materialized population (consumers). v1 is flat per-capita;
+        // demographic/income modifiers and locality are documented refinements (033 §A2/§A6).
+        const population = field.getPeople().length;
+        const demandByCategory: Record<string, number> = {};
+        for (const [category, demand] of Object.entries(DEMAND_TABLE)) {
+            demandByCategory[category] = population * demand.perCapita;
+        }
+
+        // Each operating business's capacity, and an index to resolve units back to it.
+        const competitors: DemandBusiness[] = [];
+        const byKey = new Map<string, { workplace: Workplace; business: NonNullable<ReturnType<Workplace['getBusiness']>>; blueprint: BusinessBlueprintTable[string] }>();
         for (const structure of field.getStructures()) {
             if (!(structure instanceof Workplace)) {
                 continue;
@@ -304,13 +320,25 @@ export default class City {
             if (!blueprint) {
                 continue;
             }
-
             const key = structure.getIdentifier();
-            const payroll = structure.getEmployees().reduce((total, employee) => total + (employee.work.getJob()?.salary ?? 0), 0);
-            const finance = computeBusinessPnl(blueprint, business.size, payroll, MATERIAL_PRICES);
+            const throughput = DEMAND_TABLE[blueprint.category]?.throughputPerEmployee ?? 0;
+            competitors.push({ key, category: blueprint.category, capacity: structure.getEmployees().length * throughput });
+            byKey.set(key, { workplace: structure, business, blueprint });
+        }
+
+        const unitsByKey = resolveDemand(competitors, demandByCategory);
+
+        for (const [key, { workplace, business, blueprint }] of byKey) {
+            const unitsSold = unitsByKey.get(key) ?? 0;
+            const pricePerUnit = (DEMAND_TABLE[blueprint.category]?.pricePerUnit ?? 0) * (blueprint.economics?.priceMarkup ?? 1);
+            const revenue = unitsSold * pricePerUnit;
+            const materialsCost = unitsSold * unitMaterialCost(blueprint, MATERIAL_PRICES);
+            const fixedCosts = blueprint.economics?.fixedCostsPerMonth ? evaluateCurve(blueprint.economics.fixedCostsPerMonth, business.size) : 0;
+            const payroll = workplace.getEmployees().reduce((total, employee) => total + (employee.work.getJob()?.salary ?? 0), 0);
+            const finance = computeBusinessPnl(revenue, materialsCost, fixedCosts, payroll);
 
             // Payroll was already debited by runPayroll; apply only the income side here.
-            economy.adjustBusiness(key, finance.revenue - finance.materialsCost - finance.fixedCosts);
+            economy.adjustBusiness(key, revenue - materialsCost - fixedCosts);
             business.lastPnl = finance.pnl;
 
             const previousStreak = business.profitStreak ?? 0;
@@ -322,10 +350,10 @@ export default class City {
 
             // Grow when sustainedly profitable and already fully staffed (a proxy for "demand exceeds capacity").
             if ((business.profitStreak ?? 0) >= DEFAULT_ECONOMY_PARAMS.growthMonths
-                && structure.getOpenPositions().length === 0
+                && workplace.getOpenPositions().length === 0
                 && business.size < blueprint.size.max) {
                 const grown = generateBusiness(business.blueprintKey, blueprint, JOBS, business.name, business.size + 1);
-                structure.expandPositions(business.size + 1, grown.positions, positionDelta(business.positions, grown.positions));
+                workplace.expandPositions(business.size + 1, grown.positions, positionDelta(business.positions, grown.positions));
                 business.profitStreak = 0;
                 this.announce('businessGrew', tick, `${business.name} is expanding`, null);
             }

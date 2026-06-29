@@ -30,11 +30,12 @@ export interface BusinessJobSpec {
 // A business blueprint (src/json/businesses.json): the probabilistic/scaling recipe for a line of work.
 export interface BusinessBlueprint {
     friendlyName: string; // display label for the line of work, e.g. "Super Market"
+    category: string; // demand category it serves (json/demand.json), e.g. "groceries" — task 033
     size: { min: number; max: number }; // drawn uniformly at placement (distribution weighting is a future extension)
     jobs: Record<string, BusinessJobSpec>; // jobId -> position count curve
-    materialsPerMonth?: Record<string, { qty: Curve }>; // design-for (consumed once the economy lands)
-    products?: Record<string, unknown>; // deferred per the design; slot reserved
-    economics?: { priceMarkup?: number; fixedCostsPerMonth?: Curve }; // design-for
+    materialsPerUnit?: Record<string, number>; // input material amounts to produce one unit of output (task 033)
+    products?: Record<string, unknown>; // deferred (B2B supply chain, task 035); slot reserved
+    economics?: { priceMarkup?: number; fixedCostsPerMonth?: Curve }; // priceMarkup = price premium over the category base (task 033)
 }
 
 export type BusinessBlueprintTable = Record<string, BusinessBlueprint>;
