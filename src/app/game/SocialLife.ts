@@ -118,7 +118,7 @@ export default class SocialLife {
         return this.home;
     }
 
-    setHome(home: House): void {
+    setHome(home: House | null): void {
         this.home = home;
     }
 

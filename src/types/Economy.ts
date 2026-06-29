@@ -21,6 +21,8 @@ export interface EconomyParams {
     bankruptcyDebtFloor: number; // a business whose balance stays below this is insolvent (task 021)
     bankruptcyMonths: number; // consecutive insolvent months before a business goes bankrupt and closes (task 021)
     reoccupancyMonths: number; // months a work building stays vacant before it can attract a new business (task 037)
+    evictionArrearsMonths: number; // consecutive months of arrears before a household is evicted (task 022)
+    recoveryFunds: number; // pooled funds a homeless household needs to occupy a vacant home again (task 022)
 }
 
 export type AccountKind = 'person' | 'business';

@@ -6,5 +6,7 @@
     "growthMonths": 3,
     "bankruptcyDebtFloor": 0,
     "bankruptcyMonths": 3,
-    "reoccupancyMonths": 2
+    "reoccupancyMonths": 2,
+    "evictionArrearsMonths": 3,
+    "recoveryFunds": 800
 }

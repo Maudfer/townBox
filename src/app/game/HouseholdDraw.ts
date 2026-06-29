@@ -247,7 +247,7 @@ function immigrantHousehold(
     };
 }
 
-function pickArrangement(rng: SeededRandom, weights: Record<HouseholdArrangement, number>): HouseholdArrangement {
+function pickArrangement(rng: SeededRandom, weights: Partial<Record<HouseholdArrangement, number>>): HouseholdArrangement {
     const entries = Object.entries(weights) as [HouseholdArrangement, number][];
     const total = entries.reduce((sum, [, weight]) => sum + weight, 0);
     let roll = rng.next() * total;
