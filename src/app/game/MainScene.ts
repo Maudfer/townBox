@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 import GameManager from 'game/GameManager';
 import Tile from 'game/Tile';
 import Soil from 'game/Soil';
+import House from 'game/House';
+import Workplace from 'game/Workplace';
 import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import { directionToRadianRotation } from 'util/tools';
@@ -365,12 +367,34 @@ export default class MainScene extends Phaser.Scene {
         }
         image.setDepth(tile.calculateDepth());
 
+        // Vacant buildings (an empty house, or a workplace with no business) read as greatly desaturated so the
+        // player can spot them at a glance (task: vacancy visual). drawTile re-runs on tileSpawned, so a building
+        // that empties later (e.g. a household dies out) is re-evaluated when its tile is re-emitted.
+        const isVacantHouse = tile instanceof House && tile.getResidents().length === 0;
+        const isVacantWorkplace = tile instanceof Workplace && tile.getBusiness() === null;
+        if (isVacantHouse || isVacantWorkplace) {
+            this.applyVacantLook(image);
+        }
+
         const existingTileAsset = tile.getAsset();
         if (existingTileAsset) {
             existingTileAsset.destroy();
         }
 
         tile.setAsset(image);
+    }
+
+    // Renders a sprite as "vacant": fully desaturated via a ColorMatrix FX, falling back to a flat gray tint
+    // when FX isn't available (e.g. the Canvas renderer). preFX isn't in the bundled Phaser typings, so it is
+    // accessed structurally.
+    private applyVacantLook(image: Phaser.GameObjects.Image): void {
+        type ColorMatrixFx = { grayscale: (value?: number) => unknown };
+        const preFX = (image as unknown as { preFX?: { addColorMatrix: () => ColorMatrixFx } | null }).preFX;
+        if (preFX) {
+            preFX.addColorMatrix().grayscale(1);
+        } else {
+            image.setTint(0x808080);
+        }
     }
 
     private drawPerson(person: Person): void {

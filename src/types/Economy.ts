@@ -17,6 +17,7 @@ export interface EconomyParams {
     startingBusinessCapital: number;
     housingCost: number; // monthly housing cost per household
     perCapitaCost: number; // monthly food/upkeep per resident
+    growthMonths: number; // consecutive profitable months before a fully-staffed business grows (task 020)
 }
 
 export type AccountKind = 'person' | 'business';

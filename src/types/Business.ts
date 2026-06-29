@@ -48,4 +48,6 @@ export interface BusinessInstance {
     lineOfWork: string; // blueprint.friendlyName
     size: number;
     positions: JobPosition[];
+    lastPnl?: number; // last month's profit/loss (task 020); shown in the inspector
+    profitStreak?: number; // consecutive profitable (+) or loss (−) months; drives growth (task 020)
 }

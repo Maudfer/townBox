@@ -51,6 +51,17 @@ export default class Workplace extends Building {
         return this.business;
     }
 
+    // Grows the business to a larger size (task 020): records the new full establishment + size and opens the
+    // added positions for hiring. Existing employees/filled slots are untouched (we only append open slots).
+    public expandPositions(newSize: number, fullPositions: JobPosition[], addedOpen: JobPosition[]): void {
+        if (!this.business) {
+            return;
+        }
+        this.business.size = newSize;
+        this.business.positions = fullPositions;
+        this.avaiableJobs.push(...addedOpen);
+    }
+
     // The open (unfilled) positions still available for hiring.
     public getOpenPositions(): JobPosition[] {
         return [...this.avaiableJobs];
