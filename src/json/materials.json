@@ -3,5 +3,13 @@
     "medical_supplies": { "label": "Medical Supplies", "basePrice": 25 },
     "school_supplies": { "label": "School Supplies", "basePrice": 6 },
     "food_ingredients": { "label": "Food Ingredients", "basePrice": 10 },
-    "building_materials": { "label": "Building Materials", "basePrice": 18 }
+    "building_materials": { "label": "Building Materials", "basePrice": 18 },
+    "retail_goods": { "label": "Retail Goods", "basePrice": 12 },
+    "electronics_parts": { "label": "Electronics Parts", "basePrice": 30 },
+    "hardware_stock": { "label": "Hardware Stock", "basePrice": 11 },
+    "entertainment_supplies": { "label": "Entertainment Supplies", "basePrice": 9 },
+    "office_supplies": { "label": "Office Supplies", "basePrice": 7 },
+    "salon_supplies": { "label": "Salon Supplies", "basePrice": 9 },
+    "auto_parts": { "label": "Auto Parts", "basePrice": 22 },
+    "hotel_supplies": { "label": "Hotel Supplies", "basePrice": 16 }
 }

@@ -10,6 +10,15 @@ export enum JobRequirements {
     MedicalSkill = "MedicalSkill",
     TeachingSkill = "TeachingSkill",
     CookingSkill = "CookingSkill",
+    // Added in task 034 to staff the expanded business roster (033b).
+    HospitalitySkill = "HospitalitySkill",
+    FinanceSkill = "FinanceSkill",
+    EngineeringSkill = "EngineeringSkill",
+    SecuritySkill = "SecuritySkill",
+    DrivingSkill = "DrivingSkill",
+    BeautySkill = "BeautySkill",
+    MechanicalSkill = "MechanicalSkill",
+    FitnessSkill = "FitnessSkill",
 }
 
 export type JobRequirement = JobRequirements;

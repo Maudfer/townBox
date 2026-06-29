@@ -45,8 +45,8 @@ Always run `npm test` before opening the PR.**
 | 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI | ✅ Done |
 | 031 | [City overview / dashboard window](031-city-overview-window.md) | UI | ⬜ Open |
 | 032 | [Expand the life-event manifest](032-expand-life-events.md) | Content | ⬜ Open |
-| 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints.md) | Economy | 🚧 033a done (demand model); 033b blueprints open |
-| 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills.md) | Content | ⬜ Open |
+| 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints_DONE.md) | Economy | ✅ Done (033c Tier-2 optional) |
+| 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills_DONE.md) | Content | ✅ Done |
 | 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy | ⬜ Open |
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation | ⬜ Open |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |

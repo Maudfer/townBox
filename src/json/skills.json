@@ -3,13 +3,21 @@
     "adult": { "minSkills": 1, "maxSkills": 3 },
     "minor": { "minSkills": 0, "maxSkills": 1 },
     "weights": {
+        "RetailSkill": 1.4,
+        "CleaningSkill": 1.1,
         "ConstructionSkill": 1.0,
-        "RetailSkill": 1.2,
         "LogisticsSkill": 1.0,
-        "CleaningSkill": 1.0,
-        "CookingSkill": 0.8,
+        "HospitalitySkill": 1.0,
+        "CookingSkill": 0.9,
+        "DrivingSkill": 0.9,
+        "MechanicalSkill": 0.8,
+        "SecuritySkill": 0.7,
+        "BeautySkill": 0.7,
+        "ManagementSkill": 0.6,
         "TeachingSkill": 0.6,
-        "ManagementSkill": 0.5,
-        "MedicalSkill": 0.4
+        "FinanceSkill": 0.6,
+        "EngineeringSkill": 0.6,
+        "FitnessSkill": 0.6,
+        "MedicalSkill": 0.45
     }
 }

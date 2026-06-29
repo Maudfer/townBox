@@ -3,6 +3,12 @@
 - **Type:** Feature / Content + small code
 - **Labels:** `feature`, `data`, `jobs`, `content`, `framework-followup`
 - **Depends on:** 013b (jobs table), 014 (skills model). Pairs with 033 (businesses).
+- **Status:** ✅ **Done** (bundled with 033b). `JobRequirements` grew from 8 → **16** skills (Hospitality,
+  Finance, Engineering, Security, Driving, Beauty, Mechanical, Fitness); `json/jobs.json` from 10 → **33** jobs
+  with populated strain/admiration and a realistic salary spread; `json/skills.json` weights cover all 16 so no
+  job is unfillable. A `test/contentConsistency.test.ts` cross-check enforces: every job's skills are valid
+  enum values, every required skill is assignable, every blueprint job/category/material resolves, and every
+  demand category is served. Strain/admiration are populated as the bridge for 032's event gradients.
 
 ## Summary
 

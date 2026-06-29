@@ -5,7 +5,7 @@
 - **Depends on:** 033 (the demand model + per-unit materials this builds on), 020 (business P&L). Pairs with 034.
 
 > **Re-scoped:** the **household demand model** (consumers → per-category demand → demand-driven business
-> revenue) moved to [033](033-expand-business-blueprints.md). This task is now the **B2B supply-chain layer on
+> revenue) moved to [033](033-expand-business-blueprints_DONE.md). This task is now the **B2B supply-chain layer on
 > top of it**: businesses *produce* products that are other businesses' input materials, so a business's
 > `unitMaterialCost` becomes demand on upstream producers (inter-business demand) in addition to 033's
 > household demand. The summary below predates that split — read it as the products/supply-chain half.
