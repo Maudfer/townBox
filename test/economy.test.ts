@@ -35,10 +35,12 @@ describe('Economy (ledger, task 017)', () => {
         const economy = new Economy();
         economy.setPersonBalance('p1', 10);
         economy.setBusinessBalance('w1', 20);
+        economy.setLastEconomyMonth(3);
 
         const restored = new Economy(economy.getState());
         expect(restored.getPersonBalance('p1')).toBe(10);
         expect(restored.getBusinessBalance('w1')).toBe(20);
+        expect(restored.getLastEconomyMonth()).toBe(3);
 
         const loaded = new Economy();
         loaded.loadState(economy.getState());

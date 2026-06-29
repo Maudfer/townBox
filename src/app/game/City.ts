@@ -15,6 +15,7 @@ import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandpa
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
+import { DAYS_PER_MONTH } from 'util/time';
 import { DayResult } from 'types/LifeEvent';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
@@ -199,6 +200,10 @@ export default class City {
         // Coarse off-map pool sim: materialized people are excluded (Engine B owns their life events).
         population.simulate(event.tick, ticksPerYear, undefined, materializedIds);
 
+        // Monthly economic update (payroll now; cost of living / P&L hook in here later). Independent of the
+        // event engine, so it runs even in engine-less test harnesses.
+        this.processMonthlyEconomy(event.tick);
+
         const engine = Game.eventEngine;
         if (!engine) {
             return;
@@ -251,6 +256,60 @@ export default class City {
 
     private announce(kind: string, tick: number, message: string, person: Person | null): void {
         Game.emit("cityEvent", { kind, tick, message, person });
+    }
+
+    // The once-a-month economic update (task 018+). Gated by the economy's lastEconomyMonth so it runs once
+    // per in-game month and never double-runs across save/load. Public for unit testing; in production it is
+    // driven each day by handleNewDay. Cost of living (019) and business P&L (020) will hook in here.
+    public processMonthlyEconomy(tick: number): void {
+        const economy = Game.economy;
+        if (!economy) {
+            return;
+        }
+        const month = Math.floor(tick / DAYS_PER_MONTH);
+        if (month <= economy.getLastEconomyMonth()) {
+            return;
+        }
+        economy.setLastEconomyMonth(month);
+        this.runPayroll(tick);
+    }
+
+    // Pays each employed person their monthly salary from their employer's balance, through the ledger (task
+    // 018). A business that can't cover payroll simply goes into debt (negative balance); when it first crosses
+    // into the red it surfaces a stress notification — the hook business P&L (020) / bankruptcy (021) consume.
+    private runPayroll(tick: number): void {
+        const field = Game.field;
+        const economy = Game.economy;
+        if (!field || !economy) {
+            return;
+        }
+
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const business = structure.getBusiness();
+            if (!business) {
+                continue;
+            }
+
+            const key = structure.getIdentifier();
+            const balanceBefore = economy.getBusinessBalance(key);
+            let totalPaid = 0;
+            for (const employee of structure.getEmployees()) {
+                const job = employee.work.getJob();
+                const personId = employee.social.getPersonId();
+                if (!job || !personId) {
+                    continue;
+                }
+                economy.transfer({ kind: 'business', id: key }, { kind: 'person', id: personId }, job.salary);
+                totalPaid += job.salary;
+            }
+
+            if (totalPaid > 0 && balanceBefore >= 0 && economy.getBusinessBalance(key) < 0) {
+                this.announce('businessStress', tick, `${business.name} is struggling to pay wages`, null);
+            }
+        }
     }
 
     // Removes materialized residents who died this day from their house, household, and the field.
