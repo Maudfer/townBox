@@ -75,7 +75,7 @@ in, and **despawns the car as they enter the building**.
 
 - Traffic congestion, parking capacity limits, carpooling, and pedestrian-only commutes
   optimization. (A simple "always spawn one car per commuter" model is acceptable initially.)
-- Hiring logic and business generation (see `007-business-generation.md`) — assume people already
+- Hiring logic and business generation (see `007-business-generation_SUPERSEEDED.md`) — assume people already
   have jobs/workplaces assigned.
 - Realistic departure staggering / traffic spreading beyond a basic implementation.
 

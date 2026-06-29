@@ -13,19 +13,30 @@ export const DEFAULT_ECONOMY_PARAMS: EconomyParams = economyConfig as EconomyPar
 export default class Economy implements MoneyLedger {
     private personBalances: Record<string, number>;
     private businessBalances: Record<string, number>;
+    private lastEconomyMonth: number;
 
     constructor(state?: EconomyState) {
         this.personBalances = state?.personBalances ?? {};
         this.businessBalances = state?.businessBalances ?? {};
+        this.lastEconomyMonth = state?.lastEconomyMonth ?? -1;
     }
 
     getState(): EconomyState {
-        return { personBalances: this.personBalances, businessBalances: this.businessBalances };
+        return { personBalances: this.personBalances, businessBalances: this.businessBalances, lastEconomyMonth: this.lastEconomyMonth };
     }
 
     loadState(state: EconomyState): void {
         this.personBalances = state.personBalances ?? {};
         this.businessBalances = state.businessBalances ?? {};
+        this.lastEconomyMonth = state.lastEconomyMonth ?? -1;
+    }
+
+    getLastEconomyMonth(): number {
+        return this.lastEconomyMonth;
+    }
+
+    setLastEconomyMonth(month: number): void {
+        this.lastEconomyMonth = month;
     }
 
     // --- People ------------------------------------------------------------

@@ -19,7 +19,7 @@ Always run `npm test` before opening the PR.**
 | 004 | [Household generation redesign](004-household-generation-redesign_DONE.md) | Planning |
 | 005 | [Clock & calendar system](005-clock-and-calendar-system_DONE.md) | Feature |
 | 006 | [Job commute pathfinding loop](006-job-commute-pathfinding_DONE.md) | Feature |
-| 007 | [Business generation](007-business-generation.md) | Feature |
+| 007 | [Business generation](007-business-generation_SUPERSEEDED.md) | Feature |
 | 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test |
 | 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test |
 | 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time_DONE.md) | Feature |
@@ -30,7 +30,7 @@ Always run `npm test` before opening the PR.**
 | 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring_DONE.md) | Feature |
 | 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning_DONE.md) | Feature |
 | 017 | [Money model: wallets & ledger](017-money-model_DONE.md) | Economy |
-| 018 | [Wages & payroll](018-wages-and-payroll.md) | Economy |
+| 018 | [Wages & payroll](018-wages-and-payroll_DONE.md) | Economy |
 | 019 | [Cost of living & household spending](019-cost-of-living.md) | Economy |
 | 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics.md) | Economy |
 | 021 | [Business bankruptcy & closure](021-business-bankruptcy.md) | Economy |

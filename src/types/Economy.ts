@@ -6,6 +6,9 @@
 export interface EconomyState {
     personBalances: Record<string, number>;
     businessBalances: Record<string, number>;
+    // Highest in-game month the monthly economic update (payroll, cost of living, P&L) has applied. -1 means
+    // none yet. Persisted so save/load doesn't double-run or skip a month (task 018+).
+    lastEconomyMonth: number;
 }
 
 // Tunable starting balances (src/json/economy.json).
