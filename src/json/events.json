@@ -124,5 +124,25 @@
         "effects": [
             { "type": "emit", "signal": "fellIll", "target": "subject" }
         ]
+    },
+    "move_out": {
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 18 },
+                { "attr": "employed", "op": "==", "value": true },
+                { "attr": "canMoveOut", "op": "==", "value": true }
+            ] } }
+        },
+        "probability": {
+            "perYear": 3,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "step", "points": [
+                    { "at": 18, "value": 1 }, { "at": 22, "value": 1.5 }, { "at": 30, "value": 0.6 }, { "at": 40, "value": 0.2 } ] } }
+            ]
+        },
+        "effects": [
+            { "type": "emit", "signal": "movedOut", "target": "subject" }
+        ]
     }
 }

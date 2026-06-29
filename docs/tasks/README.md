@@ -35,8 +35,8 @@ Always run `npm test` before opening the PR.**
 | 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics_DONE.md) | Economy | ✅ Done |
 | 021 | [Business bankruptcy & closure](021-business-bankruptcy_DONE.md) | Economy | ✅ Done |
 | 022 | [Household insolvency: eviction & homelessness](022-eviction-and-homelessness.md) | Economy | ⬜ Open |
-| 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation.md) | Feature | ⬜ Open |
-| 024 | [Adult children move out / new-household formation](024-adult-children-move-out.md) | Feature | ⬜ Open |
+| 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation_DONE.md) | Feature | ✅ Done |
+| 024 | [Adult children move out / new-household formation](024-adult-children-move-out_DONE.md) | Feature | ✅ Done |
 | 025 | [Structure teardown on bulldoze](025-structure-teardown.md) | Feature | ⬜ Open |
 | 026 | [Entity selection model (people & buildings)](026-entity-selection-model_DONE.md) | UI | ✅ Done |
 | 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI | ✅ Done |

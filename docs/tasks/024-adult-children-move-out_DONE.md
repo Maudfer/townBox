@@ -3,6 +3,13 @@
 - **Type:** Feature / Simulation
 - **Labels:** `feature`, `simulation`, `households`, `life-events`, `framework-followup`
 - **Depends on:** 023 (shared relocation helper), ideally 015/018 (so move-out can require a means of support)
+- **Status:** ✅ **Done** (bundled with 023). Modeled as a `move_out` life event in `json/events.json`
+  (eligible: alive, adult, **employed**, and `canMoveOut`), where `canMoveOut` is a new Context attribute backed
+  by a `game/HousingMarket` adapter (adult non-head with a vacant home available) — mirroring `JobMarket`/
+  `canBeHired`. `City.handleNewDay` builds the adapter per-day and handles the emitted `movedOut` signal via
+  `City.resolveMoveOut`, relocating the adult into the lowest-keyed vacant house as a new `Single` household
+  (no-op if the last vacancy was taken that day). Housing policy (req. 3): move-out only into an existing vacant
+  home. No save-schema change. Tests in `test/householdDynamics.test.ts`.
 
 ## Summary
 

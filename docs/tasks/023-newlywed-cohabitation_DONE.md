@@ -3,6 +3,11 @@
 - **Type:** Feature / Simulation
 - **Labels:** `feature`, `simulation`, `households`, `life-events`, `framework-followup`
 - **Depends on:** 013d/013e (marriage event + rehousing infra)
+- **Status:** ✅ **Done** (bundled with 024). `City.handleNewDay` now consumes the `partnershipFormed` signal →
+  `City.resolveCohabitation`: the larger household stays put and the smaller spouse (plus their dependent minors)
+  moves in, respecting `maxResidents` (skipped if neither home fits — a housing-market move is future), and only
+  when both spouses are materialized. Built on a generalized relocation helper (`removeFromHome` / `vacateIfEmpty`
+  extracted alongside `relocateMember`). No save-schema change. Tests in `test/householdDynamics.test.ts`.
 
 ## Summary
 

@@ -94,3 +94,11 @@ export interface JobMarket {
     hire(personId: string): boolean;
     fire(personId: string): void;
 }
+
+// The housing adapter the event runtime consults so the pure engine can reason about move-out eligibility (the
+// `canMoveOut` Context attribute) without importing the materialized House/Field layer (task 024). True when the
+// person could actually leave home now: an adult living in a household they don't head, with a vacant home to
+// move into. The concrete implementation lives in game/HousingMarket.ts; keyed on the genealogy PersonId.
+export interface HousingMarket {
+    canMoveOut(personId: string): boolean;
+}
