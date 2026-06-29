@@ -26,7 +26,17 @@ const Clock: FC<ClockProps> = ({ game }) => {
         return null;
     }
 
-    return <div className="clock-widget glass">{formatTimestamp(timestamp)}</div>;
+    // Clicking the clock opens the city overview dashboard (task 031).
+    return (
+        <div
+            className="clock-widget glass"
+            style={{ cursor: 'pointer' }}
+            title="Open city overview"
+            onClick={() => game.emit('CitySelected', game.city)}
+        >
+            {formatTimestamp(timestamp)}
+        </div>
+    );
 };
 
 export default Clock;

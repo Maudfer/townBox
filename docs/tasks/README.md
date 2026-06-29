@@ -37,13 +37,13 @@ Always run `npm test` before opening the PR.**
 | 022 | [Household insolvency: eviction & homelessness](022-eviction-and-homelessness_DONE.md) | Economy | ✅ Done |
 | 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation_DONE.md) | Feature | ✅ Done |
 | 024 | [Adult children move out / new-household formation](024-adult-children-move-out_DONE.md) | Feature | ✅ Done |
-| 025 | [Structure teardown on bulldoze](025-structure-teardown.md) | Feature | ⬜ Open |
+| 025 | [Structure teardown on bulldoze](025-structure-teardown_DONE.md) | Feature | ✅ Done |
 | 026 | [Entity selection model (people & buildings)](026-entity-selection-model_DONE.md) | UI | ✅ Done |
 | 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI | ✅ Done |
 | 028 | [Workplace / business inspector window](028-workplace-inspector-window_DONE.md) | UI | ✅ Done |
 | 029 | [City event feed / notifications](029-city-event-feed_DONE.md) | UI | ✅ Done |
 | 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI | ✅ Done |
-| 031 | [City overview / dashboard window](031-city-overview-window.md) | UI | ⬜ Open |
+| 031 | [City overview / dashboard window](031-city-overview-window_DONE.md) | UI | ✅ Done |
 | 032 | [Expand the life-event manifest](032-expand-life-events_DONE.md) | Content | ✅ Done |
 | 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints_DONE.md) | Economy | ✅ Done (033c Tier-2 optional) |
 | 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills_DONE.md) | Content | ✅ Done |

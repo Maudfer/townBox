@@ -205,10 +205,14 @@ export default class Field {
             return;
         }
 
+        // Tear the structure down coherently before the soil overwrite (task 025): a house evicts its residents
+        // (relatives or homelessness, 022) and a workplace closes its business (lay off, 021), so no Person,
+        // Household, or business is left pointing at the destroyed building.
         const tile = this.getTile(tilePosition.row, tilePosition.col);
         if (tile instanceof House) {
-            // TODO: Implement relocateFamily
-            // tile.relocateFamily();
+            Game.city?.demolishHouse(tile);
+        } else if (tile instanceof Workplace) {
+            Game.city?.demolishWorkplace(tile);
         }
 
         event.tool = Tool.Soil;

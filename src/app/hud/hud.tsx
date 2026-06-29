@@ -8,9 +8,11 @@ import Feed from 'hud/Feed';
 import HouseDetails from 'hud/windows/HouseDetails';
 import PersonDetails from 'hud/windows/PersonDetails';
 import WorkplaceDetails from 'hud/windows/WorkplaceDetails';
+import CityDetails from 'hud/windows/CityDetails';
 import House from 'game/House';
 import Person from 'game/Person';
 import Workplace from 'game/Workplace';
+import City from 'game/City';
 
 import { HUDProps, WindowData, WindowTypes, WindowPayload } from 'types/HUD';
 
@@ -24,7 +26,7 @@ const windowMap = {
     [WindowTypes.WorkplaceDetails]: WorkplaceDetails,
     [WindowTypes.PersonDetails]: PersonDetails,
     [WindowTypes.VehicleDetails]: null,
-    [WindowTypes.CityDetails]: null,
+    [WindowTypes.CityDetails]: CityDetails,
     [WindowTypes.GameOptions]: null,
     [WindowTypes.AvailableBuildings]: null,
 };
@@ -65,11 +67,13 @@ const HUD: FC<HUDProps> = ({ game }) => {
         game.on("HouseSelected", { callback: (house: House) => openWindow(WindowTypes.HouseDetails, house, 'replaceType') });
         game.on("PersonSelected", { callback: (person: Person) => openWindow(WindowTypes.PersonDetails, person, 'dedupeData') });
         game.on("WorkplaceSelected", { callback: (workplace: Workplace) => openWindow(WindowTypes.WorkplaceDetails, workplace, 'dedupeData') });
+        game.on("CitySelected", { callback: (city: City | null) => city && openWindow(WindowTypes.CityDetails, city, 'replaceType') });
 
         return () => {
             game.off("HouseSelected");
             game.off("PersonSelected");
             game.off("WorkplaceSelected");
+            game.off("CitySelected");
         };
     }, []);
 

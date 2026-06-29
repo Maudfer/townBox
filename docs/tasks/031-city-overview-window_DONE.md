@@ -3,6 +3,14 @@
 - **Type:** Feature / UI
 - **Labels:** `feature`, `ui`, `hud`, `framework-followup`
 - **Depends on:** 026/030 (to open it). Richer with 015 (employment) and 017–022 (economy).
+- **Status:** ✅ **Done.** Aggregation lives in `City.getCityStats(): CityStats` (`types/City.ts`) — derived live
+  from the field/economy/population (population, households + avg size, employment, businesses by line of work +
+  vacancies, aggregate household/business wealth, stressed counts, homeless, genealogy pool living/total) plus
+  cumulative session vital tallies (births/deaths/bankruptcies/evictions, non-persisted counters in `City`).
+  `hud/windows/CityDetails.tsx` renders it (registered in `Hud.tsx`'s `windowMap`), opened by **clicking the
+  clock widget** (`CitySelected` event), refreshed on a light interval (not the shared `newDay` bus event, whose
+  `off()` would drop City's own handler). Reachability via the toolbar is a future nicety; the clock is the
+  entry point. Tested via `test/cityOverview.test.ts` against a constructed world.
 
 ## Summary
 
