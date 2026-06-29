@@ -16,6 +16,7 @@ import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
 import { DAYS_PER_MONTH } from 'util/time';
+import { computeBusinessPnl, positionDelta } from 'util/businessFinance';
 import { DayResult } from 'types/LifeEvent';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
@@ -25,9 +26,13 @@ import { NewDayEvent, TimeChangedEvent } from 'types/Time';
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
 import householdDrawConfig from 'json/householdDraw.json';
+import materialsConfig from 'json/materials.json';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
+const MATERIAL_PRICES: Record<string, number> = Object.fromEntries(
+    Object.entries(materialsConfig as Record<string, { basePrice: number }>).map(([key, value]) => [key, value.basePrice])
+);
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 
 let Game: GameManager;
@@ -272,7 +277,59 @@ export default class City {
         }
         economy.setLastEconomyMonth(month);
         this.runPayroll(tick);
+        this.runBusinessEconomics(tick);
         this.runCostOfLiving(tick);
+    }
+
+    // Monthly business P&L (task 020): revenue (materials sold at markup) minus materials, fixed costs, and
+    // payroll (already paid in runPayroll, so only the income side is applied to the balance here). Records the
+    // P&L and a profit/loss streak; a sustainedly profitable, fully-staffed business grows (appending open
+    // positions for more hiring). Sustained losses just bleed the balance — bankruptcy/closure is task 021.
+    private runBusinessEconomics(tick: number): void {
+        const field = Game.field;
+        const economy = Game.economy;
+        if (!field || !economy) {
+            return;
+        }
+
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const business = structure.getBusiness();
+            if (!business) {
+                continue;
+            }
+            const blueprint = BUSINESS_BLUEPRINTS[business.blueprintKey];
+            if (!blueprint) {
+                continue;
+            }
+
+            const key = structure.getIdentifier();
+            const payroll = structure.getEmployees().reduce((total, employee) => total + (employee.work.getJob()?.salary ?? 0), 0);
+            const finance = computeBusinessPnl(blueprint, business.size, payroll, MATERIAL_PRICES);
+
+            // Payroll was already debited by runPayroll; apply only the income side here.
+            economy.adjustBusiness(key, finance.revenue - finance.materialsCost - finance.fixedCosts);
+            business.lastPnl = finance.pnl;
+
+            const previousStreak = business.profitStreak ?? 0;
+            if (finance.pnl > 0) {
+                business.profitStreak = previousStreak > 0 ? previousStreak + 1 : 1;
+            } else if (finance.pnl < 0) {
+                business.profitStreak = previousStreak < 0 ? previousStreak - 1 : -1;
+            }
+
+            // Grow when sustainedly profitable and already fully staffed (a proxy for "demand exceeds capacity").
+            if ((business.profitStreak ?? 0) >= DEFAULT_ECONOMY_PARAMS.growthMonths
+                && structure.getOpenPositions().length === 0
+                && business.size < blueprint.size.max) {
+                const grown = generateBusiness(business.blueprintKey, blueprint, JOBS, business.name, business.size + 1);
+                structure.expandPositions(business.size + 1, grown.positions, positionDelta(business.positions, grown.positions));
+                business.profitStreak = 0;
+                this.announce('businessGrew', tick, `${business.name} is expanding`, null);
+            }
+        }
     }
 
     // Pays each employed person their monthly salary from their employer's balance, through the ledger (task

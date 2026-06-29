@@ -41,6 +41,14 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
             <div style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
                 <p><strong>{business.lineOfWork}</strong> &nbsp; <small>size {business.size}</small></p>
                 {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
+                {business.lastPnl !== undefined && (
+                    <p>
+                        <strong>Last P&amp;L:</strong>{' '}
+                        <span style={{ color: business.lastPnl >= 0 ? '#7CFC8A' : '#FF7A7A' }}>
+                            {business.lastPnl >= 0 ? '+' : '−'}${Math.abs(Math.round(business.lastPnl)).toLocaleString()}/mo
+                        </span>
+                    </p>
+                )}
 
                 <section>
                     <h4>Positions</h4>

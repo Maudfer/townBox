@@ -2,5 +2,6 @@
     "startingPersonFunds": 2000,
     "startingBusinessCapital": 20000,
     "housingCost": 800,
-    "perCapitaCost": 400
+    "perCapitaCost": 400,
+    "growthMonths": 3
 }
