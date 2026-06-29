@@ -1,4 +1,6 @@
 {
     "startingPersonFunds": 2000,
-    "startingBusinessCapital": 20000
+    "startingBusinessCapital": 20000,
+    "housingCost": 800,
+    "perCapitaCost": 400
 }

@@ -31,7 +31,7 @@ Always run `npm test` before opening the PR.**
 | 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning_DONE.md) | Feature |
 | 017 | [Money model: wallets & ledger](017-money-model_DONE.md) | Economy |
 | 018 | [Wages & payroll](018-wages-and-payroll_DONE.md) | Economy |
-| 019 | [Cost of living & household spending](019-cost-of-living.md) | Economy |
+| 019 | [Cost of living & household spending](019-cost-of-living_DONE.md) | Economy |
 | 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics.md) | Economy |
 | 021 | [Business bankruptcy & closure](021-business-bankruptcy.md) | Economy |
 | 022 | [Household insolvency: eviction & homelessness](022-eviction-and-homelessness.md) | Economy |

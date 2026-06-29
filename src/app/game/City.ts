@@ -272,6 +272,7 @@ export default class City {
         }
         economy.setLastEconomyMonth(month);
         this.runPayroll(tick);
+        this.runCostOfLiving(tick);
     }
 
     // Pays each employed person their monthly salary from their employer's balance, through the ledger (task
@@ -308,6 +309,54 @@ export default class City {
 
             if (totalPaid > 0 && balanceBefore >= 0 && economy.getBusinessBalance(key) < 0) {
                 this.announce('businessStress', tick, `${business.name} is struggling to pay wages`, null);
+            }
+        }
+    }
+
+    // Charges each household its monthly cost of living (housing + per-resident upkeep) against its residents'
+    // pooled funds (task 019). A household that can't cover it pays what it can and accrues an arrears count —
+    // the hook eviction (022) consumes. Money leaves to off-map suppliers for now; routing it to local
+    // businesses as revenue is part of the demand model (020/035).
+    private runCostOfLiving(tick: number): void {
+        const field = Game.field;
+        const economy = Game.economy;
+        if (!field || !economy) {
+            return;
+        }
+
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House)) {
+                continue;
+            }
+            const household = structure.getHousehold();
+            const residents = structure.getResidents().filter(resident => resident.social.getPersonId() !== null);
+            if (!household || residents.length === 0) {
+                continue;
+            }
+
+            const expense = DEFAULT_ECONOMY_PARAMS.housingCost + DEFAULT_ECONOMY_PARAMS.perCapitaCost * residents.length;
+            const funds = residents.reduce((total, resident) => total + economy.getPersonBalance(resident.social.getPersonId()!), 0);
+
+            // Drain the household's available funds (head first) up to what it can afford; never forced negative.
+            let toCharge = Math.min(expense, Math.max(0, funds));
+            for (const resident of residents) {
+                if (toCharge <= 0) {
+                    break;
+                }
+                const id = resident.social.getPersonId()!;
+                const take = Math.min(Math.max(0, economy.getPersonBalance(id)), toCharge);
+                economy.adjustPerson(id, -take);
+                toCharge -= take;
+            }
+
+            const wasInArrears = (household.arrears ?? 0) > 0;
+            if (funds < expense) {
+                household.arrears = (household.arrears ?? 0) + 1;
+                if (!wasInArrears) {
+                    this.announce('householdStress', tick, `The ${structure.getHouseholdName()} household can't make ends meet`, null);
+                }
+            } else {
+                household.arrears = 0;
             }
         }
     }
