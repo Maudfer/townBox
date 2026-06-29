@@ -17,6 +17,18 @@ export function notificationForSignal(signal: string, name: string): CityNotific
             return { kind: 'laidOff', message: `${name} was laid off` };
         case 'fellIll':
             return { kind: 'illness', message: `${name} fell ill` };
+        case 'injured':
+            return { kind: 'illness', message: `${name} was injured in an accident` };
+        case 'recovered':
+            return { kind: 'health', message: `${name} recovered their health` };
+        case 'retired':
+            return { kind: 'career', message: `${name} retired` };
+        case 'graduated':
+            return { kind: 'education', message: `${name} earned a new qualification` };
+        case 'madeFriend':
+            return { kind: 'social', message: `${name} made a new friend` };
+        case 'hadArgument':
+            return { kind: 'social', message: `${name} had a falling-out` };
         default:
             return null;
     }

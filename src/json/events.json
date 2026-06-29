@@ -1,5 +1,7 @@
 {
     "death": {
+        "label": "Passed away",
+        "category": "lifecycle",
         "roles": {
             "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
         },
@@ -8,7 +10,9 @@
             "factors": [
                 { "driver": "subject.age", "curve": { "mode": "step", "points": [
                     { "at": 0, "value": 0.2 }, { "at": 50, "value": 1 }, { "at": 70, "value": 5 },
-                    { "at": 85, "value": 20 }, { "at": 100, "value": 60 }, { "at": 110, "value": 100 } ] } }
+                    { "at": 85, "value": 20 }, { "at": 100, "value": 60 }, { "at": 110, "value": 100 } ] } },
+                { "driver": "subject.health", "curve": { "mode": "step", "points": [
+                    { "at": 0, "value": 25 }, { "at": 0.3, "value": 8 }, { "at": 0.5, "value": 3 }, { "at": 0.95, "value": 1 } ] } }
             ]
         },
         "effects": [
@@ -17,6 +21,8 @@
         ]
     },
     "had_sex": {
+        "label": "Was intimate",
+        "category": "relationship",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
@@ -28,6 +34,8 @@
         "effects": []
     },
     "pregnancy": {
+        "label": "Became pregnant",
+        "category": "lifecycle",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
@@ -51,6 +59,8 @@
         ]
     },
     "marriage": {
+        "label": "Got married",
+        "category": "relationship",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
@@ -75,6 +85,8 @@
         ]
     },
     "divorce": {
+        "label": "Got divorced",
+        "category": "relationship",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
@@ -88,10 +100,13 @@
         ]
     },
     "get_job": {
+        "label": "Started a new job",
+        "category": "career",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
                 { "attr": "age", "op": ">=", "value": 18 },
+                { "attr": "retired", "op": "==", "value": false },
                 { "attr": "employed", "op": "==", "value": false },
                 { "attr": "canBeHired", "op": "==", "value": true }
             ] } }
@@ -103,6 +118,8 @@
         ]
     },
     "layoff": {
+        "label": "Was laid off",
+        "category": "career",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
@@ -116,33 +133,144 @@
             { "type": "emit", "signal": "laidOff", "target": "subject" }
         ]
     },
-    "fell_ill": {
-        "roles": {
-            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
-        },
-        "probability": { "perYear": 2 },
-        "effects": [
-            { "type": "emit", "signal": "fellIll", "target": "subject" }
-        ]
-    },
-    "move_out": {
+    "retirement": {
+        "label": "Retired",
+        "category": "career",
         "roles": {
             "subject": { "where": { "all": [
                 { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 18 },
-                { "attr": "employed", "op": "==", "value": true },
-                { "attr": "canMoveOut", "op": "==", "value": true }
+                { "attr": "age", "op": ">=", "value": 65 },
+                { "attr": "employed", "op": "==", "value": true }
             ] } }
         },
         "probability": {
             "perYear": 3,
             "factors": [
                 { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 18, "value": 1 }, { "at": 22, "value": 1.5 }, { "at": 30, "value": 0.6 }, { "at": 40, "value": 0.2 } ] } }
+                    { "at": 65, "value": 1 }, { "at": 72, "value": 3 }, { "at": 80, "value": 8 } ] } }
             ]
         },
         "effects": [
-            { "type": "emit", "signal": "movedOut", "target": "subject" }
+            { "type": "releaseSlot", "resource": "job", "target": "subject" },
+            { "type": "setAttr", "attr": "retired", "value": true },
+            { "type": "emit", "signal": "retired", "target": "subject" }
+        ]
+    },
+    "fell_ill": {
+        "label": "Fell ill",
+        "category": "health",
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "health", "op": ">=", "value": 1 }
+            ] } }
+        },
+        "probability": {
+            "perYear": 2,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "step", "points": [
+                    { "at": 0, "value": 1 }, { "at": 60, "value": 1.6 }, { "at": 80, "value": 2.5 } ] } }
+            ]
+        },
+        "effects": [
+            { "type": "setAttr", "attr": "health", "value": 0.5 },
+            { "type": "emit", "signal": "fellIll", "target": "subject" }
+        ]
+    },
+    "injury": {
+        "label": "Was injured in an accident",
+        "category": "health",
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "health", "op": ">=", "value": 0.5 }
+            ] } }
+        },
+        "probability": { "perYear": 0.8 },
+        "effects": [
+            { "type": "setAttr", "attr": "health", "value": 0.3 },
+            { "type": "emit", "signal": "injured", "target": "subject" }
+        ]
+    },
+    "recovered": {
+        "label": "Recovered their health",
+        "category": "health",
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "health", "op": "<", "value": 1 }
+            ] } }
+        },
+        "probability": { "perYear": 24 },
+        "effects": [
+            { "type": "setAttr", "attr": "health", "value": 1 },
+            { "type": "emit", "signal": "recovered", "target": "subject" }
+        ]
+    },
+    "trade_school": {
+        "label": "Finished trade school",
+        "category": "education",
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 18 },
+                { "not": { "hasEvent": "trade_school", "withinDays": 3600 } }
+            ] } }
+        },
+        "probability": {
+            "perYear": 0.4,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "step", "points": [
+                    { "at": 18, "value": 1.5 }, { "at": 26, "value": 0.6 }, { "at": 40, "value": 0.2 } ] } }
+            ]
+        },
+        "effects": [
+            { "type": "acquireSkill", "value": "MechanicalSkill", "target": "subject" },
+            { "type": "emit", "signal": "graduated", "target": "subject" }
+        ]
+    },
+    "nursing_school": {
+        "label": "Qualified as a nurse",
+        "category": "education",
+        "roles": {
+            "subject": { "where": { "all": [
+                { "attr": "alive", "op": "==", "value": true },
+                { "attr": "age", "op": ">=", "value": 20 },
+                { "not": { "hasEvent": "nursing_school", "withinDays": 3600 } }
+            ] } }
+        },
+        "probability": {
+            "perYear": 0.15,
+            "factors": [
+                { "driver": "subject.age", "curve": { "mode": "step", "points": [
+                    { "at": 20, "value": 1.2 }, { "at": 30, "value": 0.6 }, { "at": 45, "value": 0.15 } ] } }
+            ]
+        },
+        "effects": [
+            { "type": "acquireSkill", "value": "MedicalSkill", "target": "subject" },
+            { "type": "emit", "signal": "graduated", "target": "subject" }
+        ]
+    },
+    "made_friend": {
+        "label": "Made a new friend",
+        "category": "social",
+        "roles": {
+            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+        },
+        "probability": { "perYear": 5 },
+        "effects": [
+            { "type": "emit", "signal": "madeFriend", "target": "subject" }
+        ]
+    },
+    "argument": {
+        "label": "Had a falling-out",
+        "category": "social",
+        "roles": {
+            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+        },
+        "probability": { "perYear": 3 },
+        "effects": [
+            { "type": "emit", "signal": "hadArgument", "target": "subject" }
         ]
     }
 }

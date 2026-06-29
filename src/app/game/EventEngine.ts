@@ -18,6 +18,7 @@ import {
     JobMarket,
     MoneyLedger,
     HousingMarket,
+    SkillRegistry,
 } from 'types/LifeEvent';
 
 import { compileEvents, EventGraph } from 'game/EventCompiler';
@@ -52,6 +53,7 @@ export default class EventEngine {
     private jobMarket: JobMarket | null; // employment (task 015)
     private ledger: MoneyLedger | null; // money (task 017)
     private housing: HousingMarket | null; // move-out eligibility (task 024)
+    private skills: SkillRegistry | null; // skill grants from education events (task 032)
 
     constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST) {
         this.manifest = manifest;
@@ -61,6 +63,17 @@ export default class EventEngine {
         this.jobMarket = null;
         this.ledger = null;
         this.housing = null;
+        this.skills = null;
+    }
+
+    // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
+    // person event-log (027) and feed (029).
+    getEventLabel(eventId: string): string {
+        const label = this.manifest[eventId]?.label;
+        if (label) {
+            return label;
+        }
+        return eventId.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
     }
 
     getGraph(): EventGraph {
@@ -128,6 +141,13 @@ export default class EventEngine {
             case 'money':
                 // Wealth derives from the economy ledger (task 017); 0 in pure/test runs without one.
                 return this.ledger ? this.ledger.getPersonBalance(id) : 0;
+            case 'health':
+                // Health in [0, 1] (task 032): full unless an illness/injury lowered it via setAttr. The death
+                // event reads it as a probability gradient (low health → higher mortality).
+                return (this.overlay[id]?.['health'] as number) ?? 1;
+            case 'retired':
+                // Set true by the retirement event (task 032); gates get_job so retirees aren't re-hired.
+                return (this.overlay[id]?.['retired'] as boolean) ?? false;
             case 'canMoveOut':
                 // True when the person could leave home now (adult non-head with a vacant home available). Gates
                 // move_out eligibility (task 024). Without a housing adapter (pure/test runs), nobody can.
@@ -286,6 +306,11 @@ export default class EventEngine {
             case 'releaseSlot':
                 this.jobMarket?.fire(subjectId);
                 return true;
+            // Grant a real skill to the subject via the skill registry (task 032 education events). No-op
+            // (still commits) without a registry, or when the skill is unknown/already held.
+            case 'acquireSkill':
+                this.skills?.acquireSkill(subjectId, String(effect.value ?? ''));
+                return true;
             // Credit/debit the target's balance via the economy ledger (task 017). The amount Curve is a
             // constant for now (no driver); economy events refine this later.
             case 'adjustMoney': {
@@ -357,7 +382,7 @@ export default class EventEngine {
         agentIds: PersonId[],
         tick: number,
         ticksPerYear: number,
-        adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null; housing?: HousingMarket | null } = {}
+        adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null; housing?: HousingMarket | null; skills?: SkillRegistry | null } = {}
     ): DayResult {
         const result: DayResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
@@ -365,6 +390,7 @@ export default class EventEngine {
         this.jobMarket = adapters.jobMarket ?? null;
         this.ledger = adapters.ledger ?? null;
         this.housing = adapters.housing ?? null;
+        this.skills = adapters.skills ?? null;
 
         const agents = [...agentIds].sort();
         for (const agentId of agents) {
@@ -413,6 +439,7 @@ export default class EventEngine {
         this.jobMarket = null;
         this.ledger = null;
         this.housing = null;
+        this.skills = null;
         return result;
     }
 }

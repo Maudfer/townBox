@@ -38,6 +38,7 @@ export type EffectType =
     | 'acquireSlot'
     | 'releaseSlot'
     | 'adjustMoney'
+    | 'acquireSkill'
     | 'emit';
 
 export interface Effect {
@@ -57,6 +58,10 @@ export interface EventDefinition {
     roles: Record<string, RoleSpec>;
     probability: ProbabilitySpec;
     effects: Effect[];
+    // Presentation-only (task 032), ignored by the compiler and runtime: a human label for the person event-log
+    // (027) and feed (029), and a coarse grouping for filtering/styling.
+    label?: string;
+    category?: string;
 }
 
 // The manifest (src/json/events.json) keyed by event id.
@@ -101,4 +106,12 @@ export interface JobMarket {
 // move into. The concrete implementation lives in game/HousingMarket.ts; keyed on the genealogy PersonId.
 export interface HousingMarket {
     canMoveOut(personId: string): boolean;
+}
+
+// The skill adapter the event runtime consults so education/training events can grant a real skill to a
+// materialized person (the `acquireSkill` effect, task 032) without importing the WorkLife/Field layer. Returns
+// whether the skill was newly added. The concrete implementation lives in game/SkillRegistry.ts; keyed on the
+// genealogy PersonId.
+export interface SkillRegistry {
+    acquireSkill(personId: string, skill: string): boolean;
 }

@@ -3,6 +3,17 @@
 - **Type:** Feature / Content + Simulation
 - **Labels:** `feature`, `data`, `life-events`, `content`, `framework-followup`
 - **Depends on:** 013c/013d (event compiler + runtime). New attributes/effects are code changes.
+- **Status:** ✅ **Done.** `json/events.json` grew 8 → 15 events. **New code primitives:** a `health` Context
+  attribute (illness/injury lower it, `recovered` restores it, and `death` reads it as a probability gradient —
+  the end-to-end "new attribute = code, new events = data" demo); a `retired` attribute (retirement releases the
+  job and excludes `get_job` via derived exclusivity); and an `acquireSkill` effect backed by a new
+  `game/SkillRegistry` adapter (education events `trade_school`/`nursing_school` grant real skills via
+  `WorkLife.addSkill`, so graduates become hireable for better jobs). Added social events (`made_friend`,
+  `argument`) and per-event `label`/`category` (compiler/runtime ignore them) wired into the 027 event log
+  (`EventEngine.getEventLabel`) and the 029 feed (`util/notifications.ts`). The real manifest compiles with **no
+  warnings**. Tests in `test/lifeEvents.test.ts`. **Deferred** (noted in the task): the multi-agent **vehicular
+  accident** (needs a `nearbyOf` binder) — `injury` ships as the single-subject accident; and `promotion` (a
+  salary/role-change effect) — left for a future career task.
 
 ## Summary
 
