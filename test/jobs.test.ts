@@ -10,6 +10,7 @@ const jobs: JobTable = {
 
 const blueprint: BusinessBlueprint = {
     friendlyName: 'Construction Site',
+    category: 'construction',
     size: { min: 1, max: 6 },
     jobs: { laborer: { count: { mode: 'const', value: 3 } } },
 };

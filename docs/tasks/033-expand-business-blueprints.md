@@ -4,6 +4,10 @@
 - **Labels:** `feature`, `economy`, `business`, `data`, `framework-followup`
 - **Depends on:** 020 (business P&L it refines), 018 (payroll), 019 (households as consumers), 017 (ledger)
 - **Supersedes:** the coarse `revenue = materials × markup` placeholder in `util/businessFinance.ts` (020)
+- **Status:** ✅ **033a (demand-model core) implemented** — `demand.json`, `resolveDemand`/`unitMaterialCost`,
+  refactored `computeBusinessPnl`, and `City.runBusinessEconomics` rewired; the 5 seeded blueprints migrated to
+  `category` + `materialsPerUnit`. ⬜ **033b** (many more blueprints + balance tuning, wants 034) and **033c**
+  (Tier-2: locality/price elasticity) remain.
 
 ## Summary
 

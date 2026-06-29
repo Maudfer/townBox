@@ -1,0 +1,7 @@
+{
+    "groceries": { "perCapita": 30, "throughputPerEmployee": 500, "pricePerUnit": 13 },
+    "dining": { "perCapita": 10, "throughputPerEmployee": 350, "pricePerUnit": 18 },
+    "healthcare": { "perCapita": 4, "throughputPerEmployee": 150, "pricePerUnit": 60 },
+    "education": { "perCapita": 6, "throughputPerEmployee": 250, "pricePerUnit": 22 },
+    "construction": { "perCapita": 3, "throughputPerEmployee": 200, "pricePerUnit": 30 }
+}
