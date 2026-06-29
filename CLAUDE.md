@@ -24,9 +24,9 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 - **Title screen.** A `TitleScene` splash with "Start Game" and "Load Game" buttons that transition to the main scene (Load Game restores the most recent save).
 - **Save / load.** The entire game state (tiles/roads/buildings, the genealogy **population pool**, **households**, people & relationships, vehicles, city) can be saved and restored. Saves are an id-based JSON snapshot, deflated (`pako`) and base64-encoded, stored via a pluggable `SaveProvider` (`LocalStorageProvider` today). Triggered by the toolbar save button, `Ctrl+S`, or the title-screen Load option, with React toasts for feedback; a debug auto-load can boot a build straight into an embedded save.
 
-- **Money (task 017).** A serializable `Economy` holds per-person and per-business **balances** with a single ledger primitive (`transfer`), seeded at household/business placement (`json/economy.json`) and saved. The event engine reads it as the `money` Context attribute and moves money via the `adjustMoney` effect (through a `MoneyLedger` adapter). The actual **money flows** — wages, cost of living, business P&L, bankruptcy, eviction — are not built yet (tasks 018–022).
+- **Money (task 017).** A serializable `Economy` holds per-person and per-business **balances** with a single ledger primitive (`transfer`), seeded at household/business placement (`json/economy.json`) and saved. The event engine reads it as the `money` Context attribute and moves money via the `adjustMoney` effect (through a `MoneyLedger` adapter). A monthly economic tick (`City.processMonthlyEconomy`, gated by `Economy.lastEconomyMonth`) now runs **wages** (task 018: businesses pay employees) and **cost of living** (task 019: households pay housing + per-resident upkeep from pooled funds, accruing `arrears` when they can't). Still missing: business **revenue / P&L**, **bankruptcy**, and **eviction** (tasks 020–022/035).
 
-What does **not** exist yet: the **economy money loop** (wages, prices, P&L, bankruptcy → eviction — money balances exist, but nothing earns/spends yet; tasks 018–022/035), and CI.
+What does **not** exist yet: business **revenue / P&L → bankruptcy → eviction** (tasks 020–022/035 — wages go out and cost of living is charged, but businesses have no income yet so they only trend toward debt), and CI.
 
 ---
 

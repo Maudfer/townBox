@@ -25,6 +25,7 @@ export interface Household {
     headId: PersonId; // primary reference person the draw was built around
     memberIds: PersonId[]; // currently-living residents
     arrangement: HouseholdArrangement;
+    arrears?: number; // consecutive months the household could not cover its cost of living (task 019 → 022)
 }
 
 // Tunable inputs to the household draw (src/json/householdDraw.json).

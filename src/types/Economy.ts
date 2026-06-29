@@ -11,10 +11,12 @@ export interface EconomyState {
     lastEconomyMonth: number;
 }
 
-// Tunable starting balances (src/json/economy.json).
+// Tunable economy values (src/json/economy.json).
 export interface EconomyParams {
     startingPersonFunds: number;
     startingBusinessCapital: number;
+    housingCost: number; // monthly housing cost per household
+    perCapitaCost: number; // monthly food/upkeep per resident
 }
 
 export type AccountKind = 'person' | 'business';
