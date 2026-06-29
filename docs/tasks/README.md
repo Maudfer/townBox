@@ -45,7 +45,7 @@ Always run `npm test` before opening the PR.**
 | 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI |
 | 031 | [City overview / dashboard window](031-city-overview-window.md) | UI |
 | 032 | [Expand the life-event manifest](032-expand-life-events.md) | Content |
-| 033 | [Expand business blueprints](033-expand-business-blueprints.md) | Content |
+| 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints.md) | Economy |
 | 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills.md) | Content |
 | 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy |
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation |
