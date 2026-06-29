@@ -9,9 +9,10 @@ import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
 import JobMarket from 'game/JobMarket';
+import HousingMarket from 'game/HousingMarket';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 
-import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf } from 'util/kinship';
+import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
@@ -19,7 +20,7 @@ import { DAYS_PER_MONTH } from 'util/time';
 import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, DemandBusiness } from 'util/businessFinance';
 import { evaluateCurve } from 'util/curve';
 import { DayResult } from 'types/LifeEvent';
-import { Household } from 'types/Household';
+import { Household, HouseholdArrangements } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, BusinessInstance, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';
@@ -240,16 +241,31 @@ export default class City {
         // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
         // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
         const jobMarket = new JobMarket(personByGenId, field);
-        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null });
+        // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
+        // exists. Rebuilt each day over the current materialized people, like the job market.
+        const housing = new HousingMarket(personByGenId, field);
+        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing });
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
         // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
         if (result.died.length > 0) {
             this.resolveRehousing(event.tick, ticksPerYear);
         }
+        // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023) and grown
+        // children leave the family home to form their own household (task 024).
+        for (const signal of result.signals) {
+            if (!signal.personId) {
+                continue;
+            }
+            if (signal.signal === 'partnershipFormed') {
+                this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
+            } else if (signal.signal === 'movedOut') {
+                this.resolveMoveOut(signal.personId, event.tick);
+            }
+        }
         // Surface the day's notable happenings to the HUD feed (task 029).
         this.announceCityEvents(result, personByGenId, event.tick);
-        // Remaining signals (partnershipFormed, hired, …) are consumed by later economy/commute phases.
+        // Remaining signals (hired, fellIll, …) are consumed by the feed and later phases.
     }
 
     // Translates the day's deaths, births, and event signals into cityEvent feed entries (task 029). The
@@ -599,8 +615,8 @@ export default class City {
                     }
                 }
                 // If the house just emptied out, re-draw it so it reads as vacant (desaturated).
-                if (home.getResidents().length === 0) {
-                    Game.emit("tileSpawned", home);
+                if (home instanceof House) {
+                    this.vacateIfEmpty(home);
                 }
             }
 
@@ -725,6 +741,21 @@ export default class City {
             return;
         }
 
+        this.removeFromHome(person, personId, fromHouse);
+
+        toHouse.addResident(person);
+        toHouse.addOccupant(person);
+        person.social.setHome(toHouse);
+        const toHousehold = toHouse.getHousehold();
+        if (toHousehold && !toHousehold.memberIds.includes(personId)) {
+            toHousehold.memberIds.push(personId);
+        }
+    }
+
+    // Detaches a person from their current house + household (the removal half of a relocation, shared by
+    // death-reconcile, rehousing, cohabitation, and move-out). Drops them from the resident/occupant lists,
+    // prunes the household memberIds (reassigning head if needed), and re-draws the house vacant if it emptied.
+    private removeFromHome(person: Person, personId: PersonId, fromHouse: House): void {
         fromHouse.removeResident(person);
         fromHouse.removeOccupant(person);
         const fromHousehold = fromHouse.getHousehold();
@@ -734,14 +765,150 @@ export default class City {
                 fromHousehold.headId = fromHousehold.memberIds[0] ?? fromHousehold.headId;
             }
         }
+        this.vacateIfEmpty(fromHouse);
+    }
 
-        toHouse.addResident(person);
-        toHouse.addOccupant(person);
-        person.social.setHome(toHouse);
-        const toHousehold = toHouse.getHousehold();
-        if (toHousehold && !toHousehold.memberIds.includes(personId)) {
-            toHousehold.memberIds.push(personId);
+    // Re-draws a house as vacant (desaturated) once its last resident leaves, mirroring the empty-house path in
+    // reconcileDeaths. The MainScene vacancy check keys off an empty resident list, so a re-emit is enough.
+    private vacateIfEmpty(house: House): void {
+        if (house.getResidents().length === 0) {
+            Game.emit("tileSpawned", house);
         }
+    }
+
+    // Indexes the materialized (on-map) people by their genealogy pool id — the lookup death-rehousing,
+    // cohabitation, and move-out all need to map signals/relations back to live Persons.
+    private indexByGenId(): Map<PersonId, Person> {
+        const byGenId = new Map<PersonId, Person>();
+        const field = Game.field;
+        if (!field) {
+            return byGenId;
+        }
+        for (const person of field.getPeople()) {
+            const id = person.social.getPersonId();
+            if (id) {
+                byGenId.set(id, person);
+            }
+        }
+        return byGenId;
+    }
+
+    // The materialized minor children of `parentId` who currently live in `house` — the dependents that move
+    // with a parent on cohabitation (task 023).
+    private dependentMinorsInHouse(parentId: PersonId, house: House, byGenId: Map<PersonId, Person>, pool: PersonTable, tick: number, ticksPerYear: number): PersonId[] {
+        return childrenOf(pool, parentId).filter(childId => {
+            const child = byGenId.get(childId);
+            return !!child && child.social.getHome() === house
+                && !!pool[childId] && isAliveAt(pool[childId]!, tick)
+                && ageAt(pool[childId]!, tick, ticksPerYear) < ADULT_AGE_YEARS;
+        });
+    }
+
+    // Newlywed cohabitation (task 023): when a marriage forms between two materialized people living apart, move
+    // the couple (and the moving spouse's dependent minors) into one home. Policy: the larger household stays
+    // put and the smaller side moves in (ties keep the subject's home); the move is skipped if the combined
+    // household would exceed the target's capacity (a housing-market relocation is a future task). Public for
+    // unit testing; in production it runs from handleNewDay on the `partnershipFormed` signal.
+    public resolveCohabitation(subjectId: PersonId, tick: number, ticksPerYear: number): void {
+        const population = Game.population;
+        if (!population) {
+            return;
+        }
+        const pool = population.getPeople();
+
+        const spouseId = spouseAt(pool, subjectId, tick);
+        if (!spouseId) {
+            return;
+        }
+
+        const byGenId = this.indexByGenId();
+        const subject = byGenId.get(subjectId);
+        const spouse = byGenId.get(spouseId);
+        if (!subject || !spouse) {
+            return; // only relocate when both spouses are materialized (pool-only partners just record the marriage)
+        }
+
+        const subjectHome = subject.social.getHome();
+        const spouseHome = spouse.social.getHome();
+        if (!(subjectHome instanceof House) || !(spouseHome instanceof House) || subjectHome === spouseHome) {
+            return;
+        }
+
+        // Keep the larger household put; the smaller side moves in (ties keep the subject's home).
+        let target = subjectHome;
+        let source = spouseHome;
+        let moverSpouseId = spouseId;
+        if (spouseHome.getResidents().length > subjectHome.getResidents().length) {
+            target = spouseHome;
+            source = subjectHome;
+            moverSpouseId = subjectId;
+        }
+
+        const movers = [moverSpouseId, ...this.dependentMinorsInHouse(moverSpouseId, source, byGenId, pool, tick, ticksPerYear)];
+        if (target.getResidents().length + movers.length > target.getOverview().maxResidents) {
+            return; // neither home can hold the combined household — leave them put (housing market, future)
+        }
+
+        for (const moverId of movers) {
+            this.relocateMember(moverId, byGenId, source, target);
+        }
+        this.announce('cohabited', tick, `${subject.social.getFullName()} and ${spouse.social.getFullName()} moved in together`, subject);
+    }
+
+    // Adult-child move-out (task 024): a grown child who leaves home (the `move_out` event, gated on a vacant
+    // house being available) is relocated into that vacant house as a new single-person household, shrinking the
+    // parental household. If the last vacant home was taken earlier the same day, the move is a no-op. Public for
+    // unit testing; in production it runs from handleNewDay on the `movedOut` signal.
+    public resolveMoveOut(personId: PersonId, tick: number): void {
+        const byGenId = this.indexByGenId();
+        const person = byGenId.get(personId);
+        if (!person) {
+            return;
+        }
+        const fromHouse = person.social.getHome();
+        if (!(fromHouse instanceof House)) {
+            return;
+        }
+        const vacant = this.findVacantHouse();
+        if (!vacant) {
+            return; // no home available (a same-day mover may have taken the last one)
+        }
+
+        this.removeFromHome(person, personId, fromHouse);
+        vacant.addResident(person);
+        vacant.addOccupant(person);
+        person.social.setHome(vacant);
+        vacant.setHousehold({
+            id: `hh-${vacant.getIdentifier()}`,
+            houseKey: vacant.getIdentifier(),
+            headId: personId,
+            memberIds: [personId],
+            arrangement: HouseholdArrangements.Single,
+        });
+        // Now occupied → re-draw so it drops the vacant (desaturated) look.
+        Game.emit("tileSpawned", vacant);
+        this.announce('movedOut', tick, `${person.social.getFullName()} moved into their own place`, person);
+    }
+
+    // The lowest-keyed vacant house (no residents), or null — the destination for move-out (024) and the
+    // recovery path for eviction (022). Deterministic by anchor key.
+    private findVacantHouse(): House | null {
+        const field = Game.field;
+        if (!field) {
+            return null;
+        }
+        let best: House | null = null;
+        let bestKey = '';
+        for (const structure of field.getStructures()) {
+            if (structure instanceof House && structure.getResidents().length === 0) {
+                const key = structure.getIdentifier();
+                if (!best || key < bestKey) {
+                    best = structure;
+                    bestKey = key;
+                }
+            }
+        }
+        return best;
     }
 
     // Schedule-driven commute (task 006). On each in-game minute, dispatch employed, idle residents: out to

@@ -19,7 +19,7 @@ import { EventManifest, EventDefinition, Effect } from 'types/LifeEvent';
 
 const DISCRIMINANT_ATTRS = new Set(['alive', 'gender', 'marital', 'employed']);
 
-const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired'];
+const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut'];
 
 export interface EventGraph {
     ids: string[];
