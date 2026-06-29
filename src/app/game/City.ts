@@ -441,6 +441,10 @@ export default class City {
                         household.headId = household.memberIds[0] ?? household.headId;
                     }
                 }
+                // If the house just emptied out, re-draw it so it reads as vacant (desaturated).
+                if (home.getResidents().length === 0) {
+                    Game.emit("tileSpawned", home);
+                }
             }
 
             field.removePerson(person);

@@ -11,44 +11,44 @@ Always run `npm test` before opening the PR.**
 
 ## Tasks
 
-| # | Task | Type |
-|---|------|------|
-| 001 | [Upgrade Phaser 3 → 4](001-upgrade-phaser-4_DONE.md) | Maintenance |
-| 002 | [Subdivide each tile into 3×3 sub-tiles](002-tile-placement-granularity-3x3_DONE.md) | Feature |
-| 003 | [Save & load system](003-save-load-system_DONE.md) | Feature |
-| 004 | [Household generation redesign](004-household-generation-redesign_DONE.md) | Planning |
-| 005 | [Clock & calendar system](005-clock-and-calendar-system_DONE.md) | Feature |
-| 006 | [Job commute pathfinding loop](006-job-commute-pathfinding_DONE.md) | Feature |
-| 007 | [Business generation](007-business-generation_SUPERSEEDED.md) | Feature |
-| 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test |
-| 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test |
-| 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time_DONE.md) | Feature |
-| 011 | [Emergent re-housing of household survivors](011-emergent-rehousing_DONE.md) | Feature |
-| 012 | [Live-app verification of clock & population](012-live-app-verification-clock-population.md) | Verification |
-| 013 | [File-based procedural simulation framework (blueprints + life events)](013-procedural-simulation-framework_DONE.md) | Planning |
-| 014 | [People skills model & assignment](014-people-skills-model_DONE.md) | Feature |
-| 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring_DONE.md) | Feature |
-| 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning_DONE.md) | Feature |
-| 017 | [Money model: wallets & ledger](017-money-model_DONE.md) | Economy |
-| 018 | [Wages & payroll](018-wages-and-payroll_DONE.md) | Economy |
-| 019 | [Cost of living & household spending](019-cost-of-living_DONE.md) | Economy |
-| 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics_DONE.md) | Economy |
-| 021 | [Business bankruptcy & closure](021-business-bankruptcy.md) | Economy |
-| 022 | [Household insolvency: eviction & homelessness](022-eviction-and-homelessness.md) | Economy |
-| 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation.md) | Feature |
-| 024 | [Adult children move out / new-household formation](024-adult-children-move-out.md) | Feature |
-| 025 | [Structure teardown on bulldoze](025-structure-teardown.md) | Feature |
-| 026 | [Entity selection model (people & buildings)](026-entity-selection-model_DONE.md) | UI |
-| 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI |
-| 028 | [Workplace / business inspector window](028-workplace-inspector-window_DONE.md) | UI |
-| 029 | [City event feed / notifications](029-city-event-feed_DONE.md) | UI |
-| 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI |
-| 031 | [City overview / dashboard window](031-city-overview-window.md) | UI |
-| 032 | [Expand the life-event manifest](032-expand-life-events.md) | Content |
-| 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints.md) | Economy |
-| 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills.md) | Content |
-| 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy |
-| 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation |
+| # | Task | Type | Status |
+|---|------|------|--------|
+| 001 | [Upgrade Phaser 3 → 4](001-upgrade-phaser-4_DONE.md) | Maintenance | ✅ Done |
+| 002 | [Subdivide each tile into 3×3 sub-tiles](002-tile-placement-granularity-3x3_DONE.md) | Feature | ✅ Done |
+| 003 | [Save & load system](003-save-load-system_DONE.md) | Feature | ✅ Done |
+| 004 | [Household generation redesign](004-household-generation-redesign_DONE.md) | Planning | ✅ Done |
+| 005 | [Clock & calendar system](005-clock-and-calendar-system_DONE.md) | Feature | ✅ Done |
+| 006 | [Job commute pathfinding loop](006-job-commute-pathfinding_DONE.md) | Feature | ✅ Done |
+| 007 | [Business generation](007-business-generation_SUPERSEEDED.md) | Feature | 🚫 Superseded |
+| 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test | ⬜ Open |
+| 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test | ⬜ Open |
+| 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time_DONE.md) | Feature | ✅ Done |
+| 011 | [Emergent re-housing of household survivors](011-emergent-rehousing_DONE.md) | Feature | ✅ Done |
+| 012 | [Live-app verification of clock & population](012-live-app-verification-clock-population.md) | Verification | ⬜ Open |
+| 013 | [File-based procedural simulation framework (blueprints + life events)](013-procedural-simulation-framework_DONE.md) | Planning | ✅ Done |
+| 014 | [People skills model & assignment](014-people-skills-model_DONE.md) | Feature | ✅ Done |
+| 015 | [Skill-matched hiring as resource-slot events](015-skill-matched-hiring_DONE.md) | Feature | ✅ Done |
+| 016 | [Retire debug/random spawning; spawn from the simulation](016-retire-debug-spawning_DONE.md) | Feature | ✅ Done |
+| 017 | [Money model: wallets & ledger](017-money-model_DONE.md) | Economy | ✅ Done |
+| 018 | [Wages & payroll](018-wages-and-payroll_DONE.md) | Economy | ✅ Done |
+| 019 | [Cost of living & household spending](019-cost-of-living_DONE.md) | Economy | ✅ Done |
+| 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics_DONE.md) | Economy | ✅ Done |
+| 021 | [Business bankruptcy & closure](021-business-bankruptcy.md) | Economy | ⬜ Open |
+| 022 | [Household insolvency: eviction & homelessness](022-eviction-and-homelessness.md) | Economy | ⬜ Open |
+| 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation.md) | Feature | ⬜ Open |
+| 024 | [Adult children move out / new-household formation](024-adult-children-move-out.md) | Feature | ⬜ Open |
+| 025 | [Structure teardown on bulldoze](025-structure-teardown.md) | Feature | ⬜ Open |
+| 026 | [Entity selection model (people & buildings)](026-entity-selection-model_DONE.md) | UI | ✅ Done |
+| 027 | [Person inspector window (with event log)](027-person-inspector-window_DONE.md) | UI | ✅ Done |
+| 028 | [Workplace / business inspector window](028-workplace-inspector-window_DONE.md) | UI | ✅ Done |
+| 029 | [City event feed / notifications](029-city-event-feed_DONE.md) | UI | ✅ Done |
+| 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI | ✅ Done |
+| 031 | [City overview / dashboard window](031-city-overview-window.md) | UI | ⬜ Open |
+| 032 | [Expand the life-event manifest](032-expand-life-events.md) | Content | ⬜ Open |
+| 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints.md) | Economy | ⬜ Open |
+| 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills.md) | Content | ⬜ Open |
+| 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy | ⬜ Open |
+| 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation | ⬜ Open |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
