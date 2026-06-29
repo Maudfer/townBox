@@ -20,8 +20,8 @@ Always run `npm test` before opening the PR.**
 | 005 | [Clock & calendar system](005-clock-and-calendar-system_DONE.md) | Feature | ✅ Done |
 | 006 | [Job commute pathfinding loop](006-job-commute-pathfinding_DONE.md) | Feature | ✅ Done |
 | 007 | [Business generation](007-business-generation_SUPERSEEDED.md) | Feature | 🚫 Superseded |
-| 008 | [Unit & integration test suites + coverage](008-test-suites-unit-integration.md) | Test | ⬜ Open |
-| 009 | [GitHub Actions CI](009-github-actions-ci.md) | Test | ⬜ Open |
+| 008 | [Integration (Playwright) suite](008-test-suites-unit-integration.md) | Test | 🚧 Unit+coverage done; Playwright open |
+| 009 | [GitHub Actions CI](009-github-actions-ci_DONE.md) | Test | ✅ Done |
 | 010 | [Marriage / partnership formation over time](010-marriage-formation-over-time_DONE.md) | Feature | ✅ Done |
 | 011 | [Emergent re-housing of household survivors](011-emergent-rehousing_DONE.md) | Feature | ✅ Done |
 | 012 | [Live-app verification of clock & population](012-live-app-verification-clock-population.md) | Verification | ⬜ Open |

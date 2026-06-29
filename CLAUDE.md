@@ -26,7 +26,7 @@ The prototype currently supports a handful of disconnected mechanics. Be aware t
 
 - **Money (task 017).** A serializable `Economy` holds per-person and per-business **balances** with a single ledger primitive (`transfer`), seeded at household/business placement (`json/economy.json`) and saved. The event engine reads it as the `money` Context attribute and moves money via the `adjustMoney` effect (through a `MoneyLedger` adapter). A monthly economic tick (`City.processMonthlyEconomy`, gated by `Economy.lastEconomyMonth`) runs **wages** (018), **cost of living** (019: households accrue `arrears` when they can't pay), and **demand-driven business P&L** (020 + 033a): households generate per-category demand (`json/demand.json`), businesses **compete** for it by capacity (`staffing × throughputPerEmployee`), and `revenue = unitsSold × price`, minus materials/fixed/payroll, applied to the balance; a sustainedly-profitable, fully-staffed business **grows**, while a business whose balance stays below the debt floor for too many consecutive months goes **bankrupt and closes** (021: staff laid off → re-enter the job market, the building vacated/desaturated, debt written off); after a vacancy cooldown a dead lot **attracts a new (different) business** in whatever category now has unmet demand (037), so closures heal instead of accumulating. So an oversupplied category, an understaffed business, or thin margins lose money and ultimately fail. On the household side, a household in arrears too long is **evicted** (022): each member is first offered a place with a **solvent relative**, and anyone with no taker becomes **homeless** (kept materialized but hidden, in a registry) until recovered funds + a vacant home let them **move back in**. The blueprint roster + jobs/skills tables were broadly expanded (033b + 034) into ~18 businesses across 9 categories; seed numbers are a reasonable starting point, with finer balance tuning ongoing. Still missing: business **shrink-via-layoffs** and the B2B **products/supply chain** (035).
 
-What does **not** exist yet: business **shrink-via-layoffs** and the B2B products/supply chain (035), and CI. (Bankruptcy→closure and household eviction→homelessness both exist now; the economy's bad-numbers cascade runs end-to-end.)
+What does **not** exist yet: business **shrink-via-layoffs** and the B2B products/supply chain (035), and a Playwright **integration** suite (task 008; the unit suite + coverage-gated GitHub Actions CI exist). (Bankruptcy→closure and household eviction→homelessness both exist now; the economy's bad-numbers cascade runs end-to-end.)
 
 ---
 
@@ -48,7 +48,10 @@ What does **not** exist yet: business **shrink-via-layoffs** and the B2B product
 
 - `npm run dev` — concurrently copies images, runs Parcel in watch mode, and serves with browser-sync.
 - `npm run package` — production build.
-- `npm test` — runs Jest.
+- `npm test` — runs Jest (fast unit suite).
+- `npm run test:coverage` — Jest with the coverage threshold gate (`game/` + `util/`).
+- `npm run typecheck` — strict `tsc --noEmit`.
+- **CI:** `.github/workflows/ci.yml` runs the type check, coverage-gated unit suite, and production build on every PR to `main` and push to `main` (meant to be required status checks).
 
 ### Path aliases
 
