@@ -44,7 +44,7 @@ Always run `npm test` before opening the PR.**
 | 029 | [City event feed / notifications](029-city-event-feed_DONE.md) | UI | ✅ Done |
 | 030 | [Toolbar wiring & tool selection](030-toolbar-and-tools_DONE.md) | UI | ✅ Done |
 | 031 | [City overview / dashboard window](031-city-overview-window.md) | UI | ⬜ Open |
-| 032 | [Expand the life-event manifest](032-expand-life-events.md) | Content | ⬜ Open |
+| 032 | [Expand the life-event manifest](032-expand-life-events_DONE.md) | Content | ✅ Done |
 | 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints_DONE.md) | Economy | ✅ Done (033c Tier-2 optional) |
 | 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills_DONE.md) | Content | ✅ Done |
 | 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy | ⬜ Open |

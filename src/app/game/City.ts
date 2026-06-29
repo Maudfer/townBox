@@ -10,6 +10,7 @@ import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
 import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
+import SkillRegistry from 'game/SkillRegistry';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf, parentsOf } from 'util/kinship';
@@ -257,7 +258,9 @@ export default class City {
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
         // exists. Rebuilt each day over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);
-        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing });
+        // Skill registry lets education events grant real skills to materialized people (task 032).
+        const skills = new SkillRegistry(personByGenId);
+        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing, skills });
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
         // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.

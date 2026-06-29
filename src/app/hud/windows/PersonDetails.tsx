@@ -10,7 +10,8 @@ import { DetailsWindowProps } from 'types/HUD';
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;
 
-// Turns an event id ("had_sex", "get_job") into a readable label until events carry their own labels (032).
+// Fallback for an event id when the engine isn't available; the engine's getEventLabel prefers the manifest's
+// authored label (task 032) and otherwise prettifies the id the same way.
 function prettifyEventId(id: string): string {
     return id.replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
 }
@@ -94,7 +95,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
                             {logEntries.map(([eventId, record]) => (
                                 <li key={eventId}>
-                                    {prettifyEventId(eventId)} — <small>{formatDay(record.lastTick)}{record.count > 1 ? ` (×${record.count})` : ''}</small>
+                                    {game.eventEngine?.getEventLabel(eventId) ?? prettifyEventId(eventId)} — <small>{formatDay(record.lastTick)}{record.count > 1 ? ` (×${record.count})` : ''}</small>
                                 </li>
                             ))}
                         </ul>
