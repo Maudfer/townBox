@@ -3,5 +3,9 @@
     "dining": { "perCapita": 10, "throughputPerEmployee": 350, "pricePerUnit": 18 },
     "healthcare": { "perCapita": 4, "throughputPerEmployee": 150, "pricePerUnit": 60 },
     "education": { "perCapita": 6, "throughputPerEmployee": 250, "pricePerUnit": 22 },
-    "construction": { "perCapita": 3, "throughputPerEmployee": 200, "pricePerUnit": 30 }
+    "construction": { "perCapita": 3, "throughputPerEmployee": 200, "pricePerUnit": 30 },
+    "retail": { "perCapita": 12, "throughputPerEmployee": 300, "pricePerUnit": 25 },
+    "leisure": { "perCapita": 6, "throughputPerEmployee": 200, "pricePerUnit": 20 },
+    "services": { "perCapita": 8, "throughputPerEmployee": 220, "pricePerUnit": 28 },
+    "hospitality": { "perCapita": 2, "throughputPerEmployee": 120, "pricePerUnit": 80 }
 }

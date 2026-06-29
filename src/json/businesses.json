@@ -65,5 +65,180 @@
         "materialsPerUnit": { "building_materials": 1 },
         "products": {},
         "economics": { "priceMarkup": 1, "fixedCostsPerMonth": { "mode": "linear", "base": 2000, "perUnit": 1500 } }
+    },
+    "bakery": {
+        "friendlyName": "Bakery",
+        "category": "dining",
+        "size": { "min": 1, "max": 4 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "baker": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 6 } },
+            "checkout_clerk": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 5 } }
+        },
+        "materialsPerUnit": { "food_ingredients": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.2, "fixedCostsPerMonth": { "mode": "linear", "base": 700, "perUnit": 500 } }
+    },
+    "cafe": {
+        "friendlyName": "Café",
+        "category": "dining",
+        "size": { "min": 1, "max": 4 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "barista": { "count": { "mode": "linear", "base": 1, "perUnit": 1.5, "max": 8 } },
+            "cook": { "count": { "mode": "linear", "base": 1, "perUnit": 0.5, "max": 3 } }
+        },
+        "materialsPerUnit": { "food_ingredients": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.2, "fixedCostsPerMonth": { "mode": "linear", "base": 800, "perUnit": 550 } }
+    },
+    "pharmacy": {
+        "friendlyName": "Pharmacy",
+        "category": "healthcare",
+        "size": { "min": 1, "max": 5 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "pharmacist": { "count": { "mode": "linear", "base": 1, "perUnit": 0.6, "max": 5 } },
+            "checkout_clerk": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 6 } }
+        },
+        "materialsPerUnit": { "medical_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.1, "fixedCostsPerMonth": { "mode": "linear", "base": 1500, "perUnit": 1000 } }
+    },
+    "clinic": {
+        "friendlyName": "Clinic",
+        "category": "healthcare",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 5, "value": 2 }] } },
+            "doctor": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 10 } },
+            "nurse": { "count": { "mode": "linear", "base": 1, "perUnit": 2, "max": 20 } },
+            "receptionist": { "count": { "mode": "const", "value": 1 } },
+            "janitor": { "count": { "mode": "sqrt", "base": 1, "coeff": 0.8, "max": 4 } }
+        },
+        "materialsPerUnit": { "medical_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.1, "fixedCostsPerMonth": { "mode": "linear", "base": 2500, "perUnit": 1500 } }
+    },
+    "clothing_store": {
+        "friendlyName": "Clothing Store",
+        "category": "retail",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 5, "value": 2 }] } },
+            "sales_associate": { "count": { "mode": "linear", "base": 1, "perUnit": 2, "max": 16 } },
+            "checkout_clerk": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } }
+        },
+        "materialsPerUnit": { "retail_goods": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 1200, "perUnit": 800 } }
+    },
+    "electronics_store": {
+        "friendlyName": "Electronics Store",
+        "category": "retail",
+        "size": { "min": 1, "max": 5 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "electronics_technician": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } },
+            "sales_associate": { "count": { "mode": "linear", "base": 1, "perUnit": 1.5, "max": 12 } }
+        },
+        "materialsPerUnit": { "electronics_parts": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.6, "fixedCostsPerMonth": { "mode": "linear", "base": 1500, "perUnit": 1100 } }
+    },
+    "hardware_store": {
+        "friendlyName": "Hardware Store",
+        "category": "retail",
+        "size": { "min": 1, "max": 5 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "hardware_clerk": { "count": { "mode": "linear", "base": 1, "perUnit": 2, "max": 14 } },
+            "restocker": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } }
+        },
+        "materialsPerUnit": { "hardware_stock": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 1100, "perUnit": 750 } }
+    },
+    "bank": {
+        "friendlyName": "Bank",
+        "category": "services",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 5, "value": 2 }] } },
+            "bank_teller": { "count": { "mode": "linear", "base": 2, "perUnit": 2, "max": 16 } },
+            "accountant": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } },
+            "security_guard": { "count": { "mode": "linear", "base": 1, "perUnit": 0.5, "max": 4 } }
+        },
+        "materialsPerUnit": { "office_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 2500, "perUnit": 1500 } }
+    },
+    "salon": {
+        "friendlyName": "Salon",
+        "category": "services",
+        "size": { "min": 1, "max": 4 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "hairdresser": { "count": { "mode": "linear", "base": 1, "perUnit": 2, "max": 10 } },
+            "beautician": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 6 } }
+        },
+        "materialsPerUnit": { "salon_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 900, "perUnit": 600 } }
+    },
+    "auto_repair": {
+        "friendlyName": "Auto Repair Shop",
+        "category": "services",
+        "size": { "min": 1, "max": 5 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "mechanic": { "count": { "mode": "linear", "base": 1, "perUnit": 2, "max": 14 } },
+            "service_advisor": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 6 } }
+        },
+        "materialsPerUnit": { "auto_parts": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.4, "fixedCostsPerMonth": { "mode": "linear", "base": 1400, "perUnit": 1000 } }
+    },
+    "gym": {
+        "friendlyName": "Gym",
+        "category": "leisure",
+        "size": { "min": 1, "max": 5 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "fitness_trainer": { "count": { "mode": "linear", "base": 1, "perUnit": 2, "max": 14 } },
+            "receptionist": { "count": { "mode": "linear", "base": 1, "perUnit": 0.5, "max": 4 } },
+            "janitor": { "count": { "mode": "sqrt", "base": 1, "coeff": 0.7, "max": 3 } }
+        },
+        "materialsPerUnit": { "entertainment_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 1500, "perUnit": 900 } }
+    },
+    "cinema": {
+        "friendlyName": "Cinema",
+        "category": "leisure",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "projectionist": { "count": { "mode": "linear", "base": 1, "perUnit": 0.5, "max": 4 } },
+            "usher": { "count": { "mode": "linear", "base": 2, "perUnit": 1.5, "max": 14 } },
+            "ticket_clerk": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } }
+        },
+        "materialsPerUnit": { "entertainment_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 1800, "perUnit": 1100 } }
+    },
+    "hotel": {
+        "friendlyName": "Hotel",
+        "category": "hospitality",
+        "size": { "min": 2, "max": 10 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 6, "value": 2 }] } },
+            "receptionist": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 10 } },
+            "housekeeper": { "count": { "mode": "linear", "base": 2, "perUnit": 2, "max": 30 } },
+            "concierge": { "count": { "mode": "linear", "base": 1, "perUnit": 0.5, "max": 5 } }
+        },
+        "materialsPerUnit": { "hotel_supplies": 1 },
+        "products": {},
+        "economics": { "priceMarkup": 1.2, "fixedCostsPerMonth": { "mode": "linear", "base": 3000, "perUnit": 1800 } }
     }
 }
