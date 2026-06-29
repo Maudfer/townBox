@@ -116,6 +116,17 @@ export default class Workplace extends Building {
         return currentJob;
     }
 
+    // Shuts the business down (task 021 bankruptcy): drops every employee, closes all open positions, and
+    // clears the BusinessInstance so the building reads as vacant. Returns the laid-off employees so the caller
+    // can clear their WorkLife.job and surface notifications; they then re-enter the job market (get_job, 015).
+    public closeBusiness(): Person[] {
+        const laidOff = [...this.employees];
+        this.employees = [];
+        this.avaiableJobs = [];
+        this.business = null;
+        return laidOff;
+    }
+
     public getEmployees(): Person[] {
         return this.employees;
     }

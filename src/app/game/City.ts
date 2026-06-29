@@ -21,7 +21,7 @@ import { evaluateCurve } from 'util/curve';
 import { DayResult } from 'types/LifeEvent';
 import { Household } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
-import { BusinessBlueprintTable, JobTable } from 'types/Business';
+import { BusinessBlueprintTable, BusinessInstance, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';
 import { NewDayEvent, TimeChangedEvent } from 'types/Time';
 
@@ -289,7 +289,7 @@ export default class City {
     // businesses compete for it by capacity (staffing × throughput), and revenue = unitsSold × price. P&L =
     // revenue − materials − fixed − payroll (payroll already debited by runPayroll, so only the income side is
     // applied here). Records P&L + a profit/loss streak; a sustainedly profitable, fully-staffed business grows.
-    // Sustained losses just bleed the balance — bankruptcy/closure is task 021.
+    // A business whose balance stays below the debt floor for too long goes bankrupt and closes (task 021).
     private runBusinessEconomics(tick: number): void {
         const field = Game.field;
         const economy = Game.economy;
@@ -348,6 +348,19 @@ export default class City {
                 business.profitStreak = previousStreak < 0 ? previousStreak - 1 : -1;
             }
 
+            // Bankruptcy (task 021): once the balance has stayed below the debt floor for too many consecutive
+            // months, the business is insolvent — close it (lay everyone off, vacate the building) and skip
+            // growth. The starting capital gives a runway before the count begins (balance >= floor resets it).
+            if (economy.getBusinessBalance(key) < DEFAULT_ECONOMY_PARAMS.bankruptcyDebtFloor) {
+                business.insolventMonths = (business.insolventMonths ?? 0) + 1;
+            } else {
+                business.insolventMonths = 0;
+            }
+            if ((business.insolventMonths ?? 0) >= DEFAULT_ECONOMY_PARAMS.bankruptcyMonths) {
+                this.closeBusiness(workplace, business, key, tick);
+                continue;
+            }
+
             // Grow when sustainedly profitable and already fully staffed (a proxy for "demand exceeds capacity").
             if ((business.profitStreak ?? 0) >= DEFAULT_ECONOMY_PARAMS.growthMonths
                 && workplace.getOpenPositions().length === 0
@@ -358,6 +371,28 @@ export default class City {
                 this.announce('businessGrew', tick, `${business.name} is expanding`, null);
             }
         }
+    }
+
+    // Shuts down a bankrupt business (task 021): lays off every employee (clearing their WorkLife.job so they
+    // re-enter the job market via get_job, 015), clears the BusinessInstance so the building becomes vacant, and
+    // writes off the unrecoverable debt. The lot stays vacant (and renders desaturated) until the player
+    // bulldozes/rebuilds (025) — re-occupancy over time is a documented follow-up. Surfaces businessClosed (and
+    // a massLayoff when staff were let go) to the feed (029).
+    private closeBusiness(workplace: Workplace, business: BusinessInstance, key: string, tick: number): void {
+        const laidOff = workplace.closeBusiness();
+        for (const person of laidOff) {
+            person.work.clearJob();
+        }
+        Game.economy?.setBusinessBalance(key, 0);
+
+        this.announce('businessClosed', tick, `${business.name} has gone out of business`, null);
+        if (laidOff.length > 0) {
+            const subject = laidOff.length === 1 ? '1 person was' : `${laidOff.length} people were`;
+            this.announce('massLayoff', tick, `${subject} laid off from ${business.name}`, null);
+        }
+
+        // Re-draw so the now-businessless building reads as vacant (desaturated), like an emptied house.
+        Game.emit("tileSpawned", workplace);
     }
 
     // Pays each employed person their monthly salary from their employer's balance, through the ledger (task

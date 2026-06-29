@@ -3,6 +3,13 @@
 - **Type:** Feature / Economy
 - **Labels:** `feature`, `economy`, `business`, `framework-followup`
 - **Depends on:** 020 (P&L), 015 (employment, to lay off)
+- **Status:** ✅ **Done.** Insolvency is `balance < bankruptcyDebtFloor` for `bankruptcyMonths` consecutive
+  months (`json/economy.json`), tracked as `BusinessInstance.insolventMonths`. `City.runBusinessEconomics`
+  closes a bankrupt business via `Workplace.closeBusiness()` (lays everyone off → `WorkLife.clearJob` so they
+  re-enter the job market, clears the instance, writes off the debt) and emits `businessClosed` + `massLayoff`
+  to the feed. **Re-occupancy decision (req. 3):** the lot **stays vacant** (renders desaturated) until the
+  player bulldozes/rebuilds (025) — demand-driven re-occupancy is a documented follow-up (it needs a way to
+  vary the otherwise location-deterministic generation, so it's its own task).
 
 ## Summary
 
