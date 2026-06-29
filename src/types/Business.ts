@@ -51,4 +51,5 @@ export interface BusinessInstance {
     positions: JobPosition[];
     lastPnl?: number; // last month's profit/loss (task 020); shown in the inspector
     profitStreak?: number; // consecutive profitable (+) or loss (−) months; drives growth (task 020)
+    insolventMonths?: number; // consecutive months the balance has stayed below the debt floor; drives bankruptcy (task 021)
 }

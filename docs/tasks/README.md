@@ -33,7 +33,7 @@ Always run `npm test` before opening the PR.**
 | 018 | [Wages & payroll](018-wages-and-payroll_DONE.md) | Economy | ✅ Done |
 | 019 | [Cost of living & household spending](019-cost-of-living_DONE.md) | Economy | ✅ Done |
 | 020 | [Business economics: revenue, materials, P&L & size dynamics](020-business-economics_DONE.md) | Economy | ✅ Done |
-| 021 | [Business bankruptcy & closure](021-business-bankruptcy.md) | Economy | ⬜ Open |
+| 021 | [Business bankruptcy & closure](021-business-bankruptcy_DONE.md) | Economy | ✅ Done |
 | 022 | [Household insolvency: eviction & homelessness](022-eviction-and-homelessness.md) | Economy | ⬜ Open |
 | 023 | [Newlywed cohabitation & household merging](023-newlywed-cohabitation.md) | Feature | ⬜ Open |
 | 024 | [Adult children move out / new-household formation](024-adult-children-move-out.md) | Feature | ⬜ Open |
