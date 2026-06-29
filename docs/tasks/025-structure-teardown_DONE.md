@@ -3,6 +3,14 @@
 - **Type:** Feature / Simulation
 - **Labels:** `feature`, `simulation`, `households`, `business`, `cleanup`, `framework-followup`
 - **Depends on:** 013 (households/businesses), 023 (shared relocation helper)
+- **Status:** ✅ **Done.** `Field.bulldoze` now calls `City.demolishHouse` / `City.demolishWorkplace` (via
+  `Game.city`) before the soil overwrite, resolving the `relocateFamily` TODO. A bulldozed **house** runs the
+  eviction relocation (`displaceHousehold`, extracted from 022's `evictHousehold`): residents go to a solvent
+  relative or become homeless, the household dissolves, no `Person`/`Household` is left pointing at the
+  destroyed building. A bulldozed **workplace** runs the 021 closure path (`closeBusiness`: lay off → free jobs
+  → clear the `BusinessInstance`). Both emit `structureDemolished` to the feed (029). Post-bulldoze state
+  round-trips (homeless households persist, v7). Tests in `test/teardown.test.ts` (house→homeless,
+  house→relative, workplace→closed).
 
 ## Summary
 

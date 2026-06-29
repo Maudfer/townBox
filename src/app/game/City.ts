@@ -25,6 +25,7 @@ import { Household, HouseholdArrangements } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, BusinessInstance, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';
+import { CityStats } from 'types/City';
 import { NewDayEvent, TimeChangedEvent } from 'types/Time';
 
 import businessesConfig from 'json/businesses.json';
@@ -49,6 +50,12 @@ export default class City {
     // Evicted households with no home (task 022). Their members stay materialized (home = null, hidden) so they
     // can recover; this registry drives the monthly recovery attempt and is serialized in the save.
     private homelessHouseholds: Household[];
+    // Session vital tallies for the city overview (task 031). Cumulative since load (not persisted) — a live
+    // dashboard convenience, incremented as the daily sim runs.
+    private births: number;
+    private deaths: number;
+    private bankruptcies: number;
+    private evictions: number;
 
 
     constructor(gameManager: GameManager) {
@@ -57,6 +64,10 @@ export default class City {
         this.name = fakerPT_BR.location.city();
         this.population = 0;
         this.homelessHouseholds = [];
+        this.births = 0;
+        this.deaths = 0;
+        this.bankruptcies = 0;
+        this.evictions = 0;
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
         Game.on("workplaceBuilt", { callback: this.setupBusiness, context: this });
@@ -88,6 +99,114 @@ export default class City {
 
     public setHomelessHouseholds(households: Household[]): void {
         this.homelessHouseholds = households;
+    }
+
+    // Macro snapshot for the city-overview dashboard (task 031), derived live from the field/economy/population.
+    // Cheap enough to call on the day tick or window refresh (O(people + structures + pool)). React reads this;
+    // no game internals leak into the HUD.
+    public getCityStats(): CityStats {
+        const field = Game.field;
+        const economy = Game.economy;
+        const population = Game.population;
+        const tick = Game.clock ? Game.clock.getCurrentTick() : 0;
+
+        const people = field ? field.getPeople() : [];
+        let employedAdults = 0;
+        let unemployedAdults = 0;
+        for (const person of people) {
+            if (person.social.getAge() < ADULT_AGE_YEARS) {
+                continue;
+            }
+            if (person.work.getJob()) {
+                employedAdults += 1;
+            } else {
+                unemployedAdults += 1;
+            }
+        }
+
+        let households = 0;
+        let residentsInHouseholds = 0;
+        let stressedHouseholds = 0;
+        let businesses = 0;
+        let vacantWorkBuildings = 0;
+        let openPositions = 0;
+        let stressedBusinesses = 0;
+        let householdWealth = 0;
+        let businessBalance = 0;
+        const lineCounts = new Map<string, number>();
+
+        for (const structure of field ? field.getStructures() : []) {
+            if (structure instanceof House) {
+                const household = structure.getHousehold();
+                if (household) {
+                    households += 1;
+                    residentsInHouseholds += structure.getResidents().length;
+                    if ((household.arrears ?? 0) > 0) {
+                        stressedHouseholds += 1;
+                    }
+                }
+            } else if (structure instanceof Workplace) {
+                const business = structure.getBusiness();
+                if (business) {
+                    businesses += 1;
+                    lineCounts.set(business.lineOfWork, (lineCounts.get(business.lineOfWork) ?? 0) + 1);
+                    openPositions += structure.getOpenPositions().length;
+                    const balance = economy ? economy.getBusinessBalance(structure.getIdentifier()) : 0;
+                    businessBalance += balance;
+                    if (balance < 0) {
+                        stressedBusinesses += 1;
+                    }
+                } else {
+                    vacantWorkBuildings += 1;
+                }
+            }
+        }
+
+        if (economy) {
+            for (const person of people) {
+                const id = person.social.getPersonId();
+                if (id) {
+                    householdWealth += economy.getPersonBalance(id);
+                }
+            }
+        }
+
+        let poolSize = 0;
+        let livingPool = 0;
+        if (population) {
+            const pool = population.getPeople();
+            for (const id in pool) {
+                poolSize += 1;
+                if (isAliveAt(pool[id]!, tick)) {
+                    livingPool += 1;
+                }
+            }
+        }
+
+        return {
+            name: this.name,
+            population: people.length,
+            households,
+            avgHouseholdSize: households > 0 ? residentsInHouseholds / households : 0,
+            homelessHouseholds: this.homelessHouseholds.length,
+            homelessPeople: this.homelessHouseholds.reduce((sum, hh) => sum + hh.memberIds.length, 0),
+            businesses,
+            vacantWorkBuildings,
+            byLineOfWork: [...lineCounts.entries()].map(([line, count]) => ({ line, count })).sort((a, b) => b.count - a.count),
+            employedAdults,
+            unemployedAdults,
+            openPositions,
+            poolSize,
+            livingPool,
+            householdWealth,
+            businessBalance,
+            stressedBusinesses,
+            stressedHouseholds,
+            births: this.births,
+            deaths: this.deaths,
+            bankruptcies: this.bankruptcies,
+            evictions: this.evictions,
+        };
     }
 
     public async setupHousehold(house: House): Promise<void> {
@@ -263,6 +382,9 @@ export default class City {
         const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing, skills });
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
+        // City-overview vital tallies (task 031).
+        this.deaths += result.died.length;
+        this.births += result.born.length;
         // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
         if (result.died.length > 0) {
             this.resolveRehousing(event.tick, ticksPerYear);
@@ -411,6 +533,7 @@ export default class City {
                 business.insolventMonths = 0;
             }
             if ((business.insolventMonths ?? 0) >= DEFAULT_ECONOMY_PARAMS.bankruptcyMonths) {
+                this.bankruptcies += 1; // city-overview tally (task 031)
                 this.closeBusiness(workplace, business, key, tick);
                 continue;
             }
@@ -623,19 +746,35 @@ export default class City {
             structure instanceof House && (structure.getHousehold()?.arrears ?? 0) >= threshold
         );
         for (const house of toEvict) {
+            this.evictions += 1; // city-overview tally (task 031)
             this.evictHousehold(house, tick);
         }
     }
 
     private evictHousehold(house: House, tick: number): void {
+        const { householdName, rehoused, homeless } = this.displaceHousehold(house, tick);
+        this.announce('evicted', tick, `The ${householdName} household was evicted`, null);
+        if (rehoused > 0) {
+            this.announce('rehoused', tick, `Relatives took in some of the ${householdName} household`, null);
+        }
+        if (homeless > 0) {
+            this.announce('becameHomeless', tick, `The ${householdName} household is now homeless`, null);
+        }
+    }
+
+    // Empties a house's household — each member moves to a solvent relative or becomes homeless (kept
+    // materialized but hidden, in the registry) — then dissolves the household and vacates the house. Shared by
+    // eviction (022) and bulldoze teardown (025); returns a summary so each caller can phrase its own feed
+    // messages. A no-op (zeros) when the house has no household.
+    private displaceHousehold(house: House, tick: number): { householdName: string; rehoused: number; homeless: number } {
         const population = Game.population;
         const household = house.getHousehold();
+        const householdName = house.getHouseholdName();
         if (!population || !household) {
-            return;
+            return { householdName, rehoused: 0, homeless: 0 };
         }
         const pool = population.getPeople();
         const byGenId = this.indexByGenId();
-        const householdName = house.getHouseholdName();
 
         const homelessIds: PersonId[] = [];
         let rehoused = 0;
@@ -662,10 +801,6 @@ export default class City {
         house.clearHousehold();
         this.vacateIfEmpty(house);
 
-        this.announce('evicted', tick, `The ${householdName} household was evicted`, null);
-        if (rehoused > 0) {
-            this.announce('rehoused', tick, `Relatives took in some of the ${householdName} household`, null);
-        }
         if (homelessIds.length > 0) {
             this.homelessHouseholds.push({
                 id: `homeless-${household.id}`,
@@ -675,8 +810,31 @@ export default class City {
                 arrangement: HouseholdArrangements.Homeless,
                 arrears: household.arrears,
             });
+        }
+        return { householdName, rehoused, homeless: homelessIds.length };
+    }
+
+    // Teardown entry points for bulldoze (task 025), called from Field.bulldoze before the soil overwrite so no
+    // Person/Household/business is left pointing at the destroyed structure. Reuse the eviction (022) and
+    // business-closure (021) paths; the clock supplies the tick.
+    public demolishHouse(house: House): void {
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        const { householdName, homeless } = this.displaceHousehold(house, tick);
+        if (homeless > 0) {
             this.announce('becameHomeless', tick, `The ${householdName} household is now homeless`, null);
         }
+        const label = householdName ? `The ${householdName} home was demolished` : 'A building was demolished';
+        this.announce('structureDemolished', tick, label, null);
+    }
+
+    public demolishWorkplace(workplace: Workplace): void {
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        const business = workplace.getBusiness();
+        if (business) {
+            this.closeBusiness(workplace, business, workplace.getIdentifier(), tick); // 021: lay off + clear + write off
+        }
+        const label = business ? `${business.name} was demolished` : 'A building was demolished';
+        this.announce('structureDemolished', tick, label, null);
     }
 
     // The placed home of a solvent relative (with spare capacity) willing to take someone in on eviction — broad

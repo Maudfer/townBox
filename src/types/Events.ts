@@ -47,6 +47,7 @@ export interface EventPayloads {
     "HouseSelected": House;
     "PersonSelected": Person;
     "WorkplaceSelected": Workplace;
+    "CitySelected": GameManager["city"];
     "hudReady": void;
     "saveGameRequest": void;
     "gameSaved": void;
