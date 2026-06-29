@@ -34,6 +34,10 @@ export interface StructureSnapshot {
     garageIds?: string[];
     // The generated business on a work building (v4+). Absent on houses/roads and on legacy saves.
     business?: BusinessInstance;
+    // Re-occupancy bookkeeping on a work building (task 037): months vacant since the last closure, and the
+    // count of businesses the lot has hosted (varies the re-occupancy seed). Absent on legacy saves (read as 0).
+    vacantMonths?: number;
+    businessGenerations?: number;
 }
 
 export type RelationshipSnapshot = Partial<Record<Relationships, string | string[]>>;

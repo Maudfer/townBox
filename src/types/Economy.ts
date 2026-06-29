@@ -20,6 +20,7 @@ export interface EconomyParams {
     growthMonths: number; // consecutive profitable months before a fully-staffed business grows (task 020)
     bankruptcyDebtFloor: number; // a business whose balance stays below this is insolvent (task 021)
     bankruptcyMonths: number; // consecutive insolvent months before a business goes bankrupt and closes (task 021)
+    reoccupancyMonths: number; // months a work building stays vacant before it can attract a new business (task 037)
 }
 
 export type AccountKind = 'person' | 'business';

@@ -16,6 +16,12 @@ export default class Workplace extends Building {
     private avaiableJobs: JobPosition[];
     private business: BusinessInstance | null;
 
+    // Re-occupancy bookkeeping (task 037): how many in-game months the lot has been vacant since its last
+    // business closed, and how many businesses it has hosted in total. The generation count varies the
+    // generation seed so a re-occupied lot draws a *different* business than the one that failed.
+    private vacantMonths: number;
+    private businessGenerations: number;
+
     private occupants: Person[];
     private garage: Vehicle[];
 
@@ -28,6 +34,8 @@ export default class Workplace extends Building {
         this.employees = [];
         this.avaiableJobs = [];
         this.business = null;
+        this.vacantMonths = 0;
+        this.businessGenerations = 0;
 
         this.maxOccupants = MAX_OCCUPANTS;
         this.maxVehicles = MAX_VEHICLES;
@@ -49,6 +57,23 @@ export default class Workplace extends Building {
 
     public getBusiness(): BusinessInstance | null {
         return this.business;
+    }
+
+    // --- Re-occupancy bookkeeping (task 037) ---
+    public getVacantMonths(): number {
+        return this.vacantMonths;
+    }
+
+    public setVacantMonths(months: number): void {
+        this.vacantMonths = months;
+    }
+
+    public getBusinessGenerations(): number {
+        return this.businessGenerations;
+    }
+
+    public setBusinessGenerations(generations: number): void {
+        this.businessGenerations = generations;
     }
 
     // Grows the business to a larger size (task 020): records the new full establishment + size and opens the

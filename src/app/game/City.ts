@@ -158,18 +158,36 @@ export default class City {
         if (!workplace) {
             throw new Error("Invalid workplace to setup business");
         }
+        const business = this.openBusiness(workplace);
+        if (business) {
+            console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${business.size}, ${business.positions.length} positions)`);
+        }
+    }
 
+    // Generates and installs a business on a work building (Engine A). Deterministic per save + location +
+    // generation: the seed mixes the world seed with the lot's anchor key and its generation index, so the
+    // first business matches the legacy location-only seed (generation 0) while a re-occupied lot
+    // (generation ≥ 1) draws a *different* business. Optionally constrains the draw to a demand `category`
+    // (task 037 re-occupancy). Picks a blueprint, draws a size, names it, seeds capital, advances the lot's
+    // generation count, and clears its vacancy clock.
+    private openBusiness(workplace: Workplace, category?: string): BusinessInstance | null {
         const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS);
         if (blueprintKeys.length === 0) {
-            return;
+            return null;
         }
 
+        const generation = workplace.getBusinessGenerations();
+        const key = workplace.getIdentifier();
         const worldSeed = Game.population ? Game.population.getState().worldSeed : 0;
-        const seed = (worldSeed ^ hashStringToSeed(workplace.getIdentifier())) >>> 0;
+        // Generation 0 keeps the legacy location-only seed, so existing placements/saves are unchanged.
+        const seedKey = generation === 0 ? key : `${key}#${generation}`;
+        const seed = (worldSeed ^ hashStringToSeed(seedKey)) >>> 0;
         const rng = new SeededRandom(seed);
         fakerPT_BR.seed(seed);
 
-        const blueprintKey = rng.pick(blueprintKeys);
+        const candidates = category ? blueprintKeys.filter(blueprintKey => BUSINESS_BLUEPRINTS[blueprintKey]!.category === category) : blueprintKeys;
+        const pool = candidates.length > 0 ? candidates : blueprintKeys;
+        const blueprintKey = rng.pick(pool);
         const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
         const size = rng.nextInt(blueprint.size.min, blueprint.size.max);
         const name = fakerPT_BR.company.name();
@@ -177,9 +195,10 @@ export default class City {
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
         // Seed starting capital (task 017), scaled by size so bigger establishments start with more.
-        Game.economy?.setBusinessBalance(workplace.getIdentifier(), DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size);
-
-        console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${size}, ${business.positions.length} positions)`);
+        Game.economy?.setBusinessBalance(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size);
+        workplace.setBusinessGenerations(generation + 1);
+        workplace.setVacantMonths(0);
+        return business;
     }
 
     // Runs the daily life simulation and reconciles the materialized world (docs/tasks/013 §5.7, §9). Each
@@ -282,6 +301,7 @@ export default class City {
         economy.setLastEconomyMonth(month);
         this.runPayroll(tick);
         this.runBusinessEconomics(tick);
+        this.runReoccupancy(tick);
         this.runCostOfLiving(tick);
     }
 
@@ -393,6 +413,80 @@ export default class City {
 
         // Re-draw so the now-businessless building reads as vacant (desaturated), like an emptied house.
         Game.emit("tileSpawned", workplace);
+    }
+
+    // Re-occupies vacant work buildings over time (task 037): a lot vacated by bankruptcy stays vacant for
+    // reoccupancyMonths, then attracts a *new, different* business — but only in a category with unmet demand,
+    // so the city heals where investment is warranted instead of re-flooding an oversupplied market. Runs after
+    // runBusinessEconomics so it sees this month's closures and post-closure supply. Deterministic.
+    private runReoccupancy(tick: number): void {
+        const field = Game.field;
+        const economy = Game.economy;
+        if (!field || !economy) {
+            return;
+        }
+
+        // Blueprints grouped by category, so a chosen category always has something to build.
+        const blueprintsByCategory = new Map<string, string[]>();
+        for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
+            const keys = blueprintsByCategory.get(blueprint.category) ?? [];
+            keys.push(blueprintKey);
+            blueprintsByCategory.set(blueprint.category, keys);
+        }
+
+        const population = field.getPeople().length;
+        // Potential supply per category from operating businesses (full establishment: positions × throughput),
+        // so we don't over-build while an existing understaffed business still has room to hire up.
+        const supply: Record<string, number> = {};
+        const vacant: Workplace[] = [];
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const business = structure.getBusiness();
+            if (!business) {
+                vacant.push(structure);
+                continue;
+            }
+            const blueprint = BUSINESS_BLUEPRINTS[business.blueprintKey];
+            if (!blueprint) {
+                continue;
+            }
+            const throughput = DEMAND_TABLE[blueprint.category]?.throughputPerEmployee ?? 0;
+            supply[blueprint.category] = (supply[blueprint.category] ?? 0) + business.positions.length * throughput;
+        }
+
+        for (const workplace of vacant) {
+            workplace.setVacantMonths(workplace.getVacantMonths() + 1);
+            if (workplace.getVacantMonths() < DEFAULT_ECONOMY_PARAMS.reoccupancyMonths) {
+                continue;
+            }
+
+            // The category with the largest unmet demand (demand − potential supply) that has a blueprint.
+            let bestCategory: string | null = null;
+            let bestDeficit = 0;
+            for (const category of blueprintsByCategory.keys()) {
+                const demand = population * (DEMAND_TABLE[category]?.perCapita ?? 0);
+                const deficit = demand - (supply[category] ?? 0);
+                if (deficit > bestDeficit) {
+                    bestDeficit = deficit;
+                    bestCategory = category;
+                }
+            }
+            if (!bestCategory) {
+                continue; // no unmet demand anywhere → the lot stays vacant
+            }
+
+            const business = this.openBusiness(workplace, bestCategory);
+            if (!business) {
+                continue;
+            }
+            // Count the new business's potential capacity so later lots this tick don't pile into the same gap.
+            const throughput = DEMAND_TABLE[bestCategory]?.throughputPerEmployee ?? 0;
+            supply[bestCategory] = (supply[bestCategory] ?? 0) + business.positions.length * throughput;
+            this.announce('businessOpened', tick, `${business.name} opened on a vacant lot`, null);
+            Game.emit("tileSpawned", workplace);
+        }
     }
 
     // Pays each employed person their monthly salary from their employer's balance, through the ledger (task

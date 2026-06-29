@@ -135,6 +135,9 @@ describe('SaveManager round-trip', () => {
                 { title: 'Janitor', salary: 1100, requirements: [JobRequirements.CleaningSkill], shiftStart: 540, shiftEnd: 1020 },
             ],
         });
+        // Re-occupancy bookkeeping (task 037) should round-trip.
+        work.setVacantMonths(1);
+        work.setBusinessGenerations(3);
 
         const parent = source.field.loadPerson(72, 56);
         parent.social.setFirstName('Bob');
@@ -194,6 +197,11 @@ describe('SaveManager round-trip', () => {
         expect(restoredBusiness!.lineOfWork).toBe('Super Market');
         expect(restoredBusiness!.size).toBe(4);
         expect(restoredBusiness!.positions).toHaveLength(2);
+
+        // Re-occupancy bookkeeping (task 037) round-trips.
+        const restoredWork = restored.field.getTile(10, 10) as Workplace;
+        expect(restoredWork.getVacantMonths()).toBe(1);
+        expect(restoredWork.getBusinessGenerations()).toBe(3);
 
         // People + identity
         const people = restored.field.getPeople();

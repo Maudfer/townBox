@@ -49,6 +49,7 @@ Always run `npm test` before opening the PR.**
 | 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills.md) | Content | ⬜ Open |
 | 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy | ⬜ Open |
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation | ⬜ Open |
+| 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
