@@ -15,6 +15,7 @@ export enum HouseholdArrangements {
     Guardianship = 'guardianship', // a minor living with an adult relative (e.g. parents deceased)
     Roommates = 'roommates', // unrelated co-residents
     Multigen = 'multigen', // nuclear plus a grandparent
+    Homeless = 'homeless', // evicted household with no home, awaiting re-housing (task 022)
 }
 
 export type HouseholdArrangement = HouseholdArrangements;
@@ -32,5 +33,6 @@ export interface Household {
 export interface DrawParams {
     adultAgeYears: number;
     maxRoommates: number;
-    arrangementWeights: Record<HouseholdArrangement, number>;
+    // Drawable arrangements only — Homeless is reached solely via eviction (task 022), never drawn.
+    arrangementWeights: Partial<Record<HouseholdArrangement, number>>;
 }

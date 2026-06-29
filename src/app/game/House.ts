@@ -38,6 +38,12 @@ export default class House extends Building {
         this.household = household;
     }
 
+    // Detaches the household from this house — used on eviction (task 022), after which the house is vacant and
+    // the (now homeless) household lives in the City's homeless registry.
+    public clearHousehold(): void {
+        this.household = null;
+    }
+
     public getHousehold(): Household | null {
         return this.household;
     }

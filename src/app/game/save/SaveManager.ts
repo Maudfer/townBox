@@ -130,6 +130,8 @@ export default class SaveManager {
             people: peopleSnapshots,
             vehicles: vehicleSnapshots,
             households,
+            // Homeless households (v7, task 022) live in the City, not on any house.
+            homelessHouseholds: city.getHomelessHouseholds?.() ?? [],
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
             eventHistory: this.game.eventEngine?.getHistory(),
@@ -361,6 +363,10 @@ export default class SaveManager {
                 house.setHousehold(household);
             }
         }
+
+        // Homeless households (v7+, task 022). Not attached to any house; their members are restored as
+        // home-less people above (homeId null), so only the roster needs re-registering on the City.
+        city.setHomelessHouseholds?.(snapshot.homelessHouseholds ?? []);
 
         // Building occupancy.
         for (const structureSnapshot of snapshot.structures) {

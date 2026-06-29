@@ -41,6 +41,7 @@ function weights(only: HouseholdArrangements): DrawParams {
         [HouseholdArrangements.Siblings]: 0,
         [HouseholdArrangements.Guardianship]: 0,
         [HouseholdArrangements.Roommates]: 0,
+        [HouseholdArrangements.Homeless]: 0,
     };
     base[only] = 1;
     return { adultAgeYears: 18, maxRoommates: 3, arrangementWeights: base };

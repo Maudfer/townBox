@@ -3,6 +3,18 @@
 - **Type:** Feature / Economy
 - **Labels:** `feature`, `economy`, `households`, `framework-followup`
 - **Depends on:** 019 (cost of living / arrears), 017 (money), 013e (rehousing infrastructure)
+- **Status:** ✅ **Done.** `City.runEvictions` (monthly, after cost-of-living) evicts households whose `arrears`
+  reach `evictionArrearsMonths` (`json/economy.json`): each member is first offered a **solvent relative's**
+  household (`findRelativeHouse`, broad kinship + capacity + `householdSolvent`); anyone with no taker becomes
+  **homeless** — removed from the home (which dissolves/vacates), kept materialized but hidden (`home = null`,
+  `indoors`), and registered in `City.homelessHouseholds` (arrangement `HouseholdArrangements.Homeless`).
+  `runRecovery` re-homes a homeless household into the lowest-keyed vacant house once pooled funds reach
+  `recoveryFunds` (the documented recovery path; re-employment via 015 supplies the funds). Signals `evicted` /
+  `becameHomeless` / `rehoused` feed the city feed (029). **On-map representation (req. 2):** homeless people are
+  hidden, not despawned, so they survive save/load and stay eligible for jobs. **Downsizing (req. 4):** deferred
+  to a future housing market (documented). **Save:** `SAVE_VERSION` 7 adds `homelessHouseholds`; homeless people
+  serialize normally with `homeId` null. Death-driven orphan re-housing (013e) shares the relocation helper and
+  is unregressed. Tests in `test/eviction.test.ts`.
 
 ## Summary
 

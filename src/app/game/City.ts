@@ -12,7 +12,7 @@ import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 
-import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf } from 'util/kinship';
+import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf, parentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
@@ -45,6 +45,9 @@ let Game: GameManager;
 export default class City {
     private name: string;
     private population: number;
+    // Evicted households with no home (task 022). Their members stay materialized (home = null, hidden) so they
+    // can recover; this registry drives the monthly recovery attempt and is serialized in the save.
+    private homelessHouseholds: Household[];
 
 
     constructor(gameManager: GameManager) {
@@ -52,6 +55,7 @@ export default class City {
 
         this.name = fakerPT_BR.location.city();
         this.population = 0;
+        this.homelessHouseholds = [];
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
         Game.on("workplaceBuilt", { callback: this.setupBusiness, context: this });
@@ -74,6 +78,15 @@ export default class City {
 
     public setPopulation(population: number): void {
         this.population = population;
+    }
+
+    // Homeless households (task 022) — exposed so the save manager can round-trip the registry.
+    public getHomelessHouseholds(): Household[] {
+        return this.homelessHouseholds;
+    }
+
+    public setHomelessHouseholds(households: Household[]): void {
+        this.homelessHouseholds = households;
     }
 
     public async setupHousehold(house: House): Promise<void> {
@@ -319,6 +332,8 @@ export default class City {
         this.runBusinessEconomics(tick);
         this.runReoccupancy(tick);
         this.runCostOfLiving(tick);
+        this.runEvictions(tick);
+        this.runRecovery(tick);
     }
 
     // Monthly business P&L driven by the demand model (task 033): households generate per-category demand,
@@ -591,6 +606,165 @@ export default class City {
         }
     }
 
+    // Evicts households that have been in arrears (task 019) too long (task 022). Each member is first offered a
+    // place in a solvent relative's household (reusing the relocation helper); any member with no taker becomes
+    // homeless — they leave the resident list and are hidden, the original household dissolves, the house turns
+    // vacant, and a Homeless household is registered for the monthly recovery attempt. Deterministic.
+    private runEvictions(tick: number): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        const threshold = DEFAULT_ECONOMY_PARAMS.evictionArrearsMonths;
+        const toEvict = field.getStructures().filter((structure): structure is House =>
+            structure instanceof House && (structure.getHousehold()?.arrears ?? 0) >= threshold
+        );
+        for (const house of toEvict) {
+            this.evictHousehold(house, tick);
+        }
+    }
+
+    private evictHousehold(house: House, tick: number): void {
+        const population = Game.population;
+        const household = house.getHousehold();
+        if (!population || !household) {
+            return;
+        }
+        const pool = population.getPeople();
+        const byGenId = this.indexByGenId();
+        const householdName = house.getHouseholdName();
+
+        const homelessIds: PersonId[] = [];
+        let rehoused = 0;
+        for (const memberId of [...household.memberIds]) {
+            const person = byGenId.get(memberId);
+            if (!person) {
+                continue; // not materialized — nothing to relocate on the map
+            }
+            const relativeHouse = this.findRelativeHouse(memberId, byGenId, pool, house, tick);
+            if (relativeHouse) {
+                this.relocateMember(memberId, byGenId, house, relativeHouse);
+                rehoused += 1;
+            } else {
+                // No taker → homeless: leave the home, keep materialized but hidden, await recovery.
+                house.removeResident(person);
+                house.removeOccupant(person);
+                person.social.setHome(null);
+                person.setIndoors(true);
+                homelessIds.push(memberId);
+            }
+        }
+
+        // The original household is dissolved; the house is now vacant.
+        house.clearHousehold();
+        this.vacateIfEmpty(house);
+
+        this.announce('evicted', tick, `The ${householdName} household was evicted`, null);
+        if (rehoused > 0) {
+            this.announce('rehoused', tick, `Relatives took in some of the ${householdName} household`, null);
+        }
+        if (homelessIds.length > 0) {
+            this.homelessHouseholds.push({
+                id: `homeless-${household.id}`,
+                houseKey: '',
+                headId: homelessIds[0]!,
+                memberIds: homelessIds,
+                arrangement: HouseholdArrangements.Homeless,
+                arrears: household.arrears,
+            });
+            this.announce('becameHomeless', tick, `The ${householdName} household is now homeless`, null);
+        }
+    }
+
+    // The placed home of a solvent relative (with spare capacity) willing to take someone in on eviction — broad
+    // kinship search (parents → children → siblings → aunts/uncles → grandparents), deterministic by id.
+    private findRelativeHouse(personId: PersonId, byGenId: Map<PersonId, Person>, pool: PersonTable, currentHouse: House, tick: number): House | null {
+        const relativeFinders = [parentsOf, childrenOf, siblingsOf, unclesAuntsOf, grandparentsOf];
+        for (const find of relativeFinders) {
+            const candidates = find(pool, personId).filter(id => byGenId.has(id) && pool[id] && isAliveAt(pool[id]!, tick));
+            for (const relativeId of candidates.sort()) {
+                const home = byGenId.get(relativeId)!.social.getHome();
+                if (home instanceof House && home !== currentHouse
+                    && home.getResidents().length < home.getOverview().maxResidents
+                    && this.householdSolvent(home)) {
+                    return home;
+                }
+            }
+        }
+        return null;
+    }
+
+    // A household is solvent enough to take someone in when it isn't in arrears and its residents' pooled funds
+    // are not in the red.
+    private householdSolvent(house: House): boolean {
+        const economy = Game.economy;
+        const household = house.getHousehold();
+        if (!household || (household.arrears ?? 0) > 0) {
+            return false;
+        }
+        if (!economy) {
+            return true;
+        }
+        const funds = house.getResidents().reduce((total, resident) => {
+            const id = resident.social.getPersonId();
+            return total + (id ? economy.getPersonBalance(id) : 0);
+        }, 0);
+        return funds >= 0;
+    }
+
+    // Monthly recovery (task 022): a homeless household whose members have recovered enough pooled funds (e.g. via
+    // re-employment, 015) occupies the lowest-keyed vacant house, forming a fresh household. Members beyond the
+    // home's capacity stay homeless; dead members are pruned. Keeps homelessness escapable, not a dead end.
+    private runRecovery(tick: number): void {
+        const population = Game.population;
+        const economy = Game.economy;
+        if (!population || !economy) {
+            return;
+        }
+        const pool = population.getPeople();
+        const byGenId = this.indexByGenId();
+
+        const remaining: Household[] = [];
+        for (const household of this.homelessHouseholds) {
+            const livingMembers = household.memberIds.filter(id => byGenId.has(id) && pool[id] && isAliveAt(pool[id]!, tick));
+            if (livingMembers.length === 0) {
+                continue; // everyone gone — drop the record
+            }
+
+            const funds = livingMembers.reduce((total, id) => total + economy.getPersonBalance(id), 0);
+            const vacant = funds >= DEFAULT_ECONOMY_PARAMS.recoveryFunds ? this.findVacantHouse() : null;
+            if (!vacant) {
+                remaining.push({ ...household, memberIds: livingMembers, headId: livingMembers[0]! });
+                continue;
+            }
+
+            const movers = livingMembers.slice(0, vacant.getOverview().maxResidents);
+            for (const id of movers) {
+                const person = byGenId.get(id)!;
+                person.social.setHome(vacant);
+                person.setIndoors(true);
+                vacant.addResident(person);
+                vacant.addOccupant(person);
+            }
+            vacant.setHousehold({
+                id: `hh-${vacant.getIdentifier()}`,
+                houseKey: vacant.getIdentifier(),
+                headId: movers[0]!,
+                memberIds: movers,
+                arrangement: movers.length === 1 ? HouseholdArrangements.Single : HouseholdArrangements.Nuclear,
+            });
+            Game.emit("tileSpawned", vacant); // now occupied → drop the vacant look
+            this.announce('rehoused', tick, `A homeless household found a home again`, null);
+
+            // Anyone who didn't fit stays homeless.
+            const leftover = livingMembers.slice(vacant.getOverview().maxResidents);
+            if (leftover.length > 0) {
+                remaining.push({ ...household, memberIds: leftover, headId: leftover[0]! });
+            }
+        }
+        this.homelessHouseholds = remaining;
+    }
+
     // Removes materialized residents who died this day from their house, household, and the field.
     private reconcileDeaths(diedIds: PersonId[], personByGenId: Map<PersonId, Person>): void {
         const field = Game.field;
@@ -618,11 +792,25 @@ export default class City {
                 if (home instanceof House) {
                     this.vacateIfEmpty(home);
                 }
+            } else {
+                // A homeless person who died: prune them from the homeless registry (task 022).
+                this.removeFromHomelessRegistry(personId);
             }
 
             field.removePerson(person);
             this.population = Math.max(0, this.population - 1);
         }
+    }
+
+    // Drops a person from any homeless household, reassigning the head and discarding emptied records (task 022).
+    private removeFromHomelessRegistry(personId: PersonId): void {
+        for (const household of this.homelessHouseholds) {
+            household.memberIds = household.memberIds.filter(id => id !== personId);
+            if (household.headId === personId) {
+                household.headId = household.memberIds[0] ?? household.headId;
+            }
+        }
+        this.homelessHouseholds = this.homelessHouseholds.filter(household => household.memberIds.length > 0);
     }
 
     // Materializes newborns of materialized mothers into the mother's house, mirroring setupHousehold's
