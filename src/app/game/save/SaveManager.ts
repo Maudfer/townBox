@@ -172,6 +172,9 @@ export default class SaveManager {
             if (business) {
                 snapshot.business = business;
             }
+            // Re-occupancy bookkeeping (task 037).
+            snapshot.vacantMonths = structure.getVacantMonths();
+            snapshot.businessGenerations = structure.getBusinessGenerations();
         }
 
         return snapshot;
@@ -370,6 +373,11 @@ export default class SaveManager {
                 if (structureSnapshot.business) {
                     structure.setBusiness(structureSnapshot.business);
                 }
+                // Re-occupancy bookkeeping (task 037). Legacy saves lack these: a lot that already hosts a
+                // business has hosted at least one generation, so default an occupied lot to 1 (not 0) — else a
+                // future re-occupancy would reuse the generation-0 seed and respawn the identical business.
+                structure.setVacantMonths(structureSnapshot.vacantMonths ?? 0);
+                structure.setBusinessGenerations(structureSnapshot.businessGenerations ?? (structureSnapshot.business ? 1 : 0));
                 // Rebuild the employee<->employer link so the commute (006) knows where each employee works.
                 this.restorePeople(structureSnapshot.employeeIds, personById, person => {
                     structure.addEmployee(person);

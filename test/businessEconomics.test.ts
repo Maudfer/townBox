@@ -182,3 +182,62 @@ describe('City business bankruptcy (task 021)', () => {
         expect(workplace.getBusiness()!.insolventMonths ?? 0).toBe(0);
     });
 });
+
+describe('City vacant-lot re-occupancy (task 037)', () => {
+    test('a vacant lot attracts a new business only after the cooldown, given unmet demand', () => {
+        const { city, field, economy, game } = makeWorld();
+        const emit = jest.fn((..._args: unknown[]) => Promise.resolve([]));
+        (game as unknown as { emit: typeof emit }).emit = emit;
+
+        // A vacant work building (loadStructure does not run setupBusiness) plus consumers → unmet demand.
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        expect(workplace.getBusiness()).toBeNull();
+        for (let i = 0; i < 10; i++) {
+            field.loadPerson(160 + i * 4, 200);
+        }
+
+        // reoccupancyMonths = 2: still vacant after one month, re-occupied after the second.
+        city.processMonthlyEconomy(0);
+        expect(workplace.getBusiness()).toBeNull();
+        expect(workplace.getVacantMonths()).toBe(1);
+
+        city.processMonthlyEconomy(DAYS_PER_MONTH);
+        expect(workplace.getBusiness()).not.toBeNull();
+        expect(economy.getBusinessBalance('10-10')).toBeGreaterThan(0); // capital reseeded
+        expect(workplace.getVacantMonths()).toBe(0);
+        expect(emit.mock.calls.some(call => call[0] === 'cityEvent' && (call[1] as { kind: string }).kind === 'businessOpened')).toBe(true);
+    });
+
+    test('a vacant lot with no demand (no consumers) stays vacant', () => {
+        const { city, field } = makeWorld();
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+
+        for (let month = 0; month < 6; month++) {
+            city.processMonthlyEconomy(month * DAYS_PER_MONTH);
+        }
+
+        expect(workplace.getBusiness()).toBeNull();
+    });
+
+    test('a re-occupied lot draws a different business than the one that failed (varied generation)', () => {
+        const { city, field } = makeWorld();
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+
+        city.setupBusiness(workplace); // generation 0
+        const firstName = workplace.getBusiness()!.name;
+        expect(workplace.getBusinessGenerations()).toBe(1);
+
+        // Simulate bankruptcy + an elapsed cooldown, with consumers to create demand.
+        workplace.closeBusiness();
+        workplace.setVacantMonths(99);
+        for (let i = 0; i < 10; i++) {
+            field.loadPerson(160 + i * 4, 200);
+        }
+
+        city.processMonthlyEconomy(0);
+
+        expect(workplace.getBusiness()).not.toBeNull();
+        expect(workplace.getBusinessGenerations()).toBe(2);
+        expect(workplace.getBusiness()!.name).not.toBe(firstName);
+    });
+});
