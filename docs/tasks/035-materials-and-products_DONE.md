@@ -3,6 +3,18 @@
 - **Type:** Feature / Economy + Content
 - **Labels:** `feature`, `economy`, `data`, `business`, `framework-followup`
 - **Depends on:** 033 (the demand model + per-unit materials this builds on), 020 (business P&L). Pairs with 034.
+- **Status:** ✅ **Done.** Implemented the B2B half (the re-scoped focus). `BusinessBlueprint.products` is now
+  typed (`Record<material, unitsPerEmployeePerMonth>`); three **producer** blueprints — `farm` (food), `factory`
+  (building/hardware/electronics), `warehouse` (retail/office/hotel/salon/entertainment goods) — sit in new
+  zero-household-demand categories (agriculture/manufacturing/wholesale). Each month `City.runBusinessEconomics`
+  aggregates the input materials consumer sales require (`util/businessFinance.aggregateMaterialDemand`) and
+  resolves that demand among producers with the **same `resolveDemand`** keyed by material id; a producer's
+  capacity is `staffing × products[material]` and its B2B revenue is `unitsSold × materialBasePrice × markup`,
+  added to its P&L. Shallow (one resolution pass, no recursion), deterministic, no new save state. Household
+  consumption already flows through 033's demand model, so 019 was not reworked. A `contentConsistency` check
+  validates every produced material exists and is consumed somewhere. Tests: `aggregateMaterialDemand`
+  (businessFinance) + a farm→supermarket B2B integration (businessEconomics). **Out of scope / future:** deeper
+  multi-tier chains, on-map logistics, and player-set prices remain out (as the task specified).
 
 > **Re-scoped:** the **household demand model** (consumers → per-category demand → demand-driven business
 > revenue) moved to [033](033-expand-business-blueprints_DONE.md). This task is now the **B2B supply-chain layer on

@@ -53,6 +53,19 @@ export function resolveDemand(businesses: DemandBusiness[], demandByCategory: Re
     return unitsSold;
 }
 
+// Aggregate B2B material demand (task 035): the total units of each input material the operating businesses
+// need this month — each business needs `unitsSold × materialsPerUnit[material]` of each of its inputs. This
+// is the demand local producers compete to supply (their products are these materials). Pure/deterministic.
+export function aggregateMaterialDemand(consumers: { unitsSold: number; materialsPerUnit?: Record<string, number> }[]): Record<string, number> {
+    const demand: Record<string, number> = {};
+    for (const consumer of consumers) {
+        for (const [material, perUnit] of Object.entries(consumer.materialsPerUnit ?? {})) {
+            demand[material] = (demand[material] ?? 0) + consumer.unitsSold * perUnit;
+        }
+    }
+    return demand;
+}
+
 // The positions a business gains when it grows from one size to the next: the per-title increase, taken from
 // the larger establishment. Used to append open slots without disturbing already-filled positions (task 020).
 export function positionDelta(current: JobPosition[], grown: JobPosition[]): JobPosition[] {

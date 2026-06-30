@@ -51,6 +51,24 @@ describe('content consistency (tasks 034 + 033b)', () => {
             for (const material of Object.keys(blueprint.materialsPerUnit ?? {})) {
                 expect({ key, material, known: material in MATERIALS }).toEqual({ key, material, known: true });
             }
+            // Producer outputs (task 035) must be real materials too.
+            for (const material of Object.keys(blueprint.products ?? {})) {
+                expect({ key, product: material, known: material in MATERIALS }).toEqual({ key, product: material, known: true });
+            }
+        }
+    });
+
+    test('every produced material is actually consumed by some blueprint (no orphan production)', () => {
+        const consumed = new Set<string>();
+        for (const blueprint of Object.values(BLUEPRINTS)) {
+            for (const material of Object.keys(blueprint.materialsPerUnit ?? {})) {
+                consumed.add(material);
+            }
+        }
+        for (const [key, blueprint] of Object.entries(BLUEPRINTS)) {
+            for (const material of Object.keys(blueprint.products ?? {})) {
+                expect({ key, product: material, consumed: consumed.has(material) }).toEqual({ key, product: material, consumed: true });
+            }
         }
     });
 

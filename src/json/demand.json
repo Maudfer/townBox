@@ -7,5 +7,9 @@
     "retail": { "perCapita": 12, "throughputPerEmployee": 300, "pricePerUnit": 25 },
     "leisure": { "perCapita": 6, "throughputPerEmployee": 200, "pricePerUnit": 20 },
     "services": { "perCapita": 8, "throughputPerEmployee": 220, "pricePerUnit": 28 },
-    "hospitality": { "perCapita": 2, "throughputPerEmployee": 120, "pricePerUnit": 80 }
+    "hospitality": { "perCapita": 2, "throughputPerEmployee": 120, "pricePerUnit": 80 },
+
+    "agriculture": { "perCapita": 0, "throughputPerEmployee": 0, "pricePerUnit": 0 },
+    "manufacturing": { "perCapita": 0, "throughputPerEmployee": 0, "pricePerUnit": 0 },
+    "wholesale": { "perCapita": 0, "throughputPerEmployee": 0, "pricePerUnit": 0 }
 }

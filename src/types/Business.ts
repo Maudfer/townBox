@@ -34,7 +34,8 @@ export interface BusinessBlueprint {
     size: { min: number; max: number }; // drawn uniformly at placement (distribution weighting is a future extension)
     jobs: Record<string, BusinessJobSpec>; // jobId -> position count curve
     materialsPerUnit?: Record<string, number>; // input material amounts to produce one unit of output (task 033)
-    products?: Record<string, unknown>; // deferred (B2B supply chain, task 035); slot reserved
+    products?: Record<string, number>; // materials this business produces for *other* businesses (B2B supply
+                                       // chain, task 035): material id -> units one employee outputs per month
     economics?: { priceMarkup?: number; fixedCostsPerMonth?: Curve }; // priceMarkup = price premium over the category base (task 033)
 }
 

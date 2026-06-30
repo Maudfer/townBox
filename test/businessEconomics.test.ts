@@ -241,3 +241,44 @@ describe('City vacant-lot re-occupancy (task 037)', () => {
         expect(workplace.getBusiness()!.name).not.toBe(firstName);
     });
 });
+
+describe('City B2B supply chain (task 035)', () => {
+    // A producer (farm) earns revenue only when downstream consumers create demand for the material it makes.
+    function farmPnl(withConsumerDemand: boolean): number {
+        const { city, field, economy } = makeWorld();
+        for (let i = 0; i < 10; i++) {
+            field.loadPerson(160 + i * 4, 200); // households (groceries demand)
+        }
+
+        const farm = field.loadStructure('work', 4, 4, 'f') as Workplace;
+        farm.setBusiness({ blueprintKey: 'farm', name: 'Green Acres', lineOfWork: 'Farm', size: 1, positions: [] });
+        const farmhand = field.loadPerson(70, 70);
+        farmhand.social.setPersonId('fh');
+        farmhand.work.setJob(job('Laborer', 1000));
+        farm.addEmployee(farmhand);
+        economy.setBusinessBalance(farm.getIdentifier(), 100000);
+
+        if (withConsumerDemand) {
+            // A supermarket sells groceries to the households, which makes it buy groceries_wholesale — the
+            // material the farm produces, so the farm gets B2B revenue.
+            const mart = field.loadStructure('work', 10, 10, 'm') as Workplace;
+            mart.setBusiness({ blueprintKey: 'supermarket', name: 'Mart', lineOfWork: 'Super Market', size: 1, positions: [] });
+            const clerk = field.loadPerson(160, 160);
+            clerk.social.setPersonId('c1');
+            clerk.work.setJob(job('Clerk', 1000));
+            mart.addEmployee(clerk);
+            economy.setBusinessBalance(mart.getIdentifier(), 100000);
+        }
+
+        city.processMonthlyEconomy(0);
+        return farm.getBusiness()!.lastPnl ?? 0;
+    }
+
+    test('a producer earns B2B revenue from downstream material demand', () => {
+        expect(farmPnl(true)).toBeGreaterThan(farmPnl(false));
+    });
+
+    test('with no downstream demand the producer only bleeds costs (negative P&L)', () => {
+        expect(farmPnl(false)).toBeLessThan(0);
+    });
+});
