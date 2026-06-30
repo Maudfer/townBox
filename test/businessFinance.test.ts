@@ -1,4 +1,4 @@
-import { computeBusinessPnl, unitMaterialCost, resolveDemand, positionDelta, DemandBusiness } from '../src/util/businessFinance';
+import { computeBusinessPnl, unitMaterialCost, resolveDemand, aggregateMaterialDemand, positionDelta, DemandBusiness } from '../src/util/businessFinance';
 import { BusinessBlueprint } from '../src/types/Business';
 import { JobPosition, JobRequirements } from '../src/types/Work';
 
@@ -55,6 +55,18 @@ describe('resolveDemand (task 033 market)', () => {
     test('zero capacity sells nothing', () => {
         const units = resolveDemand([{ key: 'a', category: 'groceries', capacity: 0 }], { groceries: 100 });
         expect(units.get('a')).toBe(0);
+    });
+});
+
+describe('aggregateMaterialDemand (task 035 B2B)', () => {
+    test('sums unitsSold × materialsPerUnit across consumers', () => {
+        const demand = aggregateMaterialDemand([
+            { unitsSold: 10, materialsPerUnit: { flour: 2, sugar: 1 } },
+            { unitsSold: 5, materialsPerUnit: { flour: 1 } },
+            { unitsSold: 100, materialsPerUnit: {} },
+            { unitsSold: 3 },
+        ]);
+        expect(demand).toEqual({ flour: 25, sugar: 10 }); // flour 10*2+5*1, sugar 10*1
     });
 });
 

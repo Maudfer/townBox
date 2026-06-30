@@ -47,7 +47,7 @@ Always run `npm test` before opening the PR.**
 | 032 | [Expand the life-event manifest](032-expand-life-events_DONE.md) | Content | ✅ Done |
 | 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints_DONE.md) | Economy | ✅ Done (033c Tier-2 optional) |
 | 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills_DONE.md) | Content | ✅ Done |
-| 035 | [Materials & products production/consumption chain](035-materials-and-products.md) | Economy | ⬜ Open |
+| 035 | [Materials & products production/consumption chain](035-materials-and-products_DONE.md) | Economy | ✅ Done |
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation | ⬜ Open |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
 

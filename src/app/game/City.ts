@@ -18,7 +18,7 @@ import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
 import { DAYS_PER_MONTH } from 'util/time';
-import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, DemandBusiness } from 'util/businessFinance';
+import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, aggregateMaterialDemand, DemandBusiness } from 'util/businessFinance';
 import { evaluateCurve } from 'util/curve';
 import { DayResult } from 'types/LifeEvent';
 import { Household, HouseholdArrangements } from 'types/Household';
@@ -504,10 +504,34 @@ export default class City {
 
         const unitsByKey = resolveDemand(competitors, demandByCategory);
 
+        // B2B supply chain (task 035): the input materials those consumer sales require become demand on local
+        // producers (businesses whose `products` are those materials). Producers compete to supply each material
+        // by capacity (staffing × per-employee output), via the same demand resolution keyed by material id.
+        const materialDemand = aggregateMaterialDemand(
+            [...byKey.entries()].map(([key, { blueprint }]) => ({ unitsSold: unitsByKey.get(key) ?? 0, materialsPerUnit: blueprint.materialsPerUnit }))
+        );
+        const producerEntries: DemandBusiness[] = [];
+        for (const [key, { workplace, blueprint }] of byKey) {
+            if (!blueprint.products) {
+                continue;
+            }
+            const staff = workplace.getEmployees().length;
+            for (const [material, throughput] of Object.entries(blueprint.products)) {
+                producerEntries.push({ key: `${key}::${material}`, category: material, capacity: staff * throughput });
+            }
+        }
+        const producerUnitsByKey = resolveDemand(producerEntries, materialDemand);
+
         for (const [key, { workplace, business, blueprint }] of byKey) {
             const unitsSold = unitsByKey.get(key) ?? 0;
             const pricePerUnit = (DEMAND_TABLE[blueprint.category]?.pricePerUnit ?? 0) * (blueprint.economics?.priceMarkup ?? 1);
-            const revenue = unitsSold * pricePerUnit;
+            // Consumer (household) revenue plus B2B revenue from any materials this business produces.
+            let producerRevenue = 0;
+            for (const material of Object.keys(blueprint.products ?? {})) {
+                const sold = producerUnitsByKey.get(`${key}::${material}`) ?? 0;
+                producerRevenue += sold * (MATERIAL_PRICES[material] ?? 0) * (blueprint.economics?.priceMarkup ?? 1);
+            }
+            const revenue = unitsSold * pricePerUnit + producerRevenue;
             const materialsCost = unitsSold * unitMaterialCost(blueprint, MATERIAL_PRICES);
             const fixedCosts = blueprint.economics?.fixedCostsPerMonth ? evaluateCurve(blueprint.economics.fixedCostsPerMonth, business.size) : 0;
             const payroll = workplace.getEmployees().reduce((total, employee) => total + (employee.work.getJob()?.salary ?? 0), 0);
