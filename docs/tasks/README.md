@@ -50,10 +50,21 @@ Always run `npm test` before opening the PR.**
 | 035 | [Materials & products production/consumption chain](035-materials-and-products_DONE.md) | Economy | ✅ Done |
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap_DONE.md) | Simulation | ✅ Done |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
+| 038 | [Offline history-asset pipeline + asset-fed new game](038-history-asset-pipeline.md) | Simulation | ⬜ Open |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
 > its cross-dependencies.
+
+### Status (as of 036 landing)
+
+The **014–037** procedural-framework arc is complete — employment, the full economy cascade
+(wages → cost of living → business P&L → bankruptcy → eviction/homelessness → recovery, with a B2B supply chain),
+household-lifecycle dynamics, the UI/inspector layer, content expansion, CI, and the per-load history bootstrap
+all shipped. **Remaining open:** **008** (Playwright integration — would also let you verify 036 live),
+**012** (live-app verification), **033c** (optional Tier-2 demand), the documented **036 one-fidelity
+follow-up** (retire the coarse live pool sim), and **038** (the offline history-asset pipeline that reframes 036
+from a per-load cost into a versioned data asset).
 
 ### Procedural-framework follow-ups (014–036)
 
