@@ -240,5 +240,45 @@
         "materialsPerUnit": { "hotel_supplies": 1 },
         "products": {},
         "economics": { "priceMarkup": 1.2, "fixedCostsPerMonth": { "mode": "linear", "base": 3000, "perUnit": 1800 } }
+    },
+    "farm": {
+        "friendlyName": "Farm",
+        "category": "agriculture",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "laborer": { "count": { "mode": "linear", "base": 2, "perUnit": 3, "max": 24 } },
+            "delivery_driver": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 8 } }
+        },
+        "materialsPerUnit": {},
+        "products": { "food_ingredients": 350, "groceries_wholesale": 350 },
+        "economics": { "priceMarkup": 1.2, "fixedCostsPerMonth": { "mode": "linear", "base": 1000, "perUnit": 700 } }
+    },
+    "factory": {
+        "friendlyName": "Factory",
+        "category": "manufacturing",
+        "size": { "min": 2, "max": 8 },
+        "jobs": {
+            "manager": { "count": { "mode": "step", "points": [{ "at": 1, "value": 1 }, { "at": 5, "value": 2 }] } },
+            "laborer": { "count": { "mode": "linear", "base": 3, "perUnit": 4, "max": 40 } },
+            "electronics_technician": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 10 } },
+            "delivery_driver": { "count": { "mode": "linear", "base": 1, "perUnit": 1, "max": 10 } }
+        },
+        "materialsPerUnit": {},
+        "products": { "building_materials": 250, "hardware_stock": 250, "electronics_parts": 150 },
+        "economics": { "priceMarkup": 1.3, "fixedCostsPerMonth": { "mode": "linear", "base": 2200, "perUnit": 1300 } }
+    },
+    "warehouse": {
+        "friendlyName": "Distribution Warehouse",
+        "category": "wholesale",
+        "size": { "min": 1, "max": 6 },
+        "jobs": {
+            "manager": { "count": { "mode": "const", "value": 1 } },
+            "restocker": { "count": { "mode": "linear", "base": 2, "perUnit": 3, "max": 24 } },
+            "delivery_driver": { "count": { "mode": "linear", "base": 1, "perUnit": 1.5, "max": 12 } }
+        },
+        "materialsPerUnit": {},
+        "products": { "retail_goods": 350, "office_supplies": 350, "hotel_supplies": 250, "salon_supplies": 250, "entertainment_supplies": 250 },
+        "economics": { "priceMarkup": 1.25, "fixedCostsPerMonth": { "mode": "linear", "base": 1200, "perUnit": 800 } }
     }
 }
