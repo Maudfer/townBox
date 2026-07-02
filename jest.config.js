@@ -2,6 +2,12 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   testMatch: ['**/test/**/*.test.ts'],
+  // tsconfig emits ES modules (so `import.meta` is allowed for the Web Worker, task 036), but the Node test
+  // runner needs CommonJS — override just for ts-jest. The import.meta usage lives in a module only loaded via a
+  // runtime dynamic import (game/bootstrapWorkerFactory), so tests never compile it.
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: { module: 'commonjs' } }]
+  },
   moduleNameMapper: {
     '^game/(.*)$': '<rootDir>/src/app/game/$1',
     '^hud/(.*)$': '<rootDir>/src/app/hud/$1',
@@ -19,7 +25,9 @@ module.exports = {
     'src/app/game/MainScene.ts',
     'src/app/game/TitleScene.ts',
     'src/app/game/GameManager.ts',
-    'src/app/game/DebugTools.ts'
+    'src/app/game/DebugTools.ts',
+    'src/app/game/bootstrap.worker.ts',
+    'src/app/game/bootstrapWorkerFactory.ts'
   ],
   coverageReporters: ['text-summary', 'lcov'],
   // A floor the current suite clears with headroom (~78% stmts / 66% branches); ratchet it up over

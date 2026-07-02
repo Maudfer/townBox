@@ -48,7 +48,7 @@ Always run `npm test` before opening the PR.**
 | 033 | [Demand-driven business revenue + expanded blueprints](033-expand-business-blueprints_DONE.md) | Economy | ✅ Done (033c Tier-2 optional) |
 | 034 | [Expand jobs & skills reference tables](034-expand-jobs-and-skills_DONE.md) | Content | ✅ Done |
 | 035 | [Materials & products production/consumption chain](035-materials-and-products_DONE.md) | Economy | ✅ Done |
-| 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap.md) | Simulation | ⬜ Open |
+| 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap_DONE.md) | Simulation | ✅ Done |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference

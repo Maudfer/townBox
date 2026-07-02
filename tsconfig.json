@@ -21,6 +21,7 @@
         "json/*": ["./src/json/*"],
         "css/*": ["./src/css/*"],
       },
+      "module": "ES2020", // ES module output so `import.meta` (Web Worker URL, task 036) is permitted; Parcel bundles, and ts-jest overrides this to CommonJS for the Node test runner (see jest.config.js)
       "moduleResolution": "node", // how modules get resolved. Node is the most common
       "esModuleInterop": true, // fixes some issues TS originally had with the ES6 spec where TypeScript treats CommonJS/AMD/UMD modules similar to ES6 module
       "resolveJsonModule": true, // allows importing JSON files as modules

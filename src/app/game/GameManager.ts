@@ -11,6 +11,11 @@ import EventEngine from 'game/EventEngine';
 import Economy from 'game/Economy';
 import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
+import { bootstrapHistory, DEFAULT_BOOTSTRAP_PARAMS, BootstrapParams } from 'game/HistoryBootstrap';
+import type { BootstrapMessage } from 'game/bootstrap.worker';
+
+import { PopulationState } from 'types/Genealogy';
+import { EventHistoryTable } from 'types/LifeEvent';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';
@@ -136,7 +141,7 @@ export default class GameManager {
         new Phaser.Game(phaserConfig);
         const debugTools = new DebugTools();
 
-        const postSceneInit = (_: Phaser.Scene) => {
+        const postSceneInit = async (_: Phaser.Scene) => {
             if (config.debug.masterSwitch) {
                 this.on("tileSpawned", { callback: debugTools.drawTileDebugInfo, context: this }) // Huge performance hit, disabled by default
                 this.on("roadBuilt", { callback: debugTools.drawRoadCurbs, context: this });
@@ -167,6 +172,11 @@ export default class GameManager {
             // deserialize; balances are otherwise seeded at household/business placement.
             this.economy = new Economy();
 
+            // Pre-game history bootstrap (task 036): on a fresh game, fast-forward the detailed event engine
+            // over the pool's recent past (off the main thread) so drawn households arrive with real histories.
+            // Skipped on load (the saved pool + history already carry it). Gameplay waits for it to finish.
+            await this.runBootstrap();
+
             this.emit("gameInitialized", this);
         }
         this.on("sceneInitialized", { callback: postSceneInit, context: this });
@@ -176,6 +186,61 @@ export default class GameManager {
         this.on("hudReady", { callback: this.applyPendingLoad, context: this });
         this.on("saveGameRequest", { callback: this.handleSaveRequest, context: this });
         this.on("update", { callback: this.advanceTime, context: this });
+    }
+
+    // Runs the pre-game history bootstrap (task 036) on a fresh game: the detailed event engine grinds through
+    // the pool's recent past in a Web Worker (off the frame loop), and the result (mutated pool + event history)
+    // is installed so drawn households have real histories. Resolves immediately when disabled or on a load.
+    // Falls back to a synchronous main-thread run if a Worker can't be constructed. Emits progress for the
+    // loading overlay (main.tsx).
+    private runBootstrap(): Promise<void> {
+        const population = this.population;
+        const params: BootstrapParams = DEFAULT_BOOTSTRAP_PARAMS;
+        if (!population || this.pendingLoad !== null || !params.enabled || params.years <= 0) {
+            return Promise.resolve();
+        }
+
+        this.emit("bootstrapStarted");
+
+        const install = (state: PopulationState, history: EventHistoryTable): void => {
+            population.loadState(state);
+            this.eventEngine?.loadHistory(history);
+            this.emit("bootstrapFinished");
+        };
+
+        const runSync = (): void => {
+            const result = bootstrapHistory(population.getState(), params, progress => this.emit("bootstrapProgress", progress));
+            install(result.state, result.history);
+        };
+
+        return new Promise<void>(resolve => {
+            // The worker constructor uses import.meta (browser-only), so it's dynamically imported here — kept
+            // out of the CommonJS/ts-jest path. Any failure falls back to a synchronous main-thread run.
+            import('./bootstrapWorkerFactory')
+                .then(({ createBootstrapWorker }) => {
+                    const worker = createBootstrapWorker();
+                    worker.onmessage = (event: MessageEvent<BootstrapMessage>) => {
+                        const message = event.data;
+                        if (message.type === 'progress') {
+                            this.emit("bootstrapProgress", message.progress);
+                            return;
+                        }
+                        worker.terminate();
+                        install(message.state, message.history);
+                        resolve();
+                    };
+                    worker.onerror = () => {
+                        worker.terminate();
+                        runSync(); // worker failed to load/run — fall back to the main thread
+                        resolve();
+                    };
+                    worker.postMessage({ state: population.getState(), params });
+                })
+                .catch(() => {
+                    runSync();
+                    resolve();
+                });
+        });
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:

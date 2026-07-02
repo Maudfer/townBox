@@ -3,6 +3,26 @@
 - **Type:** Feature / Simulation + Architecture
 - **Labels:** `feature`, `simulation`, `framework-followup`, `strategic`
 - **Depends on:** 013 (event engine + coarse pool). Best after 015/032 so histories are rich.
+- **Status:** ✅ **Done.** On a new game, `GameManager.runBootstrap` runs the detailed Engine B over the whole
+  living pool for a configurable recent span (`json/bootstrap.json`: `years`/`stepDays`) in a **Web Worker**
+  (`bootstrap.worker.ts` via a dynamically-imported `bootstrapWorkerFactory`, so the `import.meta` worker URL
+  stays out of the CommonJS/ts-jest path), behind a `BootstrapLoader` overlay with progress; the resulting pool
+  + event history install into the live engine, so drawn households have real histories (no cold start). Pure
+  core is `game/HistoryBootstrap.ts` (deterministic per world seed; tested). A load skips the bootstrap; the
+  bootstrapped pool/history serialize normally (no save-version change).
+  - **Feasibility findings (measured):** the per-day engine over the ~3k-living pool is ~17s/simulated-year
+    daily; a whole-pool *centuries* sim is minutes-to-hours (the living population is thousands and **grows** as
+    event-driven births compound), so "centuries in tolerable load" is not achievable with the current
+    engine/pool. Two mitigations landed: `marriage` (the only O(agents) candidate-search event) is **excluded**
+    from the bootstrap manifest — generation already lays the marriage backbone — keeping it linear; and
+    `EventEngine.simulateDay` gained an optional **`daysPerStep`** hazard multiplier (default 1, no effect on
+    live play) so the bootstrap steps weekly with correct probabilities. The default span is a modest **8 years
+    (weekly, ~18s)** — enough to remove the cold start — with `years` as the depth/load knob.
+  - **Reconciliation (req. 3):** chose **(a) staged toward (b)** — the bootstrap seeds the pre-game history and
+    anchors `lastSimulatedYear`; the coarse `Population.simulate` still runs for off-map people during play.
+    Full one-fidelity (retiring the coarse live sim) needs the engine to run over the whole pool each day live,
+    gated on the same perf work (bounded population growth + an incremental living index + the `marriage`
+    role-search optimisation) — documented as the follow-up.
 
 ## Summary
 
