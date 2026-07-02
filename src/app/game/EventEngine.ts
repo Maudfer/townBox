@@ -219,7 +219,10 @@ export default class EventEngine {
         return roleMap;
     }
 
-    private perDayProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number): number {
+    // Per-step firing probability. `daysPerStep` (default 1 = daily, as live play uses) lets a caller advance in
+    // coarser strides — the history bootstrap (036) steps by e.g. a week to stay tractable over the whole pool —
+    // while keeping the hazard correct: the per-step chance is 1 − (1 − annual)^(daysPerStep / ticksPerYear).
+    private perDayProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, daysPerStep: number): number {
         let annual = spec.perYear;
         for (const factor of spec.factors ?? []) {
             const [role, attr] = factor.driver.split('.');
@@ -234,7 +237,7 @@ export default class EventEngine {
         if (annual >= 1) {
             return 1;
         }
-        return 1 - Math.pow(1 - annual, 1 / ticksPerYear);
+        return 1 - Math.pow(1 - annual, daysPerStep / ticksPerYear);
     }
 
     // Applies an event's effects in order. Returns false if an effect failed to commit (currently only a failed
@@ -382,7 +385,8 @@ export default class EventEngine {
         agentIds: PersonId[],
         tick: number,
         ticksPerYear: number,
-        adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null; housing?: HousingMarket | null; skills?: SkillRegistry | null } = {}
+        adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null; housing?: HousingMarket | null; skills?: SkillRegistry | null } = {},
+        daysPerStep: number = 1
     ): DayResult {
         const result: DayResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
@@ -420,7 +424,7 @@ export default class EventEngine {
                     continue;
                 }
 
-                const pDay = this.perDayProbability(event.probability, roleMap, state, tick, ticksPerYear);
+                const pDay = this.perDayProbability(event.probability, roleMap, state, tick, ticksPerYear, daysPerStep);
                 if (!rng.chance(pDay)) {
                     continue;
                 }
