@@ -1,0 +1,59 @@
+name: CI
+
+# Runs on every PR targeting main and on every push to main (post-merge validation), plus manual dispatch.
+# CI only — no deploy/publish steps. These checks are intended to be configured as required status checks on
+# `main` so PRs can't merge red (see docs/tasks/009-github-actions-ci_DONE.md for the branch-protection notes).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref (e.g. a new push to a PR branch).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Unit tests + coverage gate
+        run: npm run test:coverage
+
+      - name: Production build
+        run: npm run build-prod
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/
+          if-no-files-found: ignore
+
+      # Advisory only — surfaces known vulnerabilities without blocking the merge.
+      - name: Dependency audit (advisory)
+        if: always()
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  # The Playwright integration suite (task 008) is not implemented yet. When it lands, add a job here that
+  # installs Chromium (`npx playwright install --with-deps chromium`) and runs `npm run test:integration`,
+  # uploading the Playwright report/trace on failure. Kept out for now so CI stays green and fast.

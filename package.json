@@ -11,7 +11,9 @@
     "serve-dev": "cross-env browser-sync start --server ./dist --files ./dist",
     "dev": "concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
     "package": "concurrently 'npm:copy-images' 'npm:build-prod'",
-    "test": "jest"
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "keywords": [
     "game",

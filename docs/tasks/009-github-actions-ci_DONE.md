@@ -2,6 +2,16 @@
 
 - **Type:** CI / Tooling
 - **Labels:** `test`, `ci`, `tooling`, `infrastructure`
+- **Status:** ✅ **Done.** `.github/workflows/ci.yml` runs on `pull_request`→`main`, `push`→`main`, and
+  `workflow_dispatch`, with concurrency-cancel and npm caching. One `build-and-test` job (Ubuntu, Node 20,
+  `npm ci`) runs **typecheck** (`tsc --noEmit`), the **coverage-gated unit suite** (`npm run test:coverage` —
+  threshold in `jest.config.js`, ~72% floor / ~78% current, `lcov` uploaded as an artifact), the **production
+  build** (`npm run build-prod`), and an advisory `npm audit`. Pinned action versions (`@v4`).
+  **Coverage gate** lives in `jest.config.js` (`collectCoverageFrom` over `src/app/game/**` + `src/util/**`,
+  Phaser-only glue excluded). **Branch protection (maintainer action, can't be set from code):** in repo
+  Settings → Branches, mark **CI / build-and-test** a required status check for `main` and disable direct
+  pushes to `main`, matching the no-direct-merge directive. **Playwright integration** is intentionally deferred
+  to 008 — a job is reserved (commented) in the workflow and wired in when that suite lands. No deploy steps.
 
 ## Summary
 
