@@ -327,3 +327,13 @@ few-thousand-strong pool, less with the incremental index). These are guesses �
 - **Phase 3:** calibrate the carrying capacity and fidelity from the measured trajectory; regenerate the
   canonical asset.
 - Land Part A before Part B (Part B needs an asset to consume; a tiny fixture asset unblocks Part B tests).
+
+## Summary - What the task captures
+
+- **The paradigm** up front: high-fidelity *individual* simulation, not city-scale — the asset feeds more distinct life-stories than any player could consume.
+- **Part A — offline generator:** the phased algorithm exactly as you specified (100 founders → grow to 1,000 living, discarding warm-up dead → +500 years preserving everything), at **full fidelity** (marriage re-included, daily), with the **soft carrying capacity**, an **incremental living index** (the key perf fix for a centuries run), versioned/compressed asset format, and a **one-liner CLI** (`npm run generate-history`) built for repeated weekly re-seeding as the sim improves.
+- **Part B — asset-fed new game:** retire the live bootstrap/worker/overlay; load the committed asset, pick a random **time window**, **rebase ticks to 0**, **re-randomize identities** (names only) → a vast scenario space (asset × window × identity seed).
+- **Your three questions** are baked in as **required generator output** (final population, disk size, runtime, per-decade trajectory) with a pre-measurement estimate to be replaced by the real run.
+- Determinism, testing (tiny-config unit tests; the multi-hour run isn't a test), fallback, save/load, and the relationship to the 036 one-fidelity follow-up — all covered.
+
+Carrying-capacity calibration will need a couple of draft runs to land a stable "thousands" equilibrium — the generator prints the trajectory so it's tunable. There are a few sub-decisions I left marked as open (target band size, whether to keep all dead vs. sample for disk, bounded vs. exact marriage search) — happy to lock those when we implement.

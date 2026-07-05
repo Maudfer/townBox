@@ -66,9 +66,9 @@ all shipped. **Remaining open:** **008** (Playwright integration — would also 
 follow-up** (retire the coarse live pool sim), and **038** (the offline history-asset pipeline that reframes 036
 from a per-load cost into a versioned data asset).
 
-### Procedural-framework follow-ups (014–036)
+### Procedural-framework follow-ups (014–038)
 
-Tasks 014–036 wire the procedural simulation framework ([013](013-procedural-simulation-framework_DONE.md)) into
+Tasks 014–038 wire the procedural simulation framework ([013](013-procedural-simulation-framework_DONE.md)) into
 an actual gameplay loop — no loose ends, everything in use during play. Rough phases & order:
 
 - **Employment & movement:** 014 → 015 → (006, 016). Hiring unlocks the commute and retires the
@@ -79,7 +79,10 @@ an actual gameplay loop — no loose ends, everything in use during play. Rough 
   helper, generalised from 013e).
 - **UI / surfacing:** 026 (selection foundation) → 027 (person event-log window), 028 (business window),
   029 (city event feed — the emergent "story"), 030 (toolbar/tools), 031 (city overview).
-- **Data expansion:** 032 (life events), 033 (businesses), 034 (jobs & skills), 035 (materials & products).
-  Mostly pure data on the framework; new event *primitives*/attributes are deliberate code changes.
+- **Data expansion:** 032 (life events), 033 (businesses + demand), 034 (jobs & skills), 035 (materials &
+  products / B2B supply chain), 037 (bankrupt-lot re-occupancy). Mostly pure data on the framework; new event
+  *primitives*/attributes are deliberate code changes.
+- **Test infra:** 008 (Playwright integration, open) → 009 (GitHub Actions CI + coverage gate).
 - **Strategic:** 036 (pre-game history bootstrap) — fast-forward the detailed sim on a loading screen so
-  materialized people arrive with real histories; the foundation for one-fidelity simulation.
+  materialized people arrive with real histories; → 038 (offline history-asset pipeline) reframes it into a
+  versioned data asset the game selects from, the foundation for one-fidelity simulation.
