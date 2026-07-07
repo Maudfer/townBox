@@ -14,6 +14,9 @@ import {
     ProbabilitySpec,
     Effect,
     EventHistoryTable,
+    EventLogTable,
+    EventLogEntry,
+    TriggerSource,
     TickResult,
     JobMarket,
     MoneyLedger,
@@ -43,10 +46,22 @@ export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as 
 
 const ROLE_SUBJECT = 'subject';
 
+// An emit effect captured while an event's effects apply; flushed into the TickResult (with the commit seq
+// as causation) only if the event commits.
+interface PendingSignal {
+    signal: string;
+    personId: PersonId | null;
+    tick: number;
+}
+
 export default class EventEngine {
     private manifest: EventManifest;
     private graph: EventGraph;
     private history: EventHistoryTable;
+    // The append-only per-person event log (task 040): the source of truth for what happened when, with a
+    // globally monotonic commit seq + causation. `history` above is its derived aggregate index (hasEvent).
+    private log: EventLogTable;
+    private nextLogSeq: number;
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
     // Adapters bound for the current simulateTick pass; null in pure/test runs that don't provide them.
@@ -59,6 +74,8 @@ export default class EventEngine {
         this.manifest = manifest;
         this.graph = compileEvents(manifest);
         this.history = {};
+        this.log = {};
+        this.nextLogSeq = 0;
         this.overlay = {};
         this.jobMarket = null;
         this.ledger = null;
@@ -88,6 +105,36 @@ export default class EventEngine {
         this.history = history ?? {};
     }
 
+    getLog(): EventLogTable {
+        return this.log;
+    }
+
+    // A person's life log, oldest first. The inspector renders it newest-first (its concern, not the engine's).
+    getPersonLog(personId: PersonId): EventLogEntry[] {
+        return this.log[personId] ?? [];
+    }
+
+    getNextLogSeq(): number {
+        return this.nextLogSeq;
+    }
+
+    // Restores the log (save/load). `nextSeq` persists explicitly; when absent (defensive), derive it from
+    // the highest stored seq so future commits never collide.
+    loadLog(log: EventLogTable, nextSeq?: number): void {
+        this.log = log ?? {};
+        if (nextSeq !== undefined) {
+            this.nextLogSeq = nextSeq;
+        } else {
+            let max = -1;
+            for (const entries of Object.values(this.log)) {
+                for (const entry of entries) {
+                    max = Math.max(max, entry.seq);
+                }
+            }
+            this.nextLogSeq = max + 1;
+        }
+    }
+
     hasEvent(personId: PersonId, eventId: string, tick: number, query?: HasEventQuery): boolean {
         const record = this.history[personId]?.[eventId];
         if (!record) {
@@ -102,11 +149,19 @@ export default class EventEngine {
         return true;
     }
 
-    private recordEvent(personId: PersonId, eventId: string, tick: number): void {
+    // Commits an event to the person's append-only log (assigning the global seq) and updates the derived
+    // aggregate index. Returns the seq so signals/downstream records can chain causation to this commit.
+    private recordEvent(personId: PersonId, eventId: string, tick: number, roles: Record<string, PersonId>, triggerSource: TriggerSource, causationId: number | null): number {
+        const seq = this.nextLogSeq++;
+        const entries = this.log[personId] ?? [];
+        entries.push({ seq, tick, kind: 'event', defId: eventId, roles: { ...roles }, triggerSource, causationId });
+        this.log[personId] = entries;
+
         const personHistory = this.history[personId] ?? {};
         const existing = personHistory[eventId];
         personHistory[eventId] = { count: (existing?.count ?? 0) + 1, lastTick: tick };
         this.history[personId] = personHistory;
+        return seq;
     }
 
     // Reads an agent's current attribute value, deriving age/alive/marital from the pool and falling back to the
@@ -243,17 +298,19 @@ export default class EventEngine {
     // Applies an event's effects in order. Returns false if an effect failed to commit (currently only a failed
     // acquireSlot — e.g. the last matching job slot was taken earlier the same day), which aborts the event so
     // it is not recorded. Aborting effects must therefore come first (get_job lists acquireSlot first).
-    private applyEffects(event: EventDefinition, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: TickResult, rng: SeededRandom): boolean {
+    // `pendingSignals` collects emit effects; the caller flushes them into the TickResult only once the event
+    // actually commits (task 040), stamping each with the committed log seq as its causation.
+    private applyEffects(event: EventDefinition, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: TickResult, rng: SeededRandom, pendingSignals: PendingSignal[]): boolean {
         const subjectId = roleMap[ROLE_SUBJECT]!;
         for (const effect of event.effects) {
-            if (!this.applyEffect(effect, subjectId, roleMap, state, tick, result, rng)) {
+            if (!this.applyEffect(effect, subjectId, roleMap, state, tick, result, rng, pendingSignals)) {
                 return false;
             }
         }
         return true;
     }
 
-    private applyEffect(effect: Effect, subjectId: PersonId, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: TickResult, rng: SeededRandom): boolean {
+    private applyEffect(effect: Effect, subjectId: PersonId, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: TickResult, rng: SeededRandom, pendingSignals: PendingSignal[]): boolean {
         switch (effect.type) {
             case 'setDeath': {
                 const record = state.people[subjectId];
@@ -298,7 +355,7 @@ export default class EventEngine {
             }
             case 'emit': {
                 const targetId = effect.target ? roleMap[effect.target] ?? null : subjectId;
-                result.signals.push({ signal: effect.signal ?? 'unknown', personId: targetId, tick });
+                pendingSignals.push({ signal: effect.signal ?? 'unknown', personId: targetId, tick });
                 return true;
             }
             // Acquire/release a job slot via the employment market (task 015). acquireSlot is a real
@@ -429,11 +486,15 @@ export default class EventEngine {
                     continue;
                 }
 
-                const committed = this.applyEffects(event, roleMap, state, tick, result, rng);
+                const pendingSignals: PendingSignal[] = [];
+                const committed = this.applyEffects(event, roleMap, state, tick, result, rng, pendingSignals);
                 if (!committed) {
                     continue; // event aborted (e.g. job slot taken this tick) — treat as if it never fired
                 }
-                this.recordEvent(agentId, eventId, tick);
+                const seq = this.recordEvent(agentId, eventId, tick, roleMap, 'probability', null);
+                for (const pending of pendingSignals) {
+                    result.signals.push({ ...pending, eventId, causationId: seq });
+                }
                 for (const excluded of this.graph.excludes[eventId] ?? []) {
                     excludedToday.add(excluded);
                 }

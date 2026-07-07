@@ -4,7 +4,7 @@ import { JobPosition, JobRequirements } from 'types/Work';
 import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { BusinessInstance } from 'types/Business';
-import { EventHistoryTable } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
 import { EconomyState } from 'types/Economy';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
@@ -102,6 +102,10 @@ export interface WorldSnapshot {
     clock?: ClockSnapshot;
     // Per-person life-event history (v5+). Optional so older saves load with empty history.
     eventHistory?: EventHistoryTable;
+    // The append-only per-person event log + its next commit seq (v8, task 040). Older saves synthesize a
+    // minimal log from the aggregate history on migration.
+    eventLog?: EventLogTable;
+    eventLogSeq?: number;
     // Money balances (v6+). Optional so older saves load with empty balances.
     economy?: EconomyState;
 }

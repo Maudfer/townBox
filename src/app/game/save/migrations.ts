@@ -4,11 +4,13 @@
 // systems that consume the data.
 
 import { WorldSnapshot } from 'types/Save';
+import { EventLogTable } from 'types/LifeEvent';
 import { TICKS_PER_DAY } from 'util/time';
 
 export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
     if (snapshot.version < 8) {
         migrateDayTicksToHourTicks(snapshot);
+        synthesizeEventLog(snapshot);
         snapshot.version = 8;
     }
     return snapshot;
@@ -45,4 +47,27 @@ function migrateDayTicksToHourTicks(snapshot: WorldSnapshot): void {
             record.lastTick *= scale;
         }
     }
+}
+
+// v7 → v8: pre-log saves only carried the aggregate history ({count, lastTick} per event id). Synthesize a
+// minimal append-only log from it: ONE entry per (person, event id), dated at lastTick, source 'system',
+// no roles/causation. Deliberately lossy (the true per-occurrence dates are gone; the aggregate keeps the
+// real count) — documented in 038 §3.3. Seq assignment is deterministic: sorted person ids, then event ids.
+function synthesizeEventLog(snapshot: WorldSnapshot): void {
+    if (snapshot.eventLog || !snapshot.eventHistory) {
+        return;
+    }
+    const log: EventLogTable = {};
+    let seq = 0;
+    for (const personId of Object.keys(snapshot.eventHistory).sort()) {
+        const history = snapshot.eventHistory[personId]!;
+        for (const eventId of Object.keys(history).sort()) {
+            const record = history[eventId]!;
+            const entries = log[personId] ?? [];
+            entries.push({ seq: seq++, tick: record.lastTick, kind: 'event', defId: eventId, roles: { subject: personId }, triggerSource: 'system', causationId: null });
+            log[personId] = entries;
+        }
+    }
+    snapshot.eventLog = log;
+    snapshot.eventLogSeq = seq;
 }

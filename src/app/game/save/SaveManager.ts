@@ -136,6 +136,8 @@ export default class SaveManager {
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
             eventHistory: this.game.eventEngine?.getHistory(),
+            eventLog: this.game.eventEngine?.getLog(),
+            eventLogSeq: this.game.eventEngine?.getNextLogSeq(),
             economy: this.game.economy?.getState(),
         };
     }
@@ -276,6 +278,12 @@ export default class SaveManager {
         // Event history (v5+). Older saves carry none; history stays empty.
         if (snapshot.eventHistory) {
             this.game.eventEngine?.loadHistory(snapshot.eventHistory);
+        }
+
+        // Append-only event log (v8+, task 040). Pre-v8 saves arrive here with a log synthesized by the
+        // migration from the aggregate history.
+        if (snapshot.eventLog) {
+            this.game.eventEngine?.loadLog(snapshot.eventLog, snapshot.eventLogSeq);
         }
 
         // Economy (v6+). Older saves carry none; balances stay empty.
