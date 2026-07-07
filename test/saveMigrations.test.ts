@@ -1,5 +1,6 @@
 import { migrateSnapshot } from '../src/app/game/save/migrations';
 import { WorldSnapshot } from '../src/types/Save';
+import { EventLogEntry } from '../src/types/LifeEvent';
 import { TICKS_PER_YEAR, DAYS_PER_YEAR } from '../src/util/time';
 
 // v7 → v8 (task 040): day ticks become hour ticks; every persisted tick scales by 24 so derived ages and
@@ -77,7 +78,7 @@ describe('save migrations', () => {
             triggerSource: 'system',
             causationId: null,
         });
-        expect(log['p1']![0]!.roles).toEqual({ subject: 'p1' });
+        expect((log['p1']![0] as EventLogEntry).roles).toEqual({ subject: 'p1' });
         expect(snapshot.eventLogSeq).toBe(1);
     });
 

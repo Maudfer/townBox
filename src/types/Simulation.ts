@@ -14,10 +14,21 @@ export interface HasEventQuery {
     minCount?: number;
 }
 
+// A parameterized query against the object system (task 043): matches instances by archetype id, archetype
+// tag, and/or archetype flag (e.g. "pocketable"). All supplied criteria must match.
+export interface ObjectQuery {
+    archetype?: string;
+    tag?: string;
+    flag?: string;
+}
+
 // The read-only view a predicate (and, later, a probability factor) evaluates against. An implementation
 // represents one agent at one moment: its attributes, its event history, and access to any co-participants
 // bound to named roles for a multi-agent event. Deliberately method-based so the substrate never reaches
 // into engine internals — it only asks questions through this interface.
+//
+// The action-era queries (task 043) are optional: contexts that predate the Action engine (event-only
+// fixtures, the compiler's static walk) simply lack them, and the corresponding predicates evaluate false.
 export interface SimulationContext {
     // The current value of a named attribute (Context schema, e.g. "alive", "age", "marital"), or
     // undefined when the attribute is not present.
@@ -29,4 +40,16 @@ export interface SimulationContext {
     // The sub-context for a co-participant bound to `name` (e.g. "father", "partner"), or null when no
     // such role is bound. Used by the { role, where } predicate to condition on another participant.
     role(name: string): SimulationContext | null;
+
+    // Whether this agent has performed the given ACTION, optionally constrained by recency/count (task 043
+    // — the mirror of hasEvent over the action log).
+    hasAction?(actionId: string, query?: HasEventQuery): boolean;
+
+    // Whether this agent carries a matching Object Instance in their Possessions (nested containers
+    // included) — task 043, backed by the Inventory (041).
+    carries?(query: ObjectQuery): boolean;
+
+    // Whether a matching Object Instance is physically present at this agent's current location — task 043,
+    // backed by WorldAdapter.objectsAt (040/041).
+    objectAtLocation?(query: ObjectQuery): boolean;
 }

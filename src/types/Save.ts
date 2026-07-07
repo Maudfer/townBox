@@ -7,6 +7,7 @@ import { BusinessInstance } from 'types/Business';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { EconomyState } from 'types/Economy';
 import { InventoryState } from 'types/Objects';
+import { ActionEngineState } from 'types/Action';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool (v1 saves load with an empty pool); families → households.
@@ -115,4 +116,6 @@ export interface WorldSnapshot {
     economy?: EconomyState;
     // Object instances & Possessions (v8, task 041). Optional so older saves load with none.
     objects?: InventoryState;
+    // Action instances + aggregate action history (v8, task 043). Optional so older saves load with none.
+    actions?: ActionEngineState;
 }

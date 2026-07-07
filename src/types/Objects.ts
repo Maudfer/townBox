@@ -93,3 +93,22 @@ export function locationKey(location: LogicalLocation): string {
             return 'outside';
     }
 }
+
+// The inverse of locationKey(): parses a canonical key back into a LogicalLocation (task 043 — action
+// definitions author locations as keys). Unknown shapes read as 'outside' rather than throwing; the data
+// validators reject malformed keys before they reach the runtime.
+export function parseLocationKey(key: string): LogicalLocation {
+    if (key === 'home') {
+        return { kind: 'home' };
+    }
+    if (key === 'outside') {
+        return { kind: 'outside' };
+    }
+    if (key.startsWith('building:')) {
+        return { kind: 'building', key: key.slice('building:'.length) };
+    }
+    if (key.startsWith('venue:')) {
+        return { kind: 'venue', venue: key.slice('venue:'.length) };
+    }
+    return { kind: 'outside' };
+}

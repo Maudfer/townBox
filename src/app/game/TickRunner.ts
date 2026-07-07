@@ -15,6 +15,8 @@
 //                                                     live in the WorldAdapter
 
 import EventEngine from 'game/EventEngine';
+import ActionEngine from 'game/ActionEngine';
+import Inventory from 'game/Inventory';
 
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
@@ -22,6 +24,8 @@ import { ExecutionContext } from 'types/Execution';
 
 export interface TickPlan {
     engine: EventEngine;
+    actionEngine?: ActionEngine;
+    inventory?: Inventory | null;
     state: PopulationState;
     agentIds: PersonId[];
     tick: number;
@@ -33,17 +37,40 @@ export interface TickPlan {
     onCommitted?: (result: TickResult) => void | Promise<void>;
 }
 
+function mergeInto(target: TickResult, source: TickResult): void {
+    target.died.push(...source.died);
+    target.born.push(...source.born);
+    target.signals.push(...source.signals);
+}
+
 export async function runTick(plan: TickPlan): Promise<TickResult> {
-    // Phases 1–2: no-ops until the Action engine (043) lands.
+    const result: TickResult = { died: [], born: [], signals: [] };
+
+    // Phases 1–2 (task 043): advance running continuous Actions and resolve due children. Runs inside the
+    // market-bound window so action requirements can read market-derived attributes; lifecycle Events fired
+    // here (onStart/onComplete/…) land in the same TickResult.
+    if (plan.actionEngine) {
+        plan.engine.bindMarkets(plan.ctx);
+        mergeInto(result, plan.actionEngine.advance({
+            state: plan.state,
+            tick: plan.tick,
+            ticksPerYear: plan.ticksPerYear,
+            ctx: plan.ctx,
+            eventEngine: plan.engine,
+            inventory: plan.inventory ?? null,
+        }));
+    }
 
     // Phases 3–5: automated-trigger drain + probabilistic evaluation + commit (task 042).
-    const result = plan.engine.simulateTick(plan.state, plan.agentIds, plan.tick, plan.ticksPerYear, plan.ctx, plan.ticksPerStep ?? 1);
+    mergeInto(result, plan.engine.simulateTick(plan.state, plan.agentIds, plan.tick, plan.ticksPerYear, plan.ctx, plan.ticksPerStep ?? 1));
 
     // Phase 6: dispatch to the committed-notification consumer.
     if (plan.onCommitted) {
         await plan.onCommitted(result);
     }
 
-    // Phases 7–9: no-ops until Brain (046), the Job Orchestrator (047), and the Action engine (043) land.
+    // Phases 7–8: Brain / Job-Orchestrator intents and new action starts land with tasks 046/047 (today,
+    // actions start via direct ActionEngine.startAction calls). Phase 9: persistence rides the save cadence;
+    // deferred materialization requests live in the WorldAdapter.
     return result;
 }

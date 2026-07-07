@@ -16,7 +16,7 @@ import {
     Effect,
     EventHistoryTable,
     EventLogTable,
-    EventLogEntry,
+    PersonLogEntry,
     TriggerSource,
     TickResult,
     InvokeOutcome,
@@ -29,6 +29,7 @@ import {
 } from 'types/LifeEvent';
 
 import { compileEvents, EventGraph } from 'game/EventCompiler';
+import LifeLog from 'game/LifeLog';
 
 import { ExecutionContext } from 'types/Execution';
 
@@ -66,8 +67,7 @@ export default class EventEngine {
     private history: EventHistoryTable;
     // The append-only per-person event log (task 040): the source of truth for what happened when, with a
     // globally monotonic commit seq + causation. `history` above is its derived aggregate index (hasEvent).
-    private log: EventLogTable;
-    private nextLogSeq: number;
+    private lifeLog: LifeLog;
     // Automated-trigger machinery (task 042): the persisted schedule queue plus rule indexes derived from
     // the manifest at construction (afterEvent: source event id -> dependents; atHour: hour -> event ids).
     private schedule: ScheduleState;
@@ -81,12 +81,11 @@ export default class EventEngine {
     private housing: HousingMarket | null; // move-out eligibility (task 024)
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
 
-    constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST) {
+    constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST, lifeLog: LifeLog = new LifeLog()) {
         this.manifest = manifest;
         this.graph = compileEvents(manifest);
         this.history = {};
-        this.log = {};
-        this.nextLogSeq = 0;
+        this.lifeLog = lifeLog;
         this.schedule = { queue: [], nextScheduleSeq: 0 };
         this.afterEventRules = new Map();
         this.atHourRules = new Map();
@@ -135,34 +134,27 @@ export default class EventEngine {
         this.history = history ?? {};
     }
 
+    // The shared life log (task 043): the ActionEngine appends to the SAME instance so events and actions
+    // share one global commit sequence.
+    getLifeLog(): LifeLog {
+        return this.lifeLog;
+    }
+
     getLog(): EventLogTable {
-        return this.log;
+        return this.lifeLog.getTable();
     }
 
     // A person's life log, oldest first. The inspector renders it newest-first (its concern, not the engine's).
-    getPersonLog(personId: PersonId): EventLogEntry[] {
-        return this.log[personId] ?? [];
+    getPersonLog(personId: PersonId): PersonLogEntry[] {
+        return this.lifeLog.getPersonLog(personId);
     }
 
     getNextLogSeq(): number {
-        return this.nextLogSeq;
+        return this.lifeLog.getNextSeq();
     }
 
-    // Restores the log (save/load). `nextSeq` persists explicitly; when absent (defensive), derive it from
-    // the highest stored seq so future commits never collide.
     loadLog(log: EventLogTable, nextSeq?: number): void {
-        this.log = log ?? {};
-        if (nextSeq !== undefined) {
-            this.nextLogSeq = nextSeq;
-        } else {
-            let max = -1;
-            for (const entries of Object.values(this.log)) {
-                for (const entry of entries) {
-                    max = Math.max(max, entry.seq);
-                }
-            }
-            this.nextLogSeq = max + 1;
-        }
+        this.lifeLog.load(log, nextSeq);
     }
 
     getScheduleState(): ScheduleState {
@@ -216,10 +208,7 @@ export default class EventEngine {
     // Commits an event to the person's append-only log (assigning the global seq) and updates the derived
     // aggregate index. Returns the seq so signals/downstream records can chain causation to this commit.
     private recordEvent(personId: PersonId, eventId: string, tick: number, roles: Record<string, PersonId>, triggerSource: TriggerSource, causationId: number | null): number {
-        const seq = this.nextLogSeq++;
-        const entries = this.log[personId] ?? [];
-        entries.push({ seq, tick, kind: 'event', defId: eventId, roles: { ...roles }, triggerSource, causationId });
-        this.log[personId] = entries;
+        const seq = this.lifeLog.append(personId, { tick, kind: 'event', defId: eventId, roles: { ...roles }, triggerSource, causationId });
 
         const personHistory = this.history[personId] ?? {};
         const existing = personHistory[eventId];
@@ -523,11 +512,7 @@ export default class EventEngine {
         const result: TickResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1)) >>> 0);
-        const markets = ctx.markets ?? {};
-        this.jobMarket = markets.jobMarket ?? null;
-        this.ledger = markets.ledger ?? null;
-        this.housing = markets.housing ?? null;
-        this.skills = markets.skills ?? null;
+        this.bindMarkets(ctx);
 
         const agents = [...agentIds].sort();
 
@@ -617,11 +602,32 @@ export default class EventEngine {
             }
         }
 
+        this.unbindMarkets();
+        return result;
+    }
+
+    // Binds/unbinds the market adapters the attribute reads and effects consult. Public (task 043) so the
+    // TickRunner can hold markets bound across the Action-engine phases that run before simulateTick.
+    bindMarkets(ctx: Partial<ExecutionContext>): void {
+        const markets = ctx.markets ?? {};
+        this.jobMarket = markets.jobMarket ?? null;
+        this.ledger = markets.ledger ?? null;
+        this.housing = markets.housing ?? null;
+        this.skills = markets.skills ?? null;
+    }
+
+    unbindMarkets(): void {
         this.jobMarket = null;
         this.ledger = null;
         this.housing = null;
         this.skills = null;
-        return result;
+    }
+
+    // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,
+    // task 046). Reads whatever markets are currently bound — callers that need market-derived attributes
+    // (employed/canBeHired/money) bindMarkets first.
+    contextFor(state: PopulationState, personId: PersonId, tick: number, ticksPerYear: number): SimulationContext {
+        return this.makeContext(state, personId, { [ROLE_SUBJECT]: personId }, tick, ticksPerYear);
     }
 
     // Full eligibility + commit for a non-probabilistic trigger path (scheduled drain, atHour sweep, manual
@@ -727,21 +733,22 @@ export default class EventEngine {
             }
         }
 
-        const markets = ctx.markets ?? {};
-        this.jobMarket = markets.jobMarket ?? null;
-        this.ledger = markets.ledger ?? null;
-        this.housing = markets.housing ?? null;
-        this.skills = markets.skills ?? null;
+        // Preserve any markets the caller already holds bound (e.g. invocations from inside the Action
+        // engine's TickRunner window) and restore them afterwards.
+        const previous = { jobMarket: this.jobMarket, ledger: this.ledger, housing: this.housing, skills: this.skills };
+        if (ctx.markets) {
+            this.bindMarkets(ctx);
+        }
         const rng = new SeededRandom(state.worldSeed).fork(tick).fork(0x51ed);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1) ^ 0x51ed) >>> 0);
 
         const agents = Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort();
         const outcome = this.attemptCommit(state, eventId, subjectId, agents, tick, ticksPerYear, result, rng, cause.source, cause.causationId, bindings);
 
-        this.jobMarket = null;
-        this.ledger = null;
-        this.housing = null;
-        this.skills = null;
+        this.jobMarket = previous.jobMarket;
+        this.ledger = previous.ledger;
+        this.housing = previous.housing;
+        this.skills = previous.skills;
         return { outcome, result };
     }
 }

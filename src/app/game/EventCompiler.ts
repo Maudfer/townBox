@@ -79,6 +79,9 @@ function walk(pred: Predicate, negated: boolean, isSubject: boolean, soft: boole
         }
         return;
     }
+    if ('hasAction' in pred || 'carries' in pred || 'objectAtLocation' in pred) {
+        return; // action-era queries (task 043) are runtime-only gates, never part of the static event graph
+    }
     // attribute comparison
     if (isSubject) {
         if (DISCRIMINANT_ATTRS.has(pred.attr) || pred.attr === 'age') {

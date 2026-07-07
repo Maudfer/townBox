@@ -1,5 +1,5 @@
 import EventEngine from '../src/app/game/EventEngine';
-import { EventManifest } from '../src/types/LifeEvent';
+import { EventManifest, EventLogEntry } from '../src/types/LifeEvent';
 import { PopulationState, GenPerson } from '../src/types/Genealogy';
 import { Genders, Gender } from '../src/types/Social';
 
@@ -50,7 +50,7 @@ describe('event log (task 040)', () => {
 
         // Agents run in sorted order, so within a tick 'a' commits before 'b'.
         expect(logA[0]).toMatchObject({ seq: 0, tick: 1000, kind: 'event', defId: 'daily_ping', triggerSource: 'probability', causationId: null });
-        expect(logA[0]!.roles).toEqual({ subject: 'a' });
+        expect((logA[0] as EventLogEntry).roles).toEqual({ subject: 'a' });
         expect(logB[0]!.seq).toBe(1);
         expect(logA[1]!.seq).toBe(2);
         expect(logB[1]!.seq).toBe(3);

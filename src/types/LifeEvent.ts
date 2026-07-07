@@ -159,9 +159,28 @@ export interface EventLogEntry {
     causationId: number | null; // seq of the causing record; null for spontaneous (probability) commits
 }
 
+// An action lifecycle transition in the same append-only log (task 043). One entry per transition
+// ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones),
+// linked by instanceId — the log itself stays immutable.
+export interface ActionLogEntry {
+    seq: number;
+    tick: number;
+    kind: 'action';
+    defId: string; // action id in the manifest
+    instanceId: string | null; // null for discrete actions (no instance materializes)
+    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed';
+    params: Record<string, string | number | boolean>;
+    parentInstanceId: string | null;
+    triggerSource: TriggerSource;
+    causationId: number | null;
+}
+
+// One person's life log holds both kinds, totally ordered by the shared seq.
+export type PersonLogEntry = EventLogEntry | ActionLogEntry;
+
 // Append-only per-person logs, keyed by genealogy PersonId. An event with co-participants is logged on the
 // SUBJECT's log (the roles map records the others); role-holders can be found by scanning or, later, an index.
-export type EventLogTable = Record<string, EventLogEntry[]>;
+export type EventLogTable = Record<string, PersonLogEntry[]>;
 
 // What one tick of event simulation changed, so the caller can reconcile the materialized world. Signals
 // carry the emitting event and its log seq (task 040) so downstream world changes can chain causation.
