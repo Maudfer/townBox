@@ -55,7 +55,7 @@ Always run `npm test` before opening the PR.**
 | 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary_DONE.md) | Framework | ✅ Done |
 | 041 | [Objects & Person Possessions](041-objects-and-possessions_DONE.md) | Feature | ✅ Done |
 | 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation_DONE.md) | Feature | ✅ Done |
-| 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core.md) | Feature | ⬜ Open |
+| 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core_DONE.md) | Feature | ✅ Done |
 | 044 | [Action Consequences DSL & object-action relationships](044-action-consequences-and-object-action-relationships.md) | Feature | ⬜ Open |
 | 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions.md) | Feature | ⬜ Open |
 | 046 | [Brain & the Hooks pattern](046-brain-and-hooks.md) | Feature | ⬜ Open |
@@ -94,7 +94,7 @@ modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `i
   [040](040-hourly-ticks-and-execution-boundary_DONE.md) (24 ticks/day, shared tick lifecycle, append-only
   logs with causation, the world/materialization adapter).
 - **Core systems:** [041](041-objects-and-possessions_DONE.md) (objects & possessions),
-  [042](042-event-triggers-and-causation_DONE.md) (event triggers), [043](043-actions-core.md) (actions) →
+  [042](042-event-triggers-and-causation_DONE.md) (event triggers), [043](043-actions-core_DONE.md) (actions) →
   [044](044-action-consequences-and-object-action-relationships.md) (consequences & object transformations).
 - **Integration:** [045](045-job-shifts-and-work-actions.md) (shifts & work actions),
   [046](046-brain-and-hooks.md) (Brain), [047](047-job-orchestrator.md) (Job Orchestrator) →

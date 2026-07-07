@@ -2,7 +2,7 @@
 
 - **Type:** Core system / Simulation + Data
 - **Labels:** `framework`, `actions`, `objects`, `consequences`, `data`, `enrichment-arc`
-- **Depends on:** [041](041-objects-and-possessions_DONE.md) (instances), [043](043-actions-core.md) (action engine & bindings)
+- **Depends on:** [041](041-objects-and-possessions_DONE.md) (instances), [043](043-actions-core_DONE.md) (action engine & bindings)
 - **Blocks:** [045](045-job-shifts-and-work-actions.md)/[047](047-job-orchestrator.md) (work outputs), [051](051-actions-data-backfill.md)/[053](053-object-action-relationships-backfill.md) (content)
 
 ## Goal
