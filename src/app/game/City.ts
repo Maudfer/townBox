@@ -11,6 +11,8 @@ import { generateBusiness } from 'game/BusinessGen';
 import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
 import SkillRegistry from 'game/SkillRegistry';
+import LiveWorld from 'game/LiveWorld';
+import { runTick } from 'game/TickRunner';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf, parentsOf } from 'util/kinship';
@@ -56,6 +58,9 @@ export default class City {
     private deaths: number;
     private bankruptcies: number;
     private evictions: number;
+    // The live-mode WorldAdapter (task 040): the map-backed side of the execution boundary. Location
+    // transitions requested through it drive the real commute machinery and resolve on physical arrival.
+    private world: LiveWorld;
 
 
     constructor(gameManager: GameManager) {
@@ -68,6 +73,18 @@ export default class City {
         this.deaths = 0;
         this.bankruptcies = 0;
         this.evictions = 0;
+        this.world = new LiveWorld({
+            getPeople: () => Game.field?.getPeople() ?? [],
+            buildingByKey: key => {
+                for (const structure of Game.field?.getStructures() ?? []) {
+                    if (structure instanceof Building && structure.getIdentifier() === key) {
+                        return structure;
+                    }
+                }
+                return null;
+            },
+            startCommute: (person, destination) => this.startCommute(person, destination),
+        });
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
         Game.on("workplaceBuilt", { callback: this.setupBusiness, context: this });
@@ -392,31 +409,43 @@ export default class City {
         const housing = new HousingMarket(personByGenId, field);
         // Skill registry lets education events grant real skills to materialized people (task 032).
         const skills = new SkillRegistry(personByGenId);
-        const result = engine.simulateTick(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing, skills });
-        this.reconcileDeaths(result.died, personByGenId);
-        await this.materializeNewborns(result.born, personByGenId);
-        // City-overview vital tallies (task 031).
-        this.deaths += result.died.length;
-        this.births += result.born.length;
-        // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
-        if (result.died.length > 0) {
-            this.resolveRehousing(event.tick, ticksPerYear);
-        }
-        // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023) and grown
-        // children leave the family home to form their own household (task 024).
-        for (const signal of result.signals) {
-            if (!signal.personId) {
-                continue;
-            }
-            if (signal.signal === 'partnershipFormed') {
-                this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
-            } else if (signal.signal === 'movedOut') {
-                this.resolveMoveOut(signal.personId, event.tick);
-            }
-        }
-        // Surface the tick's notable happenings to the HUD feed (task 029).
-        this.announceCityEvents(result, personByGenId, event.tick);
-        // Remaining signals (hired, fellIll, …) are consumed by the feed and later phases.
+
+        // The shared per-tick lifecycle (task 040): the same TickRunner the bootstrap uses, under the `live`
+        // execution context. Phase 6 (onCommitted) is this city's world reconciliation.
+        await runTick({
+            engine,
+            state: population.getState(),
+            agentIds: [...materializedIds],
+            tick: event.tick,
+            ticksPerYear,
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills } },
+            onCommitted: async result => {
+                this.reconcileDeaths(result.died, personByGenId);
+                await this.materializeNewborns(result.born, personByGenId);
+                // City-overview vital tallies (task 031).
+                this.deaths += result.died.length;
+                this.births += result.born.length;
+                // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
+                if (result.died.length > 0) {
+                    this.resolveRehousing(event.tick, ticksPerYear);
+                }
+                // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023)
+                // and grown children leave the family home to form their own household (task 024).
+                for (const signal of result.signals) {
+                    if (!signal.personId) {
+                        continue;
+                    }
+                    if (signal.signal === 'partnershipFormed') {
+                        this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
+                    } else if (signal.signal === 'movedOut') {
+                        this.resolveMoveOut(signal.personId, event.tick);
+                    }
+                }
+                // Surface the tick's notable happenings to the HUD feed (task 029).
+                this.announceCityEvents(result, personByGenId, event.tick);
+                // Remaining signals (hired, fellIll, …) are consumed by the feed and later phases.
+            },
+        });
     }
 
     // Translates the day's deaths, births, and event signals into cityEvent feed entries (task 029). The
@@ -1301,11 +1330,17 @@ export default class City {
     // work once their shift has started, back home once it has ended. Each trip spawns a car at the origin's
     // entrance and drives the Person's TravelStep machine (walk → drive → walk), despawning the car on arrival.
     // Public for unit testing; invoked via the "timeChanged" event in production.
+    public getWorld(): LiveWorld {
+        return this.world;
+    }
+
     public handleCommute(event: TimeChangedEvent): void {
         const field = Game.field;
         if (!field) {
             return;
         }
+        // Resolve any pending location-transition handles whose person has physically arrived (task 040).
+        this.world.pump(event.tick);
         const minuteOfDay = event.timestamp.hour * 60 + event.timestamp.minute;
 
         for (const person of field.getPeople()) {

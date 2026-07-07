@@ -26,6 +26,8 @@ import {
 
 import { compileEvents, EventGraph } from 'game/EventCompiler';
 
+import { ExecutionContext } from 'types/Execution';
+
 import eventsConfig from 'json/events.json';
 
 export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as EventManifest;
@@ -442,16 +444,17 @@ export default class EventEngine {
         agentIds: PersonId[],
         tick: number,
         ticksPerYear: number,
-        adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null; housing?: HousingMarket | null; skills?: SkillRegistry | null } = {},
+        ctx: Partial<ExecutionContext> = {},
         ticksPerStep: number = 1
     ): TickResult {
         const result: TickResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1)) >>> 0);
-        this.jobMarket = adapters.jobMarket ?? null;
-        this.ledger = adapters.ledger ?? null;
-        this.housing = adapters.housing ?? null;
-        this.skills = adapters.skills ?? null;
+        const markets = ctx.markets ?? {};
+        this.jobMarket = markets.jobMarket ?? null;
+        this.ledger = markets.ledger ?? null;
+        this.housing = markets.housing ?? null;
+        this.skills = markets.skills ?? null;
 
         const agents = [...agentIds].sort();
         for (const agentId of agents) {
@@ -476,14 +479,29 @@ export default class EventEngine {
                     continue;
                 }
 
-                const roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng);
-                if (!roleMap) {
+                // Roll BEFORE resolving co-participant roles (task 040): candidate `where` searches are
+                // O(agents), so paying them only on a successful roll is what makes running the full manifest
+                // (marriage included) affordable pool-wide in bootstrap mode. The rare probability factor that
+                // drives on a non-subject role forces early resolution.
+                let roleMap: Record<string, PersonId> | null = { [ROLE_SUBJECT]: agentId };
+                const needsRolesForProbability = (event.probability.factors ?? []).some(factor => !factor.driver.startsWith(`${ROLE_SUBJECT}.`));
+                if (needsRolesForProbability) {
+                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng);
+                    if (!roleMap) {
+                        continue;
+                    }
+                }
+
+                const pTick = this.perTickProbability(event.probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
+                if (!rng.chance(pTick)) {
                     continue;
                 }
 
-                const pDay = this.perTickProbability(event.probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
-                if (!rng.chance(pDay)) {
-                    continue;
+                if (!needsRolesForProbability) {
+                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng);
+                    if (!roleMap) {
+                        continue; // a required role can't be filled — the event can't happen this tick
+                    }
                 }
 
                 const pendingSignals: PendingSignal[] = [];
