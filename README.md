@@ -102,11 +102,15 @@ the GUI never reaches into simulation internals** — they communicate *only* th
 
 ## The simulation loop
 
-Time comes from one `Clock` (**1 in-game day = 1 real hour**, on a 30-day-month / 360-day-year calendar). It
-emits `timeChanged` (per minute) and `newDay` (per rollover). Two cadences ride on top:
+Time comes from one `Clock` (**1 in-game day = 1 real hour**, on a 30-day-month / 360-day-year calendar). The
+canonical simulation tick is the **in-game hour** (24 ticks/day); the clock emits `timeChanged` (per minute),
+`newTick` (per hour), and `newDay` (per rollover). Three cadences ride on top:
 
-- **Per day** — the life-event engine (Engine B) resolves detailed events over every materialized person, and
-  the commute scheduler moves employees between home and work.
+- **Per hour (tick)** — the life-event engine (Engine B) resolves detailed events over every materialized
+  person through a shared tick lifecycle that live play and the history bootstrap both run, behind a formal
+  live/bootstrap **execution boundary**; every commit lands in an append-only per-person log with sequence
+  numbers and causation ids.
+- **Per minute** — the commute scheduler moves employees between home and work.
 - **Per month** — the economic tick runs payroll → demand-driven business P&L → producer (B2B) revenue →
   bankruptcy/growth → vacant-lot re-occupancy → household cost-of-living → eviction → homeless recovery.
 
@@ -115,14 +119,14 @@ businesses, materials, money, life events** — into one loop:
 
 ```mermaid
 graph TD
-    CLOCK([Clock · day / month ticks])
+    CLOCK([Clock · hour / day / month cadences])
 
     subgraph society [People and society]
         POOL[Genealogy pool<br/>deterministic generation]
         HH[Households<br/>living arrangements]
         PPL[People<br/>age · gender · relationships]
         SKILL[Skills]
-        EVT{{Life-event engine<br/>Engine B · per day}}
+        EVT{{Life-event engine<br/>Engine B · per hour}}
     end
 
     subgraph economy [Economy]
@@ -135,7 +139,7 @@ graph TD
 
     POOL -->|draw on house placement| HH -->|materialize living members| PPL
     PPL --> SKILL
-    CLOCK -->|newDay| EVT
+    CLOCK -->|newTick| EVT
     CLOCK -->|monthly| MONEY
 
     EVT -->|births| PPL
@@ -163,7 +167,7 @@ graph TD
 ```
 
 **Reading the loop.** A household is drawn from the pool and its living members become `People` on the map, each
-with a deterministic set of `Skills`. The **life-event engine** runs every day, aging the world forward: it
+with a deterministic set of `Skills`. The **life-event engine** runs every in-game hour, aging the world forward: it
 marries people (who then move in together), grows families (births), ends lives (deaths, which trigger orphan
 re-housing), grants skills through education, and toggles health via illness/injury/recovery. Skills make a
 person **hireable**; the **job market** matches them to open positions at **businesses** (generated from

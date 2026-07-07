@@ -52,7 +52,7 @@ Always run `npm test` before opening the PR.**
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
 | 038 | [Simulation enrichment & execution boundary — architecture + discovery baseline](038-simulation-enrichment-architecture_DONE.md) | Planning | ✅ Done |
 | 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators_DONE.md) | Framework | ✅ Done |
-| 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary.md) | Framework | ⬜ Open |
+| 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary_DONE.md) | Framework | ✅ Done |
 | 041 | [Objects & Person Possessions](041-objects-and-possessions.md) | Feature | ⬜ Open |
 | 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation.md) | Feature | ⬜ Open |
 | 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core.md) | Feature | ⬜ Open |
@@ -91,7 +91,7 @@ simulation dramatically richer before the offline pipeline freezes it into an as
 modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `if bootstrap` branches. Phases:
 
 - **Foundation:** [039](039-data-schema-registry-and-validators_DONE.md) (schema registry/validators/CI gate) →
-  [040](040-hourly-ticks-and-execution-boundary.md) (24 ticks/day, shared tick lifecycle, append-only
+  [040](040-hourly-ticks-and-execution-boundary_DONE.md) (24 ticks/day, shared tick lifecycle, append-only
   logs with causation, the world/materialization adapter).
 - **Core systems:** [041](041-objects-and-possessions.md) (objects & possessions),
   [042](042-event-triggers-and-causation.md) (event triggers), [043](043-actions-core.md) (actions) →
