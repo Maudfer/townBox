@@ -2,7 +2,7 @@
 
 - **Type:** Migration / Data + Review
 - **Labels:** `events`, `actions`, `data`, `migration`, `enrichment-arc`
-- **Depends on:** [042](042-event-triggers-and-causation_DONE.md) (triggers), [043](043-actions-core_DONE.md)/[044](044-action-consequences-and-object-action-relationships.md) (action linkage), [046](046-brain-and-hooks.md)/[047](047-job-orchestrator.md) (real trigger sources exist)
+- **Depends on:** [042](042-event-triggers-and-causation_DONE.md) (triggers), [043](043-actions-core_DONE.md)/[044](044-action-consequences-and-object-action-relationships_DONE.md) (action linkage), [046](046-brain-and-hooks.md)/[047](047-job-orchestrator.md) (real trigger sources exist)
 
 ## Goal
 

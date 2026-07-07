@@ -240,7 +240,7 @@ Framework before content: the schema registry, hourly lifecycle, materialization
 | [041](041-objects-and-possessions_DONE.md) | Object archetypes, instances, containers, Possessions | Core system |
 | [042](042-event-triggers-and-causation_DONE.md) | Event `triggers` (manual/probabilistic/automated) + causation logging | Core system |
 | [043](043-actions-core_DONE.md) | Action definitions, params, shared requirements, lifecycle, pools & sequences (no consequences) | Core system |
-| [044](044-action-consequences-and-object-action-relationships.md) | Consequence DSL + `object-action-relationships.json` | Core system |
+| [044](044-action-consequences-and-object-action-relationships_DONE.md) | Consequence DSL + `object-action-relationships.json` | Core system |
 | [045](045-job-shifts-and-work-actions.md) | Job shift schedules + work-Action declarations | Integration |
 | [046](046-brain-and-hooks.md) | Brain, intents, hooks, Woke-up / shift / arrival / idle behavior | Integration |
 | [047](047-job-orchestrator.md) | Job Orchestrator | Integration |

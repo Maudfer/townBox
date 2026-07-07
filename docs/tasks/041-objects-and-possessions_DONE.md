@@ -3,7 +3,7 @@
 - **Type:** Core system / Simulation + Data
 - **Labels:** `framework`, `objects`, `inventory`, `data`, `enrichment-arc`
 - **Depends on:** [039](039-data-schema-registry-and-validators_DONE.md) (schema registration), [040](040-hourly-ticks-and-execution-boundary_DONE.md) (save v8 coordination, log/causation for provenance)
-- **Blocks:** [044](044-action-consequences-and-object-action-relationships.md) (consequences move instances), [050](050-objects-data-backfill.md) (content)
+- **Blocks:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences move instances), [050](050-objects-data-backfill.md) (content)
 
 ## Goal
 
