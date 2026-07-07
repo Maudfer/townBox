@@ -13,6 +13,7 @@
     "package": "concurrently 'npm:copy-images' 'npm:build-prod'",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "validate-data": "jest test/dataValidation.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "keywords": [

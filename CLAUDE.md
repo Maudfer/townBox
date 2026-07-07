@@ -50,6 +50,7 @@ What does **not** exist yet: business **shrink-via-layoffs**, and a Playwright *
 - `npm run package` — production build.
 - `npm test` — runs Jest (fast unit suite).
 - `npm run test:coverage` — Jest with the coverage threshold gate (`game/` + `util/`).
+- `npm run validate-data` — runs the data-schema registry's validators against every `src/json/*` file (task 039; also part of `npm test` and asserted at game boot).
 - `npm run typecheck` — strict `tsc --noEmit`.
 - **CI:** `.github/workflows/ci.yml` runs the type check, coverage-gated unit suite, and production build on every PR to `main` and push to `main` (meant to be required status checks).
 
@@ -106,6 +107,11 @@ src/
       WorkLife.ts         # Per-person job + skills
       City.ts             # Wires houseBuilt->household, workplaceBuilt->business, newDay->event sim + rehousing
       DebugTools.ts       # Optional debug overlays (curbs, lanes, tile depth)
+      data/registry.ts    # Data-schema registry: registration model + validateRegistrations/assertValid (039)
+      data/checks.ts      # Shape-check helpers shared by validators
+      data/substrate.ts   # Structural validators for the Curve + Predicate manifest grammars
+      data/validators/    # Per-family validators: events, economyContent, params, ui
+      data/schemas.ts     # Canonical registration list + validateAllData()/assertValidData()
       save/SaveProvider.ts       # Storage backend interface (base64 payload)
       save/LocalStorageProvider.ts # localStorage-backed SaveProvider
       save/SaveManager.ts        # Serialize/deserialize the whole world; deflate (pako) + base64 + provider
@@ -153,6 +159,7 @@ test/
   businessGen.test.ts / businessSetup.test.ts  # Engine A generation + placement wiring
   eventCompiler.test.ts / eventEngine.test.ts  # Engine B compiler + per-day runtime
   cityLifeEvents.test.ts / rehousing.test.ts   # Birth materialization + orphan re-housing
+  dataValidation.test.ts                       # Data-schema registry: shipped files pass + invalid fixtures (039)
 ```
 
 ---
@@ -310,6 +317,7 @@ These rules are binding for every contributor (human or AI agent).
 - **Add new cross-system signals to `types/Events.ts` (`EventPayloads`) before wiring handlers.**
 - **Use the path aliases** (`game/*`, `hud/*`, `types/*`, `util/*`, `json/*`, `css/*`) — never deep relative imports.
 - **Centralize tunable data in `src/json/`** (assets, input, config, tool assets, and future game-data files) rather than hard-coding magic values across classes.
+- **Every file-based data schema must register in the data-schema registry** (`game/data/schemas.ts`, task 039) — a structural validator, plus a semantic/cross-reference validator when the file references other files — **in the same PR that introduces or extends the schema**, with representative *invalid* fixtures in `test/dataValidation.test.ts`. Data loading fails loudly (boot assert + CI gate); never let invalid entries be silently skipped.
 - Respect the existing **coordinate** (`tileToPixelPosition` / `pixelToTilePosition`) and **depth** conventions; any change to the tile or layering model must keep both internally consistent.
 - Prefer extending the existing `Tile`/`Building` class hierarchy over parallel ad-hoc structures.
 
