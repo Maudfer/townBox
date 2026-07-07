@@ -57,7 +57,7 @@ Always run `npm test` before opening the PR.**
 | 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation_DONE.md) | Feature | ✅ Done |
 | 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core_DONE.md) | Feature | ✅ Done |
 | 044 | [Action Consequences DSL & object-action relationships](044-action-consequences-and-object-action-relationships_DONE.md) | Feature | ✅ Done |
-| 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions.md) | Feature | ⬜ Open |
+| 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions_DONE.md) | Feature | ✅ Done |
 | 046 | [Brain & the Hooks pattern](046-brain-and-hooks.md) | Feature | ⬜ Open |
 | 047 | [The Job Orchestrator](047-job-orchestrator.md) | Feature | ⬜ Open |
 | 048 | [Revise & backfill all existing Events (triggers, hourly, action links)](048-events-revision-hourly-migration.md) | Migration | ⬜ Open |
@@ -96,7 +96,7 @@ modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `i
 - **Core systems:** [041](041-objects-and-possessions_DONE.md) (objects & possessions),
   [042](042-event-triggers-and-causation_DONE.md) (event triggers), [043](043-actions-core_DONE.md) (actions) →
   [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences & object transformations).
-- **Integration:** [045](045-job-shifts-and-work-actions.md) (shifts & work actions),
+- **Integration:** [045](045-job-shifts-and-work-actions_DONE.md) (shifts & work actions),
   [046](046-brain-and-hooks.md) (Brain), [047](047-job-orchestrator.md) (Job Orchestrator) →
   [048](048-events-revision-hourly-migration.md) (per-event revision for the new model).
 - **Content:** [049](049-content-planning-lists_DONE.md) (planning lists, done) feeds

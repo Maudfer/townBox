@@ -2,7 +2,7 @@
 
 - **Type:** Integration / Simulation
 - **Labels:** `jobs`, `actions`, `brain`, `enrichment-arc`
-- **Depends on:** [045](045-job-shifts-and-work-actions.md) (work-action declarations), [046](046-brain-and-hooks.md) (intent publishing)
+- **Depends on:** [045](045-job-shifts-and-work-actions_DONE.md) (work-action declarations), [046](046-brain-and-hooks.md) (intent publishing)
 - **Blocks:** [048](048-events-revision-hourly-migration.md) benefits (job events get real sources), [051](051-actions-data-backfill.md) exercises it at scale
 
 ## Goal

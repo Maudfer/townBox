@@ -241,7 +241,7 @@ Framework before content: the schema registry, hourly lifecycle, materialization
 | [042](042-event-triggers-and-causation_DONE.md) | Event `triggers` (manual/probabilistic/automated) + causation logging | Core system |
 | [043](043-actions-core_DONE.md) | Action definitions, params, shared requirements, lifecycle, pools & sequences (no consequences) | Core system |
 | [044](044-action-consequences-and-object-action-relationships_DONE.md) | Consequence DSL + `object-action-relationships.json` | Core system |
-| [045](045-job-shifts-and-work-actions.md) | Job shift schedules + work-Action declarations | Integration |
+| [045](045-job-shifts-and-work-actions_DONE.md) | Job shift schedules + work-Action declarations | Integration |
 | [046](046-brain-and-hooks.md) | Brain, intents, hooks, Woke-up / shift / arrival / idle behavior | Integration |
 | [047](047-job-orchestrator.md) | Job Orchestrator | Integration |
 | [048](048-events-revision-hourly-migration.md) | Revise & migrate every existing event (triggers, hourly probabilities, action links) | Migration |
