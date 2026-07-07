@@ -16,7 +16,7 @@ function gen(id: string, gender: Gender, ageYears: number, spouse?: string): Gen
     };
 }
 
-// 20 married couples (fertile ages) + 20 singles (marriageable) = 60 living adults.
+// 20 married couples (fertile ages) + 30 singles (marriageable) = 70 living adults.
 function fixturePool(): PopulationState {
     const people: Record<string, GenPerson> = {};
     for (let i = 0; i < 20; i++) {
@@ -25,7 +25,7 @@ function fixturePool(): PopulationState {
         people[wife] = gen(wife, Genders.Female, 25 + (i % 10), husband);
         people[husband] = gen(husband, Genders.Male, 27 + (i % 10), wife);
     }
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 30; i++) {
         const id = `s${String(i).padStart(2, '0')}`;
         people[id] = gen(id, i % 2 ? Genders.Male : Genders.Female, 22 + (i % 15));
     }
@@ -53,12 +53,14 @@ describe('per-year incidence bands (task 048)', () => {
     });
 
     test('young adults rarely die', () => {
-        expect(deaths).toBeLessThanOrEqual(2); // perYear 0.01 × age factor 0.2 over 60 people ≈ 0.12 expected
+        // Healthy-adult expectation is ~0.15/yr, but illness (health 0.5 → death factor ×8) raises the
+        // population-weighted rate to ~0.5/yr — the band guards against systematic runaways, not tail luck.
+        expect(deaths).toBeLessThanOrEqual(4);
     });
 
     test('marriages form at a believable clip among 20 singles', () => {
         expect(counts['marriage'] ?? 0).toBeGreaterThanOrEqual(1);
-        expect(counts['marriage'] ?? 0).toBeLessThanOrEqual(12); // ~0.1/yr × age curve × 20 singles + newlywed chains
+        expect(counts['marriage'] ?? 0).toBeLessThanOrEqual(15); // ~0.1/yr × age curve × 30 singles + newlywed chains
     });
 
     test('fertile couples produce children (and not absurdly many)', () => {
@@ -68,8 +70,8 @@ describe('per-year incidence bands (task 048)', () => {
 
     test('illness/recovery churn stays sane', () => {
         const ill = counts['fell_ill'] ?? 0;
-        expect(ill).toBeGreaterThanOrEqual(20); // 2/yr × 60 people, recovery re-arms eligibility
-        expect(ill).toBeLessThanOrEqual(240);
+        expect(ill).toBeGreaterThanOrEqual(20); // 2/yr × 70 people, recovery re-arms eligibility
+        expect(ill).toBeLessThanOrEqual(280);
         expect(counts['recovered'] ?? 0).toBeGreaterThanOrEqual(Math.floor(ill * 0.5)); // 24/yr recovery is fast
     });
 
@@ -104,8 +106,8 @@ describe('per-year incidence bands (task 048)', () => {
                 }
             }
         }
-        // The 0.1 night factor should suppress most arguments vs the unfactored rate (3/yr × 60 ≈ 180 → ~18).
-        expect(counts['argument'] ?? 0).toBeLessThanOrEqual(45);
+        // The 0.1 night factor should suppress most arguments vs the unfactored rate (3/yr × 70 ≈ 210 → ~21).
+        expect(counts['argument'] ?? 0).toBeLessThanOrEqual(55);
     });
 });
 
