@@ -61,5 +61,402 @@
             }
         ],
         "outputs": []
+    },
+    "tossed_a_fresh_salad": {
+        "action": "plated_the_meal",
+        "inputs": [
+            {
+                "archetype": "lettuce",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "tomato",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "caesar_salad",
+                "quantity": 2,
+                "container": "possessions"
+            }
+        ]
+    },
+    "roasted_a_hearty_dinner": {
+        "action": "plated_the_meal",
+        "inputs": [
+            {
+                "archetype": "potato",
+                "quantity": 2,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "onion",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "meatloaf_slice",
+                "quantity": 2,
+                "container": "possessions"
+            }
+        ]
+    },
+    "grilled_garlic_bread": {
+        "action": "plated_the_meal",
+        "inputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "butter_stick",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "garlic_bread",
+                "quantity": 2,
+                "container": "possessions"
+            }
+        ]
+    },
+    "packed_cheese_sandwiches": {
+        "action": "packed_a_lunch",
+        "inputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "cheese_wedge",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "sandwich",
+                "quantity": 2,
+                "container": "possessions"
+            }
+        ]
+    },
+    "packed_pb_sandwiches": {
+        "action": "packed_a_lunch",
+        "inputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "butter_stick",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "peanut_butter_sandwich",
+                "quantity": 2,
+                "container": "possessions"
+            }
+        ]
+    },
+    "ate_sandwich": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "sandwich",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_peanut_butter_sandwich": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "peanut_butter_sandwich",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_caesar_salad": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "caesar_salad",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meatloaf_slice": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "meatloaf_slice",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_garlic_bread": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "garlic_bread",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_grilled_steak": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "grilled_steak",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_bread_loaf": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "sliced_cake_for_guests": {
+        "action": "sliced_the_cake",
+        "inputs": [
+            {
+                "archetype": "cake",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "cake_slice",
+                "quantity": 6,
+                "container": "possessions"
+            }
+        ]
+    },
+    "baked_loaf_in_oven": {
+        "action": "baked_bread_loaf",
+        "inputs": [
+            {
+                "archetype": "raw_dough",
+                "quantity": 1,
+                "disposition": "transformed",
+                "transformTo": {
+                    "archetype": "bread_loaf"
+                },
+                "bindAs": "output"
+            }
+        ],
+        "outputs": [],
+        "context": {
+            "objectAtLocation": {
+                "archetype": "oven"
+            }
+        }
+    },
+    "fixed_a_broken_wristwatch": {
+        "action": "repaired_an_item",
+        "inputs": [
+            {
+                "archetype": "wristwatch",
+                "state": {
+                    "condition": "broken"
+                },
+                "quantity": 1,
+                "disposition": "transformed",
+                "transformTo": {
+                    "archetype": "wristwatch"
+                },
+                "bindAs": "output"
+            },
+            {
+                "archetype": "toolbox",
+                "quantity": 1,
+                "disposition": "required"
+            }
+        ],
+        "outputs": []
+    },
+    "fixed_a_broken_toy_car": {
+        "action": "repaired_an_item",
+        "inputs": [
+            {
+                "archetype": "toy_car",
+                "state": {
+                    "condition": "broken"
+                },
+                "quantity": 1,
+                "disposition": "transformed",
+                "transformTo": {
+                    "archetype": "toy_car"
+                },
+                "bindAs": "output"
+            },
+            {
+                "archetype": "toolbox",
+                "quantity": 1,
+                "disposition": "required"
+            }
+        ],
+        "outputs": []
+    },
+    "fixed_a_broken_umbrella": {
+        "action": "repaired_an_item",
+        "inputs": [
+            {
+                "archetype": "umbrella",
+                "state": {
+                    "condition": "broken"
+                },
+                "quantity": 1,
+                "disposition": "transformed",
+                "transformTo": {
+                    "archetype": "umbrella"
+                },
+                "bindAs": "output"
+            },
+            {
+                "archetype": "toolbox",
+                "quantity": 1,
+                "disposition": "required"
+            }
+        ],
+        "outputs": []
+    },
+    "scrubbed_with_supplies": {
+        "action": "deep_cleaned_the_kitchen",
+        "inputs": [
+            {
+                "archetype": "detergent_pod",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "sponge",
+                "quantity": 1,
+                "disposition": "required"
+            }
+        ],
+        "outputs": []
+    },
+    "wrapped_gift_with_supplies": {
+        "action": "wrapped_a_gift",
+        "inputs": [
+            {
+                "archetype": "wrapping_paper",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "gift_bow",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "bakery_bread_batch": {
+        "action": "baked_a_batch_of_bread",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 4,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
+    },
+    "bakery_display_cake": {
+        "action": "frosted_a_display_cake",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "cake",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
+    },
+    "workshop_crate": {
+        "action": "assembled_a_crate",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "wooden_crate",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
+    },
+    "workshop_planks": {
+        "action": "milled_some_planks",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "wood_plank",
+                "quantity": 4,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
+    },
+    "packed_parcel_for_shipping": {
+        "action": "taped_up_a_box",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "parcel",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
+    },
+    "kitchen_customer_order": {
+        "action": "plated_a_customer_order",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "grilled_steak",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
     }
 }
