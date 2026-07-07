@@ -279,6 +279,7 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
             case 'consumeObject':
             case 'removeObject':
             case 'moveObject':
+            case 'moveObjectToPerson':
             case 'transferObject':
             case 'setObjectState': {
                 const resolved = resolveObjectRef(op.object, ctx, plannedOutputs);
@@ -291,6 +292,12 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                         return null;
                     }
                     steps.push(() => inventory.moveInstance(materializeRef(resolved, ctx), container));
+                } else if (op.op === 'moveObjectToPerson') {
+                    const targetId = ctx.params['target'];
+                    if (typeof targetId !== 'string') {
+                        return null;
+                    }
+                    steps.push(() => inventory.moveInstance(materializeRef(resolved, ctx), { kind: 'possessions', personId: targetId }));
                 } else if (op.op === 'transferObject') {
                     const owner = resolveOwner(op.owner, ctx);
                     if (!owner) {
