@@ -13,6 +13,7 @@ import Brain from 'game/Brain';
 import Economy from 'game/Economy';
 import Inventory from 'game/Inventory';
 import SchoolRegistry from 'game/SchoolRegistry';
+import SkillBook from 'game/SkillBook';
 import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
 import { bootstrapHistory, DEFAULT_BOOTSTRAP_PARAMS, BootstrapParams } from 'game/HistoryBootstrap';
@@ -47,6 +48,7 @@ export default class GameManager {
     public economy: Economy | null;
     public inventory: Inventory | null;
     public schools: SchoolRegistry | null;
+    public skillBook: SkillBook | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -128,6 +130,7 @@ export default class GameManager {
         this.economy = null;
         this.inventory = null;
         this.schools = null;
+        this.skillBook = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -207,6 +210,11 @@ export default class GameManager {
             // School assignments (task 058): the persistent student-side registry. A load restores
             // assignments during deserialize; enrollment otherwise happens via City's daily sweep.
             this.schools = new SchoolRegistry();
+
+            // The skill store (tasks 059-062): proficiency records keyed by pool personId. A load restores
+            // records during deserialize; people are otherwise seeded at materialization and progress
+            // through school/work/education.
+            this.skillBook = new SkillBook();
 
             // Pre-game history bootstrap (task 036): on a fresh game, fast-forward the detailed event engine
             // over the pool's recent past (off the main thread) so drawn households arrive with real histories.

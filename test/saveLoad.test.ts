@@ -13,7 +13,6 @@ import { HouseholdArrangements } from '../src/types/Household';
 import { SaveProvider } from '../src/app/game/save/SaveProvider';
 import { encodeBase64, decodeBase64 } from '../src/util/base64';
 import { Genders, Relationships } from '../src/types/Social';
-import { JobRequirements } from '../src/types/Work';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
 // A provider backed by an in-memory map. Using it in tests proves the SaveProvider abstraction is the only
@@ -131,8 +130,8 @@ describe('SaveManager round-trip', () => {
             lineOfWork: 'Super Market',
             size: 4,
             positions: [
-                { title: 'Checkout Clerk', salary: 1300, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 },
-                { title: 'Janitor', salary: 1100, requirements: [JobRequirements.CleaningSkill], shiftStart: 540, shiftEnd: 1020 },
+                { title: 'Checkout Clerk', salary: 1300, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 },
+                { title: 'Janitor', salary: 1100, requirements: ['sanitize_surfaces'], shiftStart: 540, shiftEnd: 1020 },
             ],
         });
         // Re-occupancy bookkeeping (task 037) should round-trip.
@@ -145,8 +144,7 @@ describe('SaveManager round-trip', () => {
         parent.social.setAge(40);
         parent.social.setGender(Genders.Male);
         parent.social.setHome(house);
-        parent.work.setSkills([JobRequirements.ConstructionSkill]);
-        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: [JobRequirements.ConstructionSkill], shiftStart: 540, shiftEnd: 1020 });
+        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: ['carry_building_materials'], shiftStart: 540, shiftEnd: 1020 });
 
         const child = source.field.loadPerson(72, 60);
         child.social.setFirstName('Cleo');
@@ -219,7 +217,6 @@ describe('SaveManager round-trip', () => {
 
         // Work
         expect(restoredParent.work.getJob()?.title).toBe('Constructor');
-        expect(restoredParent.work.getSkills()).toContain(JobRequirements.ConstructionSkill);
 
         // Relationship graph (cyclic) reconstructed by reference
         const restoredChildren = restoredParent.social.getInfo().relationships[Relationships.Child];

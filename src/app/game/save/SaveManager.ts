@@ -11,6 +11,13 @@ import Vehicle from 'game/Vehicle';
 import { SaveProvider } from 'game/save/SaveProvider';
 import LocalStorageProvider from 'game/save/LocalStorageProvider';
 import { migrateSnapshot } from 'game/save/migrations';
+import { applyLegacySkills } from 'game/save/legacySkills';
+import jobsConfig from 'json/jobs.json';
+
+// Skill ids referenced by any job (the initialization employability bias, task 062) — mirrors City's set.
+const JOB_CORE_SKILL_IDS: ReadonlySet<string> = new Set(
+    Object.values(jobsConfig as Record<string, { requiredSkills?: string[] }>).flatMap(job => job.requiredSkills ?? [])
+);
 
 import { compress, decompress } from 'util/compress';
 import { Relationships } from 'types/Social';
@@ -143,6 +150,7 @@ export default class SaveManager {
             objects: this.game.inventory?.getState(),
             actions: this.game.actionEngine?.getState(),
             schools: this.game.schools?.getState(),
+            skillBook: this.game.skillBook?.getState(),
         };
     }
 
@@ -232,7 +240,6 @@ export default class SaveManager {
             homeId: home ? home.getIdentifier() : null,
             relationships,
             job: work.job,
-            skills: work.skills,
             vehicleId: vehicle ? vehicleIds.get(vehicle) ?? null : null,
         };
     }
@@ -315,6 +322,31 @@ export default class SaveManager {
             this.game.schools?.loadState(snapshot.schools);
         }
 
+        // Skill records (v10+, tasks 059-062). Pre-v10 saves carry none: every loaded person is
+        // re-initialized deterministically (same seed convention as materialization) and their legacy
+        // boolean skills are granted on top via the 061 mapping, so a MedicalSkill person stays medical.
+        if (snapshot.skillBook) {
+            this.game.skillBook?.loadState(snapshot.skillBook);
+        } else if (this.game.skillBook && snapshot.population) {
+            const skillBook = this.game.skillBook;
+            const clock = this.game.clock;
+            const tick = clock ? clock.getCurrentTick() : 0;
+            const ticksPerYear = clock ? clock.getTicksPerYear() : 8640;
+            const worldSeed = snapshot.population.worldSeed;
+            for (const personSnapshot of snapshot.people) {
+                const personId = personSnapshot.personId;
+                const genPerson = personId ? snapshot.population.people[personId] : undefined;
+                if (!personId || !genPerson) {
+                    continue;
+                }
+                const ageYears = Math.floor((tick - genPerson.birthTick) / ticksPerYear);
+                skillBook.initialize(personId, ageYears, genPerson.birthTick, tick, worldSeed, JOB_CORE_SKILL_IDS);
+                if (personSnapshot.skills && personSnapshot.skills.length > 0) {
+                    applyLegacySkills(skillBook, personId, personSnapshot.skills, tick);
+                }
+            }
+        }
+
         // Structures first, so houses/workplaces exist to be referenced by people and families.
         const structureByKey = new Map<string, Tile>();
         for (const structureSnapshot of snapshot.structures) {
@@ -350,7 +382,6 @@ export default class SaveManager {
             if (personSnapshot.job) {
                 person.work.setJob(personSnapshot.job);
             }
-            person.work.setSkills(personSnapshot.skills);
             personById.set(personSnapshot.id, person);
         }
 

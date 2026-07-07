@@ -10,7 +10,7 @@ import { evaluateCurve } from '../src/util/curve';
 import { TICKS_PER_MONTH } from '../src/util/time';
 import { BusinessBlueprint, BusinessBlueprintTable } from '../src/types/Business';
 import { DemandTable } from '../src/types/Demand';
-import { JobPosition, JobRequirements } from '../src/types/Work';
+import {JobPosition} from '../src/types/Work';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
 import businessesConfig from '../src/json/businesses.json';
@@ -24,7 +24,7 @@ const PRICES: Record<string, number> = Object.fromEntries(
 );
 
 function job(title: string, salary: number): JobPosition {
-    return { title, salary, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 };
+    return { title, salary, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 };
 }
 
 function makeWorld(): { city: City; field: Field; economy: Economy; game: GameManager } {

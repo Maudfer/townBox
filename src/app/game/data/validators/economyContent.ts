@@ -1,16 +1,14 @@
-// Validators for the Engine A / economy content family: jobs, businesses, materials, skills, demand.
+// Validators for the Engine A / economy content family: jobs, businesses, materials, demand.
 // The semantic cross-checks port test/contentConsistency.test.ts (tasks 034 + 033b) into the registry so the
-// same referential integrity that gated CI now also gates game boot.
+// same referential integrity that gated CI now also gates game boot. (Skills moved to their own manifest and
+// validator family — validators/skills.ts, task 059; jobs cross-check against that manifest here.)
 
 import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkNumber, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
 import { validateCurve } from 'game/data/substrate';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';
-import { JobRequirements } from 'types/Work';
 import { MINUTES_PER_DAY } from 'util/time';
-
-const VALID_SKILLS = new Set<string>(Object.values(JobRequirements));
 
 const JOB_KEYS = ['title', 'salary', 'requiredSkills', 'shiftStart', 'shiftEnd', 'daysOfWeek', 'workActions', 'physicalStrain', 'mentalStrain', 'socialAdmiration'];
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
@@ -87,7 +85,7 @@ export function validateJobsStructure(data: unknown, issues: IssueCollector): vo
 
 export function validateJobsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const jobs = data as JobTable;
-    const weights = (peers['skills'] as { weights?: Record<string, number> } | undefined)?.weights ?? {};
+    const skills = (peers['skills'] ?? {}) as Record<string, unknown>;
     const actions = (peers['actions'] ?? {}) as Record<string, { type?: string }>;
     for (const [id, job] of Object.entries(jobs)) {
         // Work-action declarations (task 045) must reference real actions of the matching kind.
@@ -104,13 +102,13 @@ export function validateJobsSemantics(data: unknown, peers: Record<string, unkno
         }
         job.requiredSkills.forEach((skill, index) => {
             const path = `${id}.requiredSkills[${index}]`;
-            if (!VALID_SKILLS.has(skill)) {
-                issues.add(path, `unknown skill "${skill}"`);
-            } else if ((weights[skill] ?? 0) <= 0) {
-                // An unweighted skill is unfillable: nobody is ever assigned it, so the job can never be staffed.
-                issues.add(path, `skill "${skill}" has no positive weight in skills.json (job is unfillable)`);
+            if (!(skill in skills)) {
+                issues.add(path, `unknown skill "${skill}" (not in skills.json)`);
             }
         });
+        if (job.requiredSkills.length === 0) {
+            issues.add(`${id}.requiredSkills`, 'a job needs at least one required skill');
+        }
     }
 }
 
@@ -222,40 +220,6 @@ export function validateMaterialsStructure(data: unknown, issues: IssueCollector
         checkUnknownKeys(issues, id, material, ['label', 'basePrice']);
         checkString(issues, `${id}.label`, material['label']);
         checkNumber(issues, `${id}.basePrice`, material['basePrice'], { min: 0 });
-    }
-}
-
-export function validateSkillsStructure(data: unknown, issues: IssueCollector): void {
-    if (!checkRecord(issues, '', data)) {
-        return;
-    }
-    checkUnknownKeys(issues, '', data, ['workingAgeYears', 'adult', 'minor', 'weights']);
-    checkNumber(issues, 'workingAgeYears', data['workingAgeYears'], { min: 1, integer: true });
-    for (const band of ['adult', 'minor']) {
-        if (!checkRecord(issues, band, data[band])) {
-            continue;
-        }
-        const range = data[band] as Record<string, unknown>;
-        checkUnknownKeys(issues, band, range, ['minSkills', 'maxSkills']);
-        const minOk = checkNumber(issues, `${band}.minSkills`, range['minSkills'], { min: 0, integer: true });
-        const maxOk = checkNumber(issues, `${band}.maxSkills`, range['maxSkills'], { min: 0, integer: true });
-        if (minOk && maxOk && (range['minSkills'] as number) > (range['maxSkills'] as number)) {
-            issues.add(band, `minSkills (${range['minSkills']}) must be <= maxSkills (${range['maxSkills']})`);
-        }
-    }
-    if (checkRecord(issues, 'weights', data['weights'])) {
-        for (const [skill, weight] of Object.entries(data['weights'] as Record<string, unknown>)) {
-            checkNumber(issues, `weights.${skill}`, weight, { min: 0 });
-        }
-    }
-}
-
-export function validateSkillsSemantics(data: unknown, _peers: Record<string, unknown>, issues: IssueCollector): void {
-    const weights = (data as { weights: Record<string, number> }).weights;
-    for (const skill of Object.keys(weights)) {
-        if (!VALID_SKILLS.has(skill)) {
-            issues.add(`weights.${skill}`, `not a JobRequirements skill (stale weight)`);
-        }
     }
 }
 

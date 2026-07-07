@@ -12,7 +12,6 @@ import Person from '../src/app/game/Person';
 import { GenPerson, PersonId, PersonTable } from '../src/types/Genealogy';
 import { HouseholdArrangements } from '../src/types/Household';
 import { Genders, Gender } from '../src/types/Social';
-import { JobRequirements } from '../src/types/Work';
 import { Tool } from '../src/types/Cursor';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
@@ -66,8 +65,8 @@ function materialize(field: Field, house: House, id: string, x: number, y: numbe
     return person;
 }
 
-function job(title: string): { title: string; salary: number; requirements: JobRequirements[]; shiftStart: number; shiftEnd: number } {
-    return { title, salary: 1000, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 };
+function job(title: string): { title: string; salary: number; requirements: string[]; shiftStart: number; shiftEnd: number } {
+    return { title, salary: 1000, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 };
 }
 
 describe('Bulldoze teardown (task 025)', () => {

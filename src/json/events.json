@@ -679,7 +679,14 @@
         "effects": [
             {
                 "type": "acquireSkill",
-                "value": "MechanicalSkill",
+                "value": "diagnose_mechanical_failure",
+                "proficiency": 30,
+                "target": "subject"
+            },
+            {
+                "type": "acquireSkill",
+                "value": "replace_worn_parts",
+                "proficiency": 30,
                 "target": "subject"
             },
             {
@@ -743,7 +750,14 @@
         "effects": [
             {
                 "type": "acquireSkill",
-                "value": "MedicalSkill",
+                "value": "measure_vital_signs",
+                "proficiency": 30,
+                "target": "subject"
+            },
+            {
+                "type": "acquireSkill",
+                "value": "administer_medication",
+                "proficiency": 30,
                 "target": "subject"
             },
             {

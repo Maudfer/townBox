@@ -112,6 +112,9 @@ export interface Effect {
     target?: string;
     resource?: string;
     amount?: Curve;
+    // acquireSkill only (task 059): the proficiency floor the grant raises the skill to (grant-to-at-least).
+    // Absent = the adapter's default.
+    proficiency?: number;
 }
 
 export interface EventDefinition {
@@ -218,10 +221,11 @@ export interface HousingMarket {
     canMoveOut(personId: string): boolean;
 }
 
-// The skill adapter the event runtime consults so education/training events can grant a real skill to a
-// materialized person (the `acquireSkill` effect, task 032) without importing the WorkLife/Field layer. Returns
-// whether the skill was newly added. The concrete implementation lives in game/SkillRegistry.ts; keyed on the
-// genealogy PersonId.
+// The skill adapter the event runtime consults so education/training events can grant real proficiency
+// (the `acquireSkill` effect, task 032; proficiency semantics task 059) without importing the SkillBook
+// layer. `toAtLeast` is the effect's optional proficiency floor (grant-to-at-least; the adapter supplies a
+// default). Returns whether the grant changed anything. Concrete implementation: game/SkillRegistry.ts;
+// keyed on the genealogy PersonId.
 export interface SkillRegistry {
-    acquireSkill(personId: string, skill: string): boolean;
+    acquireSkill(personId: string, skill: string, toAtLeast?: number): boolean;
 }

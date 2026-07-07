@@ -3,10 +3,11 @@ import House from '../src/app/game/House';
 import Workplace from '../src/app/game/Workplace';
 import Person from '../src/app/game/Person';
 import JobMarket from '../src/app/game/JobMarket';
+import SkillBook from '../src/app/game/SkillBook';
 import GameManager from '../src/app/game/GameManager';
 
 import { PixelPosition, TilePosition } from '../src/types/Position';
-import { JobRequirements, JobPosition } from '../src/types/Work';
+import {JobPosition} from '../src/types/Work';
 import { PersonId } from '../src/types/Genealogy';
 
 function makeField(rows: number, cols: number): Field {
@@ -33,7 +34,7 @@ function makeField(rows: number, cols: number): Field {
     return field;
 }
 
-function position(title: string, skill: JobRequirements): JobPosition {
+function position(title: string, skill: string): JobPosition {
     return { title, salary: 1000, requirements: [skill], shiftStart: 540, shiftEnd: 1020 };
 }
 
@@ -41,11 +42,21 @@ function setBusiness(workplace: Workplace, name: string, positions: JobPosition[
     workplace.setBusiness({ blueprintKey: 'test', name, lineOfWork: 'Test', size: 1, positions });
 }
 
-function materialize(field: Field, id: PersonId, home: House, skills: JobRequirements[]): Person {
+function skillBookWith(entries: [PersonId, string[]][]): SkillBook {
+    const skillBook = new SkillBook();
+    for (const [personId, skills] of entries) {
+        for (const skill of skills) {
+            // Fixtures grant with prerequisites so manifest dependency gates never interfere with the test.
+            skillBook.grantWithPrerequisites(personId, skill, 50, 0, 'initialization');
+        }
+    }
+    return skillBook;
+}
+
+function materialize(field: Field, id: PersonId, home: House): Person {
     const person = field.loadPerson(72, 72);
     person.social.setPersonId(id);
     person.social.setHome(home);
-    person.work.setSkills(skills);
     return person;
 }
 
@@ -54,10 +65,10 @@ describe('JobMarket', () => {
         const field = makeField(40, 40);
         const home = field.loadStructure('house', 4, 4, 'h') as House;
         const shop = field.loadStructure('work', 7, 7, 'w') as Workplace;
-        setBusiness(shop, 'Shop', [position('Clerk', JobRequirements.RetailSkill)]);
+        setBusiness(shop, 'Shop', [position('Clerk', 'assist_customers')]);
 
-        const person = materialize(field, 'p1', home, [JobRequirements.RetailSkill]);
-        const market = new JobMarket(new Map([['p1', person]]), field);
+        const person = materialize(field, 'p1', home);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]));
 
         expect(market.isEmployed('p1')).toBe(false);
         expect(market.canHire('p1')).toBe(true);
@@ -73,11 +84,11 @@ describe('JobMarket', () => {
         const field = makeField(40, 40);
         const home = field.loadStructure('house', 4, 4, 'h') as House;
         const shop = field.loadStructure('work', 7, 7, 'w') as Workplace;
-        setBusiness(shop, 'Shop', [position('Clerk', JobRequirements.RetailSkill)]);
+        setBusiness(shop, 'Shop', [position('Clerk', 'assist_customers')]);
 
-        const mismatched = materialize(field, 'p1', home, [JobRequirements.MedicalSkill]);
-        const unskilled = materialize(field, 'p2', home, []);
-        const market = new JobMarket(new Map([['p1', mismatched], ['p2', unskilled]]), field);
+        const mismatched = materialize(field, 'p1', home);
+        const unskilled = materialize(field, 'p2', home);
+        const market = new JobMarket(new Map([['p1', mismatched], ['p2', unskilled]]), field, skillBookWith([['p1', ['measure_vital_signs']]]));
 
         expect(market.canHire('p1')).toBe(false);
         expect(market.hire('p1')).toBe(false);
@@ -89,11 +100,11 @@ describe('JobMarket', () => {
         const home = field.loadStructure('house', 4, 4, 'h') as House;
         const near = field.loadStructure('work', 7, 7, 'w') as Workplace; // distance 6
         const far = field.loadStructure('work', 40, 40, 'w') as Workplace; // distance 72
-        setBusiness(near, 'Near Co', [position('Clerk', JobRequirements.RetailSkill)]);
-        setBusiness(far, 'Far Co', [position('Clerk', JobRequirements.RetailSkill)]);
+        setBusiness(near, 'Near Co', [position('Clerk', 'assist_customers')]);
+        setBusiness(far, 'Far Co', [position('Clerk', 'assist_customers')]);
 
-        const person = materialize(field, 'p1', home, [JobRequirements.RetailSkill]);
-        const market = new JobMarket(new Map([['p1', person]]), field);
+        const person = materialize(field, 'p1', home);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]));
 
         expect(market.hire('p1')).toBe(true);
         expect(near.getEmployees()).toContain(person);
@@ -104,10 +115,10 @@ describe('JobMarket', () => {
         const field = makeField(40, 40);
         const home = field.loadStructure('house', 4, 4, 'h') as House;
         const shop = field.loadStructure('work', 7, 7, 'w') as Workplace;
-        setBusiness(shop, 'Shop', [position('Clerk', JobRequirements.RetailSkill)]);
+        setBusiness(shop, 'Shop', [position('Clerk', 'assist_customers')]);
 
-        const person = materialize(field, 'p1', home, [JobRequirements.RetailSkill]);
-        const market = new JobMarket(new Map([['p1', person]]), field);
+        const person = materialize(field, 'p1', home);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]));
         market.hire('p1');
 
         market.fire('p1');

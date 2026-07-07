@@ -5,7 +5,7 @@ import Economy from '../src/app/game/Economy';
 import GameManager from '../src/app/game/GameManager';
 
 import { PixelPosition, TilePosition } from '../src/types/Position';
-import { JobPosition, JobRequirements } from '../src/types/Work';
+import {JobPosition} from '../src/types/Work';
 
 function makeWorld(): { city: City; field: Field; economy: Economy; emitted: { event: string; payload: unknown }[] } {
     const rows = 30;
@@ -36,7 +36,7 @@ function makeWorld(): { city: City; field: Field; economy: Economy; emitted: { e
 }
 
 function job(salary: number): JobPosition {
-    return { title: 'Clerk', salary, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 };
+    return { title: 'Clerk', salary, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 };
 }
 
 function staffedWorkplace(field: Field, economy: Economy, capital: number, salary: number): { key: string; personId: string } {

@@ -9,7 +9,6 @@ import { checkArray, checkNumber, checkRecord, checkString, checkUnknownKeys, is
 import { validateCurve, validatePredicate } from 'game/data/substrate';
 import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/EventCompiler';
 import { EventManifest } from 'types/LifeEvent';
-import { JobRequirements } from 'types/Work';
 import { KNOWN_SIGNALS } from 'util/notifications';
 
 const EVENT_KEYS = ['roles', 'triggers', 'effects', 'limit', 'label', 'category'];
@@ -26,7 +25,7 @@ const EFFECT_RULES: Record<string, { required: readonly string[]; optional: read
     acquireSlot: { required: ['resource'], optional: [] },
     releaseSlot: { required: ['resource'], optional: [] },
     adjustMoney: { required: ['amount'], optional: [] },
-    acquireSkill: { required: ['value'], optional: [] },
+    acquireSkill: { required: ['value'], optional: ['proficiency'] },
     emit: { required: ['signal'], optional: [] },
 };
 
@@ -259,6 +258,9 @@ function validateEffects(issues: IssueCollector, id: string, effects: unknown, r
         }
         if (type === 'acquireSkill') {
             checkString(issues, `${effectPath}.value`, effect['value']);
+            if ('proficiency' in effect) {
+                checkNumber(issues, `${effectPath}.proficiency`, effect['proficiency'], { min: 0.000001, max: 100 });
+            }
         }
         if (type === 'setAttr') {
             checkString(issues, `${effectPath}.attr`, effect['attr']);
@@ -268,8 +270,7 @@ function validateEffects(issues: IssueCollector, id: string, effects: unknown, r
 
 export function validateEventsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const manifest = data as EventManifest;
-    const skillWeights = (peers['skills'] as { weights?: Record<string, number> } | undefined)?.weights ?? {};
-    const validSkills = new Set<string>(Object.values(JobRequirements));
+    const skillManifest = (peers['skills'] ?? {}) as Record<string, unknown>;
     const knownAttrs = new Set(DEFAULT_BASE_ATTRIBUTES);
 
     // The compiler's own diagnostics (unknown hasEvent prerequisites, unknown required attributes, dependency
@@ -282,10 +283,8 @@ export function validateEventsSemantics(data: unknown, peers: Record<string, unk
         event.effects.forEach((effect, index) => {
             const effectPath = `${id}.effects[${index}]`;
             if (effect.type === 'acquireSkill' && typeof effect.value === 'string') {
-                if (!validSkills.has(effect.value)) {
-                    issues.add(`${effectPath}.value`, `unknown skill "${effect.value}"`);
-                } else if ((skillWeights[effect.value] ?? 0) <= 0) {
-                    issues.add(`${effectPath}.value`, `skill "${effect.value}" has no positive weight in skills.json`);
+                if (!(effect.value in skillManifest)) {
+                    issues.add(`${effectPath}.value`, `unknown skill "${effect.value}" (not in skills.json)`);
                 }
             }
             if (effect.type === 'setAttr' && typeof effect.attr === 'string' && !knownAttrs.has(effect.attr)) {

@@ -1,5 +1,5 @@
 import { evaluateCurve } from 'util/curve';
-import { JobPosition, JobRequirements, DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from 'types/Work';
+import { JobPosition, DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from 'types/Work';
 import { BusinessBlueprint, BusinessInstance, JobDefinition, JobTable } from 'types/Business';
 
 // Engine A — generative business blueprints (docs/tasks/013 §4). generateBusiness is a pure function of its
@@ -11,8 +11,8 @@ function toJobPosition(def: JobDefinition): JobPosition {
     return {
         title: def.title,
         salary: def.salary,
-        // Skill ids are the JobRequirements enum's string values; jobs.json keeps them aligned.
-        requirements: def.requiredSkills as JobRequirements[],
+        // Skill ids come from the skill manifest (json/skills.json); the data validators keep them aligned.
+        requirements: def.requiredSkills,
         shiftStart: def.shiftStart ?? DEFAULT_SHIFT_START,
         shiftEnd: def.shiftEnd ?? DEFAULT_SHIFT_END,
         daysOfWeek: (def.daysOfWeek ?? ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']) as JobPosition['daysOfWeek'],

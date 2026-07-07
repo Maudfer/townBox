@@ -18,7 +18,6 @@ import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf, parentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
-import { assignSkills } from 'util/skills';
 import { isSchoolAge, schoolFactsFor } from 'util/school';
 import { notificationForSignal } from 'util/notifications';
 import { TICKS_PER_MONTH } from 'util/time';
@@ -46,6 +45,9 @@ const MATERIAL_PRICES: Record<string, number> = Object.fromEntries(
     Object.entries(materialsConfig as Record<string, { basePrice: number }>).map(([key, value]) => [key, value.basePrice])
 );
 const DEMAND_TABLE = demandConfig as unknown as DemandTable;
+// Skill ids referenced by any job's requirements — the employability bias for initialization assortments
+// (task 062; consumed by SkillBook.initialize).
+const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
@@ -275,8 +277,9 @@ export default class City {
             // Link to the genealogy record so age derives from the clock and deaths can be reconciled later.
             person.social.setBirthTick(genPerson.birthTick);
             person.social.setPersonId(memberId);
-            // Deterministic, age-aware skill set (task 014) so hiring (015) has something to match.
-            person.work.setSkills(assignSkills(memberId, age, population.getState().worldSeed));
+            // One-time, age-appropriate skill seeding (task 062): basics/milestones/assortment into the
+            // central SkillBook so hiring (015) has something to match. Idempotent across rematerialization.
+            Game.skillBook?.initialize(memberId, age, genPerson.birthTick, currentTick, population.getState().worldSeed, JOB_CORE_SKILLS);
             // Seed starting funds (task 017). Newborns (materializeNewborns) start at 0.
             Game.economy?.setPersonBalance(memberId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds);
 
@@ -393,6 +396,10 @@ export default class City {
         // School enrollment upkeep (task 058): release invalid assignments, enroll unassigned children.
         this.runSchoolSweeps(event.tick, clock.getTicksPerYear());
 
+        // Early-childhood skill milestones (task 062): simulated children gain the next foundational grants
+        // as they cross birthdays (idempotent toAtLeast grants; deterministic, RNG-free).
+        this.runSkillMilestones(event.tick, clock.getTicksPerYear());
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
     }
@@ -469,6 +476,28 @@ export default class City {
         }
     }
 
+    // Early-childhood skill milestones (task 062): every simulated child under school age receives the
+    // milestone grants for their current age. Grants are toAtLeast and dependency-free (foundational), so
+    // the daily re-run is an idempotent no-op between birthdays. RNG-free.
+    private runSkillMilestones(tick: number, ticksPerYear: number): void {
+        const skillBook = Game.skillBook;
+        const population = Game.population;
+        if (!skillBook || !population) {
+            return;
+        }
+        const pool = population.getPeople();
+        for (const personId of [...this.indexMaterialized().keys()].sort()) {
+            const genPerson = pool[personId];
+            if (!genPerson || !isAliveAt(genPerson, tick)) {
+                continue;
+            }
+            const ageYears = ageAt(genPerson, tick, ticksPerYear);
+            if (ageYears >= 1 && ageYears < SCHOOL_CONFIG.minAgeYears) {
+                skillBook.applyMilestones(personId, ageYears, tick);
+            }
+        }
+    }
+
     // The Brain hook's school-facts resolver (task 058): a VALID assignment or null. Validity is derived
     // fresh — the school building still hosts a school business, and the person is inside the enrollment
     // age band. The daily sweep repairs/releases stale assignments; between sweeps this returns null for
@@ -521,12 +550,12 @@ export default class City {
 
         // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
         // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
-        const jobMarket = new JobMarket(personByGenId, field);
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook) : null;
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
         // exists. Rebuilt each tick over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);
-        // Skill registry lets education events grant real skills to materialized people (task 032).
-        const skills = new SkillRegistry(personByGenId);
+        // Skill registry lets education events grant real proficiency (tasks 032/059).
+        const skills = Game.skillBook ? new SkillRegistry(Game.skillBook, event.tick) : null;
 
         // The shared per-tick lifecycle (task 040): the same TickRunner the bootstrap uses, under the `live`
         // execution context. Phase 6 (onCommitted) is this city's world reconciliation.
@@ -1221,8 +1250,8 @@ export default class City {
             person.setupCitizenship(genChild.firstName, genChild.familyName, 0, genChild.gender);
             person.social.setBirthTick(genChild.birthTick);
             person.social.setPersonId(birth.id);
-            // Newborns are minors → typically no specialised skills yet (task 014); they acquire them with age.
-            person.work.setSkills(assignSkills(birth.id, 0, population.getState().worldSeed));
+            // Newborns start skill-less (task 062); milestones/school/education add proficiency with age.
+            Game.skillBook?.initialize(birth.id, 0, genChild.birthTick, clock.getCurrentTick(), population.getState().worldSeed, JOB_CORE_SKILLS);
 
             home.addResident(person);
             home.addOccupant(person);
