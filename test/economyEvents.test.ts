@@ -29,7 +29,7 @@ describe('economy in the event engine (task 017)', () => {
         const manifest: EventManifest = {
             payday: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1000 },
+                triggers: { probabilistic: { perYear: 1000 } },
                 effects: [{ type: 'adjustMoney', target: 'subject', amount: { mode: 'const', value: 500 } }],
             },
         };
@@ -49,7 +49,7 @@ describe('economy in the event engine (task 017)', () => {
                     { attr: 'alive', op: '==', value: true },
                     { attr: 'money', op: '>=', value: 1000 },
                 ] } } },
-                probability: { perYear: 1000 },
+                triggers: { probabilistic: { perYear: 1000 } },
                 effects: [{ type: 'emit', signal: 'boughtYacht', target: 'subject' }],
             },
         };
@@ -67,7 +67,7 @@ describe('economy in the event engine (task 017)', () => {
         const manifest: EventManifest = {
             payday: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1000 },
+                triggers: { probabilistic: { perYear: 1000 } },
                 effects: [{ type: 'adjustMoney', target: 'subject', amount: { mode: 'const', value: 500 } }],
             },
         };

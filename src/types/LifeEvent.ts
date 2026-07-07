@@ -21,11 +21,71 @@ export interface ProbabilityFactor {
     curve: Curve;
 }
 
-// Authored as an annual rate; the runtime (013d) converts it to a per-day hazard via the clock's ticksPerYear.
+// Authored as an annual rate; the runtime converts it to a per-tick hazard via the clock's ticksPerYear.
 export interface ProbabilitySpec {
     perYear: number;
     factors?: ProbabilityFactor[];
 }
+
+// --- Triggers (task 042; docs/tasks/038 §6) -------------------------------------------------------------
+//
+// Every event declares HOW it can happen via `triggers`; the validator errors on an event with none. An
+// event may declare several types (e.g. a manual action-driven commit plus an automated fallback).
+
+// Programmatically invokable through EventEngine.invoke() — by Actions (043), Brain (046), the Job
+// Orchestrator (047), or any other system. "Manual" means caller-driven, NOT player-manual.
+export interface ManualTriggerSpec {
+    // Non-subject roles the caller must supply in `bindings` (they carry caller context the engine can't
+    // search for, e.g. the specific target of a social action). Other roles resolve as usual (bind/search).
+    requiredBindings?: string[];
+}
+
+// Deterministic schedule rules, represented as real work in the simulation timeline (the engine's schedule
+// queue / the atHour sweep) — never invisible direct mutations.
+export type ScheduleRule =
+    // Fires for the SOURCE event's subject `delayTicks` after each commit of `afterEvent` (causation chains
+    // to that commit). The "automated shift-end fallback" pattern.
+    | { afterEvent: string; delayTicks: number }
+    // Fires at the given hour of day (0..23) for every eligible subject, every day (limits gate repeats).
+    | { atHour: number };
+
+export interface AutomatedTriggerSpec {
+    rules: ScheduleRule[];
+}
+
+export interface TriggerSpec {
+    probabilistic?: ProbabilitySpec;
+    manual?: ManualTriggerSpec;
+    automated?: AutomatedTriggerSpec;
+}
+
+// Occurrence limits (task 042): enforced by the engine against the aggregate history for every trigger
+// path. `perJob`/`perRelationship` scopes are reserved (validator-gated) until jobs/relationships carry the
+// context to key them (tasks 045+).
+export type OccurrenceLimit =
+    | { once: 'ever' | 'perDay' }
+    | { withinTicks: number };
+
+// One queued automated trigger: event `eventId` should be attempted for `subjectId` at `dueTick`. `id` is a
+// deterministic counter (drain order: dueTick, then id); `causationId` chains to the scheduling commit.
+export interface ScheduledTrigger {
+    id: number;
+    eventId: string;
+    subjectId: string;
+    dueTick: number;
+    causationId: number | null;
+}
+
+// The serializable schedule-queue state (save v8 family).
+export interface ScheduleState {
+    queue: ScheduledTrigger[];
+    nextScheduleSeq: number;
+}
+
+// Typed result of a manual invocation — failures are explicit, never silent skips.
+export type InvokeOutcome =
+    | { ok: true; seq: number }
+    | { ok: false; reason: 'unknownEvent' | 'notManual' | 'missingBinding' | 'ineligible' | 'rolesUnresolved' | 'limited' | 'aborted' };
 
 // The closed, typed effect vocabulary. The set is fixed in code (adding a new primitive is a code change);
 // manifests compose these freely (pure data). Fields are effect-specific and consumed by the runtime in 013d.
@@ -56,8 +116,12 @@ export interface Effect {
 
 export interface EventDefinition {
     roles: Record<string, RoleSpec>;
-    probability: ProbabilitySpec;
+    // How the event can happen (task 042): probabilistic rolls, manual invocation, and/or automated schedule
+    // rules. At least one type is required (validator-enforced).
+    triggers: TriggerSpec;
     effects: Effect[];
+    // Occurrence limit across ALL trigger paths (optional).
+    limit?: OccurrenceLimit;
     // Presentation-only (task 032), ignored by the compiler and runtime: a human label for the person event-log
     // (027) and feed (029), and a coarse grouping for filtering/styling.
     label?: string;

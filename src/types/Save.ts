@@ -4,7 +4,7 @@ import { JobPosition, JobRequirements } from 'types/Work';
 import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { BusinessInstance } from 'types/Business';
-import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { EconomyState } from 'types/Economy';
 import { InventoryState } from 'types/Objects';
 
@@ -109,6 +109,8 @@ export interface WorldSnapshot {
     // minimal log from the aggregate history on migration.
     eventLog?: EventLogTable;
     eventLogSeq?: number;
+    // Pending automated event triggers (v8, task 042). Optional so older saves load with an empty queue.
+    eventSchedule?: ScheduleState;
     // Money balances (v6+). Optional so older saves load with empty balances.
     economy?: EconomyState;
     // Object instances & Possessions (v8, task 041). Optional so older saves load with none.

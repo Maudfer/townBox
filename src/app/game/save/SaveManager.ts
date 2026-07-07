@@ -138,6 +138,7 @@ export default class SaveManager {
             eventHistory: this.game.eventEngine?.getHistory(),
             eventLog: this.game.eventEngine?.getLog(),
             eventLogSeq: this.game.eventEngine?.getNextLogSeq(),
+            eventSchedule: this.game.eventEngine?.getScheduleState(),
             economy: this.game.economy?.getState(),
             objects: this.game.inventory?.getState(),
         };
@@ -285,6 +286,11 @@ export default class SaveManager {
         // migration from the aggregate history.
         if (snapshot.eventLog) {
             this.game.eventEngine?.loadLog(snapshot.eventLog, snapshot.eventLogSeq);
+        }
+
+        // Pending automated triggers (v8+, task 042). Older saves carry none; the queue starts empty.
+        if (snapshot.eventSchedule) {
+            this.game.eventEngine?.loadScheduleState(snapshot.eventSchedule);
         }
 
         // Economy (v6+). Older saves carry none; balances stay empty.

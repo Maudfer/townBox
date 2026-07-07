@@ -47,7 +47,7 @@ const aliveSubject = { where: { attr: 'alive', op: '==', value: true } };
 // A structurally minimal, semantically clean event manifest to mutate per fixture.
 function manifestWith(overrides: Record<string, unknown>): Record<string, unknown> {
     return {
-        base_event: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [] },
+        base_event: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [] },
         ...overrides,
     };
 }
@@ -167,30 +167,42 @@ describe('events validation', () => {
     const runSemantics = (manifest: unknown) => messagesOf(semantics(validateEventsSemantics, manifest, SKILLS_PEER));
 
     test.each([
-        ['a typo’d effect kind', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'acquireSkil', value: 'MedicalSkill' }] } }), /expected one of \[setDeath/],
-        ['an unknown top-level key', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [], trigger: {} } }), /unknown key/],
-        ['a missing required effect field', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'emit' }] } }), /requires "signal"/],
-        ['a non-subject role with neither where nor bind', manifestWith({ bad: { roles: { subject: aliveSubject, partner: {} }, probability: { perYear: 1 }, effects: [] } }), /must declare "where".*or "bind"/],
-        ['an unknown bind relation', manifestWith({ bad: { roles: { subject: aliveSubject, partner: { bind: 'siblingOf:subject' } }, probability: { perYear: 1 }, effects: [] } }), /relation one of \[partnerOf\]/],
-        ['an effect referencing an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'marry', role: 'partner' }] } }), /undeclared role "partner"/],
-        ['a factor driver on an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1, factors: [{ driver: 'mother.age', curve: { mode: 'const', value: 1 } }] }, effects: [] } }), /undeclared role "mother"/],
-        ['a negative perYear', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: -1 }, effects: [] } }), /expected >= 0/],
-        ['a slot resource other than "job"', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'acquireSlot', resource: 'desk' }] } }), /only slot resource is "job"/],
+        ['a typo’d effect kind', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'acquireSkil', value: 'MedicalSkill' }] } }), /expected one of \[setDeath/],
+        ['an unknown top-level key', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [], trigger: {} } }), /unknown key/],
+        ['a missing required effect field', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'emit' }] } }), /requires "signal"/],
+        ['a non-subject role with neither where nor bind', manifestWith({ bad: { roles: { subject: aliveSubject, partner: {} }, triggers: { probabilistic: { perYear: 1 } }, effects: [] } }), /must declare "where".*or "bind"/],
+        ['an unknown bind relation', manifestWith({ bad: { roles: { subject: aliveSubject, partner: { bind: 'siblingOf:subject' } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] } }), /relation one of \[partnerOf\]/],
+        ['an effect referencing an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'marry', role: 'partner' }] } }), /undeclared role "partner"/],
+        ['a factor driver on an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1, factors: [{ driver: 'mother.age', curve: { mode: 'const', value: 1 } }] } }, effects: [] } }), /undeclared role "mother"/],
+        ['a negative perYear', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: -1 } }, effects: [] } }), /expected >= 0/],
+        ['a slot resource other than "job"', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'acquireSlot', resource: 'desk' }] } }), /only slot resource is "job"/],
     ])('structure rejects %s', (_label, fixture, pattern) => {
         expect(runStructure(fixture)).toMatch(pattern);
     });
 
     test.each([
-        ['an unknown skill', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'acquireSkill', value: 'WizardrySkill' }] } }), /unknown skill "WizardrySkill"/],
-        ['an unknown signal (nothing consumes it)', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'emit', signal: 'nobodyListens' }] } }), /unknown signal "nobodyListens"/],
-        ['setAttr on an unknown attribute', manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'setAttr', attr: 'charisma', value: 1 }] } }), /unknown attribute "charisma"/],
-        ['a hasEvent prerequisite nothing provides (compiler warning promoted)', manifestWith({ bad: { roles: { subject: { where: { hasEvent: 'ghost_event' } } }, probability: { perYear: 1 }, effects: [] } }), /requires unknown event "ghost_event"/],
+        ['no trigger at all', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: {}, effects: [] } }), /at least one trigger type/],
+        ['an everyDayOfWeek rule (gated until 045)', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { automated: { rules: [{ everyDayOfWeek: 'monday' }] } }, effects: [] } }), /not supported until the day-of-week calendar/],
+        ['an afterEvent referencing an unknown event', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { automated: { rules: [{ afterEvent: 'ghost', delayTicks: 5 }] } }, effects: [] } }), /references unknown event "ghost"/],
+        ['an out-of-range atHour', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { automated: { rules: [{ atHour: 24 }] } }, effects: [] } }), /expected <= 23/],
+        ['a reserved perJob limit scope', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { manual: {} }, limit: { once: 'perJob' }, effects: [] } }), /reserved until jobs\/relationships/],
+        ['a malformed limit', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { manual: {} }, limit: { every: 3 }, effects: [] } }), /expected \{ once: \.\.\. \} or \{ withinTicks: n \}/],
+        ['a manual requiredBinding naming an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { manual: { requiredBindings: ['recipient'] } }, effects: [] } }), /undeclared role "recipient"/],
+    ])('trigger structure rejects %s', (_label, fixture, pattern) => {
+        expect(runStructure(fixture)).toMatch(pattern);
+    });
+
+    test.each([
+        ['an unknown skill', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'acquireSkill', value: 'WizardrySkill' }] } }), /unknown skill "WizardrySkill"/],
+        ['an unknown signal (nothing consumes it)', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'emit', signal: 'nobodyListens' }] } }), /unknown signal "nobodyListens"/],
+        ['setAttr on an unknown attribute', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'setAttr', attr: 'charisma', value: 1 }] } }), /unknown attribute "charisma"/],
+        ['a hasEvent prerequisite nothing provides (compiler warning promoted)', manifestWith({ bad: { roles: { subject: { where: { hasEvent: 'ghost_event' } } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] } }), /requires unknown event "ghost_event"/],
     ])('semantics rejects %s', (_label, fixture, pattern) => {
         expect(runSemantics(fixture)).toMatch(pattern);
     });
 
     test('an unweighted (unassignable) skill is rejected even when the enum value exists', () => {
-        const fixture = manifestWith({ bad: { roles: { subject: aliveSubject }, probability: { perYear: 1 }, effects: [{ type: 'acquireSkill', value: 'MedicalSkill' }] } });
+        const fixture = manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'acquireSkill', value: 'MedicalSkill' }] } });
         const zeroWeightPeer = { skills: { weights: { MedicalSkill: 0 } } };
         expect(messagesOf(semantics(validateEventsSemantics, fixture, zeroWeightPeer))).toMatch(/no positive weight/);
     });

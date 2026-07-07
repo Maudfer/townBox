@@ -43,12 +43,12 @@ describe('compileEvents — derived exclusivity', () => {
         const manifest: EventManifest = {
             become_married: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } }, partner: { bind: 'partnerOf:subject' } },
-                probability: { perYear: 0.1 },
+                triggers: { probabilistic: { perYear: 0.1 } },
                 effects: [{ type: 'marry', role: 'partner' }],
             },
             single_club: {
                 roles: { subject: { where: { attr: 'marital', op: '==', value: 'single' } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [],
             },
         };
@@ -63,12 +63,12 @@ describe('compileEvents — derived exclusivity', () => {
         const manifest: EventManifest = {
             first_kiss: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [],
             },
             never_kissed_award: {
                 roles: { subject: { where: { not: { hasEvent: 'first_kiss' } } } }, // no withinTicks ⇒ permanent
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [],
             },
         };
@@ -82,7 +82,7 @@ describe('compileEvents — validation', () => {
         const manifest: EventManifest = {
             haunting: {
                 roles: { subject: { where: { hasEvent: 'ghost' } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [],
             },
         };
@@ -92,8 +92,8 @@ describe('compileEvents — validation', () => {
 
     test('flags a dependency cycle but still returns every event in the order', () => {
         const manifest: EventManifest = {
-            a: { roles: { subject: { where: { hasEvent: 'b' } } }, probability: { perYear: 1 }, effects: [] },
-            b: { roles: { subject: { where: { hasEvent: 'a' } } }, probability: { perYear: 1 }, effects: [] },
+            a: { roles: { subject: { where: { hasEvent: 'b' } } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] },
+            b: { roles: { subject: { where: { hasEvent: 'a' } } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] },
         };
         const graph = compileEvents(manifest);
         expect(graph.warnings.some(w => w.toLowerCase().includes('cycle'))).toBe(true);

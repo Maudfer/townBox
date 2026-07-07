@@ -12,7 +12,7 @@ import { EventManifest } from 'types/LifeEvent';
 import { JobRequirements } from 'types/Work';
 import { KNOWN_SIGNALS } from 'util/notifications';
 
-const EVENT_KEYS = ['roles', 'probability', 'effects', 'label', 'category'];
+const EVENT_KEYS = ['roles', 'triggers', 'effects', 'limit', 'label', 'category'];
 const ROLE_KEYS = ['where', 'bind'];
 const BIND_RELATIONS = ['partnerOf']; // EventEngine.resolveBind's vocabulary
 
@@ -34,13 +34,17 @@ export function validateEventsStructure(data: unknown, issues: IssueCollector): 
     if (!checkRecord(issues, '', data)) {
         return;
     }
+    const eventIds = new Set(Object.keys(data));
     for (const [id, event] of Object.entries(data)) {
         if (!checkRecord(issues, id, event)) {
             continue;
         }
         checkUnknownKeys(issues, id, event, EVENT_KEYS);
         const roleNames = validateRoles(issues, id, event['roles']);
-        validateProbability(issues, id, event['probability'], roleNames);
+        validateTriggers(issues, id, event['triggers'], roleNames, eventIds);
+        if ('limit' in event) {
+            validateLimit(issues, id, event['limit']);
+        }
         validateEffects(issues, id, event['effects'], roleNames);
         if ('label' in event) {
             checkString(issues, `${id}.label`, event['label']);
@@ -92,8 +96,96 @@ function validateRoles(issues: IssueCollector, id: string, roles: unknown): Set<
     return names;
 }
 
+// Every event must declare at least one trigger type (task 042): an event nothing can cause is dead data.
+function validateTriggers(issues: IssueCollector, id: string, triggers: unknown, roleNames: Set<string>, eventIds: Set<string>): void {
+    const path = `${id}.triggers`;
+    if (!checkRecord(issues, path, triggers)) {
+        return;
+    }
+    checkUnknownKeys(issues, path, triggers, ['probabilistic', 'manual', 'automated']);
+    if (!('probabilistic' in triggers) && !('manual' in triggers) && !('automated' in triggers)) {
+        issues.add(path, 'an event must declare at least one trigger type (probabilistic, manual, or automated)');
+        return;
+    }
+    if ('probabilistic' in triggers) {
+        validateProbability(issues, `${path}.probabilistic`, triggers['probabilistic'], roleNames);
+    }
+    if ('manual' in triggers && checkRecord(issues, `${path}.manual`, triggers['manual'])) {
+        const manual = triggers['manual'] as Record<string, unknown>;
+        checkUnknownKeys(issues, `${path}.manual`, manual, ['requiredBindings']);
+        if ('requiredBindings' in manual && checkArray(issues, `${path}.manual.requiredBindings`, manual['requiredBindings'])) {
+            (manual['requiredBindings'] as unknown[]).forEach((role, index) => {
+                const rolePath = `${path}.manual.requiredBindings[${index}]`;
+                if (checkString(issues, rolePath, role) && !roleNames.has(role as string)) {
+                    issues.add(rolePath, `references undeclared role "${role}"`);
+                }
+            });
+        }
+    }
+    if ('automated' in triggers && checkRecord(issues, `${path}.automated`, triggers['automated'])) {
+        const automated = triggers['automated'] as Record<string, unknown>;
+        checkUnknownKeys(issues, `${path}.automated`, automated, ['rules']);
+        if (checkArray(issues, `${path}.automated.rules`, automated['rules'])) {
+            const rules = automated['rules'] as unknown[];
+            if (rules.length === 0) {
+                issues.add(`${path}.automated.rules`, 'an automated trigger needs at least one rule');
+            }
+            rules.forEach((rule, index) => {
+                const rulePath = `${path}.automated.rules[${index}]`;
+                if (!checkRecord(issues, rulePath, rule)) {
+                    return;
+                }
+                if ('everyDayOfWeek' in rule) {
+                    // Day-of-week arrives with the job calendar (task 045); reject rather than silently drop.
+                    issues.add(rulePath, 'everyDayOfWeek rules are not supported until the day-of-week calendar lands (task 045)');
+                    return;
+                }
+                if ('afterEvent' in rule) {
+                    checkUnknownKeys(issues, rulePath, rule, ['afterEvent', 'delayTicks']);
+                    if (checkString(issues, `${rulePath}.afterEvent`, rule['afterEvent']) && !eventIds.has(rule['afterEvent'] as string)) {
+                        issues.add(`${rulePath}.afterEvent`, `references unknown event "${rule['afterEvent']}"`);
+                    }
+                    checkNumber(issues, `${rulePath}.delayTicks`, rule['delayTicks'], { min: 1, integer: true });
+                    return;
+                }
+                if ('atHour' in rule) {
+                    checkUnknownKeys(issues, rulePath, rule, ['atHour']);
+                    checkNumber(issues, `${rulePath}.atHour`, rule['atHour'], { min: 0, max: 23, integer: true });
+                    return;
+                }
+                issues.add(rulePath, `unrecognized schedule rule (keys: ${Object.keys(rule).join(', ') || 'none'})`);
+            });
+        }
+    }
+}
+
+// Occurrence limits (task 042). perJob/perRelationship are reserved scopes — rejected with a pointer until
+// the systems that key them exist.
+function validateLimit(issues: IssueCollector, id: string, limit: unknown): void {
+    const path = `${id}.limit`;
+    if (!checkRecord(issues, path, limit)) {
+        return;
+    }
+    if ('once' in limit) {
+        checkUnknownKeys(issues, path, limit, ['once']);
+        const once = limit['once'];
+        if (once === 'perJob' || once === 'perRelationship') {
+            issues.add(`${path}.once`, `"${once}" is reserved until jobs/relationships carry the keying context (tasks 045+)`);
+        } else if (once !== 'ever' && once !== 'perDay') {
+            issues.add(`${path}.once`, `expected one of [ever, perDay], got ${JSON.stringify(once)}`);
+        }
+        return;
+    }
+    if ('withinTicks' in limit) {
+        checkUnknownKeys(issues, path, limit, ['withinTicks']);
+        checkNumber(issues, `${path}.withinTicks`, limit['withinTicks'], { min: 1, integer: true });
+        return;
+    }
+    issues.add(path, 'expected { once: ... } or { withinTicks: n }');
+}
+
 function validateProbability(issues: IssueCollector, id: string, probability: unknown, roleNames: Set<string>): void {
-    const path = `${id}.probability`;
+    const path = id;
     if (!checkRecord(issues, path, probability)) {
         return;
     }
