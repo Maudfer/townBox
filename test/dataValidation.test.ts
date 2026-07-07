@@ -13,6 +13,7 @@ import {
 import { validateBootstrapStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
 import { validateObjectsStructure } from '../src/app/game/data/validators/objects';
 import { validateActionsSemantics, validateActionsStructure } from '../src/app/game/data/validators/actions';
+import { validateOarSemantics, validateOarStructure } from '../src/app/game/data/validators/oar';
 import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from '../src/app/game/data/validators/ui';
 import { allRegistrations, validateAllData } from '../src/app/game/data/schemas';
 
@@ -69,7 +70,7 @@ describe('data validation (task 039)', () => {
         expect(names).toEqual([
             'actions', 'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy',
             'events', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
-            'objects', 'population', 'skills', 'toolAssets',
+            'objectActionRelationships', 'objects', 'population', 'skills', 'toolAssets',
         ]);
     });
 
@@ -334,6 +335,56 @@ describe('actions validation (task 043)', () => {
         expect(output).toMatch(/child actions must be discrete \(v1\); "child_c" is continuous/);
         expect(output).toMatch(/references unknown event "no_such_event"/);
         expect(output).toMatch(/does not declare a manual trigger/);
+    });
+});
+
+// ---------- object-action relationships ----------
+
+describe('object-action-relationships validation (task 044)', () => {
+    const entry = {
+        action: 'mix',
+        inputs: [{ archetype: 'flour_bag', quantity: 1, disposition: 'consumed' }],
+        outputs: [{ archetype: 'raw_dough', bindAs: 'output' }],
+    };
+
+    test('a well-formed entry passes', () => {
+        expect(messagesOf(structure(validateOarStructure, { e: entry }))).toBe('');
+    });
+
+    test.each([
+        ['an unknown disposition', { e: { ...entry, inputs: [{ archetype: 'x', disposition: 'burned' }] } }, /expected one of \[consumed, retained, transformed, required\]/],
+        ['a transformed input without transformTo', { e: { ...entry, inputs: [{ archetype: 'x', disposition: 'transformed' }] } }, /transformTo/],
+        ['transformTo on a non-transformed input', { e: { ...entry, inputs: [{ archetype: 'x', disposition: 'consumed', transformTo: { archetype: 'y' } }] } }, /only transformed inputs/],
+        ['a zero quantity', { e: { ...entry, inputs: [{ archetype: 'x', quantity: 0, disposition: 'consumed' }] } }, /expected >= 1/],
+        ['an empty entry', { e: { action: 'mix', inputs: [], outputs: [] } }, /at least one input or output/],
+    ])('structure rejects %s', (_label, fixture, pattern) => {
+        expect(messagesOf(structure(validateOarStructure, fixture))).toMatch(pattern);
+    });
+
+    test('semantics rejects dangling action/archetype refs and continuous actions', () => {
+        const fixture = {
+            bad: { action: 'ghost_action', inputs: [{ archetype: 'unobtainium', disposition: 'consumed' }], outputs: [{ archetype: 'phlebotinum' }] },
+            alsoBad: { action: 'cont', inputs: [{ archetype: 'coin', disposition: 'required' }], outputs: [] },
+        };
+        const peers = {
+            actions: { cont: { label: 'C', type: 'continuous', category: 'leisure' } },
+            objects: { coin: {} },
+        };
+        const output = messagesOf(semantics(validateOarSemantics, fixture, peers));
+        expect(output).toMatch(/references unknown action "ghost_action"/);
+        expect(output).toMatch(/unknown object archetype "unobtainium"/);
+        expect(output).toMatch(/unknown object archetype "phlebotinum"/);
+        expect(output).toMatch(/"cont" is continuous/);
+    });
+
+    test('consequence ops in actions are validated (bad op kind, unknown event)', () => {
+        const fixture = { a: { label: 'A', type: 'discrete', category: 'leisure', consequences: [{ op: 'summonObject', archetype: 'coin' }] } };
+        expect(messagesOf(structure(validateActionsStructure, fixture))).toMatch(/expected one of \[createObject/);
+
+        const semantic = { a: { label: 'A', type: 'discrete', category: 'leisure', consequences: [{ op: 'triggerEvent', event: 'ghost' }, { op: 'createObject', archetype: 'unreal' }] } };
+        const output = messagesOf(semantics(validateActionsSemantics, semantic, { events: {}, objects: {} }));
+        expect(output).toMatch(/references unknown event "ghost"/);
+        expect(output).toMatch(/unknown object archetype "unreal"/);
     });
 });
 

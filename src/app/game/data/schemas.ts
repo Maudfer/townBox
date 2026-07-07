@@ -18,6 +18,7 @@ import inputConfig from 'json/input.json';
 import jobsConfig from 'json/jobs.json';
 import lifeSimulationConfig from 'json/lifeSimulation.json';
 import materialsConfig from 'json/materials.json';
+import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
 import populationConfig from 'json/population.json';
 import skillsConfig from 'json/skills.json';
@@ -44,6 +45,7 @@ import {
     validatePopulationStructure,
 } from 'game/data/validators/params';
 import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
+import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsStructure } from 'game/data/validators/objects';
 import {
     validateAssetsStructure,
@@ -57,6 +59,7 @@ export function allRegistrations(): SchemaRegistration[] {
     return [
         { name: 'events', version: 1, data: eventsConfig, validateStructure: validateEventsStructure, validateSemantics: validateEventsSemantics },
         { name: 'actions', version: 1, data: actionsConfig, validateStructure: validateActionsStructure, validateSemantics: validateActionsSemantics },
+        { name: 'objectActionRelationships', version: 1, data: oarConfig, validateStructure: validateOarStructure, validateSemantics: validateOarSemantics },
         { name: 'jobs', version: 1, data: jobsConfig, validateStructure: validateJobsStructure, validateSemantics: validateJobsSemantics },
         { name: 'businesses', version: 1, data: businessesConfig, validateStructure: validateBusinessesStructure, validateSemantics: validateBusinessesSemantics },
         { name: 'materials', version: 1, data: materialsConfig, validateStructure: validateMaterialsStructure },

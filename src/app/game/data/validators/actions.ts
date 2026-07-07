@@ -7,9 +7,10 @@ import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
 import { validatePredicate } from 'game/data/substrate';
 import { ActionManifest } from 'types/Action';
+import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/data/validators/oar';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'consequences'];
 const ACTION_TYPES = ['discrete', 'continuous'];
 const CATEGORIES = ['obligation', 'work', 'leisure', 'social', 'recovery', 'movement', 'maintenance'];
 const PARAMETER_TYPES = ['person', 'objectArchetype', 'objectInstance', 'recipe', 'string', 'number', 'boolean'];
@@ -87,6 +88,9 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('children' in action) {
             validateChildren(issues, id, action['children'], parameterNames);
+        }
+        if ('consequences' in action) {
+            validateConsequenceOps(issues, `${id}.consequences`, action['consequences']);
         }
         if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {
             const events = action['events'] as Record<string, unknown>;
@@ -180,8 +184,12 @@ function validateChildren(issues: IssueCollector, id: string, children: unknown,
 export function validateActionsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const manifest = data as ActionManifest;
     const events = (peers['events'] ?? {}) as EventManifest;
+    const archetypes = new Set(Object.keys((peers['objects'] ?? {}) as Record<string, unknown>));
 
     for (const [id, action] of Object.entries(manifest)) {
+        if (action.consequences) {
+            validateConsequenceOpsSemantics(issues, `${id}.consequences`, action.consequences as { op: string; archetype?: string; event?: string }[], archetypes, events);
+        }
         // Children must reference existing DISCRETE actions (v1: no nested continuous children — a sequence
         // of continuous activities is a Brain-level plan, not an action definition).
         const childRefs: { ref: string; path: string }[] = [];

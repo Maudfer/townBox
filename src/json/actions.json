@@ -132,7 +132,16 @@
     "found_coin": {
         "label": "Found a coin",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "coin",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            }
+        ]
     },
     "pocketed_small_object": {
         "label": "Pocketed a small object",
@@ -142,7 +151,27 @@
             "objectAtLocation": {
                 "flag": "pocketable"
             }
-        }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "flag": "pocketable"
+                    }
+                },
+                "container": "possessions"
+            },
+            {
+                "op": "transferObject",
+                "object": {
+                    "atLocation": {
+                        "flag": "pocketable"
+                    }
+                },
+                "owner": "person"
+            }
+        ]
     },
     "grab_pencil": {
         "label": "Grabbed a pencil",
@@ -152,7 +181,27 @@
             "objectAtLocation": {
                 "archetype": "pencil"
             }
-        }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "pencil"
+                    }
+                },
+                "container": "possessions"
+            },
+            {
+                "op": "transferObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "pencil"
+                    }
+                },
+                "owner": "person"
+            }
+        ]
     },
     "mix_dough": {
         "label": "Mixed the dough",

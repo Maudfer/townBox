@@ -26,6 +26,7 @@ export interface TickPlan {
     engine: EventEngine;
     actionEngine?: ActionEngine;
     inventory?: Inventory | null;
+    employerKeyOf?: (personId: PersonId) => string | null;
     state: PopulationState;
     agentIds: PersonId[];
     tick: number;
@@ -58,6 +59,7 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             ctx: plan.ctx,
             eventEngine: plan.engine,
             inventory: plan.inventory ?? null,
+            ...(plan.employerKeyOf ? { employerKeyOf: plan.employerKeyOf } : {}),
         }));
     }
 
