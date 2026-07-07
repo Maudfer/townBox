@@ -27,6 +27,8 @@ import { DEFAULT_SAVE_SLOT } from 'types/Save';
 import config from 'json/config.json';
 import toolAssets from 'json/toolAssets.json';
 
+import { assertValidData } from 'game/data/schemas';
+
 export default class GameManager {
     private eventListeners: EventListeners = {};
 
@@ -50,6 +52,11 @@ export default class GameManager {
     private skipSplash: boolean;
 
     constructor() {
+        // Fail loudly on invalid data files before anything consumes them (task 039). The registry validated
+        // in CI too, so shipping builds never trip this — it exists to stop a dev session from running against
+        // a manifest whose errors would otherwise be silently ignored (e.g. a typo'd event effect kind).
+        assertValidData();
+
         // A structure (road/building/soil) occupies a square footprint of FOOTPRINT_TILES x FOOTPRINT_TILES tiles.
         // The world keeps the same number of footprints as the legacy tile grid (128x128), but each footprint is
         // now subdivided into finer tiles, giving placement granularity at the sub-footprint level.
