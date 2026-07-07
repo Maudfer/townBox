@@ -4067,15 +4067,18 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.4
-            },
             "manual": {}
         },
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "promoted",
+                "target": "subject"
+            }
+        ]
     },
     "got_demoted": {
         "label": "Got demoted",

@@ -77,7 +77,7 @@ Always run `npm test` before opening the PR.**
 | 062 | [Person skill initialization & early-childhood seeding](062-skill-initialization-and-early-childhood_DONE.md) | Feature | ✅ Done |
 | 063 | [School-day skill progression](063-school-day-skill-progression_DONE.md) | Feature | ✅ Done |
 | 064 | [Job ranks & entry-level training grants](064-job-ranks-and-training-grants_DONE.md) | Framework | ✅ Done |
-| 065 | [Job skill progression & rank promotion](065-job-skill-progression-and-promotion.md) | Feature | ⬜ Open |
+| 065 | [Job skill progression & rank promotion](065-job-skill-progression-and-promotion_DONE.md) | Feature | ✅ Done |
 | 066 | [Jobs backfill — ranks, skills & progression](066-jobs-ranks-data-backfill.md) | Content | ⬜ Open |
 | 067 | [Parameterized requirements, object refs & event payloads](067-parameterized-requirements-and-event-payloads.md) | Framework | ⬜ Open |
 | 068 | [Generalize Actions & Events](068-generalize-actions-and-events.md) | Migration | ⬜ Open |
@@ -150,7 +150,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   [063](063-school-day-skill-progression_DONE.md) (calendar-exact 60.0-at-18 school progression).
 - **Jobs:** [064](064-job-ranks-and-training-grants_DONE.md) (ranks + the explicit temporary College-shortcut
   entry grants — closes the "nobody can ever be hired skilled" loop) →
-  [065](065-job-skill-progression-and-promotion.md) (per-work-day gains, deterministic promotion) →
+  [065](065-job-skill-progression-and-promotion_DONE.md) (per-work-day gains, deterministic promotion) →
   [066](066-jobs-ranks-data-backfill.md) (rank ladders for all 33 jobs, 18-year-old reachability rule in CI).
 - **Generalization:** [067](067-parameterized-requirements-and-event-payloads.md) (param-aware
   requirements/queries + event payloads — the expressiveness the sweep needs; added during planning) →

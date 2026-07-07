@@ -25,7 +25,7 @@ nothing in `events.json` references weekdays. `util/shifts.ts` (`isOnShiftAtTick
 But 25 of 30+ jobs in `json/jobs.json` **already author off-days** (045; e.g. `manager` mon–fri, `cook`
 tue–sun), and `test/shifts.test.ts` asserts a `<7`-day job exists. **Proposed resolution (baked into 057/065):
 keep the authored per-job `daysOfWeek`** — richer than the simplification and already consumed — and treat the
-work-progression constant (`100/3650` per completed work day, [065](065-job-skill-progression-and-promotion.md))
+work-progression constant (`100/3650` per completed work day, [065](065-job-skill-progression-and-promotion_DONE.md))
 as a nominal base rate, so jobs with off-days simply progress proportionally slower. Weekends gate **school only**.
 
 **Skills.** A closed 16-member string enum (`types/Work.ts` `JobRequirements`), boolean possession only, stored
