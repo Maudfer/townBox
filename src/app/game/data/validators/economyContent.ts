@@ -12,7 +12,8 @@ import { MINUTES_PER_DAY } from 'util/time';
 
 const VALID_SKILLS = new Set<string>(Object.values(JobRequirements));
 
-const JOB_KEYS = ['title', 'salary', 'requiredSkills', 'shiftStart', 'shiftEnd', 'physicalStrain', 'mentalStrain', 'socialAdmiration'];
+const JOB_KEYS = ['title', 'salary', 'requiredSkills', 'shiftStart', 'shiftEnd', 'daysOfWeek', 'workActions', 'physicalStrain', 'mentalStrain', 'socialAdmiration'];
+const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export function validateJobsStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
@@ -28,9 +29,52 @@ export function validateJobsStructure(data: unknown, issues: IssueCollector): vo
         if (checkArray(issues, `${id}.requiredSkills`, job['requiredSkills'])) {
             (job['requiredSkills'] as unknown[]).forEach((skill, index) => checkString(issues, `${id}.requiredSkills[${index}]`, skill));
         }
+        // Shift schedules are authored explicitly since task 045 (no more silent 09:00–17:00 defaults).
+        // shiftEnd < shiftStart is legal: the shift crosses midnight and belongs to its start day.
         for (const field of ['shiftStart', 'shiftEnd']) {
-            if (field in job) {
-                checkNumber(issues, `${id}.${field}`, job[field], { min: 0, max: MINUTES_PER_DAY - 1, integer: true });
+            checkNumber(issues, `${id}.${field}`, job[field], { min: 0, max: MINUTES_PER_DAY - 1, integer: true });
+        }
+        if (checkArray(issues, `${id}.daysOfWeek`, job['daysOfWeek'])) {
+            const days = job['daysOfWeek'] as unknown[];
+            if (days.length === 0) {
+                issues.add(`${id}.daysOfWeek`, 'a job needs at least one working day');
+            }
+            days.forEach((day, index) => {
+                if (typeof day !== 'string' || !WEEKDAYS.includes(day)) {
+                    issues.add(`${id}.daysOfWeek[${index}]`, `expected one of [${WEEKDAYS.join(', ')}]`);
+                }
+            });
+            if (new Set(days).size !== days.length) {
+                issues.add(`${id}.daysOfWeek`, 'duplicate weekday');
+            }
+        }
+        if (checkRecord(issues, `${id}.workActions`, job['workActions'])) {
+            const workActions = job['workActions'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.workActions`, workActions, ['continuous', 'discrete']);
+            for (const kind of ['continuous', 'discrete']) {
+                if (!checkArray(issues, `${id}.workActions.${kind}`, workActions[kind])) {
+                    continue;
+                }
+                const specs = workActions[kind] as unknown[];
+                if (specs.length === 0) {
+                    issues.add(`${id}.workActions.${kind}`, `a job needs at least one ${kind} work action (task 045)`);
+                }
+                specs.forEach((spec, index) => {
+                    const path = `${id}.workActions.${kind}[${index}]`;
+                    if (!checkRecord(issues, path, spec)) {
+                        return;
+                    }
+                    checkUnknownKeys(issues, path, spec, ['action', 'chancePerTick', 'maxPerTick', 'cooldownTicks']);
+                    checkString(issues, `${path}.action`, spec['action']);
+                    if ('chancePerTick' in spec) {
+                        checkNumber(issues, `${path}.chancePerTick`, spec['chancePerTick'], { min: 0, max: 1 });
+                    }
+                    for (const bound of ['maxPerTick', 'cooldownTicks']) {
+                        if (bound in spec) {
+                            checkNumber(issues, `${path}.${bound}`, spec[bound], { min: 1, integer: true });
+                        }
+                    }
+                });
             }
         }
         for (const field of ['physicalStrain', 'mentalStrain', 'socialAdmiration']) {
@@ -44,7 +88,20 @@ export function validateJobsStructure(data: unknown, issues: IssueCollector): vo
 export function validateJobsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const jobs = data as JobTable;
     const weights = (peers['skills'] as { weights?: Record<string, number> } | undefined)?.weights ?? {};
+    const actions = (peers['actions'] ?? {}) as Record<string, { type?: string }>;
     for (const [id, job] of Object.entries(jobs)) {
+        // Work-action declarations (task 045) must reference real actions of the matching kind.
+        for (const kind of ['continuous', 'discrete'] as const) {
+            (job.workActions?.[kind] ?? []).forEach((spec, index) => {
+                const path = `${id}.workActions.${kind}[${index}].action`;
+                const target = actions[spec.action];
+                if (!target) {
+                    issues.add(path, `references unknown action "${spec.action}"`);
+                } else if (target.type !== kind) {
+                    issues.add(path, `"${spec.action}" is not a ${kind} action`);
+                }
+            });
+        }
         job.requiredSkills.forEach((skill, index) => {
             const path = `${id}.requiredSkills[${index}]`;
             if (!VALID_SKILLS.has(skill)) {
