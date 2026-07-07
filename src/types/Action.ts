@@ -168,6 +168,9 @@ export type ConsequenceOp =
     | { op: 'removeObject'; object: ObjectRef }
     // Physical movement only (ownership untouched): pocket something / put it down.
     | { op: 'moveObject'; object: ObjectRef; container: 'possessions' | 'location' }
+    // Physical hand-off only (ownership untouched): the object lands in the target person's Possessions.
+    // Lending and returning — the counterpart of moveObject when the destination is another person.
+    | { op: 'moveObjectToPerson'; object: ObjectRef; target: 'targetPerson' }
     // Ownership only (location untouched): gifts, confiscation, purchases.
     | { op: 'transferObject'; object: ObjectRef; owner: OwnershipTarget }
     | { op: 'setObjectState'; object: ObjectRef; key: string; value: Value }

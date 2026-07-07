@@ -2875,16 +2875,6 @@
                     "chancePerTick": 0.2
                 },
                 {
-                    "action": "lent_an_object",
-                    "chancePerTick": 0.06,
-                    "maxTotal": 1,
-                    "requirements": {
-                        "carries": {
-                            "tag": "giftable"
-                        }
-                    }
-                },
-                {
                     "action": "borrowed_an_object",
                     "chancePerTick": 0.06,
                     "maxTotal": 1
@@ -3158,21 +3148,68 @@
         "label": "Lent an object",
         "type": "discrete",
         "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
         "requirements": {
             "carries": {
                 "tag": "giftable"
             }
-        }
+        },
+        "consequences": [
+            {
+                "op": "moveObjectToPerson",
+                "object": {
+                    "carried": {
+                        "tag": "giftable"
+                    }
+                },
+                "target": "targetPerson"
+            }
+        ]
     },
     "borrowed_an_object": {
         "label": "Borrowed an object",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "tag": "giftable"
+                    }
+                },
+                "container": "possessions"
+            }
+        ]
     },
     "returned_borrowed_object": {
         "label": "Returned a borrowed object",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            },
+            "object": {
+                "type": "objectInstance",
+                "required": true
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObjectToPerson",
+                "object": {
+                    "param": "object"
+                },
+                "target": "targetPerson"
+            }
+        ]
     },
     "laughed_together": {
         "label": "Laughed together",
