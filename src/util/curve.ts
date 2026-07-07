@@ -70,14 +70,22 @@ function evaluateStep(points: CurvePoint[], x: number): number {
     if (points.length === 0) {
         return 0;
     }
-    const sorted = [...points].sort((a, b) => a.at - b.at);
-    let result = sorted[0]!.value; // held below the first threshold
-    for (const point of sorted) {
-        if (x >= point.at) {
-            result = point.value;
-        } else {
-            break;
+    // Single pass, order-independent, allocation-free (this is the hottest path in the per-tick hazard
+    // loop at content scale — task 052): the value of the point with the LARGEST `at` <= x, or the value
+    // of the smallest-`at` point when x is below every threshold.
+    let bestAt = -Infinity;
+    let bestValue = 0;
+    let minAt = Infinity;
+    let minValue = 0;
+    for (const point of points) {
+        if (point.at <= x && point.at > bestAt) {
+            bestAt = point.at;
+            bestValue = point.value;
+        }
+        if (point.at < minAt) {
+            minAt = point.at;
+            minValue = point.value;
         }
     }
-    return result;
+    return bestAt === -Infinity ? minValue : bestValue;
 }

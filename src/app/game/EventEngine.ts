@@ -73,6 +73,9 @@ export default class EventEngine {
     private schedule: ScheduleState;
     private afterEventRules: Map<string, { eventId: string; delayTicks: number }[]>;
     private atHourRules: Map<number, string[]>;
+    // Per-event probabilistic metadata precomputed at construction (task 052 perf): parsed factor drivers
+    // and whether any factor needs non-subject roles — the hot loop never re-parses driver strings.
+    private probMeta: Map<string, { needsRoles: boolean; factors: { role: string; attr: string; curve: import('util/curve').Curve }[] }>;
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
     // Adapters bound for the current simulateTick pass; null in pure/test runs that don't provide them.
@@ -104,6 +107,18 @@ export default class EventEngine {
         }
         for (const ids of this.atHourRules.values()) {
             ids.sort();
+        }
+        this.probMeta = new Map();
+        for (const [eventId, definition] of Object.entries(manifest)) {
+            const spec = definition.triggers?.probabilistic;
+            if (!spec) {
+                continue;
+            }
+            const factors = (spec.factors ?? []).map(factor => {
+                const [role = '', attr = ''] = factor.driver.split('.');
+                return { role, attr, curve: factor.curve };
+            });
+            this.probMeta.set(eventId, { needsRoles: factors.some(factor => factor.role !== ROLE_SUBJECT), factors });
         }
         this.overlay = {};
         this.jobMarket = null;
@@ -345,12 +360,15 @@ export default class EventEngine {
     // Per-step firing probability. `ticksPerStep` (default 1 = daily, as live play uses) lets a caller advance in
     // coarser strides — the history bootstrap (036) steps by e.g. a week to stay tractable over the whole pool —
     // while keeping the hazard correct: the per-step chance is 1 − (1 − annual)^(ticksPerStep / ticksPerYear).
-    private perTickProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, ticksPerStep: number): number {
+    private perTickProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, ticksPerStep: number, parsedFactors?: { role: string; attr: string; curve: import('util/curve').Curve }[]): number {
         let annual = spec.perYear;
-        for (const factor of spec.factors ?? []) {
-            const [role, attr] = factor.driver.split('.');
-            const id = role ? roleMap[role] : undefined;
-            const raw = id && attr ? this.agentAttr(state, id, attr, tick, ticksPerYear) : undefined;
+        const factors = parsedFactors ?? (spec.factors ?? []).map(factor => {
+            const [role = '', attr = ''] = factor.driver.split('.');
+            return { role, attr, curve: factor.curve };
+        });
+        for (const factor of factors) {
+            const id = factor.role ? roleMap[factor.role] : undefined;
+            const raw = id && factor.attr ? this.agentAttr(state, id, factor.attr, tick, ticksPerYear) : undefined;
             annual *= evaluateCurve(factor.curve, typeof raw === 'number' ? raw : 0);
         }
         if (annual <= 0) {
@@ -561,22 +579,16 @@ export default class EventEngine {
                 if (!event || !probability) {
                     continue; // manual/automated-only events never roll
                 }
-                if (!this.limitAllows(agentId, eventId, event.limit, tick)) {
-                    continue;
-                }
 
-                const subjectWhere = event.roles[ROLE_SUBJECT]?.where;
-                const subjectCtx = this.makeContext(state, agentId, { [ROLE_SUBJECT]: agentId }, tick, ticksPerYear);
-                if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
-                    continue;
-                }
-
-                // Roll BEFORE resolving co-participant roles (task 040): candidate `where` searches are
-                // O(agents), so paying them only on a successful roll is what makes running the full manifest
-                // (marriage included) affordable pool-wide in bootstrap mode. The rare probability factor that
-                // drives on a non-subject role forces early resolution.
+                // Roll FIRST (tasks 040/052): at hundreds of manifest events the per-tick hazard is tiny for
+                // almost all of them, so paying eligibility costs (limit lookup, subject predicate, role
+                // searches) only on successful rolls is what keeps the hourly pass affordable at content
+                // scale (136ms → ~included in the tick budget at 300 agents). Distributions are unchanged —
+                // the roll is independent of eligibility. The rare probability factor that drives on a
+                // non-subject role forces early role resolution.
                 let roleMap: Record<string, PersonId> | null = { [ROLE_SUBJECT]: agentId };
-                const needsRolesForProbability = (probability.factors ?? []).some(factor => !factor.driver.startsWith(`${ROLE_SUBJECT}.`));
+                const meta = this.probMeta.get(eventId)!;
+                const needsRolesForProbability = meta.needsRoles;
                 if (needsRolesForProbability) {
                     roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng, {});
                     if (!roleMap) {
@@ -584,8 +596,17 @@ export default class EventEngine {
                     }
                 }
 
-                const pTick = this.perTickProbability(probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
+                const pTick = this.perTickProbability(probability, roleMap, state, tick, ticksPerYear, ticksPerStep, meta.factors);
                 if (!rng.chance(pTick)) {
+                    continue;
+                }
+
+                if (!this.limitAllows(agentId, eventId, event.limit, tick)) {
+                    continue;
+                }
+                const subjectWhere = event.roles[ROLE_SUBJECT]?.where;
+                const subjectCtx = this.makeContext(state, agentId, { [ROLE_SUBJECT]: agentId }, tick, ticksPerYear);
+                if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
                     continue;
                 }
 
