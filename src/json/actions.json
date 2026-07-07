@@ -763,6 +763,26 @@
                 {
                     "action": "chatted_with_the_clerk",
                     "chancePerTick": 0.15
+                },
+                {
+                    "action": "picked_up_fresh_ingredients",
+                    "chancePerTick": 0.2,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "bought_cleaning_supplies",
+                    "chancePerTick": 0.08,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "bought_some_tools",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "bought_gift_wrap",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -1067,6 +1087,25 @@
                 {
                     "action": "tidied_up",
                     "chancePerTick": 0.25
+                },
+                {
+                    "action": "deep_cleaned_the_kitchen",
+                    "chancePerTick": 0.12,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "repaired_an_item",
+                    "chancePerTick": 0.1,
+                    "requirements": {
+                        "carries": {
+                            "archetype": "toolbox"
+                        }
+                    }
+                },
+                {
+                    "action": "noticed_a_broken_keepsake",
+                    "chancePerTick": 0.04,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -1157,6 +1196,21 @@
                 {
                     "action": "hummed_a_tune",
                     "chancePerTick": 0.15
+                },
+                {
+                    "action": "plated_the_meal",
+                    "chancePerTick": 0.45,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "ate_a_meal",
+                    "chancePerTick": 0.3,
+                    "cooldownTicks": 1
+                },
+                {
+                    "action": "packed_a_lunch",
+                    "chancePerTick": 0.12,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -2752,6 +2806,11 @@
                     "action": "said_long_goodbye",
                     "chancePerTick": 0.08,
                     "maxTotal": 1
+                },
+                {
+                    "action": "wrapped_a_gift",
+                    "chancePerTick": 0.08,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -2912,6 +2971,16 @@
                     "action": "cleaned_up_after",
                     "chancePerTick": 0.15,
                     "maxTotal": 1
+                },
+                {
+                    "action": "sliced_the_cake",
+                    "chancePerTick": 0.12,
+                    "maxTotal": 1,
+                    "requirements": {
+                        "carries": {
+                            "archetype": "cake"
+                        }
+                    }
                 }
             ]
         },
@@ -3630,6 +3699,227 @@
     },
     "gave_directions_to_a_stranger": {
         "label": "Gave directions to a stranger",
+        "type": "discrete",
+        "category": "work"
+    },
+    "plated_the_meal": {
+        "label": "Plated a home-cooked meal",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "ate_a_meal": {
+        "label": "Ate a meal",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "packed_a_lunch": {
+        "label": "Packed a lunch",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "baked_bread_loaf": {
+        "label": "Baked a loaf of bread",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "bake_bread": {
+        "label": "Baking bread",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "home",
+        "requirements": {
+            "carries": {
+                "archetype": "flour_bag"
+            }
+        },
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 72
+        },
+        "children": {
+            "mode": "sequence",
+            "onStepFailure": "blockParent",
+            "steps": [
+                {
+                    "action": "mix_dough"
+                },
+                {
+                    "action": "baked_bread_loaf"
+                }
+            ]
+        }
+    },
+    "repaired_an_item": {
+        "label": "Repaired a broken item",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "noticed_a_broken_keepsake": {
+        "label": "Noticed a keepsake had broken",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "setObjectState",
+                "object": {
+                    "carried": {
+                        "archetype": "wristwatch"
+                    }
+                },
+                "key": "condition",
+                "value": "broken"
+            }
+        ]
+    },
+    "picked_up_fresh_ingredients": {
+        "label": "Picked up fresh ingredients",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "potato",
+                "quantity": 2,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "createObject",
+                "archetype": "onion",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "createObject",
+                "archetype": "lettuce",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "createObject",
+                "archetype": "egg",
+                "quantity": 4,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "adjustMoney",
+                "amount": -18
+            }
+        ]
+    },
+    "bought_cleaning_supplies": {
+        "label": "Bought cleaning supplies",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "detergent_pod",
+                "quantity": 3,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "createObject",
+                "archetype": "sponge",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "adjustMoney",
+                "amount": -12
+            }
+        ]
+    },
+    "bought_some_tools": {
+        "label": "Bought some tools",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "toolbox",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "adjustMoney",
+                "amount": -45
+            }
+        ]
+    },
+    "bought_gift_wrap": {
+        "label": "Bought gift wrap",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "wrapping_paper",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "createObject",
+                "archetype": "gift_bow",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            },
+            {
+                "op": "adjustMoney",
+                "amount": -10
+            }
+        ]
+    },
+    "deep_cleaned_the_kitchen": {
+        "label": "Deep-cleaned the kitchen",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "wrapped_a_gift": {
+        "label": "Wrapped a gift",
+        "type": "discrete",
+        "category": "social",
+        "requirements": {
+            "carries": {
+                "tag": "giftable"
+            }
+        }
+    },
+    "sliced_the_cake": {
+        "label": "Sliced the cake",
+        "type": "discrete",
+        "category": "social"
+    },
+    "baked_a_batch_of_bread": {
+        "label": "Baked a batch of bread",
+        "type": "discrete",
+        "category": "work"
+    },
+    "frosted_a_display_cake": {
+        "label": "Frosted a display cake",
+        "type": "discrete",
+        "category": "work"
+    },
+    "assembled_a_crate": {
+        "label": "Assembled a crate",
+        "type": "discrete",
+        "category": "work"
+    },
+    "milled_some_planks": {
+        "label": "Milled some planks",
+        "type": "discrete",
+        "category": "work"
+    },
+    "plated_a_customer_order": {
+        "label": "Plated a customer order",
         "type": "discrete",
         "category": "work"
     }

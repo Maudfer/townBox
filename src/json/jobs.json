@@ -639,6 +639,11 @@
                 {
                     "action": "swapped_shift_gossip",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "plated_a_customer_order",
+                    "chancePerTick": 0.25,
+                    "cooldownTicks": 2
                 }
             ]
         }
@@ -790,6 +795,16 @@
                 {
                     "action": "chased_a_paper_blown_away",
                     "chancePerTick": 0.04
+                },
+                {
+                    "action": "assembled_a_crate",
+                    "chancePerTick": 0.18,
+                    "cooldownTicks": 3
+                },
+                {
+                    "action": "milled_some_planks",
+                    "chancePerTick": 0.15,
+                    "cooldownTicks": 3
                 }
             ]
         }
@@ -864,6 +879,16 @@
                 {
                     "action": "hummed_while_working",
                     "chancePerTick": 0.15
+                },
+                {
+                    "action": "baked_a_batch_of_bread",
+                    "chancePerTick": 0.3,
+                    "cooldownTicks": 2
+                },
+                {
+                    "action": "frosted_a_display_cake",
+                    "chancePerTick": 0.08,
+                    "cooldownTicks": 8
                 }
             ]
         }
