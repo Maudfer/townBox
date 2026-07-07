@@ -15,5 +15,5 @@ All counts below are script-verified and restated at the top of each artifact.
 Notes:
 
 - The settings list doubles as a venue/business vocabulary (business→setting links are in `businesses-and-jobs.md`); keep it until the venue model ([040](../tasks/040-hourly-ticks-and-execution-boundary.md)'s `LogicalLocation`, [055](../tasks/055-history-asset-pipeline.md)'s offline world) has consumed what it needs.
-- The events artifact folds "automated" under its **manual** tag (system-fired); the precise `probabilistic | manual | automated` trigger split is decided per event during [048](../tasks/048-events-revision-hourly-migration.md)/[052](../tasks/052-events-data-backfill.md) against the [042](../tasks/042-event-triggers-and-causation.md) schema.
+- The events artifact folds "automated" under its **manual** tag (system-fired); the precise `probabilistic | manual | automated` trigger split is decided per event during [048](../tasks/048-events-revision-hourly-migration_DONE.md)/[052](../tasks/052-events-data-backfill_DONE.md) against the [042](../tasks/042-event-triggers-and-causation_DONE.md) schema.
 - Lists were generated from single-source datasets + scripts (kept out of the repo); extending them is cheap — regenerate rather than hand-edit large sections.
