@@ -18,6 +18,7 @@ import { validateAssetsStructure, validateInputStructure, validateToolAssetsSema
 import { allRegistrations, validateAllData } from '../src/app/game/data/schemas';
 
 import businessesConfig from '../src/json/businesses.json';
+import objectsConfig from '../src/json/objects.json';
 import demandConfig from '../src/json/demand.json';
 import jobsConfig from '../src/json/jobs.json';
 import populationConfig from '../src/json/population.json';
@@ -79,6 +80,27 @@ describe('data validation (task 039)', () => {
         expect(Object.keys(businessesConfig).length).toBeGreaterThanOrEqual(15);
         expect(Object.keys(jobsConfig).length).toBeGreaterThanOrEqual(25);
         expect(Object.keys(demandConfig).length).toBeGreaterThanOrEqual(9);
+    });
+
+    // Objects backfill distribution guards (task 050): the archetype roster must stay big and varied enough
+    // that wandering/pocketing/gifting actions always have material to work with.
+    test('object archetype distribution', () => {
+        const archetypes = Object.values(objectsConfig) as { category: string; flags: Record<string, boolean> }[];
+        expect(archetypes.length).toBeGreaterThanOrEqual(1200);
+        const categories = new Map<string, number>();
+        let pocketable = 0;
+        let carryable = 0;
+        for (const archetype of archetypes) {
+            categories.set(archetype.category, (categories.get(archetype.category) ?? 0) + 1);
+            if (archetype.flags['pocketable']) pocketable += 1;
+            if (archetype.flags['carryable']) carryable += 1;
+        }
+        expect(categories.size).toBeGreaterThanOrEqual(19); // every planning category populated
+        for (const [category, count] of categories) {
+            expect({ category, populated: count >= 10 }).toEqual({ category, populated: true });
+        }
+        expect(pocketable / archetypes.length).toBeGreaterThan(0.3); // pocketing material
+        expect(carryable / archetypes.length).toBeGreaterThan(0.6); // possessions material
     });
 });
 
