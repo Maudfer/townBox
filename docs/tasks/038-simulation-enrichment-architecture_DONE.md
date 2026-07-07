@@ -250,7 +250,7 @@ Framework before content: the schema registry, hourly lifecycle, materialization
 | [051](051-actions-data-backfill_DONE.md) | Actions backfill (general + per-job) | Content |
 | [052](052-events-data-backfill.md) | 500 probabilistic + 500 manual events | Content |
 | [053](053-object-action-relationships-backfill_DONE.md) | Object-action transformation backfill | Content |
-| [054](054-action-event-relationship-docs.md) | Action↔Event relationship documentation artifact | Docs |
+| [054](054-action-event-relationship-docs_DONE.md) | Action↔Event relationship documentation artifact | Docs |
 | [055](055-history-asset-pipeline.md) | Offline history-asset pipeline (renumbered from 038; now consumes the full boundary-compliant sim) | Strategic |
 
 Dependency spine: 039 → 040 → {041, 042} → 043 → 044 → {045, 046} → 047 → 048 → content (050–053, fed by 049) → 054 → 055.
