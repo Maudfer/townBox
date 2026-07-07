@@ -82,6 +82,9 @@ export interface ActionDefinition {
     completeWhen?: Predicate;
     children?: ChildrenSpec; // continuous only
     events?: ActionEventLinks;
+    // Applied atomically when the action commits (discrete: at perform; continuous: at completion) — after
+    // any object-action-relationship entry for the action (whose outputs these ops may reference).
+    consequences?: ConsequenceOp[];
 }
 
 export type ActionManifest = Record<ActionId, ActionDefinition>;
@@ -110,6 +113,8 @@ export interface ActionInstance {
     ticksRun: number;
     transitionHandleId: number | null; // pending world transition, when waiting_for_materialization
     sequenceIndex: number; // next step to run (sequence children)
+    // Output variables bound by the most recent step's consequences ("$previous.output", 038 §7.3/7.4).
+    previousOutputs: Record<string, string>;
     // Per-child occurrence bookkeeping for pool children: count + last occurrence tick.
     poolState: Record<ActionId, { count: number; lastTick: number }>;
     lastPoolChild: string | null; // interleaving: the last child that occurred within the current tick
@@ -128,9 +133,79 @@ export interface ActionEngineState {
 // Typed result of starting an action — failures are explicit, never silent skips.
 export type ActionStartOutcome =
     | { ok: true; instanceId: ActionInstanceId | null; logSeq: number } // instanceId null for discrete actions
-    | { ok: false; reason: 'unknownAction' | 'requirementsUnmet' | 'missingParameter' | 'alreadyActive' | 'invalidParent' };
+    | { ok: false; reason: 'unknownAction' | 'requirementsUnmet' | 'missingParameter' | 'alreadyActive' | 'invalidParent' | 'inputsUnavailable' };
 
 export interface ActionCause {
     source: TriggerSource;
     causationId: number | null;
 }
+
+// --- Consequences (task 044; docs/tasks/038 §7.4) ----------------------------------------------------------
+//
+// A bounded, declarative vocabulary — no scripting in JSON (the 013 flexibility line holds). Consequences
+// apply ATOMICALLY per commit: every referenced object/target is resolved and validated first; any failure
+// aborts the whole set with zero mutations and the action fails/blocks.
+
+// Who receives/loses ownership. 'employer' resolves through the person's workplace (live) and is a typed
+// failure when unresolvable; 'targetPerson' reads the action's `target` parameter.
+export type OwnershipTarget = 'person' | 'targetPerson' | 'employer' | 'world' | 'none';
+
+// Where an op finds its object. `param` reads an objectInstance parameter; `output` reads a variable bound
+// earlier in this action/sequence; the query forms search carried Possessions or the current location.
+export type ObjectRef =
+    | { param: string }
+    | { output: string }
+    | { carried: { archetype?: string; tag?: string; flag?: string } }
+    | { atLocation: { archetype?: string; tag?: string; flag?: string } };
+
+export type ConsequenceOp =
+    // Creates an instance (merging stacks per Inventory rules). `bindAs` names the output for later steps.
+    | { op: 'createObject'; archetype: string; quantity?: number; state?: Record<string, Value>; owner?: OwnershipTarget; container?: 'possessions' | 'location'; bindAs?: string }
+    | { op: 'consumeObject'; object: ObjectRef; quantity?: number }
+    | { op: 'removeObject'; object: ObjectRef }
+    // Physical movement only (ownership untouched): pocket something / put it down.
+    | { op: 'moveObject'; object: ObjectRef; container: 'possessions' | 'location' }
+    // Ownership only (location untouched): gifts, confiscation, purchases.
+    | { op: 'transferObject'; object: ObjectRef; owner: OwnershipTarget }
+    | { op: 'setObjectState'; object: ObjectRef; key: string; value: Value }
+    // Approved person mutation: money through the ledger (never raw writes).
+    | { op: 'adjustMoney'; amount: number; target?: 'person' | 'targetPerson' }
+    // Fire a manual Event now / schedule an automated one — both through the Event engine, with causation.
+    | { op: 'triggerEvent'; event: string }
+    | { op: 'scheduleEvent'; event: string; afterTicks: number };
+
+// --- Object-action relationships (task 044; docs/tasks/038 §7.6) -------------------------------------------
+//
+// Multi-input object transformations, keyed by entry id in object-action-relationships.json. An action may
+// have several entries; at commit the FIRST entry (declaration order) whose inputs are all satisfiable
+// applies. Inputs match against the person's carried instances (nested containers included).
+
+export type InputDisposition = 'consumed' | 'retained' | 'transformed' | 'required';
+
+export interface OARInput {
+    archetype: string;
+    state?: Record<string, Value>; // instance state that must match
+    quantity?: number; // default 1
+    disposition: InputDisposition;
+    transformTo?: { archetype: string; state?: Record<string, Value> }; // required when disposition = transformed
+    bindAs?: string; // names the (transformed) instance for later steps
+}
+
+export interface OAROutput {
+    archetype: string;
+    quantity?: number;
+    state?: Record<string, Value>;
+    owner?: OwnershipTarget; // default 'person'
+    container?: 'possessions' | 'location'; // default 'possessions'
+    bindAs?: string;
+}
+
+export interface OAREntry {
+    action: ActionId;
+    inputs: OARInput[];
+    outputs: OAROutput[];
+    // Contextual requirement: a matching instance must be present at the person's location (e.g. an oven).
+    context?: { objectAtLocation?: { archetype?: string; tag?: string; flag?: string } };
+}
+
+export type OARTable = Record<string, OAREntry>;

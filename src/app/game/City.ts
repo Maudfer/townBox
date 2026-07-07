@@ -417,6 +417,10 @@ export default class City {
             engine,
             actionEngine: Game.actionEngine ?? undefined,
             inventory: Game.inventory,
+            employerKeyOf: id => {
+                const workplace = personByGenId.get(id)?.work.getWorkplace();
+                return workplace instanceof Workplace ? workplace.getIdentifier() : null;
+            },
             state: population.getState(),
             agentIds: [...materializedIds],
             tick: event.tick,

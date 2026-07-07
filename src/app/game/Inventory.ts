@@ -19,7 +19,7 @@ import {
     InventoryState,
 } from 'types/Objects';
 import { PersonId } from 'types/Genealogy';
-import { Value } from 'types/Simulation';
+import { ObjectQuery, Value } from 'types/Simulation';
 
 import objectsConfig from 'json/objects.json';
 
@@ -185,6 +185,73 @@ export default class Inventory {
         if (instance.quantity === 0) {
             this.removeInstance(instanceId);
         }
+    }
+
+    // Whether an instance matches an object query (archetype id / archetype tag / archetype flag). The one
+    // matching rule shared by predicate evaluation (carries/objectAtLocation) and consequence ObjectRefs.
+    instanceMatches(instanceId: ObjectInstanceId, query: ObjectQuery): boolean {
+        const instance = this.state.instances[instanceId];
+        const archetype = instance ? this.archetypes[instance.archetypeId] : null;
+        if (!instance || !archetype) {
+            return false;
+        }
+        if (query.archetype !== undefined && instance.archetypeId !== query.archetype) {
+            return false;
+        }
+        if (query.tag !== undefined && !(archetype.tags ?? []).includes(query.tag)) {
+            return false;
+        }
+        if (query.flag !== undefined && !(archetype.flags as unknown as Record<string, boolean>)[query.flag]) {
+            return false;
+        }
+        return true;
+    }
+
+    // Crafting withdrawal (task 044): removes `quantity` (default: all) from an instance regardless of the
+    // consumable flag — consuming flour into dough is not eating it. Removes the instance at zero.
+    withdraw(instanceId: ObjectInstanceId, quantity?: number): void {
+        const instance = this.requireInstance(instanceId);
+        const amount = quantity ?? instance.quantity;
+        if (amount < 1 || amount > instance.quantity) {
+            throw new Error(`[Inventory] Invalid withdraw amount ${amount} (have ${instance.quantity})`);
+        }
+        instance.quantity -= amount;
+        if (instance.quantity === 0) {
+            this.removeInstance(instanceId);
+        }
+    }
+
+    // Crafting transformation (task 044): the instance BECOMES another archetype (raw dough → baked dough),
+    // preserving identity, owner, and container. Transforming part of a stack splits it: the transformed
+    // portion becomes a new instance. Returns the transformed instance.
+    transformInstance(instanceId: ObjectInstanceId, archetypeId: string, state?: Record<string, Value>, quantity?: number): ObjectInstance {
+        const instance = this.requireInstance(instanceId);
+        if (!this.archetypes[archetypeId]) {
+            throw new Error(`[Inventory] Unknown object archetype "${archetypeId}"`);
+        }
+        const amount = quantity ?? instance.quantity;
+        if (amount < 1 || amount > instance.quantity) {
+            throw new Error(`[Inventory] Invalid transform amount ${amount} (have ${instance.quantity})`);
+        }
+        if (amount < instance.quantity) {
+            instance.quantity -= amount;
+            return this.createInstance({
+                archetypeId,
+                owner: instance.owner,
+                container: instance.container,
+                tick: instance.createdAtTick,
+                quantity: this.archetypes[archetypeId]!.flags.stackable ? amount : 1,
+                provenance: instance.provenance,
+                ...(state ? { state } : {}),
+            });
+        }
+        instance.archetypeId = archetypeId;
+        if (state) {
+            instance.state = { ...state };
+        } else {
+            delete instance.state;
+        }
+        return instance;
     }
 
     // Removes an instance outright (destruction/teardown). Rejected while it still contains other instances.

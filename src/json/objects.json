@@ -1090,5 +1090,89 @@
         "tags": [
             "giftable"
         ]
+    },
+    "flour_bag": {
+        "label": "Bag of Flour",
+        "category": "food",
+        "size": {
+            "w": 12,
+            "d": 8,
+            "h": 20
+        },
+        "weightGrams": 1000,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "ingredient"
+        ]
+    },
+    "egg": {
+        "label": "Egg",
+        "category": "food",
+        "size": {
+            "w": 5,
+            "d": 5,
+            "h": 6
+        },
+        "weightGrams": 60,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "ingredient"
+        ]
+    },
+    "cream_jar": {
+        "label": "Jar of Cream",
+        "category": "food",
+        "size": {
+            "w": 8,
+            "d": 8,
+            "h": 10
+        },
+        "weightGrams": 350,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "ingredient"
+        ]
+    },
+    "baked_dough": {
+        "label": "Baked Dough",
+        "category": "food",
+        "size": {
+            "w": 22,
+            "d": 22,
+            "h": 8
+        },
+        "weightGrams": 800,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "ingredient"
+        ]
     }
 }

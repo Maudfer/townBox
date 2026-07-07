@@ -16,6 +16,7 @@
 import EventEngine from 'game/EventEngine';
 import LifeLog from 'game/LifeLog';
 import Inventory from 'game/Inventory';
+import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/Consequences';
 
 import { SeededRandom } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
@@ -29,6 +30,8 @@ import {
     ActionInstanceId,
     ActionManifest,
     ActionStartOutcome,
+    OAREntry,
+    OARTable,
     PoolChildSpec,
     SequenceStepSpec,
 } from 'types/Action';
@@ -39,8 +42,10 @@ import { SimulationContext, HasEventQuery, ObjectQuery, Value } from 'types/Simu
 import { locationKey, parseLocationKey } from 'types/Objects';
 
 import actionsConfig from 'json/actions.json';
+import oarConfig from 'json/object-action-relationships.json';
 
 export const DEFAULT_ACTION_MANIFEST: ActionManifest = actionsConfig as unknown as ActionManifest;
+export const DEFAULT_OAR_TABLE: OARTable = oarConfig as unknown as OARTable;
 
 // Everything one advance/start call needs from the outside world. Built per tick by the TickRunner (live
 // and bootstrap alike); tests build it directly.
@@ -51,6 +56,9 @@ export interface ActionDeps {
     ctx: Partial<ExecutionContext>;
     eventEngine: EventEngine;
     inventory?: Inventory | null;
+    // Resolves a person's employer (workplace anchor key) for 'employer'-owned consequence outputs (044).
+    // Live wires it through WorkLife; absent (bootstrap, pure tests) the target is a typed plan failure.
+    employerKeyOf?: (personId: PersonId) => string | null;
 }
 
 const ACTIVE_STATUSES = new Set(['pending', 'waiting_for_materialization', 'running']);
@@ -59,15 +67,23 @@ export default class ActionEngine {
     private manifest: ActionManifest;
     private lifeLog: LifeLog;
     private state: ActionEngineState;
+    // OAR entries indexed by action id, in declaration order (first satisfiable entry applies — task 044).
+    private oarByAction: Map<string, OAREntry[]>;
     // Pending world transitions by instance id. Transient (handles are live objects); a load re-requests
     // transitions for waiting instances on the next advance.
     private handles: Map<ActionInstanceId, TransitionHandle>;
 
-    constructor(manifest: ActionManifest = DEFAULT_ACTION_MANIFEST, lifeLog: LifeLog = new LifeLog()) {
+    constructor(manifest: ActionManifest = DEFAULT_ACTION_MANIFEST, lifeLog: LifeLog = new LifeLog(), oar: OARTable = DEFAULT_OAR_TABLE) {
         this.manifest = manifest;
         this.lifeLog = lifeLog;
         this.state = { instances: {}, nextInstanceSeq: 0, actionHistory: {} };
         this.handles = new Map();
+        this.oarByAction = new Map();
+        for (const entry of Object.values(oar)) {
+            const entries = this.oarByAction.get(entry.action) ?? [];
+            entries.push(entry);
+            this.oarByAction.set(entry.action, entries);
+        }
     }
 
     getState(): ActionEngineState {
@@ -195,7 +211,7 @@ export default class ActionEngine {
 
     // Starts an action for a person. Discrete actions commit immediately ('performed'); continuous actions
     // materialize an instance, requesting a location transition through the boundary when needed.
-    startAction(personId: PersonId, actionId: string, params: Record<string, Value>, cause: ActionCause, deps: ActionDeps, result: TickResult, parentInstanceId: ActionInstanceId | null = null): ActionStartOutcome {
+    startAction(personId: PersonId, actionId: string, params: Record<string, Value>, cause: ActionCause, deps: ActionDeps, result: TickResult, parentInstanceId: ActionInstanceId | null = null, onOutputs?: (outputs: Record<string, string>) => void): ActionStartOutcome {
         const def = this.manifest[actionId];
         if (!def) {
             return { ok: false, reason: 'unknownAction' };
@@ -217,10 +233,33 @@ export default class ActionEngine {
         }
 
         if (def.type === 'discrete') {
+            // Consequences (task 044): plan BOTH the object-action-relationship entry and the declared ops
+            // against pre-state; any unresolvable reference aborts the whole commit with zero mutations.
+            const commitCtx: CommitContext = { personId, params, outputs: {}, causationId: cause.causationId, deps, result };
+            const oarPlan = planOAR(this.oarByAction.get(actionId) ?? [], commitCtx);
+            if (oarPlan === null) {
+                return { ok: false, reason: 'inputsUnavailable' };
+            }
+            const plannedOutputs = new Set<string>();
+            for (const entry of this.oarByAction.get(actionId) ?? []) {
+                entry.inputs.forEach(input => input.bindAs && plannedOutputs.add(input.bindAs));
+                entry.outputs.forEach(output => output.bindAs && plannedOutputs.add(output.bindAs));
+            }
+            const opsPlan = def.consequences ? planConsequences(def.consequences, commitCtx, plannedOutputs) : { steps: [] };
+            if (!opsPlan) {
+                return { ok: false, reason: 'inputsUnavailable' };
+            }
+
             const seq = this.lifeLog.append(personId, {
                 tick: deps.tick, kind: 'action', defId: actionId, instanceId: null, lifecycle: 'performed',
                 params: { ...params }, parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
             });
+            commitCtx.causationId = seq; // provenance + event causation chain to THIS commit
+            if (oarPlan) {
+                applyPlan(oarPlan);
+            }
+            applyPlan(opsPlan);
+            onOutputs?.(commitCtx.outputs);
             this.recordAction(personId, actionId, deps.tick);
             this.fireEvent(def.events?.onStart, personId, seq, deps, result);
             this.fireEvent(def.events?.onComplete, personId, seq, deps, result);
@@ -247,6 +286,7 @@ export default class ActionEngine {
             ticksRun: 0,
             transitionHandleId: null,
             sequenceIndex: 0,
+            previousOutputs: {},
             poolState: {},
             lastPoolChild: null,
         };
@@ -364,16 +404,34 @@ export default class ActionEngine {
     }
 
     private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {
+        const def = this.manifest[instance.defId]!;
+
+        // Completion consequences (task 044): planned before the outcome is logged — an unsatisfiable plan
+        // turns the completion into a failure with zero mutations. Outputs are seeded from the sequence's
+        // bound outputs, so the parent can validate/transfer the final child output WITHOUT duplicating it.
+        let completionCtx: CommitContext | null = null;
+        let completionPlan: { steps: (() => void)[] } | null = null;
+        if (outcome === 'completed' && def.consequences) {
+            completionCtx = { personId: instance.personId, params: instance.params, outputs: { ...instance.previousOutputs }, causationId: instance.startLogSeq, deps, result };
+            completionPlan = planConsequences(def.consequences, completionCtx, new Set());
+            if (!completionPlan) {
+                outcome = 'failed';
+            }
+        }
+
         instance.status = outcome;
         instance.outcome = outcome;
         instance.endedTick = deps.tick;
         this.handles.delete(instance.id);
-        const def = this.manifest[instance.defId]!;
         const seq = this.lifeLog.append(instance.personId, {
             tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: outcome,
             params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
         });
         if (outcome === 'completed') {
+            if (completionCtx && completionPlan) {
+                completionCtx.causationId = seq;
+                applyPlan(completionPlan);
+            }
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result);
         } else if (outcome === 'interrupted') {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result);
@@ -431,7 +489,9 @@ export default class ActionEngine {
             return null;
         }
         const params = this.resolveStepParams(instance, step);
-        const outcome = this.startAction(instance.personId, step.action, params, { source: 'action', causationId: instance.startLogSeq }, deps, result, instance.id);
+        const outcome = this.startAction(instance.personId, step.action, params, { source: 'action', causationId: instance.startLogSeq }, deps, result, instance.id, outputs => {
+            instance.previousOutputs = { ...outputs };
+        });
         if (outcome.ok) {
             instance.sequenceIndex += 1;
             return null;
@@ -457,8 +517,13 @@ export default class ActionEngine {
                 }
                 continue;
             }
-            if (raw === '$previous.output') {
-                continue; // populated by the consequence system (task 044)
+            if (typeof raw === 'string' && raw.startsWith('$previous.')) {
+                const key = raw.slice('$previous.'.length);
+                const value = instance.previousOutputs[key];
+                if (value !== undefined) {
+                    params[name] = value;
+                }
+                continue;
             }
             params[name] = raw;
         }
