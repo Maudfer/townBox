@@ -64,7 +64,7 @@ Always run `npm test` before opening the PR.**
 | 049 | [Pre-initiative content planning lists](049-content-planning-lists_DONE.md) | Content | ✅ Done |
 | 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill_DONE.md) | Content | ✅ Done |
 | 051 | [Actions data backfill (general + per-job)](051-actions-data-backfill_DONE.md) | Content | ✅ Done |
-| 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill.md) | Content | ⬜ Open |
+| 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill_DONE.md) | Content | ✅ Done |
 | 053 | [object-action-relationships backfill](053-object-action-relationships-backfill.md) | Content | ⬜ Open |
 | 054 | [Action ↔ Event relationship documentation](054-action-event-relationship-docs.md) | Docs | ⬜ Open |
 | 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038) |

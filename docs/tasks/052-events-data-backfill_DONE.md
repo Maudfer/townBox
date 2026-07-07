@@ -3,6 +3,7 @@
 - **Type:** Content / Data
 - **Labels:** `content`, `events`, `data`, `enrichment-arc`
 - **Depends on:** [042](042-event-triggers-and-causation_DONE.md) (triggers), [048](048-events-revision-hourly-migration_DONE.md) (revision conventions established), [051](051-actions-data-backfill_DONE.md) (actions to link to), [049](049-content-planning-lists_DONE.md) (the name list)
+- **Status:** ✅ Done — 698 events (546 probabilistic / 521 manual post-dedupe) generated deterministically from the 049 planning table with category-tuned rates, age gates, occurrence limits, and daytime factors; 9 action→event lifecycle links wired; texture events are effect-free and signal-free (person-log-only), so the 048 demography harness and the feed mapping stayed intact. Included an engine perf pass (roll-first probabilistic ordering, no-sort curve evaluation, precomputed factor metadata); the indexKeys eligibility bucketing is flagged as the 055-era optimization lever.
 
 ## Goal
 
