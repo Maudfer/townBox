@@ -2,7 +2,7 @@
 
 - **Type:** Documentation
 - **Labels:** `docs`, `actions`, `events`, `enrichment-arc`
-- **Depends on:** [048](048-events-revision-hourly-migration_DONE.md), [051](051-actions-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill.md) (the relationships it documents)
+- **Depends on:** [048](048-events-revision-hourly-migration_DONE.md), [051](051-actions-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill_DONE.md) (the relationships it documents)
 
 ## Goal
 

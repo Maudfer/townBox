@@ -15,7 +15,7 @@ Fill `actions.json` with the continuous and discrete Actions a Person can do —
 - **Work Actions**: the shared continuous/discrete catalogs referenced by 045's per-job declarations, satisfying its validator (≥ 5 + 5 per job title).
 - Every action carries honest **requirements** (hard gates) and **selection modifiers** (variety), cooldowns/anti-repetition, preferred contexts, and a behavior category — Brain has no special cases per action.
 - Scale: hundreds of actions. Curate from the planning lists; keep ids/labels consistent (continuous = gerund, discrete = past-tense log line).
-- Where an action transforms objects, its [053](053-object-action-relationships-backfill.md) relationship entries must exist — land 051/053 in whatever order keeps validators green (they may merge into one PR if that proves simpler; note it in the PR).
+- Where an action transforms objects, its [053](053-object-action-relationships-backfill_DONE.md) relationship entries must exist — land 051/053 in whatever order keeps validators green (they may merge into one PR if that proves simpler; note it in the PR).
 
 ## Non-goals
 

@@ -1,6 +1,6 @@
 # Content planning artifacts
 
-Name-level planning material for the **simulation enrichment arc** ([task 038](../tasks/038-simulation-enrichment-architecture_DONE.md)), produced by [task 049](../tasks/049-content-planning-lists_DONE.md). These are **planning inputs, not runtime data**: the data-backfill tasks ([050](../tasks/050-objects-data-backfill.md)–[053](../tasks/053-object-action-relationships-backfill.md), plus [045](../tasks/045-job-shifts-and-work-actions.md)/[052](../tasks/052-events-data-backfill.md)) curate from these lists into validated JSON. Traceability (object→setting, business→setting, job→business, action→job, event→source) is preserved here even where the final JSON won't retain it.
+Name-level planning material for the **simulation enrichment arc** ([task 038](../tasks/038-simulation-enrichment-architecture_DONE.md)), produced by [task 049](../tasks/049-content-planning-lists_DONE.md). These are **planning inputs, not runtime data**: the data-backfill tasks ([050](../tasks/050-objects-data-backfill_DONE.md)–[053](../tasks/053-object-action-relationships-backfill_DONE.md), plus [045](../tasks/045-job-shifts-and-work-actions_DONE.md)/[052](../tasks/052-events-data-backfill.md)) curate from these lists into validated JSON. Traceability (object→setting, business→setting, job→business, action→job, event→source) is preserved here even where the final JSON won't retain it.
 
 All counts below are script-verified and restated at the top of each artifact.
 
