@@ -308,7 +308,14 @@ drawn people real event histories.
 
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/README.md)):
 
-- **038 — offline history-asset pipeline.** Reframe the history bootstrap: run the deep, full-fidelity
+- **039–054 — the simulation-enrichment arc** (architecture in
+  [task 038](docs/tasks/038-simulation-enrichment-architecture_DONE.md)): hourly ticks (24/day), object
+  archetypes & per-person **Possessions**, a data-driven **Action** system (discrete/continuous, child pools &
+  sequences, bounded consequences), event **triggers** (probabilistic/manual/automated) with causation-chained
+  logs, per-person **Brain** decision-making, job shifts & a **Job Orchestrator** — all behind a formal
+  live/bootstrap **execution boundary** so the exact same simulation runs on-map and off.
+- **055 — offline history-asset pipeline** (renumbered from 038; lands *after* the enrichment it should
+  capture). Reframe the history bootstrap: run the deep, full-fidelity
   simulation *once, offline* (100 founders → grow to 1,000 → simulate 500 years), save it as a **versioned data
   asset**, and have new games *select* a random window from it (with re-randomized identities) instead of
   simulating — the strategic key to one-fidelity simulation and near-infinite starting scenarios.

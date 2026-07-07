@@ -1,9 +1,38 @@
 # [Feature] Offline history-asset pipeline + asset-fed new game
 
+> **Renumbered from 038 → 055.** This task now runs **after** the simulation-enrichment arc
+> ([038 — architecture](038-simulation-enrichment-architecture_DONE.md), tasks 039–054), which was deliberately
+> placed ahead of it: the whole point of offline generation is a **no-compromise** asset, so the generator must
+> run the *enriched* simulation — hourly ticks, Actions, Brain, objects/possessions, job activity — not the
+> pre-arc event engine this file originally described.
+
 - **Type:** Feature / Simulation + Architecture + Tooling
 - **Labels:** `feature`, `simulation`, `tooling`, `asset`, `strategic`, `framework-followup`
-- **Depends on:** 036 (the history bootstrap — its engine loop, `daysPerStep`, worker/config are the raw material this repurposes), 013 (event engine), 003/save (compression + id-based serialization).
+- **Depends on:** **[040](040-hourly-ticks-and-execution-boundary.md) (the execution boundary — the generator runs the shared `TickRunner` under the `bootstrap` execution context)**, the enrichment content it should capture (ideally [043](043-actions-core.md)–[052](052-events-data-backfill.md)), plus the original bases: 036 (the history bootstrap — its engine loop, step coarsening, worker/config are the raw material this repurposes), 013 (event engine), 003/save (compression + id-based serialization).
 - **Supersedes / retires:** the **per-load** history bootstrap from 036 (`GameManager.runBootstrap`, `bootstrap.worker.ts`, `bootstrapWorkerFactory.ts`, `BootstrapLoader.tsx`, `json/bootstrap.json`). Their *logic* is repurposed into an offline generator; the browser worker/overlay are removed.
+
+## 0-bis. Reframe by the enrichment arc (read first)
+
+The sections below predate the enrichment arc and must be re-explored on pickup (per the mandatory exploration
+pass). What changes:
+
+- **No manifest filtering, no empty adapters.** §1's two 036 compromises (`bootstrapManifest()` dropping
+  role-search events; `{}` adapters silencing employment/housing/skill/money events) are retired by
+  [040](040-hourly-ticks-and-execution-boundary.md): the generator passes a full `ExecutionContext` in
+  `bootstrap` mode, where location transitions resolve immediately through the non-visual `WorldAdapter` while
+  emitting the same lifecycle records as live play. Any remaining fidelity knob (bounded marriage search,
+  `ticksPerStep`) is explicit config, disabled by default.
+- **The offline world model becomes this task's scope.** For the generator to run "all aspects of the live sim
+  except waiting for materialization", the bootstrap `WorldAdapter` needs a fleshed-out **logical world**:
+  abstract homes, venues, and businesses/jobs so people can work, shop, wander, and accumulate possessions
+  off-map ([038 §3.4](038-simulation-enrichment-architecture_DONE.md) ships only the minimal contract). Deterministic
+  generation of that logical world (from the same blueprints/jobs data as live play) is Part A work here.
+- **The asset gets richer.** Beyond `PopulationState` + event history, the asset now carries the
+  **append-only event/action logs with seq + causation** (040), **object instances & possessions** (041), and
+  the Brain-visible facts needed at materialization. §2.5's format and the size/runtime estimates must be
+  re-measured; `formatVersion` starts at the new shape.
+- **Ticks are hours** (040): `ticksPerYear = 8640`; every tick figure below (epochs, windows, rebasing) reads
+  in hours; `daysPerStep` has become `ticksPerStep`.
 
 ---
 
