@@ -15,6 +15,7 @@ function toJobPosition(def: JobDefinition): JobPosition {
         requirements: def.requiredSkills as JobRequirements[],
         shiftStart: def.shiftStart ?? DEFAULT_SHIFT_START,
         shiftEnd: def.shiftEnd ?? DEFAULT_SHIFT_END,
+        daysOfWeek: (def.daysOfWeek ?? ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']) as JobPosition['daysOfWeek'],
     };
 }
 

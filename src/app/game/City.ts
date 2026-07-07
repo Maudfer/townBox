@@ -19,7 +19,8 @@ import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandpa
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
-import { TICKS_PER_MONTH } from 'util/time';
+import { TICKS_PER_MONTH, dayOfWeekOfTick } from 'util/time';
+import { isOnShiftAt } from 'util/shifts';
 import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, aggregateMaterialDemand, DemandBusiness } from 'util/businessFinance';
 import { evaluateCurve } from 'util/curve';
 import { TickResult } from 'types/LifeEvent';
@@ -1349,6 +1350,8 @@ export default class City {
         // Resolve any pending location-transition handles whose person has physically arrived (task 040).
         this.world.pump(event.tick);
         const minuteOfDay = event.timestamp.hour * 60 + event.timestamp.minute;
+        // One source of truth for shift math (task 045): day-of-week gating + cross-midnight windows.
+        const dayOfWeek = dayOfWeekOfTick(event.tick);
 
         for (const person of field.getPeople()) {
             const job = person.work.getJob();
@@ -1359,7 +1362,7 @@ export default class City {
             }
 
             const current = person.getCurrentBuilding() ?? home;
-            const shouldBeAtWork = minuteOfDay >= job.shiftStart && minuteOfDay < job.shiftEnd;
+            const shouldBeAtWork = isOnShiftAt(job, dayOfWeek, minuteOfDay);
 
             if (shouldBeAtWork && current !== workplace) {
                 this.startCommute(person, workplace);

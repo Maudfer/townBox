@@ -213,19 +213,33 @@ describe('events validation', () => {
 // ---------- economy content family ----------
 
 describe('jobs validation', () => {
+    const jobBase = {
+        title: 'X', salary: 1, requiredSkills: [], shiftStart: 540, shiftEnd: 1020,
+        daysOfWeek: ['mon'], workActions: { continuous: [{ action: 'c' }], discrete: [{ action: 'd', chancePerTick: 0.2 }] },
+    };
+
     test.each([
-        ['a non-positive salary', { j: { title: 'X', salary: 0, requiredSkills: [] } }, /expected >= 1/],
-        ['a shift outside the day', { j: { title: 'X', salary: 1, requiredSkills: [], shiftStart: 1500 } }, /expected <= 1439/],
-        ['an unknown key (typo)', { j: { title: 'X', salary: 1, requiredSkills: [], shfitEnd: 900 } }, /unknown key/],
+        ['a non-positive salary', { j: { ...jobBase, salary: 0 } }, /expected >= 1/],
+        ['a shift outside the day', { j: { ...jobBase, shiftStart: 1500 } }, /expected <= 1439/],
+        ['a missing shift (no more silent defaults)', { j: { ...jobBase, shiftEnd: undefined } }, /expected a number/],
+        ['an unknown weekday', { j: { ...jobBase, daysOfWeek: ['monday'] } }, /expected one of \[mon, tue/],
+        ['an empty weekday list', { j: { ...jobBase, daysOfWeek: [] } }, /at least one working day/],
+        ['an empty work-action pool', { j: { ...jobBase, workActions: { continuous: [], discrete: [{ action: 'd' }] } } }, /at least one continuous work action/],
+        ['an unknown key (typo)', { j: { ...jobBase, shfitEnd: 900 } }, /unknown key/],
     ])('structure rejects %s', (_label, fixture, pattern) => {
         expect(messagesOf(structure(validateJobsStructure, fixture))).toMatch(pattern);
     });
 
-    test('semantics rejects unknown and unweighted skills', () => {
-        const fixture = { a: { title: 'A', salary: 1, requiredSkills: ['NinjaSkill'] }, b: { title: 'B', salary: 1, requiredSkills: ['MedicalSkill'] } };
-        const output = messagesOf(semantics(validateJobsSemantics, fixture, { skills: { weights: {} } }));
+    test('semantics rejects unknown and unweighted skills, and dangling/mismatched work actions', () => {
+        const fixture = {
+            a: { ...jobBase, requiredSkills: ['NinjaSkill'] },
+            b: { ...jobBase, requiredSkills: ['MedicalSkill'], workActions: { continuous: [{ action: 'ghost' }], discrete: [{ action: 'a_cont' }] } },
+        };
+        const output = messagesOf(semantics(validateJobsSemantics, fixture, { skills: { weights: {} }, actions: { c: { type: 'continuous' }, d: { type: 'discrete' }, a_cont: { type: 'continuous' } } }));
         expect(output).toMatch(/unknown skill "NinjaSkill"/);
         expect(output).toMatch(/no positive weight.*unfillable/);
+        expect(output).toMatch(/references unknown action "ghost"/);
+        expect(output).toMatch(/"a_cont" is not a discrete action/);
     });
 });
 

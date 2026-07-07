@@ -15,6 +15,10 @@ export const MONTHS_PER_YEAR = 12;
 export const DAYS_PER_YEAR = DAYS_PER_MONTH * MONTHS_PER_YEAR; // 360
 
 export const TICKS_PER_DAY = 24; // 1 tick = 1 in-game hour
+// The week is a 7-day cycle over absolute days (task 045). It deliberately does NOT align with the 30-day
+// month (30/7 has a remainder) — weeks are a work-scheduling rhythm, not a calendar unit. Day 0 = Monday.
+export const DAYS_PER_WEEK = 7;
+export const WEEKDAY_NAMES = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export const TICKS_PER_MONTH = DAYS_PER_MONTH * TICKS_PER_DAY; // 720
 export const TICKS_PER_YEAR = DAYS_PER_YEAR * TICKS_PER_DAY; // 8640
 export const MS_PER_TICK = MS_PER_IN_GAME_DAY / TICKS_PER_DAY; // 150_000 (2.5 real minutes)
@@ -38,6 +42,11 @@ export function dayOfTick(tick: number): number {
 // The hour-of-day (0..23) a tick falls on; correct for negative ticks.
 export function hourOfTick(tick: number): number {
     return ((tick % TICKS_PER_DAY) + TICKS_PER_DAY) % TICKS_PER_DAY;
+}
+
+// The day-of-week (0 = Monday .. 6 = Sunday) a tick falls on; correct for negative ticks.
+export function dayOfWeekOfTick(tick: number): number {
+    return ((dayOfTick(tick) % DAYS_PER_WEEK) + DAYS_PER_WEEK) % DAYS_PER_WEEK;
 }
 
 // Converts elapsed real milliseconds (since the Year 1 epoch) into a full in-game timestamp.

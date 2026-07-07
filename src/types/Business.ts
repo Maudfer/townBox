@@ -9,12 +9,29 @@ import { JobPosition } from 'types/Work';
 // A single job definition (src/json/jobs.json). `salary` is a flat number for now (a Curve over business
 // size / city economy is a design-for extension). The strain/admiration fields are design-for: they are
 // consumed by Engine B probability gradients in later phases and are optional today.
+// How often a work action is proposed while on duty (task 045): the same pooling shape as the Action
+// engine's pool children, so the Job Orchestrator (047) reuses that machinery.
+export interface WorkActionSpec {
+    action: string; // action id in actions.json
+    chancePerTick?: number; // discrete proposals: 0..1 per tick on duty (defaults to 1 for continuous)
+    maxPerTick?: number;
+    cooldownTicks?: number;
+}
+
 export interface JobDefinition {
     title: string;
     salary: number;
     requiredSkills: string[]; // skill ids; align with the JobRequirements enum (types/Work.ts)
-    shiftStart?: number; // minutes since midnight; defaults to DEFAULT_SHIFT_START
-    shiftEnd?: number; // minutes since midnight; defaults to DEFAULT_SHIFT_END
+    shiftStart: number; // minutes since midnight (task 045: authored explicitly, validator-required)
+    shiftEnd: number; // minutes since midnight; < shiftStart crosses midnight
+    daysOfWeek: string[]; // Weekday names ('mon'..'sun'), non-empty (task 045)
+    // The job's work-Action repertoire (task 045): what a person on duty does, proposed by the Job
+    // Orchestrator (047) under Brain arbitration (046). Continuous = the on-duty activity; discrete = the
+    // flavorful one-shot pool ("Misplaced a document").
+    workActions: {
+        continuous: WorkActionSpec[];
+        discrete: WorkActionSpec[];
+    };
     physicalStrain?: number; // design-for (0..1)
     mentalStrain?: number; // design-for (0..1)
     socialAdmiration?: number; // design-for (0..1)
