@@ -2,7 +2,7 @@
 
 - **Type:** Content / Data
 - **Labels:** `content`, `events`, `data`, `enrichment-arc`
-- **Depends on:** [042](042-event-triggers-and-causation_DONE.md) (triggers), [048](048-events-revision-hourly-migration.md) (revision conventions established), [051](051-actions-data-backfill.md) (actions to link to), [049](049-content-planning-lists_DONE.md) (the name list)
+- **Depends on:** [042](042-event-triggers-and-causation_DONE.md) (triggers), [048](048-events-revision-hourly-migration_DONE.md) (revision conventions established), [051](051-actions-data-backfill.md) (actions to link to), [049](049-content-planning-lists_DONE.md) (the name list)
 
 ## Goal
 

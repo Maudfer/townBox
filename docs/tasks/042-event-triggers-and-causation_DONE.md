@@ -3,7 +3,7 @@
 - **Type:** Core system / Simulation + Data
 - **Labels:** `framework`, `events`, `triggers`, `causation`, `enrichment-arc`
 - **Depends on:** [039](039-data-schema-registry-and-validators_DONE.md) (validator), [040](040-hourly-ticks-and-execution-boundary_DONE.md) (hourly lifecycle, log with causation ids)
-- **Blocks:** [043](043-actions-core_DONE.md)/[044](044-action-consequences-and-object-action-relationships_DONE.md) (actions trigger manual events), [046](046-brain-and-hooks_DONE.md) (hooks fire on committed events), [048](048-events-revision-hourly-migration.md) (migration of all existing events)
+- **Blocks:** [043](043-actions-core_DONE.md)/[044](044-action-consequences-and-object-action-relationships_DONE.md) (actions trigger manual events), [046](046-brain-and-hooks_DONE.md) (hooks fire on committed events), [048](048-events-revision-hourly-migration_DONE.md) (migration of all existing events)
 
 ## Goal
 
@@ -30,7 +30,7 @@ Give every Event an explicit **`triggers`** property with three types — `proba
 - **Every invocation** — all three types — records `{ triggerSource: 'probability' | 'action' | 'brain' | 'schedule' | 'system', causationId }` in the 040 log, so the inspector can show *why* an event happened.
 
 ### Migration & UI
-- Mechanical migration of the 15 existing events to `triggers.probabilistic` (semantics-preserving; the per-event *redesign* is [048](048-events-revision-hourly-migration.md)).
+- Mechanical migration of the 15 existing events to `triggers.probabilistic` (semantics-preserving; the per-event *redesign* is [048](048-events-revision-hourly-migration_DONE.md)).
 - `PersonDetails` event log shows the trigger source (small, e.g. a badge/tooltip) — proves the causation chain end-to-end.
 
 ## Non-goals
