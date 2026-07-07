@@ -84,6 +84,7 @@ export default class City {
                 return null;
             },
             startCommute: (person, destination) => this.startCommute(person, destination),
+            getInventory: () => Game.inventory,
         });
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });

@@ -11,6 +11,7 @@ import {
     validateSkillsStructure,
 } from '../src/app/game/data/validators/economyContent';
 import { validateBootstrapStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
+import { validateObjectsStructure } from '../src/app/game/data/validators/objects';
 import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from '../src/app/game/data/validators/ui';
 import { allRegistrations, validateAllData } from '../src/app/game/data/schemas';
 
@@ -66,8 +67,8 @@ describe('data validation (task 039)', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
             'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy', 'events',
-            'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials', 'population',
-            'skills', 'toolAssets',
+            'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials', 'objects',
+            'population', 'skills', 'toolAssets',
         ]);
     });
 
@@ -281,6 +282,32 @@ describe('params validation', () => {
     test('bootstrap rejects a mismatched ticksPerYear', () => {
         const fixture = { enabled: true, years: 8, ticksPerYear: 100, stepDays: 7 };
         expect(messagesOf(structure(validateBootstrapStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
+    });
+});
+
+// ---------- objects ----------
+
+describe('objects validation (task 041)', () => {
+    const base = {
+        label: 'Widget', category: 'tool',
+        size: { w: 5, d: 5, h: 5 }, weightGrams: 100,
+        flags: { carryable: true, pocketable: true, stackable: false, consumable: false, equippable: false, placeable: false },
+    };
+
+    test('a well-formed archetype passes', () => {
+        expect(messagesOf(structure(validateObjectsStructure, { widget: base }))).toBe('');
+    });
+
+    test.each([
+        ['an unknown category', { widget: { ...base, category: 'contraband' } }, /unknown category/],
+        ['pocketable without carryable', { widget: { ...base, flags: { ...base.flags, carryable: false, placeable: true } } }, /pocketable implies carryable/],
+        ['a pocketable anvil', { widget: { ...base, weightGrams: 40000 } }, /pocketable items must weigh/],
+        ['zero dimensions', { widget: { ...base, size: { w: 0, d: 5, h: 5 } } }, /expected >= 0.05/],
+        ['a non-carryable, non-placeable object', { widget: { ...base, flags: { ...base.flags, carryable: false, pocketable: false } } }, /must at least be placeable/],
+        ['an unknown key (typo)', { widget: { ...base, wieghtGrams: 5 } }, /unknown key/],
+        ['a bad container spec', { widget: { ...base, container: { maxItems: 0 } } }, /expected >= 1/],
+    ])('rejects %s', (_label, fixture, pattern) => {
+        expect(messagesOf(structure(validateObjectsStructure, fixture))).toMatch(pattern);
     });
 });
 

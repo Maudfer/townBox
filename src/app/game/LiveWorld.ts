@@ -13,11 +13,14 @@ import Building from 'game/Building';
 
 import { PersonId } from 'types/Genealogy';
 import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
+import { locationKey } from 'types/Objects';
+import Inventory from 'game/Inventory';
 
 export interface LiveWorldDeps {
     getPeople(): Person[];
     buildingByKey(key: string): Building | null;
     startCommute(person: Person, destination: Building): void;
+    getInventory?(): Inventory | null;
 }
 
 export default class LiveWorld implements WorldAdapter {
@@ -68,6 +71,11 @@ export default class LiveWorld implements WorldAdapter {
             }
         }
         return ids.sort();
+    }
+
+    objectsAt(location: LogicalLocation): string[] {
+        const inventory = this.deps.getInventory?.() ?? null;
+        return (inventory?.instancesAtLocation(locationKey(location)) ?? []).map(instance => instance.id);
     }
 
     private targetBuilding(person: Person, target: LogicalLocation): Building | null {

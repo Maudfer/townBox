@@ -51,6 +51,8 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     // The append-only life log (task 040): every committed occurrence, newest first, capped for rendering.
     const fullLog = personId ? game.eventEngine?.getPersonLog(personId) ?? [] : [];
     const logEntries = fullLog.slice(-MAX_LOG_ENTRIES).reverse();
+    // Carried Possessions (task 041): top-level items; containers note their contents count.
+    const possessions = personId ? game.inventory?.possessionsOf(personId) ?? [] : [];
 
     const relationshipRows = Object.entries(overview.relationships).filter(([, names]) => !!names);
 
@@ -84,6 +86,26 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                             {relationshipRows.map(([relation, names]) => (
                                 <li key={relation}><strong>{relation}:</strong> {names}</li>
                             ))}
+                        </ul>
+                    ) : (
+                        <p>—</p>
+                    )}
+                </section>
+
+                <section>
+                    <h4>Possessions</h4>
+                    {possessions.length ? (
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                            {possessions.map(instance => {
+                                const archetype = game.inventory?.getArchetype(instance.archetypeId);
+                                const contained = game.inventory?.contentsOf({ kind: 'object', instanceId: instance.id }) ?? [];
+                                return (
+                                    <li key={instance.id}>
+                                        {archetype?.label ?? instance.archetypeId}{instance.quantity > 1 ? ` ×${instance.quantity}` : ''}
+                                        {contained.length > 0 && <small> (contains {contained.length})</small>}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     ) : (
                         <p>—</p>

@@ -1,0 +1,1094 @@
+{
+    "ballpoint_pen": {
+        "label": "Ballpoint Pen",
+        "category": "stationery",
+        "size": {
+            "w": 1,
+            "d": 1,
+            "h": 14
+        },
+        "weightGrams": 8,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "pencil": {
+        "label": "Pencil",
+        "category": "stationery",
+        "size": {
+            "w": 1,
+            "d": 1,
+            "h": 18
+        },
+        "weightGrams": 7,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "notebook": {
+        "label": "Notebook",
+        "category": "stationery",
+        "size": {
+            "w": 15,
+            "d": 1,
+            "h": 21
+        },
+        "weightGrams": 180,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "flyer": {
+        "label": "Flyer",
+        "category": "document",
+        "size": {
+            "w": 21,
+            "d": 0.1,
+            "h": 30
+        },
+        "weightGrams": 5,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "receipt": {
+        "label": "Receipt",
+        "category": "document",
+        "size": {
+            "w": 8,
+            "d": 0.1,
+            "h": 15
+        },
+        "weightGrams": 1,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "coin": {
+        "label": "Coin",
+        "category": "misc",
+        "size": {
+            "w": 2.5,
+            "d": 0.2,
+            "h": 2.5
+        },
+        "weightGrams": 8,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "house_key": {
+        "label": "House Key",
+        "category": "misc",
+        "size": {
+            "w": 3,
+            "d": 0.3,
+            "h": 7
+        },
+        "weightGrams": 12,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "cellphone": {
+        "label": "Cellphone",
+        "category": "electronics",
+        "size": {
+            "w": 7,
+            "d": 1,
+            "h": 15
+        },
+        "weightGrams": 190,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "valuable"
+        ]
+    },
+    "wallet": {
+        "label": "Wallet",
+        "category": "container",
+        "size": {
+            "w": 11,
+            "d": 2,
+            "h": 9
+        },
+        "weightGrams": 90,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "container": {
+            "maxItems": 12
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "wristwatch": {
+        "label": "Wristwatch",
+        "category": "clothing",
+        "size": {
+            "w": 4,
+            "d": 1,
+            "h": 22
+        },
+        "weightGrams": 60,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": true,
+            "placeable": false
+        },
+        "tags": [
+            "valuable",
+            "giftable"
+        ]
+    },
+    "umbrella": {
+        "label": "Umbrella",
+        "category": "misc",
+        "size": {
+            "w": 6,
+            "d": 6,
+            "h": 80
+        },
+        "weightGrams": 400,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "backpack": {
+        "label": "Backpack",
+        "category": "container",
+        "size": {
+            "w": 32,
+            "d": 18,
+            "h": 45
+        },
+        "weightGrams": 800,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": true,
+            "placeable": false
+        },
+        "container": {
+            "capacityLiters": 25,
+            "maxItems": 20
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "apple": {
+        "label": "Apple",
+        "category": "food",
+        "size": {
+            "w": 8,
+            "d": 8,
+            "h": 8
+        },
+        "weightGrams": 180,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "snack",
+            "giftable"
+        ]
+    },
+    "sandwich": {
+        "label": "Sandwich",
+        "category": "food",
+        "size": {
+            "w": 14,
+            "d": 8,
+            "h": 6
+        },
+        "weightGrams": 250,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "snack",
+            "meal"
+        ]
+    },
+    "bread_loaf": {
+        "label": "Bread Loaf",
+        "category": "food",
+        "size": {
+            "w": 30,
+            "d": 12,
+            "h": 12
+        },
+        "weightGrams": 500,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "meal",
+            "giftable"
+        ]
+    },
+    "chewing_gum_pack": {
+        "label": "Pack of Chewing Gum",
+        "category": "food",
+        "size": {
+            "w": 7,
+            "d": 1,
+            "h": 2
+        },
+        "weightGrams": 15,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "snack"
+        ]
+    },
+    "soda_can": {
+        "label": "Soda Can",
+        "category": "drink",
+        "size": {
+            "w": 6,
+            "d": 6,
+            "h": 12
+        },
+        "weightGrams": 350,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "snack"
+        ]
+    },
+    "water_bottle": {
+        "label": "Water Bottle",
+        "category": "drink",
+        "size": {
+            "w": 7,
+            "d": 7,
+            "h": 23
+        },
+        "weightGrams": 550,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "raw_dough": {
+        "label": "Raw Dough",
+        "category": "food",
+        "size": {
+            "w": 20,
+            "d": 20,
+            "h": 10
+        },
+        "weightGrams": 900,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "ingredient"
+        ]
+    },
+    "cake": {
+        "label": "Cake",
+        "category": "food",
+        "size": {
+            "w": 24,
+            "d": 24,
+            "h": 12
+        },
+        "weightGrams": 1200,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "meal",
+            "giftable"
+        ]
+    },
+    "book": {
+        "label": "Book",
+        "category": "book/media",
+        "size": {
+            "w": 15,
+            "d": 3,
+            "h": 22
+        },
+        "weightGrams": 350,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable",
+            "hobby"
+        ]
+    },
+    "newspaper": {
+        "label": "Newspaper",
+        "category": "book/media",
+        "size": {
+            "w": 30,
+            "d": 1,
+            "h": 40
+        },
+        "weightGrams": 200,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "board_game": {
+        "label": "Board Game",
+        "category": "book/media",
+        "size": {
+            "w": 40,
+            "d": 8,
+            "h": 40
+        },
+        "weightGrams": 1200,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable",
+            "hobby"
+        ]
+    },
+    "hammer": {
+        "label": "Hammer",
+        "category": "tool",
+        "size": {
+            "w": 13,
+            "d": 3,
+            "h": 32
+        },
+        "weightGrams": 600,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "work"
+        ]
+    },
+    "screwdriver": {
+        "label": "Screwdriver",
+        "category": "tool",
+        "size": {
+            "w": 3,
+            "d": 3,
+            "h": 20
+        },
+        "weightGrams": 120,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "work"
+        ]
+    },
+    "flashlight": {
+        "label": "Flashlight",
+        "category": "tool",
+        "size": {
+            "w": 4,
+            "d": 4,
+            "h": 16
+        },
+        "weightGrams": 220,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "work"
+        ]
+    },
+    "toolbox": {
+        "label": "Toolbox",
+        "category": "container",
+        "size": {
+            "w": 45,
+            "d": 22,
+            "h": 22
+        },
+        "weightGrams": 2500,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "container": {
+            "capacityLiters": 15,
+            "maxItems": 15
+        },
+        "tags": [
+            "work"
+        ]
+    },
+    "first_aid_kit": {
+        "label": "First Aid Kit",
+        "category": "medical",
+        "size": {
+            "w": 26,
+            "d": 9,
+            "h": 18
+        },
+        "weightGrams": 700,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "container": {
+            "maxItems": 10
+        },
+        "tags": [
+            "medical"
+        ]
+    },
+    "medicine_bottle": {
+        "label": "Medicine Bottle",
+        "category": "medical",
+        "size": {
+            "w": 5,
+            "d": 5,
+            "h": 10
+        },
+        "weightGrams": 120,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "medical"
+        ]
+    },
+    "teddy_bear": {
+        "label": "Teddy Bear",
+        "category": "toy",
+        "size": {
+            "w": 20,
+            "d": 15,
+            "h": 30
+        },
+        "weightGrams": 350,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable",
+            "childhood"
+        ]
+    },
+    "toy_car": {
+        "label": "Toy Car",
+        "category": "toy",
+        "size": {
+            "w": 9,
+            "d": 4,
+            "h": 4
+        },
+        "weightGrams": 90,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable",
+            "childhood"
+        ]
+    },
+    "football": {
+        "label": "Football",
+        "category": "sports/outdoors",
+        "size": {
+            "w": 22,
+            "d": 22,
+            "h": 22
+        },
+        "weightGrams": 430,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "hobby",
+            "childhood"
+        ]
+    },
+    "skipping_rope": {
+        "label": "Skipping Rope",
+        "category": "sports/outdoors",
+        "size": {
+            "w": 15,
+            "d": 6,
+            "h": 6
+        },
+        "weightGrams": 250,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "hobby",
+            "childhood"
+        ]
+    },
+    "mug": {
+        "label": "Mug",
+        "category": "kitchenware",
+        "size": {
+            "w": 9,
+            "d": 9,
+            "h": 10
+        },
+        "weightGrams": 320,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "plate": {
+        "label": "Plate",
+        "category": "kitchenware",
+        "size": {
+            "w": 26,
+            "d": 26,
+            "h": 2
+        },
+        "weightGrams": 450,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "bowl": {
+        "label": "Bowl",
+        "category": "kitchenware",
+        "size": {
+            "w": 20,
+            "d": 20,
+            "h": 9
+        },
+        "weightGrams": 400,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        },
+        "container": {
+            "capacityLiters": 2,
+            "maxItems": 3
+        }
+    },
+    "frying_pan": {
+        "label": "Frying Pan",
+        "category": "kitchenware",
+        "size": {
+            "w": 26,
+            "d": 26,
+            "h": 8
+        },
+        "weightGrams": 900,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "kitchen_knife": {
+        "label": "Kitchen Knife",
+        "category": "kitchenware",
+        "size": {
+            "w": 4,
+            "d": 2,
+            "h": 33
+        },
+        "weightGrams": 180,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "scarf": {
+        "label": "Scarf",
+        "category": "clothing",
+        "size": {
+            "w": 25,
+            "d": 5,
+            "h": 160
+        },
+        "weightGrams": 200,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": true,
+            "placeable": false
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "toothbrush": {
+        "label": "Toothbrush",
+        "category": "hygiene/cleaning",
+        "size": {
+            "w": 2,
+            "d": 2,
+            "h": 19
+        },
+        "weightGrams": 20,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "bar_of_soap": {
+        "label": "Bar of Soap",
+        "category": "hygiene/cleaning",
+        "size": {
+            "w": 9,
+            "d": 6,
+            "h": 3
+        },
+        "weightGrams": 110,
+        "flags": {
+            "carryable": true,
+            "pocketable": true,
+            "stackable": true,
+            "consumable": true,
+            "equippable": false,
+            "placeable": false
+        }
+    },
+    "couch": {
+        "label": "Couch",
+        "category": "furniture",
+        "size": {
+            "w": 210,
+            "d": 90,
+            "h": 85
+        },
+        "weightGrams": 45000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        }
+    },
+    "bed": {
+        "label": "Bed",
+        "category": "furniture",
+        "size": {
+            "w": 200,
+            "d": 160,
+            "h": 55
+        },
+        "weightGrams": 60000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        }
+    },
+    "desk": {
+        "label": "Desk",
+        "category": "furniture",
+        "size": {
+            "w": 140,
+            "d": 70,
+            "h": 75
+        },
+        "weightGrams": 30000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        }
+    },
+    "office_chair": {
+        "label": "Office Chair",
+        "category": "furniture",
+        "size": {
+            "w": 65,
+            "d": 65,
+            "h": 110
+        },
+        "weightGrams": 12000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        }
+    },
+    "bookshelf": {
+        "label": "Bookshelf",
+        "category": "furniture",
+        "size": {
+            "w": 90,
+            "d": 30,
+            "h": 180
+        },
+        "weightGrams": 35000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "container": {
+            "maxItems": 60
+        }
+    },
+    "wardrobe": {
+        "label": "Wardrobe",
+        "category": "furniture",
+        "size": {
+            "w": 120,
+            "d": 60,
+            "h": 200
+        },
+        "weightGrams": 70000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "container": {
+            "maxItems": 40
+        }
+    },
+    "television": {
+        "label": "Television",
+        "category": "appliance",
+        "size": {
+            "w": 110,
+            "d": 8,
+            "h": 65
+        },
+        "weightGrams": 9000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "tags": [
+            "leisure"
+        ]
+    },
+    "refrigerator": {
+        "label": "Refrigerator",
+        "category": "appliance",
+        "size": {
+            "w": 70,
+            "d": 70,
+            "h": 180
+        },
+        "weightGrams": 80000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "container": {
+            "capacityLiters": 300,
+            "maxItems": 40
+        }
+    },
+    "oven": {
+        "label": "Oven",
+        "category": "appliance",
+        "size": {
+            "w": 60,
+            "d": 60,
+            "h": 90
+        },
+        "weightGrams": 45000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "tags": [
+            "cooking"
+        ]
+    },
+    "washing_machine": {
+        "label": "Washing Machine",
+        "category": "appliance",
+        "size": {
+            "w": 60,
+            "d": 60,
+            "h": 85
+        },
+        "weightGrams": 70000,
+        "flags": {
+            "carryable": false,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        }
+    },
+    "table_lamp": {
+        "label": "Table Lamp",
+        "category": "decoration",
+        "size": {
+            "w": 20,
+            "d": 20,
+            "h": 45
+        },
+        "weightGrams": 1500,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "tags": [
+            "giftable"
+        ]
+    },
+    "potted_plant": {
+        "label": "Potted Plant",
+        "category": "garden/farm",
+        "size": {
+            "w": 25,
+            "d": 25,
+            "h": 50
+        },
+        "weightGrams": 3000,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": false,
+            "consumable": false,
+            "equippable": false,
+            "placeable": true
+        },
+        "tags": [
+            "giftable"
+        ]
+    }
+}
