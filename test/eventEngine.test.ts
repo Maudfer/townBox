@@ -43,7 +43,7 @@ describe('EventEngine — probability extremes', () => {
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 40), gen('b', Genders.Female, 40, { deathTick: -10 })]);
 
-        const result = engine.simulateDay(state, ['a', 'b'], 0, TPY);
+        const result = engine.simulateTick(state, ['a', 'b'], 0, TPY);
 
         expect(result.died).toEqual(['a']); // 'b' was already dead and skipped
         expect(state.people['a']!.deathTick).toBe(0);
@@ -55,7 +55,7 @@ describe('EventEngine — probability extremes', () => {
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30)]);
-        const result = engine.simulateDay(state, ['a'], 0, TPY);
+        const result = engine.simulateTick(state, ['a'], 0, TPY);
         expect(result.signals).toEqual([]);
     });
 });
@@ -76,7 +76,7 @@ describe('EventEngine — derived exclusivity at runtime', () => {
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 40), gen('b', Genders.Female, 40)]);
 
-        const result = engine.simulateDay(state, ['a', 'b'], 0, TPY);
+        const result = engine.simulateTick(state, ['a', 'b'], 0, TPY);
 
         // death sorts before marriage and excludes it; nobody marries on the day they die.
         expect(result.died).toContain('a');
@@ -99,7 +99,7 @@ describe('EventEngine — marriage', () => {
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30), gen('b', Genders.Female, 30)]);
 
-        engine.simulateDay(state, ['a', 'b'], 100, TPY);
+        engine.simulateTick(state, ['a', 'b'], 100, TPY);
 
         const a = state.people['a']!;
         const b = state.people['b']!;
@@ -120,8 +120,8 @@ describe('EventEngine — same-day dependency chain (had_sex -> pregnancy)', () 
                 subject: { where: { all: [
                     { attr: 'alive', op: '==', value: true },
                     { attr: 'gender', op: '==', value: 'female' },
-                    { hasEvent: 'had_sex', withinDays: 280 },
-                    { not: { hasEvent: 'pregnancy', withinDays: 300 } },
+                    { hasEvent: 'had_sex', withinTicks: 280 },
+                    { not: { hasEvent: 'pregnancy', withinTicks: 300 } },
                 ] } },
                 father: { bind: 'partnerOf:subject' },
             },
@@ -135,7 +135,7 @@ describe('EventEngine — same-day dependency chain (had_sex -> pregnancy)', () 
         const state = makeState([gen('w', Genders.Female, 30), gen('m', Genders.Male, 32)]);
         marryInState(state, 'w', 'm', -1000);
 
-        const result = engine.simulateDay(state, ['w', 'm'], 0, TPY);
+        const result = engine.simulateTick(state, ['w', 'm'], 0, TPY);
 
         expect(result.born).toHaveLength(1);
         expect(result.born[0]!.motherId).toBe('w');
@@ -145,13 +145,13 @@ describe('EventEngine — same-day dependency chain (had_sex -> pregnancy)', () 
         expect(state.people[childId]!.motherId).toBe('w');
     });
 
-    test('a recent pregnancy in history blocks a new one (cooldown via not hasEvent withinDays)', () => {
+    test('a recent pregnancy in history blocks a new one (cooldown via not hasEvent withinTicks)', () => {
         const engine = new EventEngine(manifest);
         engine.loadHistory({ w: { pregnancy: { count: 1, lastTick: -100 }, had_sex: { count: 1, lastTick: -1 } } });
         const state = makeState([gen('w', Genders.Female, 30), gen('m', Genders.Male, 32)]);
         marryInState(state, 'w', 'm', -1000);
 
-        const result = engine.simulateDay(state, ['w', 'm'], 0, TPY); // pregnancy 100 days ago < 300 cooldown
+        const result = engine.simulateTick(state, ['w', 'm'], 0, TPY); // pregnancy 100 days ago < 300 cooldown
         expect(result.born).toHaveLength(0);
     });
 });
@@ -163,14 +163,14 @@ describe('EventEngine — history + determinism', () => {
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30)]);
-        engine.simulateDay(state, ['a'], 5, TPY);
+        engine.simulateTick(state, ['a'], 5, TPY);
 
         expect(engine.hasEvent('a', 'had_sex', 5)).toBe(true);
 
         const restored = new EventEngine(manifest);
         restored.loadHistory(engine.getHistory());
         expect(restored.hasEvent('a', 'had_sex', 5)).toBe(true);
-        expect(restored.hasEvent('a', 'had_sex', 5, { withinDays: 1 })).toBe(true);
+        expect(restored.hasEvent('a', 'had_sex', 5, { withinTicks: 1 })).toBe(true);
     });
 
     test('a day is reproducible for the same seed + state', () => {
@@ -188,8 +188,8 @@ describe('EventEngine — history + determinism', () => {
 
         const stateA = makeState(people.map(p => ({ ...p, partnerships: [] })));
         const stateB = makeState(people.map(p => ({ ...p, partnerships: [] })));
-        const resultA = new EventEngine(manifest).simulateDay(stateA, ['a', 'b', 'c', 'd'], 42, TPY);
-        const resultB = new EventEngine(manifest).simulateDay(stateB, ['a', 'b', 'c', 'd'], 42, TPY);
+        const resultA = new EventEngine(manifest).simulateTick(stateA, ['a', 'b', 'c', 'd'], 42, TPY);
+        const resultB = new EventEngine(manifest).simulateTick(stateB, ['a', 'b', 'c', 'd'], 42, TPY);
 
         expect(resultA).toEqual(resultB);
         expect(JSON.stringify(stateA.people)).toBe(JSON.stringify(stateB.people));
@@ -197,12 +197,12 @@ describe('EventEngine — history + determinism', () => {
 });
 
 describe('EventEngine — seeded manifest smoke', () => {
-    test('runs a day over a small materialized cohort without throwing and returns a DayResult', () => {
+    test('runs a day over a small materialized cohort without throwing and returns a TickResult', () => {
         const engine = new EventEngine();
         const state = makeState([gen('a', Genders.Male, 45), gen('b', Genders.Female, 42), gen('c', Genders.Male, 120)]);
         marryInState(state, 'a', 'b', -3000);
 
-        const result = engine.simulateDay(state, ['a', 'b', 'c'], 50 * TPY, TPY);
+        const result = engine.simulateTick(state, ['a', 'b', 'c'], 50 * TPY, TPY);
 
         expect(Array.isArray(result.died)).toBe(true);
         expect(Array.isArray(result.born)).toBe(true);

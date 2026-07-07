@@ -13,7 +13,7 @@ export type Predicate =
     | { any: Predicate[] }
     | { not: Predicate }
     | { attr: string; op: ComparisonOp; value: Value | Value[] }
-    | { hasEvent: string; role?: string; withinDays?: number; minCount?: number }
+    | { hasEvent: string; role?: string; withinTicks?: number; minCount?: number }
     | { role: string; where: Predicate };
 
 export function evaluatePredicate(pred: Predicate, ctx: SimulationContext): boolean {
@@ -31,9 +31,9 @@ export function evaluatePredicate(pred: Predicate, ctx: SimulationContext): bool
         if (!target) {
             return false;
         }
-        const query: { withinDays?: number; minCount?: number } = {};
-        if (pred.withinDays !== undefined) {
-            query.withinDays = pred.withinDays;
+        const query: { withinTicks?: number; minCount?: number } = {};
+        if (pred.withinTicks !== undefined) {
+            query.withinTicks = pred.withinTicks;
         }
         if (pred.minCount !== undefined) {
             query.minCount = pred.minCount;

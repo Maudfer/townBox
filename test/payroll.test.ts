@@ -65,7 +65,7 @@ describe('City payroll (task 018)', () => {
         city.processMonthlyEconomy(5); // same month — no double pay
         expect(economy.getPersonBalance(personId)).toBe(1000);
 
-        city.processMonthlyEconomy(30); // month 1 — pays again
+        city.processMonthlyEconomy(720); // month 1 (tick = TICKS_PER_MONTH) — pays again
         expect(economy.getPersonBalance(personId)).toBe(2000);
         expect(economy.getBusinessBalance(key)).toBe(3000);
     });

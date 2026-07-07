@@ -1,16 +1,59 @@
 import {
     MS_PER_IN_GAME_DAY,
+    MS_PER_TICK,
     DAYS_PER_YEAR,
     DAYS_PER_MONTH,
     MONTHS_PER_YEAR,
+    TICKS_PER_DAY,
+    TICKS_PER_YEAR,
     timestampFromElapsed,
     absoluteDayFromElapsed,
+    absoluteTickFromElapsed,
+    dayOfTick,
+    hourOfTick,
     formatTimestamp,
+    formatTick,
 } from '../src/util/time';
 import Clock from '../src/app/game/Clock';
 import { DEFAULT_POPULATION_PARAMS } from '../src/app/game/Population';
 
 const HOUR_MS = 3_600_000;
+
+describe('hour ticks (task 040)', () => {
+    test('the tick constants hold together', () => {
+        expect(TICKS_PER_DAY).toBe(24);
+        expect(TICKS_PER_YEAR).toBe(DAYS_PER_YEAR * 24);
+        expect(MS_PER_TICK * TICKS_PER_DAY).toBe(MS_PER_IN_GAME_DAY);
+    });
+
+    test('absoluteTickFromElapsed advances 24 ticks per in-game day', () => {
+        expect(absoluteTickFromElapsed(0)).toBe(0);
+        expect(absoluteTickFromElapsed(MS_PER_TICK - 1)).toBe(0);
+        expect(absoluteTickFromElapsed(MS_PER_TICK)).toBe(1);
+        expect(absoluteTickFromElapsed(MS_PER_IN_GAME_DAY)).toBe(24);
+        expect(absoluteTickFromElapsed(2.5 * MS_PER_IN_GAME_DAY)).toBe(60);
+    });
+
+    test('dayOfTick/hourOfTick use floor semantics, correct for negative (bootstrap) ticks', () => {
+        expect(dayOfTick(0)).toBe(0);
+        expect(dayOfTick(23)).toBe(0);
+        expect(dayOfTick(24)).toBe(1);
+        expect(hourOfTick(25)).toBe(1);
+        // tick −1 is the last hour of day −1, not day 0.
+        expect(dayOfTick(-1)).toBe(-1);
+        expect(hourOfTick(-1)).toBe(23);
+        expect(dayOfTick(-24)).toBe(-1);
+        expect(hourOfTick(-24)).toBe(0);
+    });
+
+    test('formatTick renders the calendar date plus the hour', () => {
+        expect(formatTick(0)).toBe('Year 1, 01/01 00:00');
+        expect(formatTick(14)).toBe('Year 1, 01/01 14:00');
+        expect(formatTick(TICKS_PER_DAY + 9)).toBe('Year 1, 01/02 09:00');
+        // Pre-epoch (bootstrap) ticks clamp to the epoch, like formatDay does for days.
+        expect(formatTick(-500)).toBe('Year 1, 01/01 00:00');
+    });
+});
 
 describe('time math', () => {
     test('one real hour equals one in-game day', () => {
@@ -60,7 +103,8 @@ describe('Clock', () => {
         clock.advance(-5);
         clock.advance(0);
         expect(clock.getElapsedMs()).toBe(HOUR_MS);
-        expect(clock.getCurrentTick()).toBe(1);
+        // One real hour = one in-game day = 24 hour-ticks (task 040).
+        expect(clock.getCurrentTick()).toBe(24);
     });
 
     test('state restores from elapsedMs (save/load)', () => {
@@ -79,7 +123,7 @@ describe('Clock', () => {
         clock.setElapsedMs(100 * DAYS_PER_YEAR * HOUR_MS);
         const tick = clock.getCurrentTick();
         const ticksPerYear = clock.getTicksPerYear();
-        expect(tick).toBe(100 * DAYS_PER_YEAR);
+        expect(tick).toBe(100 * DAYS_PER_YEAR * 24);
         expect(Math.floor((tick - 0) / ticksPerYear)).toBe(100);
     });
 });

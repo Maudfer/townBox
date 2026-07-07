@@ -141,7 +141,7 @@ describe('predicate validation', () => {
     const run = (fixture: unknown) => messagesOf(structure((d, i) => validatePredicate(i, 'p', d), fixture));
 
     test('accepts the shipped grammar', () => {
-        expect(run({ all: [{ attr: 'age', op: '>=', value: 16 }, { not: { hasEvent: 'pregnancy', withinDays: 300 } }] })).toBe('');
+        expect(run({ all: [{ attr: 'age', op: '>=', value: 16 }, { not: { hasEvent: 'pregnancy', withinTicks: 300 } }] })).toBe('');
         expect(run({ attr: 'marital', op: 'in', value: ['single', 'divorced'] })).toBe('');
         expect(run({ role: 'partner', where: { attr: 'alive', op: '==', value: true } })).toBe('');
     });
@@ -153,7 +153,7 @@ describe('predicate validation', () => {
         ['equality with non-scalar', { attr: 'marital', op: '==', value: ['married'] }, /requires a scalar/],
         ['unrecognized shape', { has_event: 'death' }, /unrecognized predicate shape/],
         ['typo key on hasEvent', { hasEvent: 'death', withinDay: 3 }, /unknown key/],
-        ['bad withinDays', { hasEvent: 'death', withinDays: 0 }, /expected >= 1/],
+        ['bad withinTicks', { hasEvent: 'death', withinTicks: 0 }, /expected >= 1/],
     ])('rejects %s', (_label, fixture, pattern) => {
         expect(run(fixture)).toMatch(pattern);
     });
@@ -263,7 +263,7 @@ describe('skills & demand validation', () => {
 describe('params validation', () => {
     test('population rejects a ticksPerYear that diverges from the clock calendar', () => {
         const fixture = { ...(populationConfig as Record<string, unknown>), ticksPerYear: 365 };
-        expect(messagesOf(structure(validatePopulationStructure, fixture))).toMatch(/must equal the clock's DAYS_PER_YEAR \(360\)/);
+        expect(messagesOf(structure(validatePopulationStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR \(8640\)/);
     });
 
     test('population rejects a childDistribution that does not sum to 1', () => {
@@ -280,7 +280,7 @@ describe('params validation', () => {
 
     test('bootstrap rejects a mismatched ticksPerYear', () => {
         const fixture = { enabled: true, years: 8, ticksPerYear: 100, stepDays: 7 };
-        expect(messagesOf(structure(validateBootstrapStructure, fixture))).toMatch(/must equal the clock's DAYS_PER_YEAR/);
+        expect(messagesOf(structure(validateBootstrapStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
     });
 });
 

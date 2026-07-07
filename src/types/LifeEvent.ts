@@ -76,7 +76,7 @@ export type EventHistory = Record<string, { count: number; lastTick: number }>;
 export type EventHistoryTable = Record<string, EventHistory>;
 
 // What one day of event simulation changed, so the caller can reconcile the materialized world.
-export interface DayResult {
+export interface TickResult {
     died: string[];
     born: { id: string; motherId: string; fatherId: string }[];
     signals: { signal: string; personId: string | null; tick: number }[];

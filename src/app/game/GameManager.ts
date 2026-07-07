@@ -41,6 +41,7 @@ export default class GameManager {
     public economy: Economy | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
+    private lastDayEmitted: number;
     private lastTickEmitted: number;
     private lastMinuteEmitted: number;
 
@@ -115,6 +116,7 @@ export default class GameManager {
         this.clock = null;
         this.eventEngine = null;
         this.economy = null;
+        this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
 
@@ -251,7 +253,8 @@ export default class GameManager {
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:
-    // `timeChanged` once per in-game minute (the HUD's display granularity) and `newDay` on each rollover.
+    // `timeChanged` once per in-game minute (the HUD's display granularity), `newTick` once per in-game hour
+    // (the canonical simulation tick, task 040), and `newDay` on each day rollover.
     private advanceTime(payload: UpdateEvent): void {
         if (!this.clock) {
             return;
@@ -259,15 +262,20 @@ export default class GameManager {
         this.clock.advance(payload.timeDelta);
 
         const timestamp = this.clock.getTimestamp();
+        const tick = this.clock.getCurrentTick();
         const minuteOfDay = timestamp.hour * 60 + timestamp.minute;
 
-        if (timestamp.absoluteDay !== this.lastTickEmitted) {
-            this.lastTickEmitted = timestamp.absoluteDay;
-            this.emit("newDay", { timestamp, tick: timestamp.absoluteDay });
+        if (timestamp.absoluteDay !== this.lastDayEmitted) {
+            this.lastDayEmitted = timestamp.absoluteDay;
+            this.emit("newDay", { timestamp, tick });
+        }
+        if (tick !== this.lastTickEmitted) {
+            this.lastTickEmitted = tick;
+            this.emit("newTick", { timestamp, tick });
         }
         if (minuteOfDay !== this.lastMinuteEmitted) {
             this.lastMinuteEmitted = minuteOfDay;
-            this.emit("timeChanged", { timestamp, tick: timestamp.absoluteDay });
+            this.emit("timeChanged", { timestamp, tick });
         }
     }
 
@@ -277,7 +285,8 @@ export default class GameManager {
             return;
         }
         const timestamp = this.clock.getTimestamp();
-        this.lastTickEmitted = timestamp.absoluteDay;
+        this.lastDayEmitted = timestamp.absoluteDay;
+        this.lastTickEmitted = this.clock.getCurrentTick();
         this.lastMinuteEmitted = timestamp.hour * 60 + timestamp.minute;
     }
 

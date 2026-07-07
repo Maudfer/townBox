@@ -14,7 +14,10 @@ import { EconomyState } from 'types/Economy';
 // v4 → v5: added per-person `eventHistory` (older saves load with empty history).
 // v5 → v6: added the `economy` (money balances; older saves load with empty balances).
 // v6 → v7: added `homelessHouseholds` (evicted households with no home; older saves load with none).
-export const SAVE_VERSION = 7;
+// v7 → v8: the canonical tick became the in-game HOUR (task 040; 24 ticks/day). Every persisted tick
+//          (birth/death ticks, partnership ticks, event-history ticks) is multiplied by 24 on load
+//          (game/save/migrations.ts). The clock's elapsedMs is scale-independent and needs no migration.
+export const SAVE_VERSION = 8;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';

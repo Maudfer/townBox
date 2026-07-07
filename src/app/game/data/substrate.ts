@@ -92,13 +92,13 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
         return;
     }
     if ('hasEvent' in value) {
-        checkUnknownKeys(issues, path, value, ['hasEvent', 'role', 'withinDays', 'minCount']);
+        checkUnknownKeys(issues, path, value, ['hasEvent', 'role', 'withinTicks', 'minCount']);
         checkString(issues, `${path}.hasEvent`, value['hasEvent']);
         if ('role' in value && checkString(issues, `${path}.role`, value['role'])) {
             onRoleRef?.(value['role'] as string, `${path}.role`);
         }
-        if ('withinDays' in value) {
-            checkNumber(issues, `${path}.withinDays`, value['withinDays'], { min: 1, integer: true });
+        if ('withinTicks' in value) {
+            checkNumber(issues, `${path}.withinTicks`, value['withinTicks'], { min: 1, integer: true });
         }
         if ('minCount' in value) {
             checkNumber(issues, `${path}.minCount`, value['minCount'], { min: 1, integer: true });

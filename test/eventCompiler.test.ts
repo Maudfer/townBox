@@ -29,7 +29,7 @@ describe('compileEvents — seeded manifest', () => {
     });
 
     test('a windowed cooldown is not a hard exclusion', () => {
-        // pregnancy's "not hasEvent pregnancy withinDays 300" is a runtime cooldown, not a static self-exclude.
+        // pregnancy's "not hasEvent pregnancy withinTicks 300" is a runtime cooldown, not a static self-exclude.
         expect(graph.excludes['pregnancy']).not.toContain('pregnancy');
     });
 
@@ -67,7 +67,7 @@ describe('compileEvents — derived exclusivity', () => {
                 effects: [],
             },
             never_kissed_award: {
-                roles: { subject: { where: { not: { hasEvent: 'first_kiss' } } } }, // no withinDays ⇒ permanent
+                roles: { subject: { where: { not: { hasEvent: 'first_kiss' } } } }, // no withinTicks ⇒ permanent
                 probability: { perYear: 1 },
                 effects: [],
             },

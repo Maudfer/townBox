@@ -1,4 +1,5 @@
 import { isAliveAt } from 'util/kinship';
+import { TICKS_PER_DAY } from 'util/time';
 import { PopulationState, PersonId } from 'types/Genealogy';
 import { EventHistoryTable, EventManifest } from 'types/LifeEvent';
 
@@ -67,7 +68,8 @@ export function bootstrapHistory(
 ): BootstrapResult {
     const engine = new EventEngine(bootstrapManifest());
     const tpy = params.ticksPerYear;
-    const step = Math.max(1, Math.floor(params.stepDays));
+    // `stepDays` is authored in days (author-friendly); the engine steps in hour ticks (task 040).
+    const step = Math.max(1, Math.floor(params.stepDays)) * TICKS_PER_DAY;
 
     if (!params.enabled || params.years <= 0 || tpy <= 0) {
         return { state, history: engine.getHistory() };
@@ -84,7 +86,7 @@ export function bootstrapHistory(
             }
         }
 
-        engine.simulateDay(state, agentIds, tick, tpy, {}, step);
+        engine.simulateTick(state, agentIds, tick, tpy, {}, step);
 
         if (onProgress) {
             const yearsDone = Math.floor((tick - startTick) / tpy);

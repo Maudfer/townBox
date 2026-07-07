@@ -11,8 +11,8 @@ import { HouseholdArrangements } from '../src/types/Household';
 import { Genders, Gender } from '../src/types/Social';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
-const TPY = 360;
-const HOUR_MS = 3_600_000;
+const TPY = 8640; // hour ticks (task 040)
+const MS_PER_TICK = 150_000; // one hour tick of real time
 
 function gen(id: string, gender: Gender, ageYears: number, tickNow: number, parents: { fatherId?: string; motherId?: string } = {}): GenPerson {
     return {
@@ -86,7 +86,7 @@ describe('City rehousing — orphaned minor relocation (task 011)', () => {
         const people: PersonTable = { dad, mom, guardian, minor, sibling };
         const state: PopulationState = { worldSeed: 5, people, drawSeed: 0, placedIds: ['guardian', 'minor', 'sibling'], nextSeq: 5, lastSimulatedYear: 0 };
         population.loadState(state);
-        clock.setElapsedMs(tickNow * HOUR_MS);
+        clock.setElapsedMs(tickNow * MS_PER_TICK);
 
         // House 1: guardian + minor (guardianship). House 2: the adult sibling (single).
         const house1 = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
@@ -99,7 +99,7 @@ describe('City rehousing — orphaned minor relocation (task 011)', () => {
         house2.setHousehold({ id: 'hh-2', houseKey: house2.getIdentifier(), headId: 'sibling', memberIds: ['sibling'], arrangement: HouseholdArrangements.Single });
         city.setPopulation(3);
 
-        await city.handleNewDay({ tick: tickNow, timestamp: clock.getTimestamp() });
+        await city.handleTick({ tick: tickNow, timestamp: clock.getTimestamp() });
 
         // The guardian died; the minor was relocated to the sibling's household rather than left alone.
         expect(population.getPerson('guardian')!.deathTick).not.toBeNull();

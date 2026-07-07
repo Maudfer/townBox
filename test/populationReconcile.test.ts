@@ -11,8 +11,8 @@ import { HouseholdArrangements } from '../src/types/Household';
 import { Genders, Gender } from '../src/types/Social';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
-const TPY = 360;
-const HOUR_MS = 3_600_000;
+const TPY = 8640; // hour ticks (task 040)
+const MS_PER_TICK = 150_000; // one hour tick of real time
 
 function person(id: string, gender: Gender, ageYears: number, tickNow: number): GenPerson {
     return {
@@ -58,7 +58,7 @@ function makeGame(rows: number, cols: number): { game: GameManager; field: Field
     return { game, field, population, clock };
 }
 
-describe('City.handleNewDay — death reconciliation', () => {
+describe('City.handleTick — death reconciliation', () => {
     test('a resident who dies is removed from the field, house, household, and population count', async () => {
         const tickNow = 1 * TPY; // one year in
         const { game, field, population, clock } = makeGame(15, 15);
@@ -71,7 +71,7 @@ describe('City.handleNewDay — death reconciliation', () => {
         const state: PopulationState = { worldSeed: 4, people, drawSeed: 1, placedIds: ['old', 'kid'], nextSeq: 2, lastSimulatedYear: 0 };
         population.loadState(state);
 
-        clock.setElapsedMs(tickNow * HOUR_MS);
+        clock.setElapsedMs(tickNow * MS_PER_TICK);
 
         // Materialize both into a house.
         const house = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
@@ -96,7 +96,7 @@ describe('City.handleNewDay — death reconciliation', () => {
         });
         city.setPopulation(2);
 
-        await city.handleNewDay({ tick: tickNow, timestamp: clock.getTimestamp() });
+        await city.handleTick({ tick: tickNow, timestamp: clock.getTimestamp() });
 
         // The ancient died (via the event engine) and was fully removed; the child remains.
         expect(population.getPerson('old')!.deathTick).not.toBeNull();

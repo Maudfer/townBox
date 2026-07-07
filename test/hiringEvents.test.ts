@@ -46,7 +46,7 @@ const HIRING: EventManifest = {
         roles: { subject: { where: { all: [
             { attr: 'alive', op: '==', value: true },
             { attr: 'employed', op: '==', value: true },
-            { not: { hasEvent: 'get_job', withinDays: 30 } },
+            { not: { hasEvent: 'get_job', withinTicks: 30 } },
         ] } } },
         probability: { perYear: 1000 },
         effects: [
@@ -62,7 +62,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
         const market = fakeMarket();
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket: market });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { jobMarket: market });
 
         expect(market.employed.has('a')).toBe(true);
         expect(result.signals.map(s => s.signal)).toContain('hired');
@@ -75,7 +75,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
     test('without a market nobody can be hired (canBeHired is false)', () => {
         const engine = new EventEngine(HIRING);
         const state = makeState([gen('a', Genders.Male, 30)]);
-        const result = engine.simulateDay(state, ['a'], 0, TPY); // no market
+        const result = engine.simulateTick(state, ['a'], 0, TPY); // no market
         expect(result.signals).toEqual([]);
         expect(engine.hasEvent('a', 'get_job', 0)).toBe(false);
     });
@@ -85,7 +85,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
         const market = fakeMarket(false); // canHire true, but hire fails (slot taken this tick)
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket: market });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { jobMarket: market });
 
         expect(market.employed.has('a')).toBe(false);
         expect(result.signals).toEqual([]);
@@ -99,7 +99,7 @@ describe('hiring events (get_job / layoff via the JobMarket)', () => {
         market.employed.add('a');
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket: market });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { jobMarket: market });
 
         expect(market.employed.has('a')).toBe(false);
         expect(result.signals.map(s => s.signal)).toContain('laidOff');
