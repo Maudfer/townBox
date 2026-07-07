@@ -6,6 +6,11 @@
 
 const UINT32 = 0x100000000; // 2^32
 
+// Hoisted once: under Jest's vm sandbox a `Math.imul` property lookup costs ~25x the multiply itself,
+// and next() is the single hottest call of the per-tick event walk (one draw per probabilistic event per
+// agent — task 052/055 scale). A module-local binding restores the inlined fast path in every runtime.
+const imul = Math.imul;
+
 export class SeededRandom {
     private state: number;
 
@@ -18,8 +23,8 @@ export class SeededRandom {
     next(): number {
         this.state = (this.state + 0x6d2b79f5) >>> 0;
         let t = this.state;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        t = imul(t ^ (t >>> 15), t | 1);
+        t ^= t + imul(t ^ (t >>> 7), t | 61);
         return ((t ^ (t >>> 14)) >>> 0) / UINT32;
     }
 
@@ -48,7 +53,7 @@ export class SeededRandom {
     // Derives an independent generator from this one's current state plus a salt. Useful for giving each
     // subsystem (pool generation vs. placement draws) its own stream without them interfering.
     fork(salt: number): SeededRandom {
-        return new SeededRandom((Math.imul(this.state ^ (salt >>> 0), 0x9e3779b1) >>> 0));
+        return new SeededRandom((imul(this.state ^ (salt >>> 0), 0x9e3779b1) >>> 0));
     }
 
     getState(): number {
@@ -65,7 +70,7 @@ export function hashStringToSeed(input: string): number {
     let hash = 0x811c9dc5;
     for (let i = 0; i < input.length; i++) {
         hash ^= input.charCodeAt(i);
-        hash = Math.imul(hash, 0x01000193);
+        hash = imul(hash, 0x01000193);
     }
     return hash >>> 0;
 }
