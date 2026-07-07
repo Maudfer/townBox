@@ -38,11 +38,15 @@
                                 },
                                 {
                                     "at": 100,
-                                    "value": 60
+                                    "value": 100
+                                },
+                                {
+                                    "at": 106,
+                                    "value": 1000
                                 },
                                 {
                                     "at": 110,
-                                    "value": 100
+                                    "value": 8000
                                 }
                             ]
                         }
@@ -141,12 +145,6 @@
                         {
                             "hasEvent": "had_sex",
                             "withinTicks": 6720
-                        },
-                        {
-                            "not": {
-                                "hasEvent": "pregnancy",
-                                "withinTicks": 7200
-                            }
                         }
                     ]
                 }
@@ -197,7 +195,10 @@
                 "signal": "rehousingNeeded",
                 "target": "subject"
             }
-        ]
+        ],
+        "limit": {
+            "withinTicks": 7200
+        }
     },
     "marriage": {
         "label": "Got married",
@@ -643,12 +644,6 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 18
-                        },
-                        {
-                            "not": {
-                                "hasEvent": "trade_school",
-                                "withinTicks": 86400
-                            }
                         }
                     ]
                 }
@@ -692,7 +687,10 @@
                 "signal": "graduated",
                 "target": "subject"
             }
-        ]
+        ],
+        "limit": {
+            "withinTicks": 86400
+        }
     },
     "nursing_school": {
         "label": "Qualified as a nurse",
@@ -710,12 +708,6 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 20
-                        },
-                        {
-                            "not": {
-                                "hasEvent": "nursing_school",
-                                "withinTicks": 86400
-                            }
                         }
                     ]
                 }
@@ -759,7 +751,10 @@
                 "signal": "graduated",
                 "target": "subject"
             }
-        ]
+        ],
+        "limit": {
+            "withinTicks": 86400
+        }
     },
     "made_friend": {
         "label": "Made a new friend",
@@ -775,7 +770,29 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 5
+                "perYear": 5,
+                "factors": [
+                    {
+                        "driver": "subject.hourOfDay",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.05
+                                },
+                                {
+                                    "at": 8,
+                                    "value": 1.0
+                                },
+                                {
+                                    "at": 20,
+                                    "value": 0.5
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "effects": [
@@ -800,7 +817,33 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 3
+                "perYear": 3,
+                "factors": [
+                    {
+                        "driver": "subject.hourOfDay",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.1
+                                },
+                                {
+                                    "at": 7,
+                                    "value": 0.8
+                                },
+                                {
+                                    "at": 17,
+                                    "value": 1.6
+                                },
+                                {
+                                    "at": 22,
+                                    "value": 0.4
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "effects": [
@@ -861,8 +904,19 @@
             }
         },
         "triggers": {
-            "manual": {}
+            "manual": {},
+            "automated": {
+                "rules": [
+                    {
+                        "afterEvent": "started_working",
+                        "delayTicks": 12
+                    }
+                ]
+            }
         },
-        "effects": []
+        "effects": [],
+        "limit": {
+            "once": "perDay"
+        }
     }
 }
