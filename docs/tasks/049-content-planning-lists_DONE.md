@@ -19,6 +19,12 @@ Generate the raw *name-level* material — with traceability between entities �
 5. **`events-master-list.md`** — **≥ 500 probabilistic** and **≥ 500 manual** event names post-dedupe (one event may be both), covering the whole life arc plus mundane texture, with category and likely action/system source for manual ones.
 6. A categorization/cross-linking pass so entities reference one another consistently.
 
+## Delivered counts (script-verified)
+
+54 settings (1,565 raw object entries) → **1,506 unique objects** in 21 categories; **163 businesses**; **720 job
+entries → 213 deduped job titles**; **505 continuous + 508 discrete** work actions (≥5+5 per job); **680 unique
+events** (531 probabilistic / 518 manual / 369 both) in 24 categories. See [`docs/planning/README.md`](../planning/README.md).
+
 ## Notes
 
 - Counts are verified programmatically (row counts stated at the top of each artifact).
