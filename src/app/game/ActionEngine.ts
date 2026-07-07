@@ -40,6 +40,7 @@ import { PersonId, PopulationState } from 'types/Genealogy';
 import { ExecutionContext, TransitionHandle } from 'types/Execution';
 import { SimulationContext, HasEventQuery, ObjectQuery, Value } from 'types/Simulation';
 import { locationKey, parseLocationKey } from 'types/Objects';
+import { hourOfTick } from 'util/time';
 
 import actionsConfig from 'json/actions.json';
 import oarConfig from 'json/object-action-relationships.json';
@@ -53,6 +54,9 @@ export interface ActionDeps {
     state: PopulationState;
     tick: number;
     ticksPerYear: number;
+    // Coarse stepping (bootstrap): one advance() covers this many ticks (durations consume them; pool
+    // chances stay per-advance — documented coarse-step caveat until 055 runs fine-grained).
+    ticksPerStep?: number;
     ctx: Partial<ExecutionContext>;
     eventEngine: EventEngine;
     inventory?: Inventory | null;
@@ -97,6 +101,10 @@ export default class ActionEngine {
 
     getDefinition(actionId: string): ActionDefinition | null {
         return this.manifest[actionId] ?? null;
+    }
+
+    getManifest(): ActionManifest {
+        return this.manifest;
     }
 
     getActionLabel(actionId: string): string {
@@ -165,6 +173,9 @@ export default class ActionEngine {
                 if (name === 'locationKey') {
                     return world ? locationKey(world.locationOf(personId)) : undefined;
                 }
+                if (name === 'hourOfDay') {
+                    return hourOfTick(deps.tick);
+                }
                 return base.getAttr(name);
             },
             hasEvent: (eventId, query) => base.hasEvent(eventId, query),
@@ -205,13 +216,14 @@ export default class ActionEngine {
         result.died.push(...eventResult.died);
         result.born.push(...eventResult.born);
         result.signals.push(...eventResult.signals);
+        result.committed.push(...eventResult.committed);
     }
 
     // --- Starting ------------------------------------------------------------
 
     // Starts an action for a person. Discrete actions commit immediately ('performed'); continuous actions
     // materialize an instance, requesting a location transition through the boundary when needed.
-    startAction(personId: PersonId, actionId: string, params: Record<string, Value>, cause: ActionCause, deps: ActionDeps, result: TickResult, parentInstanceId: ActionInstanceId | null = null, onOutputs?: (outputs: Record<string, string>) => void): ActionStartOutcome {
+    startAction(personId: PersonId, actionId: string, params: Record<string, Value>, cause: ActionCause, deps: ActionDeps, result: TickResult, parentInstanceId: ActionInstanceId | null = null, onOutputs?: (outputs: Record<string, string>) => void, locationOverride?: string): ActionStartOutcome {
         const def = this.manifest[actionId];
         if (!def) {
             return { ok: false, reason: 'unknownAction' };
@@ -275,6 +287,7 @@ export default class ActionEngine {
             defId: actionId,
             personId,
             params: { ...params },
+            ...(locationOverride ? { locationOverride } : {}),
             status: 'pending',
             startedTick: deps.tick,
             runningSinceTick: null,
@@ -304,12 +317,15 @@ export default class ActionEngine {
     private materialize(instance: ActionInstance, cause: ActionCause, deps: ActionDeps, result: TickResult): void {
         const def = this.manifest[instance.defId]!;
         const world = deps.ctx.world;
-        if (def.location && world) {
+        // Per-instance override (task 046): a shared work action's location is the person's OWN workplace,
+        // supplied by the caller (Brain/Orchestrator) rather than authored on the shared definition.
+        const requiredLocation = instance.locationOverride ?? def.location;
+        if (requiredLocation && world) {
             const at = locationKey(world.locationOf(instance.personId));
-            if (at !== def.location) {
+            if (at !== requiredLocation) {
                 let handle = this.handles.get(instance.id) ?? null;
                 if (!handle || handle.status === 'cancelled') {
-                    handle = world.requestTransition(instance.personId, parseLocationKey(def.location), deps.tick, instance.causationId);
+                    handle = world.requestTransition(instance.personId, parseLocationKey(requiredLocation), deps.tick, instance.causationId);
                     this.handles.set(instance.id, handle);
                     instance.transitionHandleId = handle.id;
                 }
@@ -347,7 +363,7 @@ export default class ActionEngine {
     // Advances every active instance one tick: waiting instances re-check their transition, running ones
     // process children and completion conditions. Returns the world changes (events fired by lifecycles).
     advance(deps: ActionDeps): TickResult {
-        const result: TickResult = { died: [], born: [], signals: [] };
+        const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(0xac7);
         const active = Object.values(this.state.instances)
             .filter(instance => ACTIVE_STATUSES.has(instance.status))
@@ -364,7 +380,7 @@ export default class ActionEngine {
                 continue; // materializing consumes the tick; children start next tick
             }
 
-            instance.ticksRun += 1;
+            instance.ticksRun += Math.max(1, deps.ticksPerStep ?? 1);
             instance.lastPoolChild = null;
             const def = this.manifest[instance.defId]!;
 

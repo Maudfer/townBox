@@ -70,7 +70,7 @@ function harness(inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES), employerK
     return { engine, world, actions, deps, inventory };
 }
 
-const result = (): TickResult => ({ died: [], born: [], signals: [] });
+const result = (): TickResult => ({ died: [], born: [], signals: [], committed: [] });
 const cause = { source: 'system' as const, causationId: null };
 
 describe('consequence ops', () => {

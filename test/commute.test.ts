@@ -54,52 +54,48 @@ function employ(field: Field): { person: Person; home: House; workplace: Workpla
     return { person, home, workplace };
 }
 
-describe('City.handleCommute', () => {
-    test('dispatches an employed resident to work during shift hours, spawning a controlled car', () => {
+// Since task 046 the per-person shift loop is Brain-driven: a work-obligation intent starts the job's work
+// Action, whose location requirement requests a transition through the execution boundary; LiveWorld then
+// drives THIS commute machinery. These tests exercise the live machinery end-to-end at the boundary seam.
+describe('the live commute machinery behind the execution boundary', () => {
+    test('a requested transition spawns a controlled car and stays pending until physical arrival', () => {
         const { city, field } = makeWorld();
-        const { person } = employ(field);
+        const { person, workplace } = employ(field);
+        person.social.setPersonId('p1');
 
-        expect(person.isIdle()).toBe(true);
-        expect(field.getVehicles()).toHaveLength(0);
-
-        city.handleCommute(timeAt(10, 0)); // 600 min, within 540–1020
-
+        const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        expect(handle.status).toBe('pending');
         expect(field.getVehicles()).toHaveLength(1);
         expect(field.getVehicles()[0]!.isControlled()).toBe(true);
         expect(person.getVehicle()).not.toBeNull();
         expect(person.isIdle()).toBe(false); // now commuting
+
+        // The minute cadence pumps pending handles; no arrival yet → still pending.
+        city.handleCommute(timeAt(10, 1));
+        expect(handle.status).toBe('pending');
+
+        // The visual layer lands the person → the next pump resolves the handle.
+        person.setCurrentBuilding(workplace);
+        city.handleCommute(timeAt(10, 2));
+        expect(handle.status).toBe('arrived');
     });
 
-    test('sends a resident at work back home after the shift ends', () => {
+    test('going home resolves immediately when already home (like bootstrap)', () => {
         const { city, field } = makeWorld();
-        const { person, workplace } = employ(field);
-        person.setCurrentBuilding(workplace); // simulate being at work
+        const { person, home } = employ(field);
+        person.social.setPersonId('p1');
+        person.setCurrentBuilding(home);
 
-        city.handleCommute(timeAt(18, 30)); // 1110 min, after shift end
-
-        expect(field.getVehicles()).toHaveLength(1);
-        expect(person.isIdle()).toBe(false);
+        const handle = city.getWorld().requestTransition('p1', { kind: 'home' }, 5, null);
+        expect(handle.status).toBe('arrived');
+        expect(field.getVehicles()).toHaveLength(0); // no commute needed
     });
 
-    test('does not dispatch when already where they should be', () => {
+    test('unknown people cancel instead of crashing', () => {
         const { city, field } = makeWorld();
-        const { person } = employ(field); // at home (currentBuilding null), off-shift
-
-        city.handleCommute(timeAt(3, 0)); // pre-dawn, should be home — and is
-
+        employ(field); // person exists but with a different (absent) pool id
+        const handle = city.getWorld().requestTransition('ghost', { kind: 'home' }, 5, null);
+        expect(handle.status).toBe('cancelled');
         expect(field.getVehicles()).toHaveLength(0);
-        expect(person.isIdle()).toBe(true);
-    });
-
-    test('ignores unemployed residents', () => {
-        const { city, field } = makeWorld();
-        field.loadStructure('house', 4, 4, 'h');
-        const person = field.loadPerson(72, 72);
-        // no job / workplace
-
-        city.handleCommute(timeAt(10, 0));
-
-        expect(field.getVehicles()).toHaveLength(0);
-        expect(person.isIdle()).toBe(true);
     });
 });

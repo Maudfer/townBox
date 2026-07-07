@@ -16,6 +16,7 @@
 
 import EventEngine from 'game/EventEngine';
 import ActionEngine from 'game/ActionEngine';
+import Brain, { JobFacts } from 'game/Brain';
 import Inventory from 'game/Inventory';
 
 import { PersonId, PopulationState } from 'types/Genealogy';
@@ -25,8 +26,10 @@ import { ExecutionContext } from 'types/Execution';
 export interface TickPlan {
     engine: EventEngine;
     actionEngine?: ActionEngine;
+    brain?: Brain;
     inventory?: Inventory | null;
     employerKeyOf?: (personId: PersonId) => string | null;
+    jobOf?: (personId: PersonId) => JobFacts | null;
     state: PopulationState;
     agentIds: PersonId[];
     tick: number;
@@ -42,10 +45,11 @@ function mergeInto(target: TickResult, source: TickResult): void {
     target.died.push(...source.died);
     target.born.push(...source.born);
     target.signals.push(...source.signals);
+    target.committed.push(...source.committed);
 }
 
 export async function runTick(plan: TickPlan): Promise<TickResult> {
-    const result: TickResult = { died: [], born: [], signals: [] };
+    const result: TickResult = { died: [], born: [], signals: [], committed: [] };
 
     // Phases 1–2 (task 043): advance running continuous Actions and resolve due children. Runs inside the
     // market-bound window so action requirements can read market-derived attributes; lifecycle Events fired
@@ -56,6 +60,7 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             state: plan.state,
             tick: plan.tick,
             ticksPerYear: plan.ticksPerYear,
+            ticksPerStep: plan.ticksPerStep ?? 1,
             ctx: plan.ctx,
             eventEngine: plan.engine,
             inventory: plan.inventory ?? null,
@@ -71,8 +76,24 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
         await plan.onCommitted(result);
     }
 
-    // Phases 7–8: Brain / Job-Orchestrator intents and new action starts land with tasks 046/047 (today,
-    // actions start via direct ActionEngine.startAction calls). Phase 9: persistence rides the save cadence;
-    // deferred materialization requests live in the WorldAdapter.
+    // Phases 7–8 (task 046): Brain hooks propose intents (onTick + this tick's committed events), the Brain
+    // arbitrates, and winning intents start/interrupt actions through the Action engine. The Job Orchestrator
+    // (047) will add its proposals here. Phase 9: persistence rides the save cadence; deferred materialization
+    // requests live in the WorldAdapter.
+    if (plan.brain && plan.actionEngine) {
+        plan.engine.bindMarkets(plan.ctx);
+        plan.brain.processTick(plan.agentIds, {
+            state: plan.state,
+            tick: plan.tick,
+            ticksPerYear: plan.ticksPerYear,
+            ticksPerStep: plan.ticksPerStep ?? 1,
+            ctx: plan.ctx,
+            eventEngine: plan.engine,
+            inventory: plan.inventory ?? null,
+            ...(plan.employerKeyOf ? { employerKeyOf: plan.employerKeyOf } : {}),
+            ...(plan.jobOf ? { jobOf: plan.jobOf } : {}),
+        }, result.committed, result);
+        plan.engine.unbindMarkets();
+    }
     return result;
 }

@@ -6,7 +6,29 @@
         "location": "home",
         "durationTicks": 8,
         "selection": {
-            "weight": 1.0
+            "weight": 0.2,
+            "modifiers": [
+                {
+                    "when": {
+                        "any": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 21
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 4
+                            }
+                        ]
+                    },
+                    "multiply": 30
+                }
+            ]
+        },
+        "events": {
+            "onComplete": "woke_up"
         }
     },
     "rest": {
@@ -233,82 +255,162 @@
     "attending_customers": {
         "label": "Attending customers",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "working_the_register": {
         "label": "Working the register",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "doing_paperwork": {
         "label": "Doing paperwork",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "doing_rounds": {
         "label": "Doing rounds",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "working_the_kitchen": {
         "label": "Working the kitchen",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "doing_manual_labor": {
         "label": "Doing manual labor",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "teaching_class": {
         "label": "Teaching a class",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "fixing_equipment": {
         "label": "Fixing equipment",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "keeping_watch": {
         "label": "Keeping watch",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "cleaning_premises": {
         "label": "Cleaning the premises",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "driving_route": {
         "label": "Driving a route",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "treating_patients": {
         "label": "Treating patients",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "styling_clients": {
         "label": "Styling clients",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "coaching_session": {
         "label": "Running a coaching session",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "drafting_designs": {
         "label": "Drafting designs",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "screening_film": {
         "label": "Screening a film",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "greeted_a_customer": {
         "label": "Greeted a customer",

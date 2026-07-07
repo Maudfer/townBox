@@ -19,8 +19,7 @@ import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandpa
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
-import { TICKS_PER_MONTH, dayOfWeekOfTick } from 'util/time';
-import { isOnShiftAt } from 'util/shifts';
+import { TICKS_PER_MONTH } from 'util/time';
 import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, aggregateMaterialDemand, DemandBusiness } from 'util/businessFinance';
 import { evaluateCurve } from 'util/curve';
 import { TickResult } from 'types/LifeEvent';
@@ -417,10 +416,29 @@ export default class City {
         await runTick({
             engine,
             actionEngine: Game.actionEngine ?? undefined,
+            brain: Game.brain ?? undefined,
             inventory: Game.inventory,
             employerKeyOf: id => {
                 const workplace = personByGenId.get(id)?.work.getWorkplace();
                 return workplace instanceof Workplace ? workplace.getIdentifier() : null;
+            },
+            // Job facts for the Brain's obligation hook (task 046): the person's shift + workplace + the
+            // job's continuous work repertoire (mapped from the jobs table by title).
+            jobOf: id => {
+                const person = personByGenId.get(id);
+                const job = person?.work.getJob();
+                const workplace = person?.work.getWorkplace();
+                if (!person || !job || !(workplace instanceof Workplace)) {
+                    return null;
+                }
+                const definition = Object.values(JOBS).find(candidate => candidate.title === job.title);
+                return {
+                    shiftStart: job.shiftStart,
+                    shiftEnd: job.shiftEnd,
+                    ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
+                    workplaceKey: workplace.getIdentifier(),
+                    continuousActions: definition?.workActions.continuous ?? [],
+                };
             },
             state: population.getState(),
             agentIds: [...materializedIds],
@@ -1342,34 +1360,12 @@ export default class City {
         return this.world;
     }
 
+    // The per-person shift loop that used to live here is retired (task 046): work attendance is now a
+    // Brain obligation intent — the work Action requests a transition through the execution boundary, and
+    // LiveWorld drives the same commute machinery. This handler only pumps pending transitions at the finer
+    // minute cadence so arrivals resolve promptly between hourly ticks.
     public handleCommute(event: TimeChangedEvent): void {
-        const field = Game.field;
-        if (!field) {
-            return;
-        }
-        // Resolve any pending location-transition handles whose person has physically arrived (task 040).
         this.world.pump(event.tick);
-        const minuteOfDay = event.timestamp.hour * 60 + event.timestamp.minute;
-        // One source of truth for shift math (task 045): day-of-week gating + cross-midnight windows.
-        const dayOfWeek = dayOfWeekOfTick(event.tick);
-
-        for (const person of field.getPeople()) {
-            const job = person.work.getJob();
-            const workplace = person.work.getWorkplace();
-            const home = person.social.getHome();
-            if (!job || !workplace || !home || !person.isIdle()) {
-                continue;
-            }
-
-            const current = person.getCurrentBuilding() ?? home;
-            const shouldBeAtWork = isOnShiftAt(job, dayOfWeek, minuteOfDay);
-
-            if (shouldBeAtWork && current !== workplace) {
-                this.startCommute(person, workplace);
-            } else if (!shouldBeAtWork && current === workplace) {
-                this.startCommute(person, home);
-            }
-        }
     }
 
     private startCommute(person: Person, destination: Building): void {

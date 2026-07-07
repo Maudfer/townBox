@@ -810,5 +810,59 @@
                 "target": "subject"
             }
         ]
+    },
+    "woke_up": {
+        "label": "Woke up",
+        "category": "daily",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": []
+    },
+    "started_working": {
+        "label": "Started working",
+        "category": "career",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "effects": []
+    },
+    "stopped_working": {
+        "label": "Stopped working",
+        "category": "career",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "effects": []
     }
 }
