@@ -74,10 +74,13 @@ export function evaluatePredicate(pred: Predicate, ctx: SimulationContext): bool
         const sub = ctx.role(pred.role);
         return sub ? evaluatePredicate(pred.where, sub) : false;
     }
-    return compare(ctx.getAttr(pred.attr), pred.op, pred.value);
+    return compareValues(ctx.getAttr(pred.attr), pred.op, pred.value);
 }
 
-function compare(actual: Value | Value[] | undefined, op: ComparisonOp, operand: Value | Value[]): boolean {
+// Exported so the event runtime's eligibility gates (EventEngine's discriminant snapshot walk) apply the
+// EXACT comparison semantics of the full predicate evaluator — a gate must never pass or fail differently
+// than the predicate node it was compiled from.
+export function compareValues(actual: Value | Value[] | undefined, op: ComparisonOp, operand: Value | Value[]): boolean {
     switch (op) {
         case '==':
             return actual === operand;

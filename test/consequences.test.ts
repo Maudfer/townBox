@@ -35,6 +35,11 @@ const ACTIONS: ActionManifest = {
         parameters: { target: { type: 'person', required: true } },
         consequences: [{ op: 'transferObject', object: { carried: { archetype: 'coin' } }, owner: 'targetPerson' }],
     },
+    lend_coin: {
+        label: 'Lent a coin', type: 'discrete', category: 'social',
+        parameters: { target: { type: 'person', required: true } },
+        consequences: [{ op: 'moveObjectToPerson', object: { carried: { archetype: 'coin' } }, target: 'targetPerson' }],
+    },
     craft_for_work: {
         label: 'Assembled a widget', type: 'discrete', category: 'work',
         consequences: [{ op: 'createObject', archetype: 'toy_car', owner: 'employer', container: 'possessions' }],
@@ -98,6 +103,42 @@ describe('consequence ops', () => {
         expect(actions.startAction('a', 'give_coin', { target: 'b' }, cause, deps, result()).ok).toBe(true);
         expect(coin.owner).toEqual({ kind: 'person', personId: 'b' });
         expect(coin.container).toEqual({ kind: 'possessions', personId: 'a' }); // still physically carried by a
+    });
+
+    test('moveObjectToPerson lends a carried object: possession moves, ownership stays (lent_an_object)', () => {
+        const { actions, deps, inventory } = harness();
+        const book = inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
+        expect(actions.startAction('a', 'lent_an_object', { target: 'b' }, cause, deps, result()).ok).toBe(true);
+        expect(book.container).toEqual({ kind: 'possessions', personId: 'b' }); // b now carries it
+        expect(book.owner).toEqual({ kind: 'person', personId: 'a' }); // a still owns it
+    });
+
+    test('returned_borrowed_object hands the specific instance back via a param ref, ownership untouched', () => {
+        const { actions, deps, inventory } = harness();
+        // b lent a book to a earlier: b owns it, a carries it.
+        const book = inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'b' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
+        expect(actions.startAction('a', 'returned_borrowed_object', { target: 'b', object: book.id }, cause, deps, result()).ok).toBe(true);
+        expect(book.container).toEqual({ kind: 'possessions', personId: 'b' });
+        expect(book.owner).toEqual({ kind: 'person', personId: 'b' });
+    });
+
+    test('borrowed_an_object picks up a giftable at the location WITHOUT taking ownership', () => {
+        const { actions, deps, inventory } = harness();
+        // The friend's book lies at the person's current location ('home' in bootstrap).
+        const book = inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'b' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        expect(actions.startAction('a', 'borrowed_an_object', {}, cause, deps, result()).ok).toBe(true);
+        expect(book.container).toEqual({ kind: 'possessions', personId: 'a' });
+        expect(book.owner).toEqual({ kind: 'person', personId: 'b' }); // still the lender's
+    });
+
+    test('moveObjectToPerson fails typed: missing target param / nothing lendable, zero mutations', () => {
+        const { engine, actions, deps, inventory } = harness();
+        inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
+        // target is a required parameter — the start is rejected before planning.
+        expect(actions.startAction('a', 'lent_an_object', {}, cause, deps, result())).toEqual({ ok: false, reason: 'missingParameter' });
+        // No coin carried → the moveObjectToPerson plan fails atomically and nothing is logged.
+        expect(actions.startAction('a', 'lend_coin', { target: 'b' }, cause, deps, result())).toEqual({ ok: false, reason: 'inputsUnavailable' });
+        expect(engine.getPersonLog('a')).toHaveLength(0);
     });
 
     test('employer ownership resolves through employerKeyOf and fails typed without it', () => {

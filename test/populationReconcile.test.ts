@@ -96,7 +96,14 @@ describe('City.handleTick — death reconciliation', () => {
         });
         city.setPopulation(2);
 
-        await city.handleTick({ tick: tickNow, timestamp: clock.getTimestamp() });
+        // Honest hazards (048): extreme old age is a ~80/yr rate, not a per-tick certainty — advance until
+        // the death lands (mean ~4.5 in-game days; bounded for safety).
+        for (let tick = tickNow; tick < tickNow + 2000; tick++) {
+            await city.handleTick({ tick, timestamp: clock.getTimestamp() });
+            if (population.getPerson('old')!.deathTick !== null) {
+                break;
+            }
+        }
 
         // The ancient died (via the event engine) and was fully removed; the child remains.
         expect(population.getPerson('old')!.deathTick).not.toBeNull();

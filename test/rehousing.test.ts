@@ -99,7 +99,14 @@ describe('City rehousing — orphaned minor relocation (task 011)', () => {
         house2.setHousehold({ id: 'hh-2', houseKey: house2.getIdentifier(), headId: 'sibling', memberIds: ['sibling'], arrangement: HouseholdArrangements.Single });
         city.setPopulation(3);
 
-        await city.handleTick({ tick: tickNow, timestamp: clock.getTimestamp() });
+        // Honest hazards (048): extreme old age is a ~80/yr rate, not a per-tick certainty — advance until
+        // the death lands (mean ~4.5 in-game days; bounded for safety).
+        for (let tick = tickNow; tick < tickNow + 2000; tick++) {
+            await city.handleTick({ tick, timestamp: clock.getTimestamp() });
+            if (population.getPerson('guardian')!.deathTick !== null) {
+                break;
+            }
+        }
 
         // The guardian died; the minor was relocated to the sibling's household rather than left alone.
         expect(population.getPerson('guardian')!.deathTick).not.toBeNull();

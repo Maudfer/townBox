@@ -1,6 +1,6 @@
 # Content planning artifacts
 
-Name-level planning material for the **simulation enrichment arc** ([task 038](../tasks/038-simulation-enrichment-architecture_DONE.md)), produced by [task 049](../tasks/049-content-planning-lists_DONE.md). These are **planning inputs, not runtime data**: the data-backfill tasks ([050](../tasks/050-objects-data-backfill.md)–[053](../tasks/053-object-action-relationships-backfill.md), plus [045](../tasks/045-job-shifts-and-work-actions.md)/[052](../tasks/052-events-data-backfill.md)) curate from these lists into validated JSON. Traceability (object→setting, business→setting, job→business, action→job, event→source) is preserved here even where the final JSON won't retain it.
+Name-level planning material for the **simulation enrichment arc** ([task 038](../tasks/038-simulation-enrichment-architecture_DONE.md)), produced by [task 049](../tasks/049-content-planning-lists_DONE.md). These are **planning inputs, not runtime data**: the data-backfill tasks ([050](../tasks/050-objects-data-backfill_DONE.md)–[053](../tasks/053-object-action-relationships-backfill_DONE.md), plus [045](../tasks/045-job-shifts-and-work-actions_DONE.md)/[052](../tasks/052-events-data-backfill.md)) curate from these lists into validated JSON. Traceability (object→setting, business→setting, job→business, action→job, event→source) is preserved here even where the final JSON won't retain it.
 
 All counts below are script-verified and restated at the top of each artifact.
 
@@ -15,5 +15,5 @@ All counts below are script-verified and restated at the top of each artifact.
 Notes:
 
 - The settings list doubles as a venue/business vocabulary (business→setting links are in `businesses-and-jobs.md`); keep it until the venue model ([040](../tasks/040-hourly-ticks-and-execution-boundary.md)'s `LogicalLocation`, [055](../tasks/055-history-asset-pipeline.md)'s offline world) has consumed what it needs.
-- The events artifact folds "automated" under its **manual** tag (system-fired); the precise `probabilistic | manual | automated` trigger split is decided per event during [048](../tasks/048-events-revision-hourly-migration.md)/[052](../tasks/052-events-data-backfill.md) against the [042](../tasks/042-event-triggers-and-causation.md) schema.
+- The events artifact folds "automated" under its **manual** tag (system-fired); the precise `probabilistic | manual | automated` trigger split is decided per event during [048](../tasks/048-events-revision-hourly-migration_DONE.md)/[052](../tasks/052-events-data-backfill_DONE.md) against the [042](../tasks/042-event-triggers-and-causation_DONE.md) schema.
 - Lists were generated from single-source datasets + scripts (kept out of the repo); extending them is cheap — regenerate rather than hand-edit large sections.

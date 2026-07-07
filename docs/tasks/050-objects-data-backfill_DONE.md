@@ -19,7 +19,7 @@ Fill `objects.json` with **at least 1,200 object archetypes** people can own, ho
 
 ## Non-goals
 
-Object-action relationships ([053](053-object-action-relationships-backfill.md)). Placing instances in the world beyond what tests need (world seeding of venue objects can ride along if trivial, else propose a follow-up).
+Object-action relationships ([053](053-object-action-relationships-backfill_DONE.md)). Placing instances in the world beyond what tests need (world seeding of venue objects can ride along if trivial, else propose a follow-up).
 
 ## Testing
 

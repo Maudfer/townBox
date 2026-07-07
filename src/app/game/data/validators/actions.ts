@@ -188,13 +188,22 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
 
     for (const [id, action] of Object.entries(manifest)) {
         if (action.consequences) {
-            validateConsequenceOpsSemantics(issues, `${id}.consequences`, action.consequences as { op: string; archetype?: string; event?: string }[], archetypes, events);
+            validateConsequenceOpsSemantics(issues, `${id}.consequences`, action.consequences as { op: string; archetype?: string; event?: string; owner?: string; target?: string }[], archetypes, events, new Set(Object.keys(action.parameters ?? {})));
         }
         // Children must reference existing DISCRETE actions (v1: no nested continuous children — a sequence
         // of continuous activities is a Brain-level plan, not an action definition).
         const childRefs: { ref: string; path: string }[] = [];
         if (action.children?.mode === 'pool') {
-            action.children.entries.forEach((entry, index) => childRefs.push({ ref: entry.action, path: `${id}.children.entries[${index}].action` }));
+            action.children.entries.forEach((entry, index) => {
+                childRefs.push({ ref: entry.action, path: `${id}.children.entries[${index}].action` });
+                // Pools start children with NO params (unlike sequence steps, which bind them) — a child
+                // with a required parameter would fail with missingParameter on every occurrence.
+                const child = manifest[entry.action];
+                const required = Object.entries(child?.parameters ?? {}).filter(([, spec]) => spec.required).map(([name]) => name);
+                if (required.length > 0) {
+                    issues.add(`${id}.children.entries[${index}].action`, `pool child "${entry.action}" declares required parameter(s) [${required.join(', ')}] — pools pass no params, so it can never start`);
+                }
+            });
         } else if (action.children?.mode === 'sequence') {
             action.children.steps.forEach((step, index) => childRefs.push({ ref: step.action, path: `${id}.children.steps[${index}].action` }));
         }

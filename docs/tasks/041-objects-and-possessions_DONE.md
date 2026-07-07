@@ -3,7 +3,7 @@
 - **Type:** Core system / Simulation + Data
 - **Labels:** `framework`, `objects`, `inventory`, `data`, `enrichment-arc`
 - **Depends on:** [039](039-data-schema-registry-and-validators_DONE.md) (schema registration), [040](040-hourly-ticks-and-execution-boundary_DONE.md) (save v8 coordination, log/causation for provenance)
-- **Blocks:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences move instances), [050](050-objects-data-backfill.md) (content)
+- **Blocks:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences move instances), [050](050-objects-data-backfill_DONE.md) (content)
 
 ## Goal
 
@@ -19,7 +19,7 @@ There is **no inventory/objects concept anywhere** in the codebase today — peo
 - Per archetype: `id`, `label`, `category`, dimensions (`{ w, d, h }` in **cm**), `weightGrams` (normalized units everywhere), flags `carryable`, `pocketable`, `stackable`, `consumable`, `equippable`, `placeable`, a `defaultContainerBehavior` (whether/what it can contain — a backpack contains, a bowl contains, an apple doesn't), and free-form `tags` for selection modifiers later.
 - Enrich metadata even where unused yet — the flags above are the *minimum* distinctions.
 - Registered in the 039 registry: structural validation (units, flags, enums; e.g. `pocketable → carryable`) + semantic validation (unique ids, known categories).
-- Ship a **small starter set** (a few dozen archetypes across categories) so the system is exercised; the 1,200+ backfill is task [050](050-objects-data-backfill.md).
+- Ship a **small starter set** (a few dozen archetypes across categories) so the system is exercised; the 1,200+ backfill is task [050](050-objects-data-backfill_DONE.md).
 
 ### Runtime — Object Instances
 - `{ instanceId, archetypeId, quantity (stackables only), state/attributes, owner, container, createdAtTick, provenance (causationId of the creating action/event) }`.

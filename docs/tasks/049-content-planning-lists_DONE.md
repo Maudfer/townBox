@@ -3,7 +3,7 @@
 - **Type:** Content planning / Data-name generation
 - **Labels:** `content`, `planning`, `data`, `enrichment-arc`
 - **Depends on:** [038](038-simulation-enrichment-architecture_DONE.md) (defines what the lists feed)
-- **Feeds:** [050](050-objects-data-backfill.md)–[053](053-object-action-relationships-backfill.md) (the JSON backfills), [045](045-job-shifts-and-work-actions_DONE.md) (per-job work actions)
+- **Feeds:** [050](050-objects-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill_DONE.md) (the JSON backfills), [045](045-job-shifts-and-work-actions_DONE.md) (per-job work actions)
 - **Status:** ✅ Done — executed alongside the planning pass; artifacts live under [`docs/planning/`](../planning/).
 
 ## Goal

@@ -11,7 +11,7 @@ import { EventManifest } from 'types/LifeEvent';
 const DISPOSITIONS = ['consumed', 'retained', 'transformed', 'required'];
 const OWNERSHIP_TARGETS = ['person', 'targetPerson', 'employer', 'world', 'none'];
 const CONTAINERS = ['possessions', 'location'];
-const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'transferObject', 'setObjectState', 'adjustMoney', 'triggerEvent', 'scheduleEvent'];
+const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'triggerEvent', 'scheduleEvent'];
 
 function validateObjectQuery(issues: IssueCollector, path: string, query: unknown): void {
     if (!checkRecord(issues, path, query)) {
@@ -95,6 +95,11 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                 validateObjectRef(issues, `${opPath}.object`, op['object']);
                 checkEnum(issues, `${opPath}.container`, op['container'], CONTAINERS);
                 break;
+            case 'moveObjectToPerson':
+                checkUnknownKeys(issues, opPath, op, ['op', 'object', 'target']);
+                validateObjectRef(issues, `${opPath}.object`, op['object']);
+                checkEnum(issues, `${opPath}.target`, op['target'], ['targetPerson']);
+                break;
             case 'transferObject':
                 checkUnknownKeys(issues, opPath, op, ['op', 'object', 'owner']);
                 validateObjectRef(issues, `${opPath}.object`, op['object']);
@@ -125,8 +130,10 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
     });
 }
 
-// Semantic checks for consequence ops (shared): archetype refs and event refs resolve.
-export function validateConsequenceOpsSemantics(issues: IssueCollector, path: string, ops: { op: string; archetype?: string; event?: string }[], archetypes: Set<string>, events: EventManifest): void {
+// Semantic checks for consequence ops (shared): archetype refs and event refs resolve, and ops that read
+// the `target` parameter ('targetPerson') sit on an action that actually declares one — a targetPerson op
+// on a target-less action can never plan and would be permanently dead content.
+export function validateConsequenceOpsSemantics(issues: IssueCollector, path: string, ops: { op: string; archetype?: string; event?: string; owner?: string; target?: string }[], archetypes: Set<string>, events: EventManifest, declaredParams: Set<string>): void {
     ops.forEach((op, index) => {
         const opPath = `${path}[${index}]`;
         if (op.op === 'createObject' && op.archetype !== undefined && !archetypes.has(op.archetype)) {
@@ -139,6 +146,9 @@ export function validateConsequenceOpsSemantics(issues: IssueCollector, path: st
             } else if (op.op === 'triggerEvent' && !event.triggers?.manual) {
                 issues.add(`${opPath}.event`, `event "${op.event}" does not declare a manual trigger`);
             }
+        }
+        if ((op.owner === 'targetPerson' || op.target === 'targetPerson') && !declaredParams.has('target')) {
+            issues.add(opPath, `op references 'targetPerson' but the action declares no "target" parameter`);
         }
     });
 }
@@ -238,6 +248,9 @@ export function validateOarSemantics(data: unknown, peers: Record<string, unknow
         entry.outputs.forEach((output, index) => {
             if (!archetypes.has(output.archetype)) {
                 issues.add(`${id}.outputs[${index}].archetype`, `references unknown object archetype "${output.archetype}"`);
+            }
+            if (output.owner === 'targetPerson' && action && !('target' in (action.parameters ?? {}))) {
+                issues.add(`${id}.outputs[${index}].owner`, `owner 'targetPerson' but action "${entry.action}" declares no "target" parameter`);
             }
         });
         const contextArchetype = entry.context?.objectAtLocation?.archetype;

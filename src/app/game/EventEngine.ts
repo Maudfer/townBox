@@ -2,8 +2,8 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { SeededRandom } from 'util/random';
 import { dayOfTick, hourOfTick } from 'util/time';
-import { evaluateCurve, clamp01 } from 'util/curve';
-import { evaluatePredicate } from 'util/predicate';
+import { evaluateCurve, Curve } from 'util/curve';
+import { evaluatePredicate, compareValues } from 'util/predicate';
 import { isAliveAt, ageAt, spouseAt } from 'util/kinship';
 
 import { SimulationContext, Value, HasEventQuery } from 'types/Simulation';
@@ -28,7 +28,7 @@ import {
     SkillRegistry,
 } from 'types/LifeEvent';
 
-import { compileEvents, EventGraph } from 'game/EventCompiler';
+import { compileEvents, EventGraph, GateComparison } from 'game/EventCompiler';
 import LifeLog from 'game/LifeLog';
 
 import { ExecutionContext } from 'types/Execution';
@@ -50,6 +50,16 @@ export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as 
 //
 // Determinism: each day forks its own RNG from the world seed + tick (mirroring the coarse sim), and faker is
 // seeded likewise, so a day's outcome is reproducible across save/load.
+//
+// The eligibility index (the compiler's `subjectGates`, dormant since the 038 discovery, activated here):
+// the probabilistic walk consumes exactly ONE RNG draw per probabilistic event per agent regardless of
+// whether the event is plausible — so skipping an implausible event's post-draw work cannot move the
+// stream, and an indexed run is bit-identical to an unindexed one (enforced by test/eventEligibility).
+// Per agent per tick the engine snapshots the five discriminants (alive/gender/marital/employed/age) once,
+// walks a flat precompiled plan instead of re-deriving from the manifest, checks each event's gates against
+// the snapshot right after its draw, and reads the hazard from a per-tick cache for the (overwhelmingly
+// common) events whose probability factors derive from the tick alone (hourOfDay). Only events that survive
+// all of that pay for probability factors, limits, full predicates, and role searches.
 
 const ROLE_SUBJECT = 'subject';
 
@@ -60,6 +70,39 @@ interface PendingSignal {
     personId: PersonId | null;
     tick: number;
 }
+
+// A probability factor with its driver string pre-split ("subject.age" -> role/attr), so the hot loop never
+// re-parses (task 052).
+interface ParsedFactor {
+    role: string;
+    attr: string;
+    curve: Curve;
+}
+
+// One entry of the precompiled probabilistic walk plan: everything the per-agent hot loop needs, resolved
+// once at construction (in topo order, probabilistic events only — manual/automated-only events never roll
+// and were `continue`d immediately by the old topoOrder walk, so dropping them here changes nothing).
+interface ProbPlanEntry {
+    id: string;
+    def: EventDefinition;
+    prob: ProbabilitySpec;
+    factors: ParsedFactor[];
+    // Some probability factor drives on a non-subject role, forcing role resolution before the roll.
+    needsRoles: boolean;
+    // Every factor derives from the tick alone (subject.hourOfDay): the hazard is identical for all living
+    // agents, so simulateTick computes it once per tick instead of once per (agent, event).
+    tickConstant: boolean;
+    gates: GateComparison[];
+    excludes: string[];
+    limit: OccurrenceLimit | undefined;
+}
+
+// The engine-side view of one agent's discriminants, computed once per (agent, tick) through the same
+// agentAttr reads the full predicate evaluator uses, and rebuilt after any commit attempt that may have
+// mutated them (marry/divorce/setDeath/hire/fire/setAttr).
+type DiscriminantSnapshot = Record<string, Value | undefined>;
+
+const DISCRIMINANT_SNAPSHOT_ATTRS = ['alive', 'gender', 'marital', 'employed', 'age'] as const;
 
 export default class EventEngine {
     private manifest: EventManifest;
@@ -73,6 +116,11 @@ export default class EventEngine {
     private schedule: ScheduleState;
     private afterEventRules: Map<string, { eventId: string; delayTicks: number }[]>;
     private atHourRules: Map<number, string[]>;
+    // The precompiled probabilistic walk plan (task 052 perf + the eligibility index): flat, in topo order,
+    // with parsed factors, discriminant gates, and per-event excludes/limit resolved once.
+    private probPlan: ProbPlanEntry[];
+    // False only in test/reference runs that verify the index is behavior-invariant.
+    private eligibilityIndex: boolean;
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
     // Adapters bound for the current simulateTick pass; null in pure/test runs that don't provide them.
@@ -81,9 +129,10 @@ export default class EventEngine {
     private housing: HousingMarket | null; // move-out eligibility (task 024)
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
 
-    constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST, lifeLog: LifeLog = new LifeLog()) {
+    constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST, lifeLog: LifeLog = new LifeLog(), options: { eligibilityIndex?: boolean } = {}) {
         this.manifest = manifest;
         this.graph = compileEvents(manifest);
+        this.eligibilityIndex = options.eligibilityIndex ?? true;
         this.history = {};
         this.lifeLog = lifeLog;
         this.schedule = { queue: [], nextScheduleSeq: 0 };
@@ -104,6 +153,29 @@ export default class EventEngine {
         }
         for (const ids of this.atHourRules.values()) {
             ids.sort();
+        }
+        this.probPlan = [];
+        for (const eventId of this.graph.topoOrder) {
+            const definition = manifest[eventId];
+            const spec = definition?.triggers?.probabilistic;
+            if (!definition || !spec) {
+                continue;
+            }
+            const factors: ParsedFactor[] = (spec.factors ?? []).map(factor => {
+                const [role = '', attr = ''] = factor.driver.split('.');
+                return { role, attr, curve: factor.curve };
+            });
+            this.probPlan.push({
+                id: eventId,
+                def: definition,
+                prob: spec,
+                factors,
+                needsRoles: factors.some(factor => factor.role !== ROLE_SUBJECT),
+                tickConstant: factors.every(factor => factor.role === ROLE_SUBJECT && factor.attr === 'hourOfDay'),
+                gates: this.graph.subjectGates[eventId] ?? [],
+                excludes: this.graph.excludes[eventId] ?? [],
+                limit: definition.limit,
+            });
         }
         this.overlay = {};
         this.jobMarket = null;
@@ -256,6 +328,10 @@ export default class EventEngine {
             case 'retired':
                 // Set true by the retirement event (task 032); gates get_job so retirees aren't re-hired.
                 return (this.overlay[id]?.['retired'] as boolean) ?? false;
+            case 'hourOfDay':
+                // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
+                // at dinner time) and predicates. Derived from the tick, identical in both execution modes.
+                return hourOfTick(tick);
             case 'canMoveOut':
                 // True when the person could leave home now (adult non-head with a vacant home available). Gates
                 // move_out eligibility (task 024). Without a housing adapter (pure/test runs), nobody can.
@@ -338,25 +414,62 @@ export default class EventEngine {
         return roleMap;
     }
 
-    // Per-step firing probability. `ticksPerStep` (default 1 = daily, as live play uses) lets a caller advance in
-    // coarser strides — the history bootstrap (036) steps by e.g. a week to stay tractable over the whole pool —
-    // while keeping the hazard correct: the per-step chance is 1 − (1 − annual)^(ticksPerStep / ticksPerYear).
-    private perTickProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, ticksPerStep: number): number {
-        let annual = spec.perYear;
-        for (const factor of spec.factors ?? []) {
-            const [role, attr] = factor.driver.split('.');
-            const id = role ? roleMap[role] : undefined;
-            const raw = id && attr ? this.agentAttr(state, id, attr, tick, ticksPerYear) : undefined;
-            annual *= evaluateCurve(factor.curve, typeof raw === 'number' ? raw : 0);
+    // One agent's discriminant values, read through the same agentAttr the predicate evaluator uses so a
+    // gate can never disagree with the predicate node it was compiled from.
+    private discriminantSnapshot(state: PopulationState, id: PersonId, tick: number, ticksPerYear: number): DiscriminantSnapshot {
+        const snapshot: DiscriminantSnapshot = {};
+        for (const attr of DISCRIMINANT_SNAPSHOT_ATTRS) {
+            snapshot[attr] = this.agentAttr(state, id, attr, tick, ticksPerYear);
         }
-        annual = clamp01(annual);
+        return snapshot;
+    }
+
+    private static gatesPass(gates: GateComparison[], snapshot: DiscriminantSnapshot): boolean {
+        for (const gate of gates) {
+            if (!compareValues(snapshot[gate.attr], gate.op, gate.value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // The per-step hazard of a tick-constant plan entry (every factor drives on subject.hourOfDay, which is
+    // hourOfTick(tick) for every living agent) — the agent-independent mirror of perTickProbability, kept
+    // equivalent by the eligibility invariance test.
+    private static tickConstantHazard(entry: ProbPlanEntry, tick: number, ticksPerYear: number, ticksPerStep: number): number {
+        let annual = entry.prob.perYear;
+        const hour = hourOfTick(tick);
+        for (const factor of entry.factors) {
+            annual *= evaluateCurve(factor.curve, hour);
+        }
         if (annual <= 0) {
             return 0;
         }
-        if (annual >= 1) {
-            return 1;
+        return 1 - Math.exp(-annual * (ticksPerStep / ticksPerYear));
+    }
+
+    // Per-step firing probability. `ticksPerStep` (default 1 = daily, as live play uses) lets a caller advance in
+    // coarser strides — the history bootstrap (036) steps by e.g. a week to stay tractable over the whole pool —
+    // while keeping the hazard correct: the per-step chance is 1 − (1 − annual)^(ticksPerStep / ticksPerYear).
+    private perTickProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, ticksPerStep: number, parsedFactors?: ParsedFactor[]): number {
+        let annual = spec.perYear;
+        const factors = parsedFactors ?? (spec.factors ?? []).map(factor => {
+            const [role = '', attr = ''] = factor.driver.split('.');
+            return { role, attr, curve: factor.curve };
+        });
+        for (const factor of factors) {
+            const id = factor.role ? roleMap[factor.role] : undefined;
+            const raw = id && factor.attr ? this.agentAttr(state, id, factor.attr, tick, ticksPerYear) : undefined;
+            annual *= evaluateCurve(factor.curve, typeof raw === 'number' ? raw : 0);
         }
-        return 1 - Math.pow(1 - annual, ticksPerStep / ticksPerYear);
+        if (annual <= 0) {
+            return 0;
+        }
+        // `perYear` is a RATE (expected occurrences per year), not a probability — a Poisson conversion keeps
+        // authored rates honest at ANY stride (task 048). The old formula clamped the annual value to 1 first,
+        // which silently turned every rate >= 1/yr into a per-step certainty (fell_ill at 2/yr fired every
+        // single tick). For rates << 1 the two formulas agree to within a fraction of a percent.
+        return 1 - Math.exp(-annual * (ticksPerStep / ticksPerYear));
     }
 
     // Applies an event's effects in order. Returns false if an effect failed to commit (currently only a failed
@@ -540,63 +653,102 @@ export default class EventEngine {
             }
         }
 
-        // Lifecycle phases 4–5: probabilistic evaluation + commit.
+        // Lifecycle phases 4–5: probabilistic evaluation + commit, over the precompiled plan.
+        //
+        // Roll FIRST (tasks 040/052): at hundreds of manifest events the per-tick hazard is tiny for almost
+        // all of them, so paying eligibility costs (limit lookup, subject predicate, role searches) only on
+        // successful rolls is what keeps the hourly pass affordable at content scale. Distributions are
+        // unchanged — the roll is independent of eligibility.
+        //
+        // The eligibility index rides on that ordering: every plan entry consumes its one draw
+        // unconditionally, so gate-skipping an implausible event (or reading a cached hazard) cannot move
+        // the RNG stream, and indexed results are bit-identical to unindexed ones. The per-tick hazard
+        // cache holds the per-step probability for tick-constant entries; -1 marks entries that need
+        // per-agent factor evaluation.
+        const plan = this.probPlan;
+        const hazardCache = new Float64Array(plan.length);
+        for (let i = 0; i < plan.length; i++) {
+            const entry = plan[i]!;
+            hazardCache[i] = this.eligibilityIndex && entry.tickConstant
+                ? EventEngine.tickConstantHazard(entry, tick, ticksPerYear, ticksPerStep)
+                : -1;
+        }
+
         for (const agentId of agents) {
             const record = state.people[agentId];
             if (!record || !isAliveAt(record, tick)) {
                 continue;
             }
 
+            let snapshot = this.discriminantSnapshot(state, agentId, tick, ticksPerYear);
             const excludedToday = new Set<string>();
-            for (const eventId of this.graph.topoOrder) {
-                if (excludedToday.has(eventId)) {
-                    continue;
-                }
-                const event = this.manifest[eventId];
-                const probability = event?.triggers?.probabilistic;
-                if (!event || !probability) {
-                    continue; // manual/automated-only events never roll
-                }
-                if (!this.limitAllows(agentId, eventId, event.limit, tick)) {
+            for (let i = 0; i < plan.length; i++) {
+                const entry = plan[i]!;
+                // Excluded events are skipped BEFORE their draw (as the pre-index walk did) — the exclusion
+                // set is part of the deterministic stream contract.
+                if (excludedToday.size > 0 && excludedToday.has(entry.id)) {
                     continue;
                 }
 
-                const subjectWhere = event.roles[ROLE_SUBJECT]?.where;
-                const subjectCtx = this.makeContext(state, agentId, { [ROLE_SUBJECT]: agentId }, tick, ticksPerYear);
-                if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
-                    continue;
-                }
-
-                // Roll BEFORE resolving co-participant roles (task 040): candidate `where` searches are
-                // O(agents), so paying them only on a successful roll is what makes running the full manifest
-                // (marriage included) affordable pool-wide in bootstrap mode. The rare probability factor that
-                // drives on a non-subject role forces early resolution.
+                // The rare probability factor that drives on a non-subject role forces early role
+                // resolution (and skips the draw when a role can't bind, as before).
                 let roleMap: Record<string, PersonId> | null = { [ROLE_SUBJECT]: agentId };
-                const needsRolesForProbability = (probability.factors ?? []).some(factor => !factor.driver.startsWith(`${ROLE_SUBJECT}.`));
-                if (needsRolesForProbability) {
-                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng, {});
+                if (entry.needsRoles) {
+                    roleMap = this.resolveRoles(entry.def, agentId, state, agents, tick, ticksPerYear, rng, {});
                     if (!roleMap) {
                         continue;
                     }
                 }
 
-                const pTick = this.perTickProbability(probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
-                if (!rng.chance(pTick)) {
+                // The one unconditional draw (was rng.chance(pTick)). The gate check and the roll compare
+                // are both draw-free, so their order is outcome-irrelevant — the loop runs the cheaper one
+                // first: against a cached hazard the roll fails overwhelmingly often in two ops, and the
+                // gates then only screen the rare successful roll before it reaches the expensive work
+                // (limit, full predicate, role search). Uncached entries gate first so an implausible
+                // subject skips the per-agent factor evaluation too.
+                const draw = rng.next();
+                const cached = hazardCache[i]!;
+                if (cached >= 0) {
+                    if (draw >= cached) {
+                        continue;
+                    }
+                    if (!EventEngine.gatesPass(entry.gates, snapshot)) {
+                        continue; // a necessary condition of the subject predicate fails — it can't commit
+                    }
+                } else {
+                    if (this.eligibilityIndex && !EventEngine.gatesPass(entry.gates, snapshot)) {
+                        continue;
+                    }
+                    const pTick = this.perTickProbability(entry.prob, roleMap, state, tick, ticksPerYear, ticksPerStep, entry.factors);
+                    if (draw >= pTick) {
+                        continue;
+                    }
+                }
+
+                if (!this.limitAllows(agentId, entry.id, entry.limit, tick)) {
+                    continue;
+                }
+                const subjectWhere = entry.def.roles[ROLE_SUBJECT]?.where;
+                const subjectCtx = this.makeContext(state, agentId, { [ROLE_SUBJECT]: agentId }, tick, ticksPerYear);
+                if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
                     continue;
                 }
 
-                if (!needsRolesForProbability) {
-                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng, {});
+                if (!entry.needsRoles) {
+                    roleMap = this.resolveRoles(entry.def, agentId, state, agents, tick, ticksPerYear, rng, {});
                     if (!roleMap) {
                         continue; // a required role can't be filled — the event can't happen this tick
                     }
                 }
 
-                const seq = this.commit(state, eventId, event, agentId, roleMap, tick, result, rng, 'probability', null);
+                const seq = this.commit(state, entry.id, entry.def, agentId, roleMap, tick, result, rng, 'probability', null);
+                // Even an aborted commit may have applied leading effects (effects before the aborting one
+                // are not rolled back), so the discriminant snapshot is rebuilt after every commit attempt.
+                snapshot = this.discriminantSnapshot(state, agentId, tick, ticksPerYear);
                 if (seq === null) {
                     continue; // event aborted (e.g. job slot taken this tick) — treat as if it never fired
                 }
-                for (const excluded of this.graph.excludes[eventId] ?? []) {
+                for (const excluded of entry.excludes) {
                     excludedToday.add(excluded);
                 }
             }

@@ -60,13 +60,13 @@ Always run `npm test` before opening the PR.**
 | 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions_DONE.md) | Feature | ✅ Done |
 | 046 | [Brain & the Hooks pattern](046-brain-and-hooks_DONE.md) | Feature | ✅ Done |
 | 047 | [The Job Orchestrator](047-job-orchestrator_DONE.md) | Feature | ✅ Done |
-| 048 | [Revise & backfill all existing Events (triggers, hourly, action links)](048-events-revision-hourly-migration.md) | Migration | ⬜ Open |
+| 048 | [Revise & backfill all existing Events (triggers, hourly, action links)](048-events-revision-hourly-migration_DONE.md) | Migration | ✅ Done |
 | 049 | [Pre-initiative content planning lists](049-content-planning-lists_DONE.md) | Content | ✅ Done |
-| 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill.md) | Content | ⬜ Open |
-| 051 | [Actions data backfill (general + per-job)](051-actions-data-backfill.md) | Content | ⬜ Open |
-| 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill.md) | Content | ⬜ Open |
-| 053 | [object-action-relationships backfill](053-object-action-relationships-backfill.md) | Content | ⬜ Open |
-| 054 | [Action ↔ Event relationship documentation](054-action-event-relationship-docs.md) | Docs | ⬜ Open |
+| 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill_DONE.md) | Content | ✅ Done |
+| 051 | [Actions data backfill (general + per-job)](051-actions-data-backfill_DONE.md) | Content | ✅ Done |
+| 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill_DONE.md) | Content | ✅ Done |
+| 053 | [object-action-relationships backfill](053-object-action-relationships-backfill_DONE.md) | Content | ✅ Done |
+| 054 | [Action ↔ Event relationship documentation](054-action-event-relationship-docs_DONE.md) | Docs | ✅ Done |
 | 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038) |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
@@ -98,10 +98,10 @@ modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `i
   [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences & object transformations).
 - **Integration:** [045](045-job-shifts-and-work-actions_DONE.md) (shifts & work actions),
   [046](046-brain-and-hooks_DONE.md) (Brain), [047](047-job-orchestrator_DONE.md) (Job Orchestrator) →
-  [048](048-events-revision-hourly-migration.md) (per-event revision for the new model).
+  [048](048-events-revision-hourly-migration_DONE.md) (per-event revision for the new model).
 - **Content:** [049](049-content-planning-lists_DONE.md) (planning lists, done) feeds
-  [050](050-objects-data-backfill.md)–[053](053-object-action-relationships-backfill.md);
-  [054](054-action-event-relationship-docs.md) documents the action↔event web.
+  [050](050-objects-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill_DONE.md);
+  [054](054-action-event-relationship-docs_DONE.md) documents the action↔event web ([`docs/simulation-flows.md`](../simulation-flows.md) + the generated [`docs/simulation-relationships.md`](../simulation-relationships.md)).
 - **Strategic:** [055](055-history-asset-pipeline.md) then runs the *enriched* sim offline into the
   versioned history asset.
 

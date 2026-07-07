@@ -2,7 +2,8 @@
 
 - **Type:** Documentation
 - **Labels:** `docs`, `actions`, `events`, `enrichment-arc`
-- **Depends on:** [048](048-events-revision-hourly-migration.md), [051](051-actions-data-backfill.md)–[053](053-object-action-relationships-backfill.md) (the relationships it documents)
+- **Depends on:** [048](048-events-revision-hourly-migration_DONE.md), [051](051-actions-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill_DONE.md) (the relationships it documents)
+- **Status:** ✅ Done — `docs/simulation-relationships.md` is generated from the manifests by `util/simulationDocs.ts` and gated by a checked-diff test (regenerate with `npm run docs:sim`); `docs/simulation-flows.md` carries the four lifecycle Mermaid flows; CLAUDE.md links both and got the arc coherence pass.
 
 ## Goal
 

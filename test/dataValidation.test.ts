@@ -18,6 +18,7 @@ import { validateAssetsStructure, validateInputStructure, validateToolAssetsSema
 import { allRegistrations, validateAllData } from '../src/app/game/data/schemas';
 
 import businessesConfig from '../src/json/businesses.json';
+import objectsConfig from '../src/json/objects.json';
 import demandConfig from '../src/json/demand.json';
 import jobsConfig from '../src/json/jobs.json';
 import populationConfig from '../src/json/population.json';
@@ -79,6 +80,27 @@ describe('data validation (task 039)', () => {
         expect(Object.keys(businessesConfig).length).toBeGreaterThanOrEqual(15);
         expect(Object.keys(jobsConfig).length).toBeGreaterThanOrEqual(25);
         expect(Object.keys(demandConfig).length).toBeGreaterThanOrEqual(9);
+    });
+
+    // Objects backfill distribution guards (task 050): the archetype roster must stay big and varied enough
+    // that wandering/pocketing/gifting actions always have material to work with.
+    test('object archetype distribution', () => {
+        const archetypes = Object.values(objectsConfig) as { category: string; flags: Record<string, boolean> }[];
+        expect(archetypes.length).toBeGreaterThanOrEqual(1200);
+        const categories = new Map<string, number>();
+        let pocketable = 0;
+        let carryable = 0;
+        for (const archetype of archetypes) {
+            categories.set(archetype.category, (categories.get(archetype.category) ?? 0) + 1);
+            if (archetype.flags['pocketable']) pocketable += 1;
+            if (archetype.flags['carryable']) carryable += 1;
+        }
+        expect(categories.size).toBeGreaterThanOrEqual(19); // every planning category populated
+        for (const [category, count] of categories) {
+            expect({ category, populated: count >= 10 }).toEqual({ category, populated: true });
+        }
+        expect(pocketable / archetypes.length).toBeGreaterThan(0.3); // pocketing material
+        expect(carryable / archetypes.length).toBeGreaterThan(0.6); // possessions material
     });
 });
 
@@ -391,6 +413,12 @@ describe('object-action-relationships validation (task 044)', () => {
         expect(output).toMatch(/"cont" is continuous/);
     });
 
+    test('semantics rejects a targetPerson output on an action with no target parameter', () => {
+        const fixture = { give: { action: 'craft', inputs: [], outputs: [{ archetype: 'coin', owner: 'targetPerson' }] } };
+        const peers = { actions: { craft: { label: 'C', type: 'discrete', category: 'work' } }, objects: { coin: {} } };
+        expect(messagesOf(semantics(validateOarSemantics, fixture, peers))).toMatch(/owner 'targetPerson' but action "craft" declares no "target" parameter/);
+    });
+
     test('consequence ops in actions are validated (bad op kind, unknown event)', () => {
         const fixture = { a: { label: 'A', type: 'discrete', category: 'leisure', consequences: [{ op: 'summonObject', archetype: 'coin' }] } };
         expect(messagesOf(structure(validateActionsStructure, fixture))).toMatch(/expected one of \[createObject/);
@@ -399,6 +427,46 @@ describe('object-action-relationships validation (task 044)', () => {
         const output = messagesOf(semantics(validateActionsSemantics, semantic, { events: {}, objects: {} }));
         expect(output).toMatch(/references unknown event "ghost"/);
         expect(output).toMatch(/unknown object archetype "unreal"/);
+    });
+
+    test('moveObjectToPerson is validated structurally (only targetPerson; a real object ref)', () => {
+        const bad = {
+            a: { label: 'A', type: 'discrete', category: 'social', consequences: [
+                { op: 'moveObjectToPerson', object: { carried: { tag: 'giftable' } }, target: 'employer' },
+                { op: 'moveObjectToPerson', object: {}, target: 'targetPerson' },
+                { op: 'moveObjectToPerson', object: { param: 'object' }, target: 'targetPerson', container: 'possessions' },
+            ] },
+        };
+        const output = messagesOf(structure(validateActionsStructure, bad));
+        expect(output).toMatch(/consequences\[0\]\.target: expected one of \[targetPerson\]/);
+        expect(output).toMatch(/consequences\[1\]\.object: unrecognized object ref/);
+        expect(output).toMatch(/consequences\[2\]\.container: unknown key/);
+    });
+
+    test('targetPerson ops require the action to declare a target parameter', () => {
+        const semantic = {
+            targetless: { label: 'T', type: 'discrete', category: 'social', consequences: [{ op: 'moveObjectToPerson', object: { carried: { tag: 'giftable' } }, target: 'targetPerson' }] },
+            ok: { label: 'OK', type: 'discrete', category: 'social', parameters: { target: { type: 'person', required: true } }, consequences: [{ op: 'transferObject', object: { carried: { tag: 'giftable' } }, owner: 'targetPerson' }] },
+        };
+        const output = messagesOf(semantics(validateActionsSemantics, semantic, { events: {}, objects: {} }));
+        expect(output).toMatch(/targetless\.consequences\[0\]: op references 'targetPerson' but the action declares no "target" parameter/);
+        expect(output).not.toMatch(/^ok\./m);
+    });
+
+    test('pool children with required parameters are rejected (pools pass no params)', () => {
+        const semantic = {
+            hangout: { label: 'H', type: 'continuous', category: 'social', durationTicks: 2, children: { mode: 'pool', entries: [{ action: 'hand_over', chancePerTick: 0.5 }] } },
+            hand_over: { label: 'HO', type: 'discrete', category: 'social', parameters: { target: { type: 'person', required: true } } },
+        };
+        const output = messagesOf(semantics(validateActionsSemantics, semantic, { events: {}, objects: {} }));
+        expect(output).toMatch(/pool child "hand_over" declares required parameter\(s\) \[target\]/);
+
+        // The same child bound through a SEQUENCE step is fine — steps bind params.
+        const sequenced = {
+            ...semantic,
+            hangout: { label: 'H', type: 'continuous', category: 'social', durationTicks: 2, parameters: { target: { type: 'person', required: true } }, children: { mode: 'sequence', steps: [{ action: 'hand_over', params: { target: '$parent.target' } }] } },
+        };
+        expect(messagesOf(semantics(validateActionsSemantics, sequenced, { events: {}, objects: {} }))).toBe('');
     });
 });
 
