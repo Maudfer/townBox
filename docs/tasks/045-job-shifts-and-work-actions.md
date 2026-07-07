@@ -2,7 +2,7 @@
 
 - **Type:** Integration / Data + Simulation
 - **Labels:** `jobs`, `actions`, `data`, `enrichment-arc`
-- **Depends on:** [043](043-actions-core_DONE.md) (action schema), [044](044-action-consequences-and-object-action-relationships.md) (output ownership); coordinates with [049](049-content-planning-lists_DONE.md) (the work-action name lists)
+- **Depends on:** [043](043-actions-core_DONE.md) (action schema), [044](044-action-consequences-and-object-action-relationships_DONE.md) (output ownership); coordinates with [049](049-content-planning-lists_DONE.md) (the work-action name lists)
 - **Blocks:** [046](046-brain-and-hooks.md) (shift hooks), [047](047-job-orchestrator.md) (proposes these actions)
 
 ## Goal
