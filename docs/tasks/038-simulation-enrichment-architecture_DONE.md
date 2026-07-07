@@ -243,7 +243,7 @@ Framework before content: the schema registry, hourly lifecycle, materialization
 | [044](044-action-consequences-and-object-action-relationships_DONE.md) | Consequence DSL + `object-action-relationships.json` | Core system |
 | [045](045-job-shifts-and-work-actions_DONE.md) | Job shift schedules + work-Action declarations | Integration |
 | [046](046-brain-and-hooks_DONE.md) | Brain, intents, hooks, Woke-up / shift / arrival / idle behavior | Integration |
-| [047](047-job-orchestrator.md) | Job Orchestrator | Integration |
+| [047](047-job-orchestrator_DONE.md) | Job Orchestrator | Integration |
 | [048](048-events-revision-hourly-migration.md) | Revise & migrate every existing event (triggers, hourly probabilities, action links) | Migration |
 | [049](049-content-planning-lists_DONE.md) | Pre-initiative content planning lists (`docs/planning/`) | Content prep |
 | [050](050-objects-data-backfill.md) | 1,200+ object archetypes | Content |

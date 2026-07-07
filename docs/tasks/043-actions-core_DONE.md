@@ -3,7 +3,7 @@
 - **Type:** Core system / Simulation + Data
 - **Labels:** `framework`, `actions`, `data`, `enrichment-arc`
 - **Depends on:** [040](040-hourly-ticks-and-execution-boundary_DONE.md) (lifecycle phases 1–2 & 8, boundary, logs), [041](041-objects-and-possessions_DONE.md) (object requirements), [042](042-event-triggers-and-causation_DONE.md) (actions trigger manual events)
-- **Blocks:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences), [045](045-job-shifts-and-work-actions_DONE.md)–[047](047-job-orchestrator.md) (brain/jobs consume actions), [051](051-actions-data-backfill.md) (content)
+- **Blocks:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences), [045](045-job-shifts-and-work-actions_DONE.md)–[047](047-job-orchestrator_DONE.md) (brain/jobs consume actions), [051](051-actions-data-backfill.md) (content)
 - **Explicitly deferred to 044:** consequences. Actions in this task log, lifecycle, and trigger events — they do not yet mutate objects/world.
 
 ## Goal
