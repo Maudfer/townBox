@@ -36,7 +36,7 @@ const HIRING: EventManifest = {
             { attr: 'employed', op: '==', value: false },
             { attr: 'canBeHired', op: '==', value: true },
         ] } } },
-        probability: { perYear: 1000 },
+        triggers: { probabilistic: { perYear: 1000 } },
         effects: [
             { type: 'acquireSlot', resource: 'job', target: 'subject' },
             { type: 'emit', signal: 'hired', target: 'subject' },
@@ -48,7 +48,7 @@ const HIRING: EventManifest = {
             { attr: 'employed', op: '==', value: true },
             { not: { hasEvent: 'get_job', withinTicks: 30 } },
         ] } } },
-        probability: { perYear: 1000 },
+        triggers: { probabilistic: { perYear: 1000 } },
         effects: [
             { type: 'releaseSlot', resource: 'job', target: 'subject' },
             { type: 'emit', signal: 'laidOff', target: 'subject' },

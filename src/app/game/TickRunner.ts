@@ -5,9 +5,9 @@
 //
 //  1. Advance running continuous Actions            — Action engine, task 043
 //  2. Resolve due sequence steps / pool children    — Action engine, task 043
-//  3. Resolve due scheduled/automated Event triggers — schedule queue, task 042
-//  4. Evaluate probabilistic Event eligibility       ┐
-//  5. Commit occurred Events + append to logs        ┘ Engine B (simulateTick)
+//  3. Resolve due scheduled/automated Event triggers ┐
+//  4. Evaluate probabilistic Event eligibility        │ Engine B (simulateTick runs 3–5: the schedule
+//  5. Commit occurred Events + append to logs         ┘ drain + atHour sweep, then the probabilistic pass)
 //  6. Dispatch committed-Event notifications        — world reconciliation now; Brain hooks in task 046
 //  7. Resolve Brain / job-orchestrator intents      — tasks 046/047
 //  8. Start/interrupt/complete/wait Actions         — task 043
@@ -34,9 +34,9 @@ export interface TickPlan {
 }
 
 export async function runTick(plan: TickPlan): Promise<TickResult> {
-    // Phases 1–3: no-ops until the Action engine (043) and the automated-trigger schedule queue (042) land.
+    // Phases 1–2: no-ops until the Action engine (043) lands.
 
-    // Phases 4–5: probabilistic evaluation + commit.
+    // Phases 3–5: automated-trigger drain + probabilistic evaluation + commit (task 042).
     const result = plan.engine.simulateTick(plan.state, plan.agentIds, plan.tick, plan.ticksPerYear, plan.ctx, plan.ticksPerStep ?? 1);
 
     // Phase 6: dispatch to the committed-notification consumer.

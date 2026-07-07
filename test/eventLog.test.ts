@@ -13,7 +13,7 @@ const CERTAIN_MANIFEST: EventManifest = {
     daily_ping: {
         label: 'Pinged',
         roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-        probability: { perYear: 1000 },
+        triggers: { probabilistic: { perYear: 1000 } },
         effects: [{ type: 'emit', signal: 'pinged', target: 'subject' }],
     },
 } as unknown as EventManifest;

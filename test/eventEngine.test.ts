@@ -38,7 +38,7 @@ function marryInState(state: PopulationState, aId: string, bId: string, startTic
 describe('EventEngine — probability extremes', () => {
     test('perYear 1 with a matching state is a certain daily event; the dead are skipped', () => {
         const manifest: EventManifest = {
-            die: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, probability: { perYear: 1 }, effects: [{ type: 'setDeath' }] },
+            die: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'setDeath' }] },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 40), gen('b', Genders.Female, 40, { deathTick: -10 })]);
@@ -51,7 +51,7 @@ describe('EventEngine — probability extremes', () => {
 
     test('perYear 0 never fires', () => {
         const manifest: EventManifest = {
-            noop: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, probability: { perYear: 0 }, effects: [{ type: 'emit', signal: 'never' }] },
+            noop: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 0 } }, effects: [{ type: 'emit', signal: 'never' }] },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30)]);
@@ -63,13 +63,13 @@ describe('EventEngine — probability extremes', () => {
 describe('EventEngine — derived exclusivity at runtime', () => {
     test('death and marriage cannot both fire for the same person on the same day', () => {
         const manifest: EventManifest = {
-            death: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, probability: { perYear: 1 }, effects: [{ type: 'setDeath' }] },
+            death: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'setDeath' }] },
             marriage: {
                 roles: {
                     subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'marital', op: '==', value: 'single' }] } },
                     partner: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'marital', op: '==', value: 'single' }] } },
                 },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'marry', role: 'partner' }],
             },
         };
@@ -92,7 +92,7 @@ describe('EventEngine — marriage', () => {
                     subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'marital', op: '==', value: 'single' }] } },
                     partner: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'marital', op: '==', value: 'single' }] } },
                 },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'marry', role: 'partner' }],
             },
         };
@@ -114,7 +114,7 @@ describe('EventEngine — marriage', () => {
 
 describe('EventEngine — same-day dependency chain (had_sex -> pregnancy)', () => {
     const manifest: EventManifest = {
-        had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, probability: { perYear: 1000 }, effects: [] },
+        had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1000 } }, effects: [] },
         pregnancy: {
             roles: {
                 subject: { where: { all: [
@@ -125,7 +125,7 @@ describe('EventEngine — same-day dependency chain (had_sex -> pregnancy)', () 
                 ] } },
                 father: { bind: 'partnerOf:subject' },
             },
-            probability: { perYear: 1000 },
+            triggers: { probabilistic: { perYear: 1000 } },
             effects: [{ type: 'birth', mother: 'subject', father: 'father' }],
         },
     };
@@ -159,7 +159,7 @@ describe('EventEngine — same-day dependency chain (had_sex -> pregnancy)', () 
 describe('EventEngine — history + determinism', () => {
     test('history records and round-trips through load', () => {
         const manifest: EventManifest = {
-            had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, probability: { perYear: 1000 }, effects: [] },
+            had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1000 } }, effects: [] },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30)]);
@@ -180,7 +180,7 @@ describe('EventEngine — history + determinism', () => {
                     subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'marital', op: '==', value: 'single' }] } },
                     partner: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'marital', op: '==', value: 'single' }] } },
                 },
-                probability: { perYear: 0.5 },
+                triggers: { probabilistic: { perYear: 0.5 } },
                 effects: [{ type: 'marry', role: 'partner' }],
             },
         };

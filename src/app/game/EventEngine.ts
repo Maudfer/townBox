@@ -1,6 +1,7 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
 import { SeededRandom } from 'util/random';
+import { dayOfTick, hourOfTick } from 'util/time';
 import { evaluateCurve, clamp01 } from 'util/curve';
 import { evaluatePredicate } from 'util/predicate';
 import { isAliveAt, ageAt, spouseAt } from 'util/kinship';
@@ -18,6 +19,9 @@ import {
     EventLogEntry,
     TriggerSource,
     TickResult,
+    InvokeOutcome,
+    OccurrenceLimit,
+    ScheduleState,
     JobMarket,
     MoneyLedger,
     HousingMarket,
@@ -64,6 +68,11 @@ export default class EventEngine {
     // globally monotonic commit seq + causation. `history` above is its derived aggregate index (hasEvent).
     private log: EventLogTable;
     private nextLogSeq: number;
+    // Automated-trigger machinery (task 042): the persisted schedule queue plus rule indexes derived from
+    // the manifest at construction (afterEvent: source event id -> dependents; atHour: hour -> event ids).
+    private schedule: ScheduleState;
+    private afterEventRules: Map<string, { eventId: string; delayTicks: number }[]>;
+    private atHourRules: Map<number, string[]>;
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
     // Adapters bound for the current simulateTick pass; null in pure/test runs that don't provide them.
@@ -78,6 +87,25 @@ export default class EventEngine {
         this.history = {};
         this.log = {};
         this.nextLogSeq = 0;
+        this.schedule = { queue: [], nextScheduleSeq: 0 };
+        this.afterEventRules = new Map();
+        this.atHourRules = new Map();
+        for (const [eventId, definition] of Object.entries(manifest)) {
+            for (const rule of definition.triggers?.automated?.rules ?? []) {
+                if ('afterEvent' in rule) {
+                    const dependents = this.afterEventRules.get(rule.afterEvent) ?? [];
+                    dependents.push({ eventId, delayTicks: rule.delayTicks });
+                    this.afterEventRules.set(rule.afterEvent, dependents);
+                } else if ('atHour' in rule) {
+                    const ids = this.atHourRules.get(rule.atHour) ?? [];
+                    ids.push(eventId);
+                    this.atHourRules.set(rule.atHour, ids);
+                }
+            }
+        }
+        for (const ids of this.atHourRules.values()) {
+            ids.sort();
+        }
         this.overlay = {};
         this.jobMarket = null;
         this.ledger = null;
@@ -135,6 +163,40 @@ export default class EventEngine {
             }
             this.nextLogSeq = max + 1;
         }
+    }
+
+    getScheduleState(): ScheduleState {
+        return this.schedule;
+    }
+
+    loadScheduleState(schedule: ScheduleState): void {
+        this.schedule = schedule ?? { queue: [], nextScheduleSeq: 0 };
+    }
+
+    // Enqueues an automated trigger (task 042): event `eventId` will be attempted for `subjectId` at
+    // `dueTick` with `causationId` chaining to whatever scheduled it. Public — Actions (043), shift rules
+    // (045), and other systems schedule through this; afterEvent rules use it internally.
+    scheduleTrigger(eventId: string, subjectId: PersonId, dueTick: number, causationId: number | null): void {
+        this.schedule.queue.push({ id: this.schedule.nextScheduleSeq++, eventId, subjectId, dueTick, causationId });
+    }
+
+    // Whether the event's occurrence limit allows another commit for this person at this tick. Checked on
+    // every trigger path (probabilistic roll, manual invoke, scheduled drain).
+    private limitAllows(personId: PersonId, eventId: string, limit: OccurrenceLimit | undefined, tick: number): boolean {
+        if (!limit) {
+            return true;
+        }
+        const record = this.history[personId]?.[eventId];
+        if (!record) {
+            return true;
+        }
+        if ('once' in limit) {
+            if (limit.once === 'ever') {
+                return false; // already happened at least once
+            }
+            return dayOfTick(record.lastTick) !== dayOfTick(tick); // perDay
+        }
+        return tick - record.lastTick > limit.withinTicks;
     }
 
     hasEvent(personId: PersonId, eventId: string, tick: number, query?: HasEventQuery): boolean {
@@ -243,10 +305,21 @@ export default class EventEngine {
 
     // Binds every non-subject role (by indexed relation or candidate search). Returns null if any required role
     // cannot be filled, making the event ineligible.
-    private resolveRoles(event: EventDefinition, subjectId: PersonId, state: PopulationState, agentIds: PersonId[], tick: number, ticksPerYear: number, rng: SeededRandom): Record<string, PersonId> | null {
+    private resolveRoles(event: EventDefinition, subjectId: PersonId, state: PopulationState, agentIds: PersonId[], tick: number, ticksPerYear: number, rng: SeededRandom, bindings: Record<string, PersonId> = {}): Record<string, PersonId> | null {
         const roleMap: Record<string, PersonId> = { [ROLE_SUBJECT]: subjectId };
         for (const [roleName, spec] of Object.entries(event.roles)) {
             if (roleName === ROLE_SUBJECT) {
+                continue;
+            }
+            // Caller-supplied bindings (manual invocations, task 042) pin the role — the bound person must
+            // still exist and be alive, but no search runs.
+            const pinned = bindings[roleName];
+            if (pinned) {
+                const bound = state.people[pinned];
+                if (!bound || !isAliveAt(bound, tick)) {
+                    return null;
+                }
+                roleMap[roleName] = pinned;
                 continue;
             }
             if (spec.bind) {
@@ -457,6 +530,32 @@ export default class EventEngine {
         this.skills = markets.skills ?? null;
 
         const agents = [...agentIds].sort();
+
+        // Lifecycle phase 3 (task 042): resolve automated triggers due this tick — the persisted schedule
+        // queue first (dueTick asc, then enqueue order), then the atHour sweep. Both commit through the same
+        // path as everything else, with triggerSource 'schedule'.
+        const due = this.schedule.queue.filter(item => item.dueTick <= tick).sort((a, b) => a.dueTick - b.dueTick || a.id - b.id);
+        if (due.length > 0) {
+            this.schedule.queue = this.schedule.queue.filter(item => item.dueTick > tick);
+            for (const item of due) {
+                this.attemptCommit(state, item.eventId, item.subjectId, agents, tick, ticksPerYear, result, rng, 'schedule', item.causationId, {});
+            }
+        }
+        // atHour rules: fire when the step window [tick, tick + ticksPerStep) covers the hour. Coarse
+        // stepping (bootstrap) covers whole days per step, so daily atHour events still fire once per step.
+        for (const [hour, eventIds] of [...this.atHourRules.entries()].sort((a, b) => a[0] - b[0])) {
+            const windowCovers = ticksPerStep >= 24 || (((hour - hourOfTick(tick)) + 24) % 24) < ticksPerStep;
+            if (!windowCovers) {
+                continue;
+            }
+            for (const eventId of eventIds) {
+                for (const agentId of agents) {
+                    this.attemptCommit(state, eventId, agentId, agents, tick, ticksPerYear, result, rng, 'schedule', null, {});
+                }
+            }
+        }
+
+        // Lifecycle phases 4–5: probabilistic evaluation + commit.
         for (const agentId of agents) {
             const record = state.people[agentId];
             if (!record || !isAliveAt(record, tick)) {
@@ -469,7 +568,11 @@ export default class EventEngine {
                     continue;
                 }
                 const event = this.manifest[eventId];
-                if (!event) {
+                const probability = event?.triggers?.probabilistic;
+                if (!event || !probability) {
+                    continue; // manual/automated-only events never roll
+                }
+                if (!this.limitAllows(agentId, eventId, event.limit, tick)) {
                     continue;
                 }
 
@@ -484,34 +587,29 @@ export default class EventEngine {
                 // (marriage included) affordable pool-wide in bootstrap mode. The rare probability factor that
                 // drives on a non-subject role forces early resolution.
                 let roleMap: Record<string, PersonId> | null = { [ROLE_SUBJECT]: agentId };
-                const needsRolesForProbability = (event.probability.factors ?? []).some(factor => !factor.driver.startsWith(`${ROLE_SUBJECT}.`));
+                const needsRolesForProbability = (probability.factors ?? []).some(factor => !factor.driver.startsWith(`${ROLE_SUBJECT}.`));
                 if (needsRolesForProbability) {
-                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng);
+                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng, {});
                     if (!roleMap) {
                         continue;
                     }
                 }
 
-                const pTick = this.perTickProbability(event.probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
+                const pTick = this.perTickProbability(probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
                 if (!rng.chance(pTick)) {
                     continue;
                 }
 
                 if (!needsRolesForProbability) {
-                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng);
+                    roleMap = this.resolveRoles(event, agentId, state, agents, tick, ticksPerYear, rng, {});
                     if (!roleMap) {
                         continue; // a required role can't be filled — the event can't happen this tick
                     }
                 }
 
-                const pendingSignals: PendingSignal[] = [];
-                const committed = this.applyEffects(event, roleMap, state, tick, result, rng, pendingSignals);
-                if (!committed) {
+                const seq = this.commit(state, eventId, event, agentId, roleMap, tick, result, rng, 'probability', null);
+                if (seq === null) {
                     continue; // event aborted (e.g. job slot taken this tick) — treat as if it never fired
-                }
-                const seq = this.recordEvent(agentId, eventId, tick, roleMap, 'probability', null);
-                for (const pending of pendingSignals) {
-                    result.signals.push({ ...pending, eventId, causationId: seq });
                 }
                 for (const excluded of this.graph.excludes[eventId] ?? []) {
                     excludedToday.add(excluded);
@@ -524,5 +622,126 @@ export default class EventEngine {
         this.housing = null;
         this.skills = null;
         return result;
+    }
+
+    // Full eligibility + commit for a non-probabilistic trigger path (scheduled drain, atHour sweep, manual
+    // invoke): subject must be alive and pass its predicate, the limit must allow, and roles must resolve
+    // (caller-supplied bindings take precedence). Returns the reason it didn't happen, or ok + the log seq.
+    private attemptCommit(
+        state: PopulationState,
+        eventId: string,
+        subjectId: PersonId,
+        agents: PersonId[],
+        tick: number,
+        ticksPerYear: number,
+        result: TickResult,
+        rng: SeededRandom,
+        source: TriggerSource,
+        causationId: number | null,
+        bindings: Record<string, PersonId>
+    ): InvokeOutcome {
+        const event = this.manifest[eventId];
+        if (!event) {
+            return { ok: false, reason: 'unknownEvent' };
+        }
+        const record = state.people[subjectId];
+        if (!record || !isAliveAt(record, tick)) {
+            return { ok: false, reason: 'ineligible' };
+        }
+        if (!this.limitAllows(subjectId, eventId, event.limit, tick)) {
+            return { ok: false, reason: 'limited' };
+        }
+        const subjectWhere = event.roles[ROLE_SUBJECT]?.where;
+        const subjectCtx = this.makeContext(state, subjectId, { [ROLE_SUBJECT]: subjectId }, tick, ticksPerYear);
+        if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
+            return { ok: false, reason: 'ineligible' };
+        }
+        const roleMap = this.resolveRoles(event, subjectId, state, agents, tick, ticksPerYear, rng, bindings);
+        if (!roleMap) {
+            return { ok: false, reason: 'rolesUnresolved' };
+        }
+        const seq = this.commit(state, eventId, event, subjectId, roleMap, tick, result, rng, source, causationId);
+        if (seq === null) {
+            return { ok: false, reason: 'aborted' };
+        }
+        return { ok: true, seq };
+    }
+
+    // The single commit path every trigger type funnels through: apply effects, append to the log, flush the
+    // event's signals (chained to this commit), and enqueue afterEvent dependents. Returns the log seq, or
+    // null when an effect aborted the event.
+    private commit(
+        state: PopulationState,
+        eventId: string,
+        event: EventDefinition,
+        subjectId: PersonId,
+        roleMap: Record<string, PersonId>,
+        tick: number,
+        result: TickResult,
+        rng: SeededRandom,
+        source: TriggerSource,
+        causationId: number | null
+    ): number | null {
+        const pendingSignals: PendingSignal[] = [];
+        if (!this.applyEffects(event, roleMap, state, tick, result, rng, pendingSignals)) {
+            return null;
+        }
+        const seq = this.recordEvent(subjectId, eventId, tick, roleMap, source, causationId);
+        for (const pending of pendingSignals) {
+            result.signals.push({ ...pending, eventId, causationId: seq });
+        }
+        // Automated afterEvent rules (task 042): each commit of a source event schedules its dependents for
+        // the same subject, causation chaining to this commit.
+        for (const dependent of this.afterEventRules.get(eventId) ?? []) {
+            this.scheduleTrigger(dependent.eventId, subjectId, tick + dependent.delayTicks, seq);
+        }
+        return seq;
+    }
+
+    // Manual invocation (task 042): other systems (Actions 043, Brain 046, Job Orchestrator 047, shift
+    // rules) commit an event through the same pipeline as every other trigger. The event must declare a
+    // `manual` trigger; `requiredBindings` must all be supplied. Deterministic: the RNG forks off the tick
+    // stream with a fixed salt so invocations don't perturb the probabilistic stream.
+    invoke(
+        state: PopulationState,
+        eventId: string,
+        subjectId: PersonId,
+        tick: number,
+        ticksPerYear: number,
+        cause: { source: TriggerSource; causationId: number | null },
+        bindings: Record<string, PersonId> = {},
+        ctx: Partial<ExecutionContext> = {}
+    ): { outcome: InvokeOutcome; result: TickResult } {
+        const result: TickResult = { died: [], born: [], signals: [] };
+        const event = this.manifest[eventId];
+        if (!event) {
+            return { outcome: { ok: false, reason: 'unknownEvent' }, result };
+        }
+        const manual = event.triggers?.manual;
+        if (!manual) {
+            return { outcome: { ok: false, reason: 'notManual' }, result };
+        }
+        for (const required of manual.requiredBindings ?? []) {
+            if (!bindings[required]) {
+                return { outcome: { ok: false, reason: 'missingBinding' }, result };
+            }
+        }
+
+        const markets = ctx.markets ?? {};
+        this.jobMarket = markets.jobMarket ?? null;
+        this.ledger = markets.ledger ?? null;
+        this.housing = markets.housing ?? null;
+        this.skills = markets.skills ?? null;
+        const rng = new SeededRandom(state.worldSeed).fork(tick).fork(0x51ed);
+        fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1) ^ 0x51ed) >>> 0);
+
+        const agents = Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort();
+        const outcome = this.attemptCommit(state, eventId, subjectId, agents, tick, ticksPerYear, result, rng, cause.source, cause.causationId, bindings);
+
+        this.jobMarket = null;
+        this.ledger = null;
+        this.housing = null;
+        this.skills = null;
+        return { outcome, result };
     }
 }

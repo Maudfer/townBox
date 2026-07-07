@@ -110,7 +110,7 @@ describe('engine under the boundary (roll-before-resolve)', () => {
                 subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'gender', op: '==', value: 'female' }] } },
                 partner: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'gender', op: '==', value: 'male' }] } },
             },
-            probability: { perYear: 1000 }, // certainty per tick
+            triggers: { probabilistic: { perYear: 1000 } }, // certainty per tick
             effects: [{ type: 'marry', role: 'partner' }],
         },
         never_event: {
@@ -118,7 +118,7 @@ describe('engine under the boundary (roll-before-resolve)', () => {
                 subject: { where: { attr: 'alive', op: '==', value: true } },
                 partner: { where: { attr: 'alive', op: '==', value: true } },
             },
-            probability: { perYear: 0 },
+            triggers: { probabilistic: { perYear: 0 } },
             effects: [],
         },
     } as unknown as EventManifest;

@@ -26,7 +26,7 @@ describe('Life events — health attribute (task 032)', () => {
         const manifest: EventManifest = {
             fell_ill: {
                 roles: { subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'health', op: '>=', value: 1 }] } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'setAttr', attr: 'health', value: 0.5 }, { type: 'emit', signal: 'fellIll', target: 'subject' }],
             },
         };
@@ -45,12 +45,12 @@ describe('Life events — health attribute (task 032)', () => {
             // Healthy (health >= 0.95) → factor 0 → never dies; once sick → factor 1 → certain that day.
             death: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1, factors: [{ driver: 'subject.health', curve: { mode: 'step', points: [{ at: 0, value: 1 }, { at: 0.95, value: 0 }] } }] },
+                triggers: { probabilistic: { perYear: 1, factors: [{ driver: 'subject.health', curve: { mode: 'step', points: [{ at: 0, value: 1 }, { at: 0.95, value: 0 }] } }] } },
                 effects: [{ type: 'setDeath' }],
             },
             fell_ill: {
                 roles: { subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'health', op: '>=', value: 1 }] } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'setAttr', attr: 'health', value: 0.5 }],
             },
         };
@@ -83,7 +83,7 @@ describe('Life events — acquireSkill effect (task 032)', () => {
         const manifest: EventManifest = {
             nursing_school: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'acquireSkill', value: 'MedicalSkill', target: 'subject' }, { type: 'emit', signal: 'graduated', target: 'subject' }],
             },
         };
@@ -111,7 +111,7 @@ describe('Life events — retirement (task 032)', () => {
         const manifest: EventManifest = {
             retirement: {
                 roles: { subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'age', op: '>=', value: 65 }, { attr: 'employed', op: '==', value: true }] } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'releaseSlot', resource: 'job', target: 'subject' }, { type: 'setAttr', attr: 'retired', value: true }, { type: 'emit', signal: 'retired', target: 'subject' }],
             },
         };

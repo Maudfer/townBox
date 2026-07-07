@@ -11,66 +11,68 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 0.01,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 0,
-                                "value": 0.2
-                            },
-                            {
-                                "at": 50,
-                                "value": 1
-                            },
-                            {
-                                "at": 70,
-                                "value": 5
-                            },
-                            {
-                                "at": 85,
-                                "value": 20
-                            },
-                            {
-                                "at": 100,
-                                "value": 60
-                            },
-                            {
-                                "at": 110,
-                                "value": 100
-                            }
-                        ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.01,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.2
+                                },
+                                {
+                                    "at": 50,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 70,
+                                    "value": 5
+                                },
+                                {
+                                    "at": 85,
+                                    "value": 20
+                                },
+                                {
+                                    "at": 100,
+                                    "value": 60
+                                },
+                                {
+                                    "at": 110,
+                                    "value": 100
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "driver": "subject.health",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 25
+                                },
+                                {
+                                    "at": 0.3,
+                                    "value": 8
+                                },
+                                {
+                                    "at": 0.5,
+                                    "value": 3
+                                },
+                                {
+                                    "at": 0.95,
+                                    "value": 1
+                                }
+                            ]
+                        }
                     }
-                },
-                {
-                    "driver": "subject.health",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 0,
-                                "value": 25
-                            },
-                            {
-                                "at": 0.3,
-                                "value": 8
-                            },
-                            {
-                                "at": 0.5,
-                                "value": 3
-                            },
-                            {
-                                "at": 0.95,
-                                "value": 1
-                            }
-                        ]
-                    }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -107,8 +109,10 @@
                 "bind": "partnerOf:subject"
             }
         },
-        "probability": {
-            "perYear": 60
+        "triggers": {
+            "probabilistic": {
+                "perYear": 60
+            }
         },
         "effects": []
     },
@@ -151,34 +155,36 @@
                 "bind": "partnerOf:subject"
             }
         },
-        "probability": {
-            "perYear": 0.6,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 16,
-                                "value": 0.4
-                            },
-                            {
-                                "at": 24,
-                                "value": 1
-                            },
-                            {
-                                "at": 35,
-                                "value": 0.5
-                            },
-                            {
-                                "at": 45,
-                                "value": 0.05
-                            }
-                        ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.6,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 16,
+                                    "value": 0.4
+                                },
+                                {
+                                    "at": 24,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 35,
+                                    "value": 0.5
+                                },
+                                {
+                                    "at": 45,
+                                    "value": 0.05
+                                }
+                            ]
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -248,20 +254,22 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 0.1,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "logistic",
-                        "floor": 0.2,
-                        "ceiling": 1,
-                        "midpoint": 26,
-                        "steepness": 0.3
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.1,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "logistic",
+                            "floor": 0.2,
+                            "ceiling": 1,
+                            "midpoint": 26,
+                            "steepness": 0.3
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -299,8 +307,10 @@
                 "bind": "partnerOf:subject"
             }
         },
-        "probability": {
-            "perYear": 0.02
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.02
+            }
         },
         "effects": [
             {
@@ -344,8 +354,10 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 4
+        "triggers": {
+            "probabilistic": {
+                "perYear": 4
+            }
         },
         "effects": [
             {
@@ -387,8 +399,10 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 0.5
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.5
+            }
         },
         "effects": [
             {
@@ -429,30 +443,32 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 3,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 65,
-                                "value": 1
-                            },
-                            {
-                                "at": 72,
-                                "value": 3
-                            },
-                            {
-                                "at": 80,
-                                "value": 8
-                            }
-                        ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 3,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 65,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 72,
+                                    "value": 3
+                                },
+                                {
+                                    "at": 80,
+                                    "value": 8
+                                }
+                            ]
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -493,30 +509,32 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 2,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 0,
-                                "value": 1
-                            },
-                            {
-                                "at": 60,
-                                "value": 1.6
-                            },
-                            {
-                                "at": 80,
-                                "value": 2.5
-                            }
-                        ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 2,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 60,
+                                    "value": 1.6
+                                },
+                                {
+                                    "at": 80,
+                                    "value": 2.5
+                                }
+                            ]
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -552,8 +570,10 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 0.8
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.8
+            }
         },
         "effects": [
             {
@@ -589,8 +609,10 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 24
+        "triggers": {
+            "probabilistic": {
+                "perYear": 24
+            }
         },
         "effects": [
             {
@@ -632,30 +654,32 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 0.4,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 18,
-                                "value": 1.5
-                            },
-                            {
-                                "at": 26,
-                                "value": 0.6
-                            },
-                            {
-                                "at": 40,
-                                "value": 0.2
-                            }
-                        ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.4,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 18,
+                                    "value": 1.5
+                                },
+                                {
+                                    "at": 26,
+                                    "value": 0.6
+                                },
+                                {
+                                    "at": 40,
+                                    "value": 0.2
+                                }
+                            ]
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -697,30 +721,32 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 0.15,
-            "factors": [
-                {
-                    "driver": "subject.age",
-                    "curve": {
-                        "mode": "step",
-                        "points": [
-                            {
-                                "at": 20,
-                                "value": 1.2
-                            },
-                            {
-                                "at": 30,
-                                "value": 0.6
-                            },
-                            {
-                                "at": 45,
-                                "value": 0.15
-                            }
-                        ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.15,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 20,
+                                    "value": 1.2
+                                },
+                                {
+                                    "at": 30,
+                                    "value": 0.6
+                                },
+                                {
+                                    "at": 45,
+                                    "value": 0.15
+                                }
+                            ]
+                        }
                     }
-                }
-            ]
+                ]
+            }
         },
         "effects": [
             {
@@ -747,8 +773,10 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 5
+        "triggers": {
+            "probabilistic": {
+                "perYear": 5
+            }
         },
         "effects": [
             {
@@ -770,8 +798,10 @@
                 }
             }
         },
-        "probability": {
-            "perYear": 3
+        "triggers": {
+            "probabilistic": {
+                "perYear": 3
+            }
         },
         "effects": [
             {
