@@ -22,6 +22,7 @@ import Inventory from 'game/Inventory';
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
 import { ExecutionContext } from 'types/Execution';
+import { SchoolFacts } from 'types/School';
 
 export interface TickPlan {
     engine: EventEngine;
@@ -30,6 +31,7 @@ export interface TickPlan {
     inventory?: Inventory | null;
     employerKeyOf?: (personId: PersonId) => string | null;
     jobOf?: (personId: PersonId) => JobFacts | null;
+    schoolOf?: (personId: PersonId) => SchoolFacts | null;
     state: PopulationState;
     agentIds: PersonId[];
     tick: number;
@@ -92,6 +94,7 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             inventory: plan.inventory ?? null,
             ...(plan.employerKeyOf ? { employerKeyOf: plan.employerKeyOf } : {}),
             ...(plan.jobOf ? { jobOf: plan.jobOf } : {}),
+            ...(plan.schoolOf ? { schoolOf: plan.schoolOf } : {}),
         }, result.committed, result);
         plan.engine.unbindMarkets();
     }

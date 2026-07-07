@@ -3959,5 +3959,19 @@
         "label": "Plated a customer order",
         "type": "discrete",
         "category": "work"
+    },
+    "attend_school": {
+        "label": "Attending school",
+        "type": "continuous",
+        "category": "obligation",
+        "completeWhen": {
+            "attr": "hourOfDay",
+            "op": ">=",
+            "value": 14
+        },
+        "events": {
+            "onStart": "school_day_started",
+            "onComplete": "completed_school_day"
+        }
     }
 }

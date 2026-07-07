@@ -11,6 +11,7 @@ import { generateBusiness } from 'game/BusinessGen';
 import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
 import SkillRegistry from 'game/SkillRegistry';
+import { SchoolSeat } from 'game/SchoolRegistry';
 import LiveWorld from 'game/LiveWorld';
 import { runTick } from 'game/TickRunner';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
@@ -18,6 +19,7 @@ import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf, parentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
+import { isSchoolAge, schoolFactsFor } from 'util/school';
 import { notificationForSignal } from 'util/notifications';
 import { TICKS_PER_MONTH } from 'util/time';
 import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, aggregateMaterialDemand, DemandBusiness } from 'util/businessFinance';
@@ -29,12 +31,14 @@ import { BusinessBlueprintTable, BusinessInstance, JobTable } from 'types/Busine
 import { DemandTable } from 'types/Demand';
 import { CityStats } from 'types/City';
 import { NewDayEvent, NewTickEvent, TimeChangedEvent } from 'types/Time';
+import { SchoolConfig, SchoolFacts } from 'types/School';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
 import householdDrawConfig from 'json/householdDraw.json';
 import materialsConfig from 'json/materials.json';
 import demandConfig from 'json/demand.json';
+import schoolsConfig from 'json/schools.json';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
@@ -43,6 +47,10 @@ const MATERIAL_PRICES: Record<string, number> = Object.fromEntries(
 );
 const DEMAND_TABLE = demandConfig as unknown as DemandTable;
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
+const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
+// The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
+// (manager/teacher/janitor) remain ordinary employment.
+const SCHOOL_BLUEPRINT_KEY = 'school';
 
 let Game: GameManager;
 
@@ -382,8 +390,117 @@ export default class City {
         const materializedIds = new Set(this.indexMaterialized().keys());
         population.simulate(event.tick, clock.getTicksPerYear(), undefined, materializedIds);
 
+        // School enrollment upkeep (task 058): release invalid assignments, enroll unassigned children.
+        this.runSchoolSweeps(event.tick, clock.getTicksPerYear());
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
+    }
+
+    // The placed school buildings and their seat counts (capacity curve over the school business size).
+    private listSchools(): SchoolSeat[] {
+        const field = Game.field;
+        if (!field) {
+            return [];
+        }
+        const schools: SchoolSeat[] = [];
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const business = structure.getBusiness();
+            if (!business || business.blueprintKey !== SCHOOL_BLUEPRINT_KEY) {
+                continue;
+            }
+            schools.push({
+                key: structure.getIdentifier(),
+                seats: Math.max(0, Math.floor(evaluateCurve(SCHOOL_CONFIG.capacity, business.size))),
+                position: structure.getPosition(),
+            });
+        }
+        return schools.sort((a, b) => a.key.localeCompare(b.key));
+    }
+
+    // The daily school sweep (task 058): drop assignments that stopped being valid (aged out, died, school
+    // closed), enroll unassigned 7–17 children into the nearest school with a free seat, and narrate the
+    // milestones through the existing manual education events (started_school / graduated_school). Children
+    // with no reachable seat stay unenrolled and simply follow free-time behavior — no silent auto-schooling.
+    private runSchoolSweeps(tick: number, ticksPerYear: number): void {
+        const registry = Game.schools;
+        const population = Game.population;
+        if (!registry || !population) {
+            return;
+        }
+        const personByGenId = this.indexMaterialized();
+        const pool = population.getPeople();
+        const candidates = [...personByGenId.keys()].sort().flatMap(personId => {
+            const genPerson = pool[personId];
+            if (!genPerson || !isAliveAt(genPerson, tick)) {
+                return [];
+            }
+            const ageYears = ageAt(genPerson, tick, ticksPerYear);
+            // The sweep needs everyone school-age or just past it (so age-outs release); younger children
+            // are not candidates yet.
+            if (ageYears < SCHOOL_CONFIG.minAgeYears) {
+                return [];
+            }
+            const home = personByGenId.get(personId)?.social.getHome();
+            return [{
+                personId,
+                ageYears,
+                homePosition: home ? home.getPosition() : null,
+            }];
+        });
+
+        const outcome = registry.sweep(SCHOOL_CONFIG, candidates, this.listSchools(), tick);
+
+        // Narrative wiring: enrollment/age-out invoke the existing manual education texture events. Limit or
+        // eligibility rejections are fine (e.g. re-enrollment within started_school's cooldown) — the
+        // assignment itself is authoritative; the event is flavor for the person's log.
+        const engine = Game.eventEngine;
+        if (!engine) {
+            return;
+        }
+        for (const assignment of outcome.enrolled) {
+            engine.invoke(population.getState(), 'started_school', assignment.personId, tick, ticksPerYear, { source: 'system', causationId: null });
+        }
+        for (const personId of outcome.agedOut) {
+            engine.invoke(population.getState(), 'graduated_school', personId, tick, ticksPerYear, { source: 'system', causationId: null });
+        }
+    }
+
+    // The Brain hook's school-facts resolver (task 058): a VALID assignment or null. Validity is derived
+    // fresh — the school building still hosts a school business, and the person is inside the enrollment
+    // age band. The daily sweep repairs/releases stale assignments; between sweeps this returns null for
+    // them, so nobody attends a demolished school.
+    private schoolFactsOf(personId: PersonId, personByGenId: Map<PersonId, Person>, tick: number, ticksPerYear: number): SchoolFacts | null {
+        const registry = Game.schools;
+        const population = Game.population;
+        const field = Game.field;
+        if (!registry || !population || !field) {
+            return null;
+        }
+        const assignment = registry.assignmentOf(personId);
+        if (!assignment) {
+            return null;
+        }
+        const genPerson = population.getPerson(personId);
+        if (!genPerson || !isAliveAt(genPerson, tick) || !isSchoolAge(SCHOOL_CONFIG, ageAt(genPerson, tick, ticksPerYear))) {
+            return null;
+        }
+        if (!personByGenId.has(personId)) {
+            return null; // not materialized (defensive; live agents are materialized by construction)
+        }
+        for (const structure of field.getStructures()) {
+            if (structure instanceof Workplace && structure.getIdentifier() === assignment.schoolKey) {
+                const business = structure.getBusiness();
+                if (business && business.blueprintKey === SCHOOL_BLUEPRINT_KEY) {
+                    return schoolFactsFor(SCHOOL_CONFIG, assignment.schoolKey);
+                }
+                return null;
+            }
+        }
+        return null;
     }
 
     // Runs the hourly life simulation and reconciles the materialized world (docs/tasks/013 §5.7, §9; hourly
@@ -441,6 +558,8 @@ export default class City {
                     discreteActions: definition?.workActions.discrete ?? [],
                 };
             },
+            // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.
+            schoolOf: id => this.schoolFactsOf(id, personByGenId, event.tick, ticksPerYear),
             state: population.getState(),
             agentIds: [...materializedIds],
             tick: event.tick,
@@ -654,6 +773,11 @@ export default class City {
             person.work.clearJob();
         }
         Game.economy?.setBusinessBalance(key, 0);
+        // A closing school drops its student assignments (task 058); the next daily sweep re-enrolls the
+        // children elsewhere if seats exist. Covers both bankruptcy (021) and bulldozing (025).
+        if (business.blueprintKey === SCHOOL_BLUEPRINT_KEY) {
+            Game.schools?.releaseSchool(key);
+        }
 
         this.announce('businessClosed', tick, `${business.name} has gone out of business`, null);
         if (laidOff.length > 0) {
@@ -1377,6 +1501,13 @@ export default class City {
         const origin = person.getCurrentBuilding() ?? person.social.getHome();
         const entrance = origin ? origin.getEntrance() : null;
         if (!entrance) {
+            return;
+        }
+
+        // Minors walk (task 058): children don't drive, so no commute car is spawned — Person.processTravel
+        // routes them on foot straight to the destination over the pedestrian network.
+        if (person.social.getAge() < ADULT_AGE_YEARS) {
+            person.setDestination(destination);
             return;
         }
 

@@ -1,0 +1,8 @@
+{
+    "dayStartMinutes": 480,
+    "dayEndMinutes": 840,
+    "daysOfWeek": ["mon", "tue", "wed", "thu", "fri"],
+    "minAgeYears": 7,
+    "maxAgeYears": 17,
+    "capacity": { "mode": "linear", "base": 10, "perUnit": 15, "max": 130 }
+}

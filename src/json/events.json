@@ -24787,5 +24787,53 @@
             "once": "ever"
         },
         "effects": []
+    },
+    "school_day_started": {
+        "label": "Went to school",
+        "category": "education",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": []
+    },
+    "completed_school_day": {
+        "label": "Attended a school day",
+        "category": "education",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {},
+            "automated": {
+                "rules": [
+                    {
+                        "afterEvent": "school_day_started",
+                        "delayTicks": 8
+                    }
+                ]
+            }
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": []
     }
 }

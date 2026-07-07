@@ -1,5 +1,5 @@
 import { migrateSnapshot } from '../src/app/game/save/migrations';
-import { WorldSnapshot } from '../src/types/Save';
+import { SAVE_VERSION, WorldSnapshot } from '../src/types/Save';
 import { EventLogEntry } from '../src/types/LifeEvent';
 import { TICKS_PER_YEAR, DAYS_PER_YEAR } from '../src/util/time';
 
@@ -47,7 +47,7 @@ describe('save migrations', () => {
 
     test('v7 day ticks are scaled to hour ticks and derived ages are preserved', () => {
         const snapshot = migrateSnapshot(v7Snapshot());
-        expect(snapshot.version).toBe(8);
+        expect(snapshot.version).toBe(SAVE_VERSION);
 
         const p1 = snapshot.population!.people['p1']!;
         const p2 = snapshot.population!.people['p2']!;

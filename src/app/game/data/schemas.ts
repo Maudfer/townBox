@@ -21,6 +21,7 @@ import materialsConfig from 'json/materials.json';
 import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
 import populationConfig from 'json/population.json';
+import schoolsConfig from 'json/schools.json';
 import skillsConfig from 'json/skills.json';
 import toolAssetsConfig from 'json/toolAssets.json';
 
@@ -45,6 +46,7 @@ import {
     validatePopulationStructure,
 } from 'game/data/validators/params';
 import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
+import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsStructure } from 'game/data/validators/objects';
 import {
@@ -71,6 +73,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'lifeSimulation', version: 1, data: lifeSimulationConfig, validateStructure: validateLifeSimulationStructure },
         { name: 'householdDraw', version: 1, data: householdDrawConfig, validateStructure: validateHouseholdDrawStructure },
         { name: 'bootstrap', version: 1, data: bootstrapConfig, validateStructure: validateBootstrapStructure },
+        { name: 'schools', version: 1, data: schoolsConfig, validateStructure: validateSchoolsStructure, validateSemantics: validateSchoolsSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
         { name: 'config', version: 1, data: config, validateStructure: validateConfigStructure },
         { name: 'input', version: 1, data: inputConfig, validateStructure: validateInputStructure },

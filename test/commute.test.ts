@@ -49,6 +49,7 @@ function employ(field: Field): { person: Person; home: House; workplace: Workpla
     const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
     const person = field.loadPerson(72, 72);
     person.social.setHome(home);
+    person.social.setAge(30); // adults drive; minors walk (task 058)
     person.work.setJob({ title: 'Clerk', salary: 1000, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 });
     person.work.setWorkplace(workplace);
     return { person, home, workplace };
@@ -75,6 +76,23 @@ describe('the live commute machinery behind the execution boundary', () => {
         expect(handle.status).toBe('pending');
 
         // The visual layer lands the person → the next pump resolves the handle.
+        person.setCurrentBuilding(workplace);
+        city.handleCommute(timeAt(10, 2));
+        expect(handle.status).toBe('arrived');
+    });
+
+    test('a minor commutes on foot: no car is spawned, and arrival still resolves the handle (task 058)', () => {
+        const { city, field } = makeWorld();
+        const { person, workplace } = employ(field);
+        person.social.setPersonId('p1');
+        person.social.setAge(10); // children don't drive
+
+        const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        expect(handle.status).toBe('pending');
+        expect(field.getVehicles()).toHaveLength(0); // walking — no commute car
+        expect(person.getVehicle()).toBeNull();
+        expect(person.isIdle()).toBe(false); // travelling on foot
+
         person.setCurrentBuilding(workplace);
         city.handleCommute(timeAt(10, 2));
         expect(handle.status).toBe('arrived');

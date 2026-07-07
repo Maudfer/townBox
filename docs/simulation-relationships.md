@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 255 | 66 continuous / 189 discrete |
-| `events.json` | 698 | 175 probabilistic, 151 manual, 1 manual + automated, 371 probabilistic + manual |
+| `actions.json` | 256 | 67 continuous / 189 discrete |
+| `events.json` | 700 | 175 probabilistic, 152 manual, 2 manual + automated, 371 probabilistic + manual |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -20,6 +20,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | Actions | Lifecycle → Event |
 |---|---|
 | `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
+| `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
 | `found_coin` | onComplete → `found_money_on_street` |
@@ -41,6 +42,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 
 | Event | Triggers | Limit | Invoked by |
 |---|---|---|---|
+| `completed_school_day` | manual + automated | once: perDay | `attend_school`.onComplete (continuous) |
 | `decluttered_house` | probabilistic + manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
 | `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
 | `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
@@ -48,19 +50,21 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
 | `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
+| `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
 | `started_working` | manual | — | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 13 more |
 | `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 29 more |
 | `tried_new_recipe` | probabilistic + manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 523 manual-triggered events, 511 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 525 manual-triggered events, 511 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
 | Event | Rules | Limit |
 |---|---|---|
 | `stopped_working` | afterEvent `started_working` +12 ticks | once: perDay |
+| `completed_school_day` | afterEvent `school_day_started` +8 ticks | once: perDay |
 
 ## Trigger & limit breakdown
 
@@ -68,15 +72,15 @@ Of the 523 manual-triggered events, 511 have no action source yet — they are i
 |---|---|
 | probabilistic + manual | 371 |
 | probabilistic | 175 |
-| manual | 151 |
-| manual + automated | 1 |
+| manual | 152 |
+| manual + automated | 2 |
 
 | Occurrence limit | Events |
 |---|---|
 | cooldown window | 633 |
 | once: ever | 50 |
 | — | 13 |
-| once: perDay | 2 |
+| once: perDay | 4 |
 
 ## Object-action transformations
 

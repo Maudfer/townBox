@@ -70,7 +70,7 @@ Always run `npm test` before opening the PR.**
 | 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038; runs after 056–075) |
 | 056 | [Progression arc — discovery & migration baseline](056-progression-arc-discovery-baseline_DONE.md) | Planning | ✅ Done |
 | 057 | [Calendar weekday & weekend support](057-calendar-weekdays-and-weekends_DONE.md) | Framework | ✅ Done |
-| 058 | [School assignments, scheduling & weekend behavior](058-school-assignments-and-scheduling.md) | Feature | ⬜ Open |
+| 058 | [School assignments, scheduling & weekend behavior](058-school-assignments-and-scheduling_DONE.md) | Feature | ✅ Done |
 | 059 | [Skill rework — proficiency schema, dependency graph & store](059-skill-proficiency-schema-and-store.md) | Framework | ⬜ Open |
 | 060 | [Basic skills — definition & backfill](060-basic-skills-backfill.md) | Content | ⬜ Open |
 | 061 | [Specific skills — replace generic families & migrate references](061-specific-skills-backfill-and-migration.md) | Content | ⬜ Open |
@@ -139,7 +139,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   ratified 2026-07-07: per-job off-days kept; central skill store; **059–062 as one bundled PR**; marriage
   stays event-owned).
 - **Calendar & school:** [057](057-calendar-weekdays-and-weekends_DONE.md) (weekday/`isWeekend` surfaced) →
-  [058](058-school-assignments-and-scheduling.md) (school assignments, the Brain school obligation,
+  [058](058-school-assignments-and-scheduling_DONE.md) (school assignments, the Brain school obligation,
   walking commutes for minors).
 - **Skills** (**059–062 = one bundled branch/PR**, ratified 056 decision c):
   [059](059-skill-proficiency-schema-and-store.md) (proficiency records, dependency DAG, central
