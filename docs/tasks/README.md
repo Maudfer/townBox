@@ -53,7 +53,7 @@ Always run `npm test` before opening the PR.**
 | 038 | [Simulation enrichment & execution boundary — architecture + discovery baseline](038-simulation-enrichment-architecture_DONE.md) | Planning | ✅ Done |
 | 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators_DONE.md) | Framework | ✅ Done |
 | 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary_DONE.md) | Framework | ✅ Done |
-| 041 | [Objects & Person Possessions](041-objects-and-possessions.md) | Feature | ⬜ Open |
+| 041 | [Objects & Person Possessions](041-objects-and-possessions_DONE.md) | Feature | ✅ Done |
 | 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation.md) | Feature | ⬜ Open |
 | 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core.md) | Feature | ⬜ Open |
 | 044 | [Action Consequences DSL & object-action relationships](044-action-consequences-and-object-action-relationships.md) | Feature | ⬜ Open |
@@ -93,7 +93,7 @@ modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `i
 - **Foundation:** [039](039-data-schema-registry-and-validators_DONE.md) (schema registry/validators/CI gate) →
   [040](040-hourly-ticks-and-execution-boundary_DONE.md) (24 ticks/day, shared tick lifecycle, append-only
   logs with causation, the world/materialization adapter).
-- **Core systems:** [041](041-objects-and-possessions.md) (objects & possessions),
+- **Core systems:** [041](041-objects-and-possessions_DONE.md) (objects & possessions),
   [042](042-event-triggers-and-causation.md) (event triggers), [043](043-actions-core.md) (actions) →
   [044](044-action-consequences-and-object-action-relationships.md) (consequences & object transformations).
 - **Integration:** [045](045-job-shifts-and-work-actions.md) (shifts & work actions),
