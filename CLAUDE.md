@@ -151,7 +151,7 @@ src/
     lifeSimulation.json   # Coarse off-map mortality/fertility params (death curve, birth rate, age cap, …)
     businesses.json       # Engine A blueprints: lines of work, size range, per-job count curves, economics
     objects.json          # 1,500+ object archetypes: dimensions/weight, flags, containers, tags (041/050)
-    actions.json          # Action manifest (task 043): discrete/continuous, requirements, children, event links
+    actions.json          # 236 actions (043/051): free-time/social/work repertoires, children, selection data
     object-action-relationships.json # Multi-input object transformations per action (task 044)
     jobs.json             # Job reference table: title, salary, required skills, design-for strain/admiration
     materials.json        # Material reference table (stub; design-for prices)

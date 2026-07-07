@@ -247,7 +247,7 @@ Framework before content: the schema registry, hourly lifecycle, materialization
 | [048](048-events-revision-hourly-migration_DONE.md) | Revise & migrate every existing event (triggers, hourly probabilities, action links) | Migration |
 | [049](049-content-planning-lists_DONE.md) | Pre-initiative content planning lists (`docs/planning/`) | Content prep |
 | [050](050-objects-data-backfill_DONE.md) | 1,200+ object archetypes | Content |
-| [051](051-actions-data-backfill.md) | Actions backfill (general + per-job) | Content |
+| [051](051-actions-data-backfill_DONE.md) | Actions backfill (general + per-job) | Content |
 | [052](052-events-data-backfill.md) | 500 probabilistic + 500 manual events | Content |
 | [053](053-object-action-relationships-backfill.md) | Object-action transformation backfill | Content |
 | [054](054-action-event-relationship-docs.md) | Action↔Event relationship documentation artifact | Docs |
