@@ -2,7 +2,7 @@
 
 - **Type:** Foundation / Simulation architecture
 - **Labels:** `framework`, `simulation`, `clock`, `boundary`, `save-migration`, `enrichment-arc`
-- **Depends on:** [039](039-data-schema-registry-and-validators.md) (validators exist for the configs this touches)
+- **Depends on:** [039](039-data-schema-registry-and-validators_DONE.md) (validators exist for the configs this touches)
 - **Blocks:** 041–048 (everything runs on this lifecycle and context)
 
 ## Goal
