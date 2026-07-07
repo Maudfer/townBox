@@ -136,8 +136,9 @@ describe('eligibility index — tick cost at content scale (tasks 052/055)', () 
         // eslint-disable-next-line no-console
         console.info(`[eligibility-index bench] ${perTick.toFixed(2)}ms per tick (300 agents, full manifest)`);
         // Task 052 measured ~99ms/tick before the index; this landed at ~4ms plain / ~5ms under coverage
-        // instrumentation, so the <15ms target doubles as the regression bound with ~3x headroom for slow
-        // CI runners.
-        expect(perTick).toBeLessThan(15);
+        // instrumentation locally. Shared CI runners under coverage instrumentation have been observed at
+        // ~16ms, so the bound is a coarse regression guard, not a microbenchmark: <40ms still fails loudly
+        // if the index is lost or the pre-index ~99ms cost returns, while tolerating slow/noisy runners.
+        expect(perTick).toBeLessThan(40);
     });
 });
