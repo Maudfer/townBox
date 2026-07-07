@@ -2,7 +2,7 @@
 
 - **Type:** Integration / Simulation
 - **Labels:** `framework`, `brain`, `actions`, `enrichment-arc`
-- **Depends on:** [043](043-actions-core.md)/[044](044-action-consequences-and-object-action-relationships.md) (action engine), [042](042-event-triggers-and-causation.md) (committed-event notifications), [045](045-job-shifts-and-work-actions.md) (obligations)
+- **Depends on:** [043](043-actions-core.md)/[044](044-action-consequences-and-object-action-relationships.md) (action engine), [042](042-event-triggers-and-causation_DONE.md) (committed-event notifications), [045](045-job-shifts-and-work-actions.md) (obligations)
 - **Blocks:** [047](047-job-orchestrator.md) (publishes intents to Brains)
 
 ## Goal
