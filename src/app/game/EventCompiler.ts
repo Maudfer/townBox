@@ -1,4 +1,5 @@
-import { Predicate } from 'util/predicate';
+import { Predicate, ComparisonOp } from 'util/predicate';
+import { Value } from 'types/Simulation';
 import { EventManifest, EventDefinition, Effect } from 'types/LifeEvent';
 
 // Engine B — the load-time event compiler (docs/tasks/013 §5.2). Like an NPM resolver, it takes events that
@@ -9,7 +10,11 @@ import { EventManifest, EventDefinition, Effect } from 'types/LifeEvent';
 //               sets alive=false, marriage requires alive=true ⇒ death excludes marriage) — DERIVED, never
 //               authored — plus permanent negated prerequisites (`not hasEvent X` with no time window).
 //  - topoOrder: a topological order over dependsOn so same-day prerequisite chains resolve correctly.
-//  - indexKeys: cheap discriminant attributes per event for the runtime eligibility buckets.
+//  - indexKeys: cheap discriminant attributes per event (the attr-name summary of subjectGates).
+//  - subjectGates: the value-carrying eligibility index — the hard conjunctive discriminant comparisons of
+//               each event's subject predicate (e.g. gender=='female', age>=16). Each gate is a NECESSARY
+//               condition of the predicate (never sufficient), so the runtime may skip an event for an
+//               agent whose discriminant snapshot fails a gate without evaluating anything else.
 //  - warnings:  unmet requirements (a `hasEvent` of an event nothing provides) and dependency cycles.
 //
 // The graph is built over two discrete capability kinds: history tokens (`hasEvent` / the implicit self event)
@@ -23,12 +28,21 @@ const DISCRIMINANT_ATTRS = new Set(['alive', 'gender', 'marital', 'employed']);
 // vocabulary — a setAttr targeting an attribute outside this list is an authoring error, not a new feature.
 export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'health', 'retired', 'hourOfDay'];
 
+// One hard conjunctive comparison on a subject discriminant attribute, kept in the predicate's own node
+// shape so the runtime evaluates it with the predicate evaluator's exact compare semantics.
+export interface GateComparison {
+    attr: string;
+    op: ComparisonOp;
+    value: Value | Value[];
+}
+
 export interface EventGraph {
     ids: string[];
     dependsOn: Record<string, string[]>;
     excludes: Record<string, string[]>;
     topoOrder: string[];
     indexKeys: Record<string, string[]>;
+    subjectGates: Record<string, GateComparison[]>;
     warnings: string[];
 }
 
@@ -42,10 +56,11 @@ interface Requirements {
     negativePermanentEvents: Set<string>;
     positiveStates: StateToken[]; // subject-only equality requirements
     discriminants: Set<string>;
+    gates: GateComparison[]; // subject-only hard discriminant comparisons (the eligibility index)
 }
 
 function emptyRequirements(): Requirements {
-    return { positiveEvents: new Set(), negativePermanentEvents: new Set(), positiveStates: [], discriminants: new Set() };
+    return { positiveEvents: new Set(), negativePermanentEvents: new Set(), positiveStates: [], discriminants: new Set(), gates: [] };
 }
 
 // Walks a predicate collecting hard requirements. `negated` tracks an enclosing not(); `isSubject` is false once
@@ -84,11 +99,20 @@ function walk(pred: Predicate, negated: boolean, isSubject: boolean, soft: boole
     }
     // attribute comparison
     if (isSubject) {
-        if (DISCRIMINANT_ATTRS.has(pred.attr) || pred.attr === 'age') {
+        const isDiscriminant = DISCRIMINANT_ATTRS.has(pred.attr) || pred.attr === 'age';
+        if (isDiscriminant) {
             out.discriminants.add(pred.attr);
         }
-        if (!soft && !negated && pred.op === '==') {
-            out.positiveStates.push({ attr: pred.attr, value: String(pred.value) });
+        if (!soft && !negated) {
+            // A hard conjunctive discriminant comparison is a necessary condition of the whole predicate —
+            // it becomes an eligibility gate. Soft (any-branch) and negated nodes are not individually
+            // required, so they never gate (a gate that over-filters would silently suppress events).
+            if (isDiscriminant) {
+                out.gates.push({ attr: pred.attr, op: pred.op, value: pred.value });
+            }
+            if (pred.op === '==') {
+                out.positiveStates.push({ attr: pred.attr, value: String(pred.value) });
+            }
         }
     }
 }
@@ -153,6 +177,7 @@ export function compileEvents(manifest: EventManifest, baseAttributes: string[] 
     const dependsOn: Record<string, string[]> = {};
     const excludes: Record<string, Set<string>> = {};
     const indexKeys: Record<string, string[]> = {};
+    const subjectGates: Record<string, GateComparison[]> = {};
     const warnings: string[] = [];
     for (const id of ids) {
         excludes[id] = new Set<string>();
@@ -203,6 +228,7 @@ export function compileEvents(manifest: EventManifest, baseAttributes: string[] 
         }
 
         indexKeys[id] = [...req.discriminants].sort();
+        subjectGates[id] = req.gates;
     }
 
     const excludesOut: Record<string, string[]> = {};
@@ -215,7 +241,7 @@ export function compileEvents(manifest: EventManifest, baseAttributes: string[] 
         warnings.push(`Dependency cycle among events: ${cycle.sort().join(', ')}`);
     }
 
-    return { ids, dependsOn, excludes: excludesOut, topoOrder: order, indexKeys, warnings };
+    return { ids, dependsOn, excludes: excludesOut, topoOrder: order, indexKeys, subjectGates, warnings };
 }
 
 // Kahn's algorithm over dependsOn (edge A -> B means B depends on A, so A is emitted first). Deterministic:

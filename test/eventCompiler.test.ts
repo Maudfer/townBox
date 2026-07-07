@@ -36,6 +36,49 @@ describe('compileEvents — seeded manifest', () => {
     test('eligibility discriminants are extracted for the index', () => {
         expect(graph.indexKeys['pregnancy']).toEqual(expect.arrayContaining(['alive', 'gender', 'age']));
     });
+
+    test('subject gates carry the value-bearing discriminant comparisons', () => {
+        expect(graph.subjectGates['pregnancy']).toEqual(expect.arrayContaining([
+            { attr: 'alive', op: '==', value: true },
+            { attr: 'gender', op: '==', value: 'female' },
+            { attr: 'age', op: '>=', value: 16 },
+        ]));
+    });
+});
+
+describe('compileEvents — subject gates (the eligibility index)', () => {
+    // Gates must be NECESSARY conditions of the subject predicate: hard conjunctive discriminant
+    // comparisons only. Anything soft (any-branch), negated, non-subject, or non-discriminant must stay
+    // out — an over-extracted gate would silently suppress eligible events at runtime.
+    test('soft, negated, role-scoped, and non-discriminant comparisons are not gates', () => {
+        const manifest: EventManifest = {
+            picky: {
+                roles: {
+                    subject: {
+                        where: {
+                            all: [
+                                { attr: 'alive', op: '==', value: true },
+                                { attr: 'marital', op: 'in', value: ['single', 'divorced'] },
+                                { attr: 'age', op: '<', value: 65 },
+                                { attr: 'health', op: '>=', value: 0.5 }, // not a discriminant
+                                { any: [{ attr: 'gender', op: '==', value: 'female' }, { attr: 'age', op: '>=', value: 30 }] }, // soft
+                                { not: { attr: 'marital', op: '==', value: 'widowed' } }, // negated
+                            ],
+                        },
+                    },
+                    friend: { where: { attr: 'gender', op: '==', value: 'male' } }, // role-scoped
+                },
+                triggers: { probabilistic: { perYear: 1 } },
+                effects: [],
+            },
+        };
+        const graph = compileEvents(manifest);
+        expect(graph.subjectGates['picky']).toEqual([
+            { attr: 'alive', op: '==', value: true },
+            { attr: 'marital', op: 'in', value: ['single', 'divorced'] },
+            { attr: 'age', op: '<', value: 65 },
+        ]);
+    });
 });
 
 describe('compileEvents — derived exclusivity', () => {
