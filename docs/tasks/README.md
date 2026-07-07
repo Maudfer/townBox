@@ -50,25 +50,66 @@ Always run `npm test` before opening the PR.**
 | 035 | [Materials & products production/consumption chain](035-materials-and-products_DONE.md) | Economy | ✅ Done |
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap_DONE.md) | Simulation | ✅ Done |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
-| 038 | [Offline history-asset pipeline + asset-fed new game](038-history-asset-pipeline.md) | Simulation | ⬜ Open |
+| 038 | [Simulation enrichment & execution boundary — architecture + discovery baseline](038-simulation-enrichment-architecture_DONE.md) | Planning | ✅ Done |
+| 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators.md) | Framework | ⬜ Open |
+| 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary.md) | Framework | ⬜ Open |
+| 041 | [Objects & Person Possessions](041-objects-and-possessions.md) | Feature | ⬜ Open |
+| 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation.md) | Feature | ⬜ Open |
+| 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core.md) | Feature | ⬜ Open |
+| 044 | [Action Consequences DSL & object-action relationships](044-action-consequences-and-object-action-relationships.md) | Feature | ⬜ Open |
+| 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions.md) | Feature | ⬜ Open |
+| 046 | [Brain & the Hooks pattern](046-brain-and-hooks.md) | Feature | ⬜ Open |
+| 047 | [The Job Orchestrator](047-job-orchestrator.md) | Feature | ⬜ Open |
+| 048 | [Revise & backfill all existing Events (triggers, hourly, action links)](048-events-revision-hourly-migration.md) | Migration | ⬜ Open |
+| 049 | [Pre-initiative content planning lists](049-content-planning-lists_DONE.md) | Content | ✅ Done |
+| 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill.md) | Content | ⬜ Open |
+| 051 | [Actions data backfill (general + per-job)](051-actions-data-backfill.md) | Content | ⬜ Open |
+| 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill.md) | Content | ⬜ Open |
+| 053 | [object-action-relationships backfill](053-object-action-relationships-backfill.md) | Content | ⬜ Open |
+| 054 | [Action ↔ Event relationship documentation](054-action-event-relationship-docs.md) | Docs | ⬜ Open |
+| 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038) |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
 > its cross-dependencies.
 
-### Status (as of 036 landing)
+### Status (as of the 038 planning pass)
 
 The **014–037** procedural-framework arc is complete — employment, the full economy cascade
 (wages → cost of living → business P&L → bankruptcy → eviction/homelessness → recovery, with a B2B supply chain),
 household-lifecycle dynamics, the UI/inspector layer, content expansion, CI, and the per-load history bootstrap
 all shipped. **Remaining open:** **008** (Playwright integration — would also let you verify 036 live),
 **012** (live-app verification), **033c** (optional Tier-2 demand), the documented **036 one-fidelity
-follow-up** (retire the coarse live pool sim), and **038** (the offline history-asset pipeline that reframes 036
-from a per-load cost into a versioned data asset).
+follow-up** (retire the coarse live pool sim), the **039–054 enrichment arc** (below), and **055** (the offline
+history-asset pipeline that reframes 036 from a per-load cost into a versioned data asset — renumbered from 038
+so it lands *after* the enrichment it should capture).
 
-### Procedural-framework follow-ups (014–038)
+### The simulation-enrichment arc (038–055)
 
-Tasks 014–038 wire the procedural simulation framework ([013](013-procedural-simulation-framework_DONE.md)) into
+[038](038-simulation-enrichment-architecture_DONE.md) is the architecture + discovery baseline for making the
+simulation dramatically richer before the offline pipeline freezes it into an asset. One system, two execution
+modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `if bootstrap` branches. Phases:
+
+- **Foundation:** [039](039-data-schema-registry-and-validators.md) (schema registry/validators/CI gate) →
+  [040](040-hourly-ticks-and-execution-boundary.md) (24 ticks/day, shared tick lifecycle, append-only
+  logs with causation, the world/materialization adapter).
+- **Core systems:** [041](041-objects-and-possessions.md) (objects & possessions),
+  [042](042-event-triggers-and-causation.md) (event triggers), [043](043-actions-core.md) (actions) →
+  [044](044-action-consequences-and-object-action-relationships.md) (consequences & object transformations).
+- **Integration:** [045](045-job-shifts-and-work-actions.md) (shifts & work actions),
+  [046](046-brain-and-hooks.md) (Brain), [047](047-job-orchestrator.md) (Job Orchestrator) →
+  [048](048-events-revision-hourly-migration.md) (per-event revision for the new model).
+- **Content:** [049](049-content-planning-lists_DONE.md) (planning lists, done) feeds
+  [050](050-objects-data-backfill.md)–[053](053-object-action-relationships-backfill.md);
+  [054](054-action-event-relationship-docs.md) documents the action↔event web.
+- **Strategic:** [055](055-history-asset-pipeline.md) then runs the *enriched* sim offline into the
+  versioned history asset.
+
+Framework lands before content on purpose: never author 1,000+ data records against unstable schemas.
+
+### Procedural-framework follow-ups (014–037)
+
+Tasks 014–037 wire the procedural simulation framework ([013](013-procedural-simulation-framework_DONE.md)) into
 an actual gameplay loop — no loose ends, everything in use during play. Rough phases & order:
 
 - **Employment & movement:** 014 → 015 → (006, 016). Hiring unlocks the commute and retires the
@@ -84,5 +125,5 @@ an actual gameplay loop — no loose ends, everything in use during play. Rough 
   *primitives*/attributes are deliberate code changes.
 - **Test infra:** 008 (Playwright integration, open) → 009 (GitHub Actions CI + coverage gate).
 - **Strategic:** 036 (pre-game history bootstrap) — fast-forward the detailed sim on a loading screen so
-  materialized people arrive with real histories; → 038 (offline history-asset pipeline) reframes it into a
-  versioned data asset the game selects from, the foundation for one-fidelity simulation.
+  materialized people arrive with real histories; → 055 (offline history-asset pipeline, renumbered from 038)
+  reframes it into a versioned data asset the game selects from, the foundation for one-fidelity simulation.
