@@ -71,7 +71,7 @@ describe('City cost of living (task 019)', () => {
         expect(economy.getPersonBalance('r2')).toBe(0);
         expect(house.getHousehold()!.arrears).toBe(1);
 
-        city.processMonthlyEconomy(30); // next month, still broke
+        city.processMonthlyEconomy(720); // next month (TICKS_PER_MONTH), still broke
         expect(house.getHousehold()!.arrears).toBe(2);
 
         const stress = emitted.filter(e => e.event === 'cityEvent' && (e.payload as { kind: string }).kind === 'householdStress');
@@ -86,7 +86,7 @@ describe('City cost of living (task 019)', () => {
         expect(house.getHousehold()!.arrears).toBe(1);
 
         economy.setPersonBalance('r1', 5000); // a windfall (e.g. re-employment)
-        city.processMonthlyEconomy(30);
+        city.processMonthlyEconomy(720);
         expect(house.getHousehold()!.arrears).toBe(0);
     });
 });

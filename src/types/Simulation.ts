@@ -10,7 +10,7 @@ export type Value = string | number | boolean;
 
 // Optional qualifiers on a hasEvent query: within the last N in-game days, and/or at least N occurrences.
 export interface HasEventQuery {
-    withinDays?: number;
+    withinTicks?: number;
     minCount?: number;
 }
 

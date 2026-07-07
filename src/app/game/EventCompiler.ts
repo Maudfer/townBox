@@ -74,7 +74,7 @@ function walk(pred: Predicate, negated: boolean, isSubject: boolean, soft: boole
         }
         if (!negated) {
             out.positiveEvents.add(pred.hasEvent);
-        } else if (pred.withinDays === undefined) {
+        } else if (pred.withinTicks === undefined) {
             out.negativePermanentEvents.add(pred.hasEvent); // a windowed negation is a runtime cooldown, not a hard conflict
         }
         return;

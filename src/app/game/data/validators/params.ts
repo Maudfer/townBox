@@ -1,11 +1,11 @@
 // Validators for the tunable-parameter files: economy, population, lifeSimulation, householdDraw, bootstrap.
 // Mostly structural numeric sanity; the load-bearing cross-check is that every `ticksPerYear` mirrors the
-// clock's calendar constant — the genealogy tick contract (CLAUDE.md §4.12) that was previously only implicit.
+// clock's tick constant — the genealogy tick contract (CLAUDE.md §4.12; hour ticks since task 040).
 
 import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkBoolean, checkNumber, checkRecord, checkUnknownKeys } from 'game/data/checks';
 import { HouseholdArrangements } from 'types/Household';
-import { DAYS_PER_YEAR } from 'util/time';
+import { TICKS_PER_YEAR } from 'util/time';
 
 export function validateEconomyStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
@@ -28,9 +28,9 @@ export function validatePopulationStructure(data: unknown, issues: IssueCollecto
     }
     const fields = ['ticksPerYear', 'founderCouples', 'generations', 'childDistribution', 'pairingProbability', 'immigrantSpouseProbability', 'spouseMaxAgeGapYears', 'parentMinAgeYears', 'parentMaxAgeYears', 'generationGapYears', 'lifespanMeanYears', 'lifespanSpreadYears', 'maxPopulation'];
     checkUnknownKeys(issues, '', data, fields);
-    if (checkNumber(issues, 'ticksPerYear', data['ticksPerYear'], { min: 1, integer: true }) && data['ticksPerYear'] !== DAYS_PER_YEAR) {
+    if (checkNumber(issues, 'ticksPerYear', data['ticksPerYear'], { min: 1, integer: true }) && data['ticksPerYear'] !== TICKS_PER_YEAR) {
         // The genealogy tick contract: birth/death ticks are day indexes against the live clock's calendar.
-        issues.add('ticksPerYear', `must equal the clock's DAYS_PER_YEAR (${DAYS_PER_YEAR}), got ${data['ticksPerYear']}`);
+        issues.add('ticksPerYear', `must equal the clock's TICKS_PER_YEAR (${TICKS_PER_YEAR}), got ${data['ticksPerYear']}`);
     }
     checkNumber(issues, 'founderCouples', data['founderCouples'], { min: 1, integer: true });
     checkNumber(issues, 'generations', data['generations'], { min: 1, integer: true });
@@ -116,8 +116,8 @@ export function validateBootstrapStructure(data: unknown, issues: IssueCollector
     checkUnknownKeys(issues, '', data, ['enabled', 'years', 'ticksPerYear', 'stepDays']);
     checkBoolean(issues, 'enabled', data['enabled']);
     checkNumber(issues, 'years', data['years'], { min: 0 });
-    if (checkNumber(issues, 'ticksPerYear', data['ticksPerYear'], { min: 1, integer: true }) && data['ticksPerYear'] !== DAYS_PER_YEAR) {
-        issues.add('ticksPerYear', `must equal the clock's DAYS_PER_YEAR (${DAYS_PER_YEAR}), got ${data['ticksPerYear']}`);
+    if (checkNumber(issues, 'ticksPerYear', data['ticksPerYear'], { min: 1, integer: true }) && data['ticksPerYear'] !== TICKS_PER_YEAR) {
+        issues.add('ticksPerYear', `must equal the clock's TICKS_PER_YEAR (${TICKS_PER_YEAR}), got ${data['ticksPerYear']}`);
     }
     checkNumber(issues, 'stepDays', data['stepDays'], { min: 1, integer: true });
 }

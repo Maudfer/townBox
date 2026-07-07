@@ -14,7 +14,7 @@ import {
     ProbabilitySpec,
     Effect,
     EventHistoryTable,
-    DayResult,
+    TickResult,
     JobMarket,
     MoneyLedger,
     HousingMarket,
@@ -49,7 +49,7 @@ export default class EventEngine {
     private history: EventHistoryTable;
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
-    // Adapters bound for the current simulateDay pass; null in pure/test runs that don't provide them.
+    // Adapters bound for the current simulateTick pass; null in pure/test runs that don't provide them.
     private jobMarket: JobMarket | null; // employment (task 015)
     private ledger: MoneyLedger | null; // money (task 017)
     private housing: HousingMarket | null; // move-out eligibility (task 024)
@@ -96,7 +96,7 @@ export default class EventEngine {
         if (query?.minCount !== undefined && record.count < query.minCount) {
             return false;
         }
-        if (query?.withinDays !== undefined && tick - record.lastTick > query.withinDays) {
+        if (query?.withinTicks !== undefined && tick - record.lastTick > query.withinTicks) {
             return false;
         }
         return true;
@@ -219,10 +219,10 @@ export default class EventEngine {
         return roleMap;
     }
 
-    // Per-step firing probability. `daysPerStep` (default 1 = daily, as live play uses) lets a caller advance in
+    // Per-step firing probability. `ticksPerStep` (default 1 = daily, as live play uses) lets a caller advance in
     // coarser strides — the history bootstrap (036) steps by e.g. a week to stay tractable over the whole pool —
-    // while keeping the hazard correct: the per-step chance is 1 − (1 − annual)^(daysPerStep / ticksPerYear).
-    private perDayProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, daysPerStep: number): number {
+    // while keeping the hazard correct: the per-step chance is 1 − (1 − annual)^(ticksPerStep / ticksPerYear).
+    private perTickProbability(spec: ProbabilitySpec, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, ticksPerYear: number, ticksPerStep: number): number {
         let annual = spec.perYear;
         for (const factor of spec.factors ?? []) {
             const [role, attr] = factor.driver.split('.');
@@ -237,13 +237,13 @@ export default class EventEngine {
         if (annual >= 1) {
             return 1;
         }
-        return 1 - Math.pow(1 - annual, daysPerStep / ticksPerYear);
+        return 1 - Math.pow(1 - annual, ticksPerStep / ticksPerYear);
     }
 
     // Applies an event's effects in order. Returns false if an effect failed to commit (currently only a failed
     // acquireSlot — e.g. the last matching job slot was taken earlier the same day), which aborts the event so
     // it is not recorded. Aborting effects must therefore come first (get_job lists acquireSlot first).
-    private applyEffects(event: EventDefinition, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: DayResult, rng: SeededRandom): boolean {
+    private applyEffects(event: EventDefinition, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: TickResult, rng: SeededRandom): boolean {
         const subjectId = roleMap[ROLE_SUBJECT]!;
         for (const effect of event.effects) {
             if (!this.applyEffect(effect, subjectId, roleMap, state, tick, result, rng)) {
@@ -253,7 +253,7 @@ export default class EventEngine {
         return true;
     }
 
-    private applyEffect(effect: Effect, subjectId: PersonId, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: DayResult, rng: SeededRandom): boolean {
+    private applyEffect(effect: Effect, subjectId: PersonId, roleMap: Record<string, PersonId>, state: PopulationState, tick: number, result: TickResult, rng: SeededRandom): boolean {
         switch (effect.type) {
             case 'setDeath': {
                 const record = state.people[subjectId];
@@ -380,15 +380,15 @@ export default class EventEngine {
 
     // Advances all materialized agents by one day. Mutates the pool (deaths/marriages/births) and the engine's
     // history/overlay; returns what changed for the caller to reconcile the materialized world.
-    simulateDay(
+    simulateTick(
         state: PopulationState,
         agentIds: PersonId[],
         tick: number,
         ticksPerYear: number,
         adapters: { jobMarket?: JobMarket | null; ledger?: MoneyLedger | null; housing?: HousingMarket | null; skills?: SkillRegistry | null } = {},
-        daysPerStep: number = 1
-    ): DayResult {
-        const result: DayResult = { died: [], born: [], signals: [] };
+        ticksPerStep: number = 1
+    ): TickResult {
+        const result: TickResult = { died: [], born: [], signals: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1)) >>> 0);
         this.jobMarket = adapters.jobMarket ?? null;
@@ -424,7 +424,7 @@ export default class EventEngine {
                     continue;
                 }
 
-                const pDay = this.perDayProbability(event.probability, roleMap, state, tick, ticksPerYear, daysPerStep);
+                const pDay = this.perTickProbability(event.probability, roleMap, state, tick, ticksPerYear, ticksPerStep);
                 if (!rng.chance(pDay)) {
                     continue;
                 }

@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 
 import GameManager from 'game/GameManager';
 import { CityEvent } from 'types/Events';
-import { formatDay } from 'util/time';
+import { formatTick } from 'util/time';
 
 const MAX_ENTRIES = 60;
 
@@ -42,7 +42,7 @@ const Feed: FC<FeedProps> = ({ game }) => {
                                 className={`city-feed-entry${event.person ? ' clickable' : ''}`}
                                 onClick={() => event.person && game.emit('PersonSelected', event.person)}
                             >
-                                <span className="city-feed-date">{formatDay(event.tick)}</span> {event.message}
+                                <span className="city-feed-date">{formatTick(event.tick)}</span> {event.message}
                             </div>
                         ))
                     )}

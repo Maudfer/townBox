@@ -4,7 +4,7 @@ import Window from 'hud/Window';
 import Person from 'game/Person';
 import Workplace from 'game/Workplace';
 
-import { formatDay } from 'util/time';
+import { formatTick } from 'util/time';
 import { DetailsWindowProps } from 'types/HUD';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
@@ -95,7 +95,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
                             {logEntries.map(([eventId, record]) => (
                                 <li key={eventId}>
-                                    {game.eventEngine?.getEventLabel(eventId) ?? prettifyEventId(eventId)} — <small>{formatDay(record.lastTick)}{record.count > 1 ? ` (×${record.count})` : ''}</small>
+                                    {game.eventEngine?.getEventLabel(eventId) ?? prettifyEventId(eventId)} — <small>{formatTick(record.lastTick)}{record.count > 1 ? ` (×${record.count})` : ''}</small>
                                 </li>
                             ))}
                         </ul>

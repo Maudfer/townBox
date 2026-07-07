@@ -33,10 +33,10 @@ describe('Life events — health attribute (task 032)', () => {
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 40)]);
 
-        const day0 = engine.simulateDay(state, ['a'], 0, TPY);
+        const day0 = engine.simulateTick(state, ['a'], 0, TPY);
         expect(day0.signals.map(s => s.signal)).toContain('fellIll');
 
-        const day1 = engine.simulateDay(state, ['a'], 1, TPY);
+        const day1 = engine.simulateTick(state, ['a'], 1, TPY);
         expect(day1.signals.map(s => s.signal)).not.toContain('fellIll'); // health is 0.5 now, predicate health>=1 fails
     });
 
@@ -58,11 +58,11 @@ describe('Life events — health attribute (task 032)', () => {
         const state = makeState([gen('a', Genders.Male, 40)]);
 
         // Day 0: death runs first while healthy (factor 0 → survives), then fell_ill lowers health to 0.5.
-        const day0 = engine.simulateDay(state, ['a'], 0, TPY);
+        const day0 = engine.simulateTick(state, ['a'], 0, TPY);
         expect(day0.died).toEqual([]);
 
         // Day 1: now sick, the health gradient makes death certain.
-        const day1 = engine.simulateDay(state, ['a'], 1, TPY);
+        const day1 = engine.simulateTick(state, ['a'], 1, TPY);
         expect(day1.died).toEqual(['a']);
     });
 });
@@ -92,7 +92,7 @@ describe('Life events — acquireSkill effect (task 032)', () => {
         const registry = new SkillRegistry(new Map<PersonId, Person>([['a', person]]));
         const state = makeState([gen('a', Genders.Female, 24)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { skills: registry });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { skills: registry });
 
         expect(result.signals.map(s => s.signal)).toContain('graduated');
         expect(person.work.getSkills()).toContain(JobRequirements.MedicalSkill);
@@ -118,7 +118,7 @@ describe('Life events — retirement (task 032)', () => {
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 70)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { jobMarket });
 
         expect(fired).toEqual(['a']);
         expect(result.signals.map(s => s.signal)).toContain('retired');

@@ -10,6 +10,7 @@ import Vehicle from 'game/Vehicle';
 
 import { SaveProvider } from 'game/save/SaveProvider';
 import LocalStorageProvider from 'game/save/LocalStorageProvider';
+import { migrateSnapshot } from 'game/save/migrations';
 
 import { compress, decompress } from 'util/compress';
 import { Relationships } from 'types/Social';
@@ -257,6 +258,7 @@ export default class SaveManager {
         if (snapshot.version > SAVE_VERSION) {
             throw new Error(`[SaveManager] Save version ${snapshot.version} is newer than supported ${SAVE_VERSION}`);
         }
+        migrateSnapshot(snapshot);
 
         city.setName(snapshot.city.name);
         city.setPopulation(snapshot.city.population);

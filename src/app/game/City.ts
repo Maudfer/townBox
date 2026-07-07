@@ -17,16 +17,16 @@ import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandpa
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { assignSkills } from 'util/skills';
 import { notificationForSignal } from 'util/notifications';
-import { DAYS_PER_MONTH } from 'util/time';
+import { TICKS_PER_MONTH } from 'util/time';
 import { computeBusinessPnl, positionDelta, unitMaterialCost, resolveDemand, aggregateMaterialDemand, DemandBusiness } from 'util/businessFinance';
 import { evaluateCurve } from 'util/curve';
-import { DayResult } from 'types/LifeEvent';
+import { TickResult } from 'types/LifeEvent';
 import { Household, HouseholdArrangements } from 'types/Household';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { BusinessBlueprintTable, BusinessInstance, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';
 import { CityStats } from 'types/City';
-import { NewDayEvent, TimeChangedEvent } from 'types/Time';
+import { NewDayEvent, NewTickEvent, TimeChangedEvent } from 'types/Time';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -72,6 +72,7 @@ export default class City {
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
         Game.on("workplaceBuilt", { callback: this.setupBusiness, context: this });
         Game.on("newDay", { callback: this.handleNewDay, context: this });
+        Game.on("newTick", { callback: this.handleTick, context: this });
         Game.on("timeChanged", { callback: this.handleCommute, context: this });
         console.log('City created:', this.name);
     }
@@ -335,51 +336,63 @@ export default class City {
         return business;
     }
 
-    // Runs the daily life simulation and reconciles the materialized world (docs/tasks/013 §5.7, §9). Each
-    // in-game day: the off-map pool advances via the coarse yearly sim (excluding materialized people), and the
-    // per-day event engine (Engine B) runs detailed life events over materialized people — deaths despawn the
-    // resident, births materialize a newborn into the mother's house. Public for unit testing; invoked via
-    // "newDay" in production.
-    public async handleNewDay(event: NewDayEvent): Promise<void> {
-        const population = Game.population;
-        const clock = Game.clock;
-        const field = Game.field;
-        if (!population || !clock || !field) {
-            return;
-        }
-        const ticksPerYear = clock.getTicksPerYear();
-
-        // Index materialized (on-map) people by their pool id.
+    // Indexes materialized (on-map) people by their pool id.
+    private indexMaterialized(): Map<PersonId, Person> {
         const personByGenId = new Map<PersonId, Person>();
+        const field = Game.field;
+        if (!field) {
+            return personByGenId;
+        }
         for (const person of field.getPeople()) {
             const id = person.social.getPersonId();
             if (id) {
                 personByGenId.set(id, person);
             }
         }
-        const materializedIds = new Set(personByGenId.keys());
+        return personByGenId;
+    }
 
-        // Coarse off-map pool sim: materialized people are excluded (Engine B owns their life events).
-        population.simulate(event.tick, ticksPerYear, undefined, materializedIds);
-
-        // Monthly economic update (payroll now; cost of living / P&L hook in here later). Independent of the
-        // event engine, so it runs even in engine-less test harnesses.
-        this.processMonthlyEconomy(event.tick);
-
-        const engine = Game.eventEngine;
-        if (!engine) {
+    // Day-cadence upkeep (task 040 split): the coarse off-map pool sim (yearly, excluding materialized
+    // people — Engine B owns their life events) and the monthly economic gate. The detailed per-tick life
+    // simulation runs from handleTick. Public for unit testing; invoked via "newDay" in production.
+    public handleNewDay(event: NewDayEvent): void {
+        const population = Game.population;
+        const clock = Game.clock;
+        if (!population || !clock) {
             return;
         }
+        const materializedIds = new Set(this.indexMaterialized().keys());
+        population.simulate(event.tick, clock.getTicksPerYear(), undefined, materializedIds);
+
+        // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
+        this.processMonthlyEconomy(event.tick);
+    }
+
+    // Runs the hourly life simulation and reconciles the materialized world (docs/tasks/013 §5.7, §9; hourly
+    // since task 040). Each in-game hour the event engine (Engine B) runs detailed life events over
+    // materialized people — deaths despawn the resident, births materialize a newborn into the mother's
+    // house. Public for unit testing; invoked via "newTick" in production.
+    public async handleTick(event: NewTickEvent): Promise<void> {
+        const population = Game.population;
+        const clock = Game.clock;
+        const field = Game.field;
+        const engine = Game.eventEngine;
+        if (!population || !clock || !field || !engine) {
+            return;
+        }
+        const ticksPerYear = clock.getTicksPerYear();
+        const personByGenId = this.indexMaterialized();
+        const materializedIds = new Set(personByGenId.keys());
 
         // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
         // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
         const jobMarket = new JobMarket(personByGenId, field);
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
-        // exists. Rebuilt each day over the current materialized people, like the job market.
+        // exists. Rebuilt each tick over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);
         // Skill registry lets education events grant real skills to materialized people (task 032).
         const skills = new SkillRegistry(personByGenId);
-        const result = engine.simulateDay(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing, skills });
+        const result = engine.simulateTick(population.getState(), [...materializedIds], event.tick, ticksPerYear, { jobMarket, ledger: Game.economy ?? null, housing, skills });
         this.reconcileDeaths(result.died, personByGenId);
         await this.materializeNewborns(result.born, personByGenId);
         // City-overview vital tallies (task 031).
@@ -401,14 +414,14 @@ export default class City {
                 this.resolveMoveOut(signal.personId, event.tick);
             }
         }
-        // Surface the day's notable happenings to the HUD feed (task 029).
+        // Surface the tick's notable happenings to the HUD feed (task 029).
         this.announceCityEvents(result, personByGenId, event.tick);
         // Remaining signals (hired, fellIll, …) are consumed by the feed and later phases.
     }
 
     // Translates the day's deaths, births, and event signals into cityEvent feed entries (task 029). The
     // single place that maps the simulation's outcomes to player-facing notifications.
-    private announceCityEvents(result: DayResult, personByGenId: Map<PersonId, Person>, tick: number): void {
+    private announceCityEvents(result: TickResult, personByGenId: Map<PersonId, Person>, tick: number): void {
         const population = Game.population;
         const nameOf = (id: PersonId): string => {
             const person = personByGenId.get(id);
@@ -448,7 +461,7 @@ export default class City {
         if (!economy) {
             return;
         }
-        const month = Math.floor(tick / DAYS_PER_MONTH);
+        const month = Math.floor(tick / TICKS_PER_MONTH);
         if (month <= economy.getLastEconomyMonth()) {
             return;
         }
