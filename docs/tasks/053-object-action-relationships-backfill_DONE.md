@@ -3,6 +3,7 @@
 - **Type:** Content / Data
 - **Labels:** `content`, `objects`, `actions`, `data`, `enrichment-arc`
 - **Depends on:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (schema), [050](050-objects-data-backfill_DONE.md) (archetypes), [051](051-actions-data-backfill_DONE.md) (actions — may land jointly, see 051)
+- **Status:** ✅ Done — 28 entries covering every family: cooking alternatives, packing, consumption, the dough→bread chain, state-gated tool-mediated repair (with the breaking mishap that closes the loop), cleaning-with-supplies, gift wrapping, and six employer-owned production recipes (047 routing). 19 carrier actions + shopping acquisitions make every chain wild-reachable (asserted by a reachability test); a 20-day smoke guards object-population sanity.
 
 ## Goal
 
