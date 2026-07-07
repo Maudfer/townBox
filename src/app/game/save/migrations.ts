@@ -5,7 +5,12 @@
 
 import { WorldSnapshot } from 'types/Save';
 import { EventLogTable } from 'types/LifeEvent';
+import { JobTable } from 'types/Business';
 import { TICKS_PER_DAY } from 'util/time';
+
+import jobsConfig from 'json/jobs.json';
+
+const JOBS = jobsConfig as unknown as JobTable;
 
 export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
     if (snapshot.version < 8) {
@@ -23,6 +28,10 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         // NOT here (migrations stay dumb): SaveManager.deserialize re-initializes each loaded person
         // deterministically and applies the legacy mapping (save/legacySkills.ts) when `skillBook` is absent.
         snapshot.version = 10;
+    }
+    if (snapshot.version < 11) {
+        defaultJobRanks(snapshot);
+        snapshot.version = 11;
     }
     return snapshot;
 }
@@ -81,4 +90,23 @@ function synthesizeEventLog(snapshot: WorldSnapshot): void {
     }
     snapshot.eventLog = log;
     snapshot.eventLogSeq = seq;
+}
+
+// v10 → v11 (task 064): existing employees default to their job's ENTRY rank with zeroed work-day counters.
+// Jobs are matched by title (the same convention City.jobOf uses); positions with no jobs.json ladder
+// (fixtures/legacy custom titles) stay rank-less and fall back to boolean matching.
+function defaultJobRanks(snapshot: WorldSnapshot): void {
+    for (const personSnapshot of snapshot.people ?? []) {
+        const job = personSnapshot.job;
+        if (!job || job.rankId) {
+            continue;
+        }
+        const definition = Object.values(JOBS).find(candidate => candidate.title === job.title);
+        const entry = definition?.ranks.find(rank => rank.entry);
+        if (entry) {
+            job.rankId = entry.rankId;
+            job.workDaysInRank = 0;
+            job.totalWorkDays = 0;
+        }
+    }
 }

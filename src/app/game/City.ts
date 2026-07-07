@@ -555,7 +555,7 @@ export default class City {
 
         // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
         // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
-        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook) : null;
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick) : null;
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
         // exists. Rebuilt each tick over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);
@@ -586,13 +586,19 @@ export default class City {
                     return null;
                 }
                 const definition = Object.values(JOBS).find(candidate => candidate.title === job.title);
+                // The person's current rank on the ladder (task 064): rank-specific work-action overrides
+                // and progression/promotion facts ride along for the orchestrator + SkillProgression (065).
+                const rank = definition?.ranks.find(candidate => candidate.rankId === job.rankId)
+                    ?? definition?.ranks.find(candidate => candidate.entry)
+                    ?? null;
                 return {
                     shiftStart: job.shiftStart,
                     shiftEnd: job.shiftEnd,
                     ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
                     workplaceKey: workplace.getIdentifier(),
-                    continuousActions: definition?.workActions.continuous ?? [],
-                    discreteActions: definition?.workActions.discrete ?? [],
+                    continuousActions: rank?.workActions?.continuous ?? definition?.workActions.continuous ?? [],
+                    discreteActions: rank?.workActions?.discrete ?? definition?.workActions.discrete ?? [],
+                    ...(rank ? { rank } : {}),
                 };
             },
             // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.

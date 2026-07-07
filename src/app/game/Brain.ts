@@ -49,6 +49,9 @@ export interface JobFacts {
     shiftEnd: number;
     daysOfWeek?: readonly string[];
     workplaceKey: string;
+    // The person's current rank on the job ladder (task 064) — progression/promotion facts for 065; the
+    // work-action repertoires below already reflect any rank-specific overrides.
+    rank?: import('types/Business').JobRank;
     // The job's work-action repertoire (045), proposed by the Job Orchestrator hook (047): continuous
     // entries rotate by weight; discrete entries roll per tick on duty.
     continuousActions: { action: string; chancePerTick?: number }[];

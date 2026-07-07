@@ -5,7 +5,7 @@
 - **Depends on:** [059](059-skill-proficiency-schema-and-store_DONE.md), [060](060-basic-skills-backfill_DONE.md), [061](061-specific-skills-backfill-and-migration_DONE.md)
 - **Bundling (ratified 056 decision c):** lands in the single **059+060+061+062** branch/PR — this task's
   initializer is what keeps hiring alive the moment 061's remap applies.
-- **Blocks:** [064](064-job-ranks-and-training-grants.md) hiring realism (people need plausible skill sets)
+- **Blocks:** [064](064-job-ranks-and-training-grants_DONE.md) hiring realism (people need plausible skill sets)
 
 ## Goal
 

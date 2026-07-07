@@ -5,7 +5,7 @@ import { BusinessBlueprint, JobTable } from '../src/types/Business';
 import {DEFAULT_SHIFT_START, DEFAULT_SHIFT_END} from '../src/types/Work';
 
 const jobs: JobTable = {
-    laborer: { title: 'Laborer', salary: 1400, requiredSkills: ['carry_building_materials'], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
+    laborer: { title: 'Laborer', salary: 1400, requiredSkills: ['carry_building_materials'], ranks: [{ rankId: 'entry', label: 'Trainee', entry: true, requires: ['carry_building_materials'].map(skill => ({ skill, minProficiency: 10 })), progresses: ['carry_building_materials'].map(skill => ({ skill, multiplier: 1 })) }], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
 };
 
 const blueprint: BusinessBlueprint = {
