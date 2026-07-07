@@ -21,7 +21,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "working_the_register"
+                    "action": "working_the_register",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "balancing_the_till",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "restocking_shelves",
+                    "chancePerTick": 0.5
                 }
             ],
             "discrete": [
@@ -43,6 +52,27 @@
                 },
                 {
                     "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "counted_the_till",
+                    "chancePerTick": 0.1,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "hummed_while_working",
                     "chancePerTick": 0.1
                 }
             ]
@@ -70,7 +100,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "doing_manual_labor"
+                    "action": "doing_manual_labor",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "restocking_shelves",
+                    "chancePerTick": 0.9
+                },
+                {
+                    "action": "sorting_deliveries",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "counting_inventory",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -93,6 +136,22 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "taped_up_a_box",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "found_a_shortcut",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "stacked_the_chairs",
+                    "chancePerTick": 0.08
                 }
             ]
         }
@@ -119,7 +178,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "cleaning_premises"
+                    "action": "cleaning_premises",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "wiping_down_tables",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "patrolling_the_floor",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -142,6 +210,28 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "changed_a_lightbulb",
+                    "chancePerTick": 0.06,
+                    "cooldownTicks": 3
+                },
+                {
+                    "action": "propped_the_door_open",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "wiped_down_the_counter",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "watered_the_office_plant",
+                    "chancePerTick": 0.08,
+                    "cooldownTicks": 8
                 }
             ]
         }
@@ -167,7 +257,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "doing_paperwork"
+                    "action": "doing_paperwork",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "supervising_the_team",
+                    "chancePerTick": 0.8
+                },
+                {
+                    "action": "updating_ledgers",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "counting_inventory",
+                    "chancePerTick": 0.2
                 }
             ],
             "discrete": [
@@ -194,6 +297,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "praised_a_coworker",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.05,
+                    "cooldownTicks": 4
                 }
             ]
         }
@@ -221,10 +345,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "treating_patients"
+                    "action": "treating_patients",
+                    "chancePerTick": 1.0
                 },
                 {
-                    "action": "doing_rounds"
+                    "action": "doing_rounds",
+                    "chancePerTick": 0.6
+                },
+                {
+                    "action": "reviewing_charts",
+                    "chancePerTick": 0.7
+                },
+                {
+                    "action": "sterilizing_equipment",
+                    "chancePerTick": 0.2
                 }
             ],
             "discrete": [
@@ -247,6 +381,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.18
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.07
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "swapped_shift_gossip",
+                    "chancePerTick": 0.08
                 }
             ]
         }
@@ -274,10 +428,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "treating_patients"
+                    "action": "treating_patients",
+                    "chancePerTick": 1.0
                 },
                 {
-                    "action": "doing_rounds"
+                    "action": "doing_rounds",
+                    "chancePerTick": 0.7
+                },
+                {
+                    "action": "reviewing_charts",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "sterilizing_equipment",
+                    "chancePerTick": 0.4
                 }
             ],
             "discrete": [
@@ -299,6 +463,26 @@
                 },
                 {
                     "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "swapped_shift_gossip",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.04
+                },
+                {
+                    "action": "wrote_up_a_report",
                     "chancePerTick": 0.1
                 }
             ]
@@ -325,7 +509,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "teaching_class"
+                    "action": "teaching_class",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "grading_papers",
+                    "chancePerTick": 0.6
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -348,6 +541,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "sharpened_a_pencil",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "praised_a_coworker",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "lost_a_pen",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "found_a_forgotten_note",
+                    "chancePerTick": 0.05
                 }
             ]
         }
@@ -374,7 +587,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "working_the_kitchen"
+                    "action": "working_the_kitchen",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "prepping_ingredients",
+                    "chancePerTick": 0.8
+                },
+                {
+                    "action": "wiping_down_tables",
+                    "chancePerTick": 0.2
                 }
             ],
             "discrete": [
@@ -396,6 +618,26 @@
                 },
                 {
                     "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "burned_a_batch",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "labeled_the_leftovers",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "swapped_shift_gossip",
                     "chancePerTick": 0.1
                 }
             ]
@@ -423,7 +665,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "wiping_down_tables",
+                    "chancePerTick": 0.6
+                },
+                {
+                    "action": "working_the_register",
+                    "chancePerTick": 0.25
                 }
             ],
             "discrete": [
@@ -445,6 +696,26 @@
                 },
                 {
                     "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "stacked_the_chairs",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.07
+                },
+                {
+                    "action": "swapped_shift_gossip",
                     "chancePerTick": 0.1
                 }
             ]
@@ -471,7 +742,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "doing_manual_labor"
+                    "action": "doing_manual_labor",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "sorting_deliveries",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "fixing_equipment",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -490,6 +770,26 @@
                 {
                     "action": "complained_about_the_time",
                     "chancePerTick": 0.12
+                },
+                {
+                    "action": "tightened_a_bolt",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "found_a_shortcut",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "taped_up_a_box",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "chased_a_paper_blown_away",
+                    "chancePerTick": 0.04
                 }
             ]
         }
@@ -516,7 +816,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "working_the_kitchen"
+                    "action": "working_the_kitchen",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "mixing_batter",
+                    "chancePerTick": 0.8
+                },
+                {
+                    "action": "prepping_ingredients",
+                    "chancePerTick": 0.6
                 }
             ],
             "discrete": [
@@ -539,6 +848,22 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "burned_a_batch",
+                    "chancePerTick": 0.07
+                },
+                {
+                    "action": "labeled_the_leftovers",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.18
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.15
                 }
             ]
         }
@@ -566,10 +891,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
                 },
                 {
-                    "action": "working_the_register"
+                    "action": "working_the_register",
+                    "chancePerTick": 0.7
+                },
+                {
+                    "action": "wiping_down_tables",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "balancing_the_till",
+                    "chancePerTick": 0.2
                 }
             ],
             "discrete": [
@@ -592,6 +927,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "wiped_down_the_counter",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "counted_the_till",
+                    "chancePerTick": 0.06,
+                    "cooldownTicks": 6
                 }
             ]
         }
@@ -618,7 +974,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "restocking_shelves",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "pruning_displays",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "balancing_the_till",
+                    "chancePerTick": 0.2
                 }
             ],
             "discrete": [
@@ -641,6 +1010,23 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.07
+                },
+                {
+                    "action": "reorganized_a_drawer",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "counted_the_till",
+                    "chancePerTick": 0.05,
+                    "cooldownTicks": 6
                 }
             ]
         }
@@ -666,7 +1052,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "fixing_equipment"
+                    "action": "fixing_equipment",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "counting_inventory",
+                    "chancePerTick": 0.25
                 }
             ],
             "discrete": [
@@ -689,6 +1084,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "tightened_a_bolt",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "untangled_a_cord",
+                    "chancePerTick": 0.18
+                },
+                {
+                    "action": "found_a_shortcut",
+                    "chancePerTick": 0.05
                 }
             ]
         }
@@ -715,7 +1130,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "working_the_register"
+                    "action": "working_the_register",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "restocking_shelves",
+                    "chancePerTick": 0.6
+                },
+                {
+                    "action": "counting_inventory",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -738,6 +1162,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "tightened_a_bolt",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "counted_the_till",
+                    "chancePerTick": 0.06,
+                    "cooldownTicks": 6
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "taped_up_a_box",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "reorganized_a_drawer",
+                    "chancePerTick": 0.08
                 }
             ]
         }
@@ -763,10 +1208,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
                 },
                 {
-                    "action": "doing_paperwork"
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "balancing_the_till",
+                    "chancePerTick": 0.7
+                },
+                {
+                    "action": "updating_ledgers",
+                    "chancePerTick": 0.4
                 }
             ],
             "discrete": [
@@ -789,6 +1244,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "counted_the_till",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "sharpened_a_pencil",
+                    "chancePerTick": 0.08
                 }
             ]
         }
@@ -814,7 +1289,12 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "doing_paperwork"
+                    "action": "doing_paperwork",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "updating_ledgers",
+                    "chancePerTick": 0.9
                 }
             ],
             "discrete": [
@@ -840,6 +1320,31 @@
                 },
                 {
                     "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "sharpened_a_pencil",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.06,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "wrote_up_a_report",
                     "chancePerTick": 0.1
                 }
             ]
@@ -868,10 +1373,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "keeping_watch"
+                    "action": "keeping_watch",
+                    "chancePerTick": 1.0
                 },
                 {
-                    "action": "doing_rounds"
+                    "action": "doing_rounds",
+                    "chancePerTick": 0.8
+                },
+                {
+                    "action": "patrolling_the_floor",
+                    "chancePerTick": 0.7
                 }
             ],
             "discrete": [
@@ -889,6 +1400,26 @@
                 },
                 {
                     "action": "jotted_a_note",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "complained_about_the_time",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "propped_the_door_open",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
                     "chancePerTick": 0.1
                 }
             ]
@@ -915,7 +1446,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "styling_clients"
+                    "action": "styling_clients",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "attending_customers",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "balancing_the_till",
+                    "chancePerTick": 0.15
                 }
             ],
             "discrete": [
@@ -938,6 +1478,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "swapped_shift_gossip",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.18
+                },
+                {
+                    "action": "reorganized_a_drawer",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.04
                 }
             ]
         }
@@ -963,7 +1523,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "styling_clients"
+                    "action": "styling_clients",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "attending_customers",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "sterilizing_equipment",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -986,6 +1555,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "swapped_shift_gossip",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "reorganized_a_drawer",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.05
                 }
             ]
         }
@@ -1011,7 +1600,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "fixing_equipment"
+                    "action": "fixing_equipment",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "servicing_a_vehicle",
+                    "chancePerTick": 0.9
+                },
+                {
+                    "action": "counting_inventory",
+                    "chancePerTick": 0.2
                 }
             ],
             "discrete": [
@@ -1034,6 +1632,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "tightened_a_bolt",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "found_a_shortcut",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "untangled_a_cord",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
                 }
             ]
         }
@@ -1059,7 +1677,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "updating_ledgers",
+                    "chancePerTick": 0.25
                 }
             ],
             "discrete": [
@@ -1082,6 +1709,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.05
                 }
             ]
         }
@@ -1108,7 +1755,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "coaching_session"
+                    "action": "coaching_session",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "leading_a_workout",
+                    "chancePerTick": 0.9
+                },
+                {
+                    "action": "patrolling_the_floor",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -1127,6 +1783,26 @@
                 {
                     "action": "jotted_a_note",
                     "chancePerTick": 0.15
+                },
+                {
+                    "action": "complained_about_the_time",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "praised_a_coworker",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.06
                 }
             ]
         }
@@ -1154,7 +1830,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "checking_in_guests",
+                    "chancePerTick": 0.7
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.4
                 }
             ],
             "discrete": [
@@ -1177,6 +1862,32 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "sorted_the_mail",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "sharpened_a_pencil",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "watered_the_office_plant",
+                    "chancePerTick": 0.08,
+                    "cooldownTicks": 8
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.05,
+                    "cooldownTicks": 4
                 }
             ]
         }
@@ -1204,7 +1915,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "screening_film"
+                    "action": "screening_film",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "projecting_the_matinee",
+                    "chancePerTick": 0.8
+                },
+                {
+                    "action": "fixing_equipment",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -1222,6 +1942,27 @@
                 },
                 {
                     "action": "complained_about_the_time",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "untangled_a_cord",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.08,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "propped_the_door_open",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "tightened_a_bolt",
                     "chancePerTick": 0.08
                 }
             ]
@@ -1250,7 +1991,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "patrolling_the_floor",
+                    "chancePerTick": 0.6
+                },
+                {
+                    "action": "wiping_down_tables",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -1273,6 +2023,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "chased_a_paper_blown_away",
+                    "chancePerTick": 0.05
+                },
+                {
+                    "action": "stacked_the_chairs",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.12
                 }
             ]
         }
@@ -1300,7 +2070,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "working_the_register"
+                    "action": "working_the_register",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "balancing_the_till",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "attending_customers",
+                    "chancePerTick": 0.4
                 }
             ],
             "discrete": [
@@ -1319,6 +2098,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "counted_the_till",
+                    "chancePerTick": 0.15,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.05
                 }
             ]
         }
@@ -1346,7 +2146,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "cleaning_premises"
+                    "action": "cleaning_premises",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "wiping_down_tables",
+                    "chancePerTick": 0.6
+                },
+                {
+                    "action": "restocking_shelves",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -1369,6 +2178,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "found_a_forgotten_note",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "propped_the_door_open",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "changed_a_lightbulb",
+                    "chancePerTick": 0.05,
+                    "cooldownTicks": 3
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.18
+                },
+                {
+                    "action": "chased_a_paper_blown_away",
+                    "chancePerTick": 0.04
                 }
             ]
         }
@@ -1396,7 +2226,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "attending_customers"
+                    "action": "attending_customers",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "checking_in_guests",
+                    "chancePerTick": 0.9
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -1419,6 +2258,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.04
                 }
             ]
         }
@@ -1445,7 +2304,20 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "treating_patients"
+                    "action": "treating_patients",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "counting_inventory",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "sterilizing_equipment",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "updating_ledgers",
+                    "chancePerTick": 0.25
                 }
             ],
             "discrete": [
@@ -1468,6 +2340,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "tested_a_sample",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "reorganized_a_drawer",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "calmed_an_upset_customer",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.04,
+                    "cooldownTicks": 4
                 }
             ]
         }
@@ -1494,7 +2387,12 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "driving_route"
+                    "action": "driving_route",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "sorting_deliveries",
+                    "chancePerTick": 0.7
                 }
             ],
             "discrete": [
@@ -1513,6 +2411,30 @@
                 {
                     "action": "complained_about_the_time",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "taped_up_a_box",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "found_a_shortcut",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.18
+                },
+                {
+                    "action": "waved_at_a_regular",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "chased_a_paper_blown_away",
+                    "chancePerTick": 0.04
                 }
             ]
         }
@@ -1538,7 +2460,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "drafting_designs"
+                    "action": "drafting_designs",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "drawing_blueprints",
+                    "chancePerTick": 0.8
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.3
                 }
             ],
             "discrete": [
@@ -1561,6 +2492,27 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "sharpened_a_pencil",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "restarted_the_computer",
+                    "chancePerTick": 0.08,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "found_a_shortcut",
+                    "chancePerTick": 0.05
                 }
             ]
         }
@@ -1586,7 +2538,16 @@
         "workActions": {
             "continuous": [
                 {
-                    "action": "drafting_designs"
+                    "action": "drafting_designs",
+                    "chancePerTick": 1.0
+                },
+                {
+                    "action": "drawing_blueprints",
+                    "chancePerTick": 0.9
+                },
+                {
+                    "action": "doing_paperwork",
+                    "chancePerTick": 0.25
                 }
             ],
             "discrete": [
@@ -1609,6 +2570,26 @@
                 {
                     "action": "took_a_short_break",
                     "chancePerTick": 0.1
+                },
+                {
+                    "action": "sharpened_a_pencil",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "fixed_a_typo",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "double_checked_the_math",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "lost_a_pen",
+                    "chancePerTick": 0.06
+                },
+                {
+                    "action": "spilled_some_coffee",
+                    "chancePerTick": 0.05
                 }
             ]
         }
