@@ -65,6 +65,22 @@ describe('save migrations', () => {
         expect(snapshot.clock!.elapsedMs).toBe(123456);
     });
 
+    test('v7 aggregates synthesize a minimal, deterministic event log', () => {
+        const snapshot = migrateSnapshot(v7Snapshot());
+        const log = snapshot.eventLog!;
+        expect(log['p1']).toHaveLength(1);
+        expect(log['p1']![0]).toMatchObject({
+            seq: 0,
+            tick: -240, // lastTick scaled to hour ticks first
+            kind: 'event',
+            defId: 'fell_ill',
+            triggerSource: 'system',
+            causationId: null,
+        });
+        expect(log['p1']![0]!.roles).toEqual({ subject: 'p1' });
+        expect(snapshot.eventLogSeq).toBe(1);
+    });
+
     test('v8 snapshots pass through unchanged', () => {
         const snapshot = v7Snapshot();
         snapshot.version = 8;

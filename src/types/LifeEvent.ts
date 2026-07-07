@@ -67,19 +67,44 @@ export interface EventDefinition {
 // The manifest (src/json/events.json) keyed by event id.
 export type EventManifest = Record<string, EventDefinition>;
 
-// Per-person event history — the compact "space for time" record the runtime reads for hasEvent() queries
-// (docs/tasks/013 §5.3). One entry per event id the person has experienced.
+// Per-person event history — the compact aggregate index the runtime reads for O(1) hasEvent() queries
+// (docs/tasks/013 §5.3). One entry per event id the person has experienced. Since task 040 this is a
+// DERIVED index over the append-only event log below — the log is the source of truth for "what happened
+// when"; the aggregate exists for query speed and stays serialized for cheap restore.
 export type EventHistory = Record<string, { count: number; lastTick: number }>;
 
 // All event history, keyed by genealogy PersonId. Serialized in the save as a side-table so GenPerson stays
 // pure and history survives de/re-materialization.
 export type EventHistoryTable = Record<string, EventHistory>;
 
-// What one day of event simulation changed, so the caller can reconcile the materialized world.
+// Where a committed record came from (task 040/042): today only probability rolls and system-synthesized
+// migration entries exist; actions/brain/schedule sources arrive with tasks 042–046.
+export type TriggerSource = 'probability' | 'action' | 'brain' | 'schedule' | 'system';
+
+// One committed happening in a person's life — the append-only log entry (task 040, 038 §3.3). `seq` is a
+// globally monotonic commit sequence (unique across ALL people), so same-tick records are totally ordered
+// and causation chains (`causationId` = the seq of the record/intent that caused this one) are reproducible
+// in both live and bootstrap simulation. `kind` gains 'action' with task 043.
+export interface EventLogEntry {
+    seq: number;
+    tick: number;
+    kind: 'event';
+    defId: string; // event id in the manifest
+    roles: Record<string, string>; // role name -> PersonId as bound at commit time
+    triggerSource: TriggerSource;
+    causationId: number | null; // seq of the causing record; null for spontaneous (probability) commits
+}
+
+// Append-only per-person logs, keyed by genealogy PersonId. An event with co-participants is logged on the
+// SUBJECT's log (the roles map records the others); role-holders can be found by scanning or, later, an index.
+export type EventLogTable = Record<string, EventLogEntry[]>;
+
+// What one tick of event simulation changed, so the caller can reconcile the materialized world. Signals
+// carry the emitting event and its log seq (task 040) so downstream world changes can chain causation.
 export interface TickResult {
     died: string[];
     born: { id: string; motherId: string; fatherId: string }[];
-    signals: { signal: string; personId: string | null; tick: number }[];
+    signals: { signal: string; personId: string | null; tick: number; eventId: string; causationId: number }[];
 }
 
 // The money adapter the event runtime consults so the pure engine can read wealth (the `money` Context
