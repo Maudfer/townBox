@@ -2,7 +2,7 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { SeededRandom } from 'util/random';
 import { dayOfTick, hourOfTick } from 'util/time';
-import { evaluateCurve, clamp01 } from 'util/curve';
+import { evaluateCurve } from 'util/curve';
 import { evaluatePredicate } from 'util/predicate';
 import { isAliveAt, ageAt, spouseAt } from 'util/kinship';
 
@@ -256,6 +256,10 @@ export default class EventEngine {
             case 'retired':
                 // Set true by the retirement event (task 032); gates get_job so retirees aren't re-hired.
                 return (this.overlay[id]?.['retired'] as boolean) ?? false;
+            case 'hourOfDay':
+                // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
+                // at dinner time) and predicates. Derived from the tick, identical in both execution modes.
+                return hourOfTick(tick);
             case 'canMoveOut':
                 // True when the person could leave home now (adult non-head with a vacant home available). Gates
                 // move_out eligibility (task 024). Without a housing adapter (pure/test runs), nobody can.
@@ -349,14 +353,14 @@ export default class EventEngine {
             const raw = id && attr ? this.agentAttr(state, id, attr, tick, ticksPerYear) : undefined;
             annual *= evaluateCurve(factor.curve, typeof raw === 'number' ? raw : 0);
         }
-        annual = clamp01(annual);
         if (annual <= 0) {
             return 0;
         }
-        if (annual >= 1) {
-            return 1;
-        }
-        return 1 - Math.pow(1 - annual, ticksPerStep / ticksPerYear);
+        // `perYear` is a RATE (expected occurrences per year), not a probability — a Poisson conversion keeps
+        // authored rates honest at ANY stride (task 048). The old formula clamped the annual value to 1 first,
+        // which silently turned every rate >= 1/yr into a per-step certainty (fell_ill at 2/yr fired every
+        // single tick). For rates << 1 the two formulas agree to within a fraction of a percent.
+        return 1 - Math.exp(-annual * (ticksPerStep / ticksPerYear));
     }
 
     // Applies an event's effects in order. Returns false if an effect failed to commit (currently only a failed

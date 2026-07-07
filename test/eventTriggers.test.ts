@@ -56,14 +56,14 @@ const MANIFEST: EventManifest = {
     // Probabilistic certainty, limited to once ever.
     first_steps: {
         roles: { subject: alive },
-        triggers: { probabilistic: { perYear: 1000 } },
+        triggers: { probabilistic: { perYear: 200000 } },
         limit: { once: 'ever' },
         effects: [],
     },
     // Probabilistic certainty with a cooldown window.
     strolled: {
         roles: { subject: alive },
-        triggers: { probabilistic: { perYear: 1000 } },
+        triggers: { probabilistic: { perYear: 200000 } },
         limit: { withinTicks: 3 },
         effects: [],
     },

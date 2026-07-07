@@ -17,7 +17,7 @@ const MS_PER_TICK = 150_000; // one hour tick of real time
 
 // A manifest that guarantees a birth: had_sex fires (perYear huge), satisfying pregnancy the same day.
 const BIRTH_MANIFEST: EventManifest = {
-    had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1000 } }, effects: [] },
+    had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 200000 } }, effects: [] },
     pregnancy: {
         roles: {
             subject: { where: { all: [
@@ -29,7 +29,7 @@ const BIRTH_MANIFEST: EventManifest = {
             ] } },
             father: { bind: 'partnerOf:subject' },
         },
-        triggers: { probabilistic: { perYear: 1000 } },
+        triggers: { probabilistic: { perYear: 200000 } },
         effects: [{ type: 'birth', mother: 'subject', father: 'father' }],
     },
 };
