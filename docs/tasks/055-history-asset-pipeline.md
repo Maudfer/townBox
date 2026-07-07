@@ -8,7 +8,7 @@
 
 - **Type:** Feature / Simulation + Architecture + Tooling
 - **Labels:** `feature`, `simulation`, `tooling`, `asset`, `strategic`, `framework-followup`
-- **Depends on:** **[040](040-hourly-ticks-and-execution-boundary_DONE.md) (the execution boundary — the generator runs the shared `TickRunner` under the `bootstrap` execution context)**, the enrichment content it should capture (ideally [043](043-actions-core.md)–[052](052-events-data-backfill.md)), plus the original bases: 036 (the history bootstrap — its engine loop, step coarsening, worker/config are the raw material this repurposes), 013 (event engine), 003/save (compression + id-based serialization).
+- **Depends on:** **[040](040-hourly-ticks-and-execution-boundary_DONE.md) (the execution boundary — the generator runs the shared `TickRunner` under the `bootstrap` execution context)**, the enrichment content it should capture (ideally [043](043-actions-core_DONE.md)–[052](052-events-data-backfill.md)), plus the original bases: 036 (the history bootstrap — its engine loop, step coarsening, worker/config are the raw material this repurposes), 013 (event engine), 003/save (compression + id-based serialization).
 - **Supersedes / retires:** the **per-load** history bootstrap from 036 (`GameManager.runBootstrap`, `bootstrap.worker.ts`, `bootstrapWorkerFactory.ts`, `BootstrapLoader.tsx`, `json/bootstrap.json`). Their *logic* is repurposed into an offline generator; the browser worker/overlay are removed.
 
 ## 0-bis. Reframe by the enrichment arc (read first)
