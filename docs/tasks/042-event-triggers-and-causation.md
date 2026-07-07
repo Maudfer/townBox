@@ -2,7 +2,7 @@
 
 - **Type:** Core system / Simulation + Data
 - **Labels:** `framework`, `events`, `triggers`, `causation`, `enrichment-arc`
-- **Depends on:** [039](039-data-schema-registry-and-validators.md) (validator), [040](040-hourly-ticks-and-execution-boundary.md) (hourly lifecycle, log with causation ids)
+- **Depends on:** [039](039-data-schema-registry-and-validators_DONE.md) (validator), [040](040-hourly-ticks-and-execution-boundary.md) (hourly lifecycle, log with causation ids)
 - **Blocks:** [043](043-actions-core.md)/[044](044-action-consequences-and-object-action-relationships.md) (actions trigger manual events), [046](046-brain-and-hooks.md) (hooks fire on committed events), [048](048-events-revision-hourly-migration.md) (migration of all existing events)
 
 ## Goal

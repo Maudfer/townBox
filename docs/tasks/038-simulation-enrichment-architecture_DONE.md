@@ -235,7 +235,7 @@ Framework before content: the schema registry, hourly lifecycle, materialization
 
 | # | Task | Layer |
 |---|------|-------|
-| [039](039-data-schema-registry-and-validators.md) | Data-schema registry, validators, CI gate | Foundation |
+| [039](039-data-schema-registry-and-validators_DONE.md) | Data-schema registry, validators, CI gate | Foundation |
 | [040](040-hourly-ticks-and-execution-boundary.md) | Hourly ticks, shared tick lifecycle, execution context & world adapter, log rework | Foundation |
 | [041](041-objects-and-possessions.md) | Object archetypes, instances, containers, Possessions | Core system |
 | [042](042-event-triggers-and-causation.md) | Event `triggers` (manual/probabilistic/automated) + causation logging | Core system |
