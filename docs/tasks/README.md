@@ -51,7 +51,7 @@ Always run `npm test` before opening the PR.**
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap_DONE.md) | Simulation | ✅ Done |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
 | 038 | [Simulation enrichment & execution boundary — architecture + discovery baseline](038-simulation-enrichment-architecture_DONE.md) | Planning | ✅ Done |
-| 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators.md) | Framework | ⬜ Open |
+| 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators_DONE.md) | Framework | ✅ Done |
 | 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary.md) | Framework | ⬜ Open |
 | 041 | [Objects & Person Possessions](041-objects-and-possessions.md) | Feature | ⬜ Open |
 | 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation.md) | Feature | ⬜ Open |
@@ -90,7 +90,7 @@ so it lands *after* the enrichment it should capture).
 simulation dramatically richer before the offline pipeline freezes it into an asset. One system, two execution
 modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `if bootstrap` branches. Phases:
 
-- **Foundation:** [039](039-data-schema-registry-and-validators.md) (schema registry/validators/CI gate) →
+- **Foundation:** [039](039-data-schema-registry-and-validators_DONE.md) (schema registry/validators/CI gate) →
   [040](040-hourly-ticks-and-execution-boundary.md) (24 ticks/day, shared tick lifecycle, append-only
   logs with causation, the world/materialization adapter).
 - **Core systems:** [041](041-objects-and-possessions.md) (objects & possessions),
