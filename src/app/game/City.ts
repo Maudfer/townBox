@@ -438,6 +438,7 @@ export default class City {
                     ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
                     workplaceKey: workplace.getIdentifier(),
                     continuousActions: definition?.workActions.continuous ?? [],
+                    discreteActions: definition?.workActions.discrete ?? [],
                 };
             },
             state: population.getState(),

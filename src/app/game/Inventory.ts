@@ -280,6 +280,15 @@ export default class Inventory {
         return this.contentsOf({ kind: 'location', key });
     }
 
+    // Every instance a given owner holds title to, wherever it physically sits (task 047: the business
+    // inventory view — employer-owned work outputs land here via 044's consequence ownership).
+    instancesOwnedBy(owner: ObjectOwner): ObjectInstance[] {
+        const ownerKey = JSON.stringify(owner);
+        return Object.values(this.state.instances)
+            .filter(instance => JSON.stringify(instance.owner) === ownerKey)
+            .sort((a, b) => a.id.localeCompare(b.id));
+    }
+
     // Whether the person carries an instance of the archetype (directly or nested in carried containers).
     carriesArchetype(personId: PersonId, archetypeId: string): boolean {
         return this.carriedInstances(personId).some(instance => instance.archetypeId === archetypeId);

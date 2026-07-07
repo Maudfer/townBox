@@ -30,6 +30,7 @@ const CLERK_JOB: JobFacts = {
     daysOfWeek: ['mon', 'tue', 'wed', 'thu', 'fri'],
     workplaceKey: '9-9',
     continuousActions: [{ action: 'attending_customers' }],
+    discreteActions: [{ action: 'greeted_a_customer', chancePerTick: 0.5 }],
 };
 
 function harness(jobOf?: (id: string) => JobFacts | null) {
