@@ -19,7 +19,9 @@ import { EventManifest, EventDefinition, Effect } from 'types/LifeEvent';
 
 const DISCRIMINANT_ATTRS = new Set(['alive', 'gender', 'marital', 'employed']);
 
-const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'health', 'retired'];
+// Exported so the data validators (game/data/validators/events.ts, task 039) share the same closed attribute
+// vocabulary — a setAttr targeting an attribute outside this list is an authoring error, not a new feature.
+export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'health', 'retired'];
 
 export interface EventGraph {
     ids: string[];
