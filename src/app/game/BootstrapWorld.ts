@@ -5,9 +5,18 @@
 
 import { PersonId } from 'types/Genealogy';
 import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
+import { locationKey } from 'types/Objects';
+import Inventory from 'game/Inventory';
 
 export default class BootstrapWorld implements WorldAdapter {
     readonly mode: SimulationMode = 'bootstrap';
+
+    // Optional: worlds without an object system (pure event tests) answer objectsAt with [].
+    private inventory: Inventory | null;
+
+    constructor(inventory: Inventory | null = null) {
+        this.inventory = inventory;
+    }
 
     private locations: Map<PersonId, LogicalLocation> = new Map();
     private nextHandleId = 0;
@@ -26,6 +35,10 @@ export default class BootstrapWorld implements WorldAdapter {
             }
         }
         return ids.sort();
+    }
+
+    objectsAt(location: LogicalLocation): string[] {
+        return (this.inventory?.instancesAtLocation(locationKey(location)) ?? []).map(instance => instance.id);
     }
 
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {

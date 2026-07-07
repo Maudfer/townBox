@@ -17,6 +17,7 @@ import inputConfig from 'json/input.json';
 import jobsConfig from 'json/jobs.json';
 import lifeSimulationConfig from 'json/lifeSimulation.json';
 import materialsConfig from 'json/materials.json';
+import objectsConfig from 'json/objects.json';
 import populationConfig from 'json/population.json';
 import skillsConfig from 'json/skills.json';
 import toolAssetsConfig from 'json/toolAssets.json';
@@ -41,6 +42,7 @@ import {
     validateLifeSimulationStructure,
     validatePopulationStructure,
 } from 'game/data/validators/params';
+import { validateObjectsStructure } from 'game/data/validators/objects';
 import {
     validateAssetsStructure,
     validateConfigStructure,
@@ -55,6 +57,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'jobs', version: 1, data: jobsConfig, validateStructure: validateJobsStructure, validateSemantics: validateJobsSemantics },
         { name: 'businesses', version: 1, data: businessesConfig, validateStructure: validateBusinessesStructure, validateSemantics: validateBusinessesSemantics },
         { name: 'materials', version: 1, data: materialsConfig, validateStructure: validateMaterialsStructure },
+        { name: 'objects', version: 1, data: objectsConfig, validateStructure: validateObjectsStructure },
         { name: 'skills', version: 1, data: skillsConfig, validateStructure: validateSkillsStructure, validateSemantics: validateSkillsSemantics },
         { name: 'demand', version: 1, data: demandConfig, validateStructure: validateDemandStructure, validateSemantics: validateDemandSemantics },
         { name: 'economy', version: 1, data: economyConfig, validateStructure: validateEconomyStructure },

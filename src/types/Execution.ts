@@ -36,8 +36,10 @@ export interface WorldAdapter {
     readonly mode: SimulationMode;
     locationOf(personId: PersonId): LogicalLocation;
     peopleAt(location: LogicalLocation): PersonId[];
+    // Object instance ids physically at the location (task 041) — the query "is there something pocketable
+    // here" style requirements resolve through. Ids resolve against the Inventory (game/Inventory.ts).
+    objectsAt(location: LogicalLocation): string[];
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle;
-    // objectsAt(location) arrives with the object system (task 041).
 }
 
 // The adapter bundle the event engine consults (formerly a loose `adapters` bag; tasks 015/017/024/032).
