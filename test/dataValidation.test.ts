@@ -12,6 +12,7 @@ import {
 } from '../src/app/game/data/validators/economyContent';
 import { validateBootstrapStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
 import { validateObjectsStructure } from '../src/app/game/data/validators/objects';
+import { validateActionsSemantics, validateActionsStructure } from '../src/app/game/data/validators/actions';
 import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from '../src/app/game/data/validators/ui';
 import { allRegistrations, validateAllData } from '../src/app/game/data/schemas';
 
@@ -66,9 +67,9 @@ describe('data validation (task 039)', () => {
     test('all schemas are registered exactly once, with the expected roster', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
-            'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy', 'events',
-            'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials', 'objects',
-            'population', 'skills', 'toolAssets',
+            'actions', 'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy',
+            'events', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
+            'objects', 'population', 'skills', 'toolAssets',
         ]);
     });
 
@@ -294,6 +295,45 @@ describe('params validation', () => {
     test('bootstrap rejects a mismatched ticksPerYear', () => {
         const fixture = { enabled: true, years: 8, ticksPerYear: 100, stepDays: 7 };
         expect(messagesOf(structure(validateBootstrapStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
+    });
+});
+
+// ---------- actions ----------
+
+describe('actions validation (task 043)', () => {
+    const discrete = { label: 'X', type: 'discrete', category: 'leisure' };
+    const continuous = { label: 'Y', type: 'continuous', category: 'leisure', durationTicks: 2 };
+
+    test('the starter shapes pass', () => {
+        expect(messagesOf(structure(validateActionsStructure, { a: discrete, b: continuous }))).toBe('');
+    });
+
+    test.each([
+        ['a discrete action with continuous-only fields', { a: { ...discrete, durationTicks: 3 } }, /only continuous actions/],
+        ['an unknown category', { a: { ...discrete, category: 'mischief' } }, /expected one of/],
+        ['a malformed location key', { a: { ...continuous, location: 'the park' } }, /canonical location key/],
+        ['a bad children mode', { a: { ...continuous, children: { mode: 'swarm', entries: [] } } }, /expected one of \[pool, sequence\]/],
+        ['an out-of-range pool chance', { a: { ...continuous, children: { mode: 'pool', entries: [{ action: 'b', chancePerTick: 2 }] } } }, /expected <= 1/],
+        ['an unknown binding', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$sibling.output' } }] } } }, /unknown binding/],
+        ['a binding to an undeclared parent parameter', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$parent.ghost' } }] } } }, /undeclared parent parameter "ghost"/],
+    ])('structure rejects %s', (_label, fixture, pattern) => {
+        expect(messagesOf(structure(validateActionsStructure, fixture))).toMatch(pattern);
+    });
+
+    test('semantics rejects dangling/continuous children and non-manual event links', () => {
+        const fixture = {
+            child_c: { ...continuous },
+            parent: { ...continuous, children: { mode: 'pool', entries: [
+                { action: 'ghost', chancePerTick: 0.5 },
+                { action: 'child_c', chancePerTick: 0.5 },
+            ] }, events: { onStart: 'no_such_event', onComplete: 'rolls_only' } },
+        };
+        const eventsPeer = { events: { rolls_only: { roles: {}, triggers: { probabilistic: { perYear: 1 } }, effects: [] } } };
+        const output = messagesOf(semantics(validateActionsSemantics, fixture, eventsPeer));
+        expect(output).toMatch(/references unknown action "ghost"/);
+        expect(output).toMatch(/child actions must be discrete \(v1\); "child_c" is continuous/);
+        expect(output).toMatch(/references unknown event "no_such_event"/);
+        expect(output).toMatch(/does not declare a manual trigger/);
     });
 });
 

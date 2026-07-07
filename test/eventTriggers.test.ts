@@ -1,5 +1,5 @@
 import EventEngine from '../src/app/game/EventEngine';
-import { EventManifest } from '../src/types/LifeEvent';
+import { EventManifest, EventLogEntry } from '../src/types/LifeEvent';
 import { PopulationState, GenPerson } from '../src/types/Genealogy';
 import { Genders, Gender } from '../src/types/Social';
 
@@ -96,7 +96,7 @@ describe('manual invocation (task 042)', () => {
         const state = pool(1000);
         const { outcome } = engine.invoke(state, 'gave_gift', 'a', 1000, TPY, { source: 'brain', causationId: null }, { recipient: 'b' });
         expect(outcome.ok).toBe(true);
-        expect(engine.getPersonLog('a')[0]!.roles).toEqual({ subject: 'a', recipient: 'b' });
+        expect((engine.getPersonLog('a')[0] as EventLogEntry).roles).toEqual({ subject: 'a', recipient: 'b' });
         // A dead pinned target fails role resolution.
         state.people['b']!.deathTick = 900;
         expect(engine.invoke(state, 'gave_gift', 'a', 1001, TPY, { source: 'brain', causationId: null }, { recipient: 'b' }).outcome).toEqual({ ok: false, reason: 'rolesUnresolved' });
@@ -195,7 +195,7 @@ describe('determinism', () => {
             }
             engine.simulateTick(state, ['a', 'b'], 1001, TPY, {});
             // Compare only probability-sourced entries (the invoke adds its own entries + schedules).
-            const probabilistic = Object.values(engine.getLog()).flat().filter(entry => entry.triggerSource === 'probability');
+            const probabilistic = Object.values(engine.getLog()).flat().filter((entry): entry is EventLogEntry => entry.kind === 'event' && entry.triggerSource === 'probability');
             return JSON.stringify(probabilistic.map(entry => [entry.defId, entry.roles, entry.tick]));
         };
         expect(run(true)).toBe(run(false));

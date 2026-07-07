@@ -415,6 +415,8 @@ export default class City {
         // execution context. Phase 6 (onCommitted) is this city's world reconciliation.
         await runTick({
             engine,
+            actionEngine: Game.actionEngine ?? undefined,
+            inventory: Game.inventory,
             state: population.getState(),
             agentIds: [...materializedIds],
             tick: event.tick,

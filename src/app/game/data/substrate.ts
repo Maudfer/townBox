@@ -91,9 +91,10 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
         validatePredicate(issues, `${path}.not`, value['not'], onRoleRef);
         return;
     }
-    if ('hasEvent' in value) {
-        checkUnknownKeys(issues, path, value, ['hasEvent', 'role', 'withinTicks', 'minCount']);
-        checkString(issues, `${path}.hasEvent`, value['hasEvent']);
+    if ('hasEvent' in value || 'hasAction' in value) {
+        const key = 'hasEvent' in value ? 'hasEvent' : 'hasAction';
+        checkUnknownKeys(issues, path, value, [key, 'role', 'withinTicks', 'minCount']);
+        checkString(issues, `${path}.${key}`, value[key]);
         if ('role' in value && checkString(issues, `${path}.role`, value['role'])) {
             onRoleRef?.(value['role'] as string, `${path}.role`);
         }
@@ -102,6 +103,25 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
         }
         if ('minCount' in value) {
             checkNumber(issues, `${path}.minCount`, value['minCount'], { min: 1, integer: true });
+        }
+        return;
+    }
+    if ('carries' in value || 'objectAtLocation' in value) {
+        const key = 'carries' in value ? 'carries' : 'objectAtLocation';
+        checkUnknownKeys(issues, path, value, [key]);
+        const query = value[key];
+        if (!checkRecord(issues, `${path}.${key}`, query)) {
+            return;
+        }
+        checkUnknownKeys(issues, `${path}.${key}`, query as Record<string, unknown>, ['archetype', 'tag', 'flag']);
+        const q = query as Record<string, unknown>;
+        if (!('archetype' in q) && !('tag' in q) && !('flag' in q)) {
+            issues.add(`${path}.${key}`, 'an object query needs at least one of archetype/tag/flag');
+        }
+        for (const field of ['archetype', 'tag', 'flag']) {
+            if (field in q) {
+                checkString(issues, `${path}.${key}.${field}`, q[field]);
+            }
         }
         return;
     }

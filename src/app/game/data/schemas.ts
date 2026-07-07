@@ -5,6 +5,7 @@
 // validateAllData() is the single entry point: game boot asserts it (GameManager), CI gates on it
 // (test/dataValidation.test.ts), and `npm run validate-data` runs it standalone for content-authoring loops.
 
+import actionsConfig from 'json/actions.json';
 import assetsConfig from 'json/assets.json';
 import bootstrapConfig from 'json/bootstrap.json';
 import businessesConfig from 'json/businesses.json';
@@ -42,6 +43,7 @@ import {
     validateLifeSimulationStructure,
     validatePopulationStructure,
 } from 'game/data/validators/params';
+import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
 import { validateObjectsStructure } from 'game/data/validators/objects';
 import {
     validateAssetsStructure,
@@ -54,6 +56,7 @@ import {
 export function allRegistrations(): SchemaRegistration[] {
     return [
         { name: 'events', version: 1, data: eventsConfig, validateStructure: validateEventsStructure, validateSemantics: validateEventsSemantics },
+        { name: 'actions', version: 1, data: actionsConfig, validateStructure: validateActionsStructure, validateSemantics: validateActionsSemantics },
         { name: 'jobs', version: 1, data: jobsConfig, validateStructure: validateJobsStructure, validateSemantics: validateJobsSemantics },
         { name: 'businesses', version: 1, data: businessesConfig, validateStructure: validateBusinessesStructure, validateSemantics: validateBusinessesSemantics },
         { name: 'materials', version: 1, data: materialsConfig, validateStructure: validateMaterialsStructure },

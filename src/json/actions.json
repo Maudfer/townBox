@@ -1,0 +1,184 @@
+{
+    "sleep": {
+        "label": "Sleeping",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "home",
+        "durationTicks": 8,
+        "selection": {
+            "weight": 1.0
+        }
+    },
+    "rest": {
+        "label": "Resting",
+        "type": "continuous",
+        "category": "recovery",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0.6
+        }
+    },
+    "read_book": {
+        "label": "Reading",
+        "type": "continuous",
+        "category": "leisure",
+        "durationTicks": 3,
+        "requirements": {
+            "carries": {
+                "archetype": "book"
+            }
+        },
+        "selection": {
+            "weight": 0.8,
+            "cooldownTicks": 12
+        }
+    },
+    "wander": {
+        "label": "Wandering around",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "durationTicks": 4,
+        "selection": {
+            "weight": 0.9,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "age",
+                        "op": ">=",
+                        "value": 65
+                    },
+                    "multiply": 1.5
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "sat_on_bench",
+                    "chancePerTick": 0.35,
+                    "cooldownTicks": 2
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.25,
+                    "maxPerTick": 2
+                },
+                {
+                    "action": "found_coin",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "pocketed_small_object",
+                    "chancePerTick": 0.1,
+                    "requirements": {
+                        "objectAtLocation": {
+                            "flag": "pocketable"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "bake_cake": {
+        "label": "Baking a cake",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "home",
+        "parameters": {
+            "recipe": {
+                "type": "recipe",
+                "required": false
+            }
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 48
+        },
+        "children": {
+            "mode": "sequence",
+            "onStepFailure": "blockParent",
+            "steps": [
+                {
+                    "action": "mix_dough",
+                    "params": {
+                        "recipe": "$parent.recipe"
+                    }
+                },
+                {
+                    "action": "bake_dough"
+                },
+                {
+                    "action": "add_topping",
+                    "params": {
+                        "topping": "$previous.output"
+                    }
+                }
+            ]
+        }
+    },
+    "sat_on_bench": {
+        "label": "Sat on a bench",
+        "type": "discrete",
+        "category": "leisure"
+    },
+    "greeted_neighbor": {
+        "label": "Greeted a neighbor",
+        "type": "discrete",
+        "category": "social"
+    },
+    "found_coin": {
+        "label": "Found a coin",
+        "type": "discrete",
+        "category": "leisure"
+    },
+    "pocketed_small_object": {
+        "label": "Pocketed a small object",
+        "type": "discrete",
+        "category": "leisure",
+        "requirements": {
+            "objectAtLocation": {
+                "flag": "pocketable"
+            }
+        }
+    },
+    "grab_pencil": {
+        "label": "Grabbed a pencil",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "pencil"
+            }
+        }
+    },
+    "mix_dough": {
+        "label": "Mixed the dough",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "recipe": {
+                "type": "recipe",
+                "required": false
+            }
+        }
+    },
+    "bake_dough": {
+        "label": "Baked the dough",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "add_topping": {
+        "label": "Added a topping",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "topping": {
+                "type": "objectInstance",
+                "required": false
+            }
+        }
+    }
+}

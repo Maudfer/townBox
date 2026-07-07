@@ -116,11 +116,16 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     <h4>Life events</h4>
                     {logEntries.length ? (
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {logEntries.map(entry => (
-                                <li key={entry.seq}>
-                                    {game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId)} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
-                                </li>
-                            ))}
+                            {logEntries.map(entry => {
+                                const label = entry.kind === 'action'
+                                    ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle})` : ''}`
+                                    : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
+                                return (
+                                    <li key={entry.seq}>
+                                        {label} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
+                                    </li>
+                                );
+                            })}
                             {fullLog.length > MAX_LOG_ENTRIES && <li><em>… {fullLog.length - MAX_LOG_ENTRIES} earlier entries</em></li>}
                         </ul>
                     ) : (

@@ -8,6 +8,7 @@ import City from './City';
 import Population from 'game/Population';
 import Clock from 'game/Clock';
 import EventEngine from 'game/EventEngine';
+import ActionEngine from 'game/ActionEngine';
 import Economy from 'game/Economy';
 import Inventory from 'game/Inventory';
 import SocialLife from 'game/SocialLife';
@@ -39,6 +40,7 @@ export default class GameManager {
     public population: Population | null;
     public clock: Clock | null;
     public eventEngine: EventEngine | null;
+    public actionEngine: ActionEngine | null;
     public economy: Economy | null;
     public inventory: Inventory | null;
 
@@ -117,6 +119,7 @@ export default class GameManager {
         this.population = null;
         this.clock = null;
         this.eventEngine = null;
+        this.actionEngine = null;
         this.economy = null;
         this.inventory = null;
         this.lastDayEmitted = -1;
@@ -179,6 +182,10 @@ export default class GameManager {
             // Engine B (life events): owns the compiled event graph + per-person history. Runs over
             // materialized people each day via City.handleNewDay; a load restores its history during deserialize.
             this.eventEngine = new EventEngine();
+
+            // The Action engine (task 043) shares the event engine's LifeLog, so events and actions land in
+            // ONE totally-ordered per-person log. A load restores its instances during deserialize.
+            this.actionEngine = new ActionEngine(undefined, this.eventEngine.getLifeLog());
 
             // Economy: per-person/business money balances + the ledger. A load restores balances during
             // deserialize; balances are otherwise seeded at household/business placement.

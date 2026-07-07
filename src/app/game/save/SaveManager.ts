@@ -141,6 +141,7 @@ export default class SaveManager {
             eventSchedule: this.game.eventEngine?.getScheduleState(),
             economy: this.game.economy?.getState(),
             objects: this.game.inventory?.getState(),
+            actions: this.game.actionEngine?.getState(),
         };
     }
 
@@ -301,6 +302,11 @@ export default class SaveManager {
         // Object instances & Possessions (v8+, task 041). Older saves carry none; the inventory stays empty.
         if (snapshot.objects) {
             this.game.inventory?.loadState(snapshot.objects);
+        }
+
+        // Action instances + history (v8+, task 043). Older saves carry none; the engine starts idle.
+        if (snapshot.actions) {
+            this.game.actionEngine?.loadState(snapshot.actions);
         }
 
         // Structures first, so houses/workplaces exist to be referenced by people and families.
