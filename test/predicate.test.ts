@@ -24,7 +24,7 @@ function makeContext(spec: FixtureSpec): SimulationContext {
             if (query?.minCount !== undefined && record.count < query.minCount) {
                 return false;
             }
-            if (query?.withinDays !== undefined && now - record.lastTick > query.withinDays) {
+            if (query?.withinTicks !== undefined && now - record.lastTick > query.withinTicks) {
                 return false;
             }
             return true;
@@ -81,15 +81,15 @@ describe('evaluatePredicate — hasEvent (history + cooldowns)', () => {
     test('presence, recency, and minCount', () => {
         expect(evaluatePredicate({ hasEvent: 'had_sex' }, ctx)).toBe(true);
         expect(evaluatePredicate({ hasEvent: 'never' }, ctx)).toBe(false);
-        expect(evaluatePredicate({ hasEvent: 'had_sex', withinDays: 280 }, ctx)).toBe(true); // 1000-800=200 <= 280
-        expect(evaluatePredicate({ hasEvent: 'had_sex', withinDays: 100 }, ctx)).toBe(false); // 200 > 100
+        expect(evaluatePredicate({ hasEvent: 'had_sex', withinTicks: 280 }, ctx)).toBe(true); // 1000-800=200 <= 280
+        expect(evaluatePredicate({ hasEvent: 'had_sex', withinTicks: 100 }, ctx)).toBe(false); // 200 > 100
         expect(evaluatePredicate({ hasEvent: 'had_sex', minCount: 5 }, ctx)).toBe(false);
     });
 
     test('cooldown expressed as a negated recency requirement', () => {
         // pregnancy fired 250 days ago; a 300-day cooldown blocks it, a 200-day one would not.
-        expect(evaluatePredicate({ not: { hasEvent: 'pregnancy', withinDays: 300 } }, ctx)).toBe(false);
-        expect(evaluatePredicate({ not: { hasEvent: 'pregnancy', withinDays: 200 } }, ctx)).toBe(true);
+        expect(evaluatePredicate({ not: { hasEvent: 'pregnancy', withinTicks: 300 } }, ctx)).toBe(false);
+        expect(evaluatePredicate({ not: { hasEvent: 'pregnancy', withinTicks: 200 } }, ctx)).toBe(true);
     });
 });
 

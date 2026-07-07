@@ -29,7 +29,7 @@ describe('economy in the event engine (task 017)', () => {
         const manifest: EventManifest = {
             payday: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1000 },
+                triggers: { probabilistic: { perYear: 1000 } },
                 effects: [{ type: 'adjustMoney', target: 'subject', amount: { mode: 'const', value: 500 } }],
             },
         };
@@ -37,7 +37,7 @@ describe('economy in the event engine (task 017)', () => {
         const ledger = fakeLedger({ a: 100 });
         const state = makeState([gen('a', Genders.Male, 30)]);
 
-        engine.simulateDay(state, ['a'], 0, TPY, { ledger });
+        engine.simulateTick(state, ['a'], 0, TPY, { markets: { ledger } });
 
         expect(ledger.balances['a']).toBe(600);
     });
@@ -49,7 +49,7 @@ describe('economy in the event engine (task 017)', () => {
                     { attr: 'alive', op: '==', value: true },
                     { attr: 'money', op: '>=', value: 1000 },
                 ] } } },
-                probability: { perYear: 1000 },
+                triggers: { probabilistic: { perYear: 1000 } },
                 effects: [{ type: 'emit', signal: 'boughtYacht', target: 'subject' }],
             },
         };
@@ -57,7 +57,7 @@ describe('economy in the event engine (task 017)', () => {
         const state = makeState([gen('rich', Genders.Male, 40), gen('poor', Genders.Female, 40)]);
         const ledger = fakeLedger({ rich: 5000, poor: 50 });
 
-        const result = engine.simulateDay(state, ['rich', 'poor'], 0, TPY, { ledger });
+        const result = engine.simulateTick(state, ['rich', 'poor'], 0, TPY, { markets: { ledger } });
 
         const buyers = result.signals.filter(s => s.signal === 'boughtYacht').map(s => s.personId);
         expect(buyers).toEqual(['rich']);
@@ -67,12 +67,12 @@ describe('economy in the event engine (task 017)', () => {
         const manifest: EventManifest = {
             payday: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1000 },
+                triggers: { probabilistic: { perYear: 1000 } },
                 effects: [{ type: 'adjustMoney', target: 'subject', amount: { mode: 'const', value: 500 } }],
             },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30)]);
-        expect(() => engine.simulateDay(state, ['a'], 0, TPY)).not.toThrow();
+        expect(() => engine.simulateTick(state, ['a'], 0, TPY)).not.toThrow();
     });
 });

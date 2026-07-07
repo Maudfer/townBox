@@ -3,274 +3,866 @@
         "label": "Passed away",
         "category": "lifecycle",
         "roles": {
-            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
         },
-        "probability": {
-            "perYear": 0.01,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 0, "value": 0.2 }, { "at": 50, "value": 1 }, { "at": 70, "value": 5 },
-                    { "at": 85, "value": 20 }, { "at": 100, "value": 60 }, { "at": 110, "value": 100 } ] } },
-                { "driver": "subject.health", "curve": { "mode": "step", "points": [
-                    { "at": 0, "value": 25 }, { "at": 0.3, "value": 8 }, { "at": 0.5, "value": 3 }, { "at": 0.95, "value": 1 } ] } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.01,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.2
+                                },
+                                {
+                                    "at": 50,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 70,
+                                    "value": 5
+                                },
+                                {
+                                    "at": 85,
+                                    "value": 20
+                                },
+                                {
+                                    "at": 100,
+                                    "value": 60
+                                },
+                                {
+                                    "at": 110,
+                                    "value": 100
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "driver": "subject.health",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 25
+                                },
+                                {
+                                    "at": 0.3,
+                                    "value": 8
+                                },
+                                {
+                                    "at": 0.5,
+                                    "value": 3
+                                },
+                                {
+                                    "at": 0.95,
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "setDeath" },
-            { "type": "emit", "signal": "rehousingNeeded", "target": "subject" }
+            {
+                "type": "setDeath"
+            },
+            {
+                "type": "emit",
+                "signal": "rehousingNeeded",
+                "target": "subject"
+            }
         ]
     },
     "had_sex": {
         "label": "Was intimate",
         "category": "relationship",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 16 }
-            ] } },
-            "partner": { "bind": "partnerOf:subject" }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 16
+                        }
+                    ]
+                }
+            },
+            "partner": {
+                "bind": "partnerOf:subject"
+            }
         },
-        "probability": { "perYear": 60 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 60
+            }
+        },
         "effects": []
     },
     "pregnancy": {
         "label": "Became pregnant",
         "category": "lifecycle",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "gender", "op": "==", "value": "female" },
-                { "attr": "age", "op": ">=", "value": 16 },
-                { "hasEvent": "had_sex", "withinDays": 280 },
-                { "not": { "hasEvent": "pregnancy", "withinDays": 300 } }
-            ] } },
-            "father": { "bind": "partnerOf:subject" }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "gender",
+                            "op": "==",
+                            "value": "female"
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 16
+                        },
+                        {
+                            "hasEvent": "had_sex",
+                            "withinTicks": 6720
+                        },
+                        {
+                            "not": {
+                                "hasEvent": "pregnancy",
+                                "withinTicks": 7200
+                            }
+                        }
+                    ]
+                }
+            },
+            "father": {
+                "bind": "partnerOf:subject"
+            }
         },
-        "probability": {
-            "perYear": 0.6,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 16, "value": 0.4 }, { "at": 24, "value": 1 }, { "at": 35, "value": 0.5 }, { "at": 45, "value": 0.05 } ] } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.6,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 16,
+                                    "value": 0.4
+                                },
+                                {
+                                    "at": 24,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 35,
+                                    "value": 0.5
+                                },
+                                {
+                                    "at": 45,
+                                    "value": 0.05
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "birth", "mother": "subject", "father": "father" },
-            { "type": "emit", "signal": "rehousingNeeded", "target": "subject" }
+            {
+                "type": "birth",
+                "mother": "subject",
+                "father": "father"
+            },
+            {
+                "type": "emit",
+                "signal": "rehousingNeeded",
+                "target": "subject"
+            }
         ]
     },
     "marriage": {
         "label": "Got married",
         "category": "relationship",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 18 },
-                { "attr": "marital", "op": "in", "value": ["single", "divorced", "widowed"] }
-            ] } },
-            "partner": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 18 },
-                { "attr": "marital", "op": "in", "value": ["single", "divorced", "widowed"] }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "in",
+                            "value": [
+                                "single",
+                                "divorced",
+                                "widowed"
+                            ]
+                        }
+                    ]
+                }
+            },
+            "partner": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "in",
+                            "value": [
+                                "single",
+                                "divorced",
+                                "widowed"
+                            ]
+                        }
+                    ]
+                }
+            }
         },
-        "probability": {
-            "perYear": 0.1,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "logistic", "floor": 0.2, "ceiling": 1, "midpoint": 26, "steepness": 0.3 } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.1,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "logistic",
+                            "floor": 0.2,
+                            "ceiling": 1,
+                            "midpoint": 26,
+                            "steepness": 0.3
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "marry", "role": "partner" },
-            { "type": "emit", "signal": "partnershipFormed", "target": "subject" }
+            {
+                "type": "marry",
+                "role": "partner"
+            },
+            {
+                "type": "emit",
+                "signal": "partnershipFormed",
+                "target": "subject"
+            }
         ]
     },
     "divorce": {
         "label": "Got divorced",
         "category": "relationship",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "marital", "op": "==", "value": "married" }
-            ] } },
-            "partner": { "bind": "partnerOf:subject" }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "==",
+                            "value": "married"
+                        }
+                    ]
+                }
+            },
+            "partner": {
+                "bind": "partnerOf:subject"
+            }
         },
-        "probability": { "perYear": 0.02 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.02
+            }
+        },
         "effects": [
-            { "type": "divorce" }
+            {
+                "type": "divorce"
+            }
         ]
     },
     "get_job": {
         "label": "Started a new job",
         "category": "career",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 18 },
-                { "attr": "retired", "op": "==", "value": false },
-                { "attr": "employed", "op": "==", "value": false },
-                { "attr": "canBeHired", "op": "==", "value": true }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        },
+                        {
+                            "attr": "retired",
+                            "op": "==",
+                            "value": false
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": false
+                        },
+                        {
+                            "attr": "canBeHired",
+                            "op": "==",
+                            "value": true
+                        }
+                    ]
+                }
+            }
         },
-        "probability": { "perYear": 4 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 4
+            }
+        },
         "effects": [
-            { "type": "acquireSlot", "resource": "job", "target": "subject" },
-            { "type": "emit", "signal": "hired", "target": "subject" }
+            {
+                "type": "acquireSlot",
+                "resource": "job",
+                "target": "subject"
+            },
+            {
+                "type": "emit",
+                "signal": "hired",
+                "target": "subject"
+            }
         ]
     },
     "layoff": {
         "label": "Was laid off",
         "category": "career",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "employed", "op": "==", "value": true },
-                { "not": { "hasEvent": "get_job", "withinDays": 30 } }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "not": {
+                                "hasEvent": "get_job",
+                                "withinTicks": 720
+                            }
+                        }
+                    ]
+                }
+            }
         },
-        "probability": { "perYear": 0.5 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.5
+            }
+        },
         "effects": [
-            { "type": "releaseSlot", "resource": "job", "target": "subject" },
-            { "type": "emit", "signal": "laidOff", "target": "subject" }
+            {
+                "type": "releaseSlot",
+                "resource": "job",
+                "target": "subject"
+            },
+            {
+                "type": "emit",
+                "signal": "laidOff",
+                "target": "subject"
+            }
         ]
     },
     "retirement": {
         "label": "Retired",
         "category": "career",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 65 },
-                { "attr": "employed", "op": "==", "value": true }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 65
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
+                        }
+                    ]
+                }
+            }
         },
-        "probability": {
-            "perYear": 3,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 65, "value": 1 }, { "at": 72, "value": 3 }, { "at": 80, "value": 8 } ] } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 3,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 65,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 72,
+                                    "value": 3
+                                },
+                                {
+                                    "at": 80,
+                                    "value": 8
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "releaseSlot", "resource": "job", "target": "subject" },
-            { "type": "setAttr", "attr": "retired", "value": true },
-            { "type": "emit", "signal": "retired", "target": "subject" }
+            {
+                "type": "releaseSlot",
+                "resource": "job",
+                "target": "subject"
+            },
+            {
+                "type": "setAttr",
+                "attr": "retired",
+                "value": true
+            },
+            {
+                "type": "emit",
+                "signal": "retired",
+                "target": "subject"
+            }
         ]
     },
     "fell_ill": {
         "label": "Fell ill",
         "category": "health",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "health", "op": ">=", "value": 1 }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "health",
+                            "op": ">=",
+                            "value": 1
+                        }
+                    ]
+                }
+            }
         },
-        "probability": {
-            "perYear": 2,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 0, "value": 1 }, { "at": 60, "value": 1.6 }, { "at": 80, "value": 2.5 } ] } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 2,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 60,
+                                    "value": 1.6
+                                },
+                                {
+                                    "at": 80,
+                                    "value": 2.5
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "setAttr", "attr": "health", "value": 0.5 },
-            { "type": "emit", "signal": "fellIll", "target": "subject" }
+            {
+                "type": "setAttr",
+                "attr": "health",
+                "value": 0.5
+            },
+            {
+                "type": "emit",
+                "signal": "fellIll",
+                "target": "subject"
+            }
         ]
     },
     "injury": {
         "label": "Was injured in an accident",
         "category": "health",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "health", "op": ">=", "value": 0.5 }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "health",
+                            "op": ">=",
+                            "value": 0.5
+                        }
+                    ]
+                }
+            }
         },
-        "probability": { "perYear": 0.8 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.8
+            }
+        },
         "effects": [
-            { "type": "setAttr", "attr": "health", "value": 0.3 },
-            { "type": "emit", "signal": "injured", "target": "subject" }
+            {
+                "type": "setAttr",
+                "attr": "health",
+                "value": 0.3
+            },
+            {
+                "type": "emit",
+                "signal": "injured",
+                "target": "subject"
+            }
         ]
     },
     "recovered": {
         "label": "Recovered their health",
         "category": "health",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "health", "op": "<", "value": 1 }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "health",
+                            "op": "<",
+                            "value": 1
+                        }
+                    ]
+                }
+            }
         },
-        "probability": { "perYear": 24 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 24
+            }
+        },
         "effects": [
-            { "type": "setAttr", "attr": "health", "value": 1 },
-            { "type": "emit", "signal": "recovered", "target": "subject" }
+            {
+                "type": "setAttr",
+                "attr": "health",
+                "value": 1
+            },
+            {
+                "type": "emit",
+                "signal": "recovered",
+                "target": "subject"
+            }
         ]
     },
     "trade_school": {
         "label": "Finished trade school",
         "category": "education",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 18 },
-                { "not": { "hasEvent": "trade_school", "withinDays": 3600 } }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        },
+                        {
+                            "not": {
+                                "hasEvent": "trade_school",
+                                "withinTicks": 86400
+                            }
+                        }
+                    ]
+                }
+            }
         },
-        "probability": {
-            "perYear": 0.4,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 18, "value": 1.5 }, { "at": 26, "value": 0.6 }, { "at": 40, "value": 0.2 } ] } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.4,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 18,
+                                    "value": 1.5
+                                },
+                                {
+                                    "at": 26,
+                                    "value": 0.6
+                                },
+                                {
+                                    "at": 40,
+                                    "value": 0.2
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "acquireSkill", "value": "MechanicalSkill", "target": "subject" },
-            { "type": "emit", "signal": "graduated", "target": "subject" }
+            {
+                "type": "acquireSkill",
+                "value": "MechanicalSkill",
+                "target": "subject"
+            },
+            {
+                "type": "emit",
+                "signal": "graduated",
+                "target": "subject"
+            }
         ]
     },
     "nursing_school": {
         "label": "Qualified as a nurse",
         "category": "education",
         "roles": {
-            "subject": { "where": { "all": [
-                { "attr": "alive", "op": "==", "value": true },
-                { "attr": "age", "op": ">=", "value": 20 },
-                { "not": { "hasEvent": "nursing_school", "withinDays": 3600 } }
-            ] } }
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 20
+                        },
+                        {
+                            "not": {
+                                "hasEvent": "nursing_school",
+                                "withinTicks": 86400
+                            }
+                        }
+                    ]
+                }
+            }
         },
-        "probability": {
-            "perYear": 0.15,
-            "factors": [
-                { "driver": "subject.age", "curve": { "mode": "step", "points": [
-                    { "at": 20, "value": 1.2 }, { "at": 30, "value": 0.6 }, { "at": 45, "value": 0.15 } ] } }
-            ]
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.15,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 20,
+                                    "value": 1.2
+                                },
+                                {
+                                    "at": 30,
+                                    "value": 0.6
+                                },
+                                {
+                                    "at": 45,
+                                    "value": 0.15
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
         },
         "effects": [
-            { "type": "acquireSkill", "value": "MedicalSkill", "target": "subject" },
-            { "type": "emit", "signal": "graduated", "target": "subject" }
+            {
+                "type": "acquireSkill",
+                "value": "MedicalSkill",
+                "target": "subject"
+            },
+            {
+                "type": "emit",
+                "signal": "graduated",
+                "target": "subject"
+            }
         ]
     },
     "made_friend": {
         "label": "Made a new friend",
         "category": "social",
         "roles": {
-            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
         },
-        "probability": { "perYear": 5 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 5
+            }
+        },
         "effects": [
-            { "type": "emit", "signal": "madeFriend", "target": "subject" }
+            {
+                "type": "emit",
+                "signal": "madeFriend",
+                "target": "subject"
+            }
         ]
     },
     "argument": {
         "label": "Had a falling-out",
         "category": "social",
         "roles": {
-            "subject": { "where": { "attr": "alive", "op": "==", "value": true } }
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
         },
-        "probability": { "perYear": 3 },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 3
+            }
+        },
         "effects": [
-            { "type": "emit", "signal": "hadArgument", "target": "subject" }
+            {
+                "type": "emit",
+                "signal": "hadArgument",
+                "target": "subject"
+            }
         ]
+    },
+    "woke_up": {
+        "label": "Woke up",
+        "category": "daily",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": []
+    },
+    "started_working": {
+        "label": "Started working",
+        "category": "career",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "effects": []
+    },
+    "stopped_working": {
+        "label": "Stopped working",
+        "category": "career",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "effects": []
     }
 }

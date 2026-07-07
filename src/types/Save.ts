@@ -4,8 +4,10 @@ import { JobPosition, JobRequirements } from 'types/Work';
 import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { BusinessInstance } from 'types/Business';
-import { EventHistoryTable } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { EconomyState } from 'types/Economy';
+import { InventoryState } from 'types/Objects';
+import { ActionEngineState } from 'types/Action';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool (v1 saves load with an empty pool); families → households.
@@ -14,7 +16,12 @@ import { EconomyState } from 'types/Economy';
 // v4 → v5: added per-person `eventHistory` (older saves load with empty history).
 // v5 → v6: added the `economy` (money balances; older saves load with empty balances).
 // v6 → v7: added `homelessHouseholds` (evicted households with no home; older saves load with none).
-export const SAVE_VERSION = 7;
+// v7 → v8: the canonical tick became the in-game HOUR (task 040; 24 ticks/day). Every persisted tick
+//          (birth/death ticks, partnership ticks, event-history ticks) is multiplied by 24 on load
+//          (game/save/migrations.ts). The clock's elapsedMs is scale-independent and needs no migration.
+//          v8 also carries the append-only event log (040) and object instances/Possessions (041); both are
+//          additive optional fields (older saves load with a synthesized log and no objects).
+export const SAVE_VERSION = 8;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -99,6 +106,16 @@ export interface WorldSnapshot {
     clock?: ClockSnapshot;
     // Per-person life-event history (v5+). Optional so older saves load with empty history.
     eventHistory?: EventHistoryTable;
+    // The append-only per-person event log + its next commit seq (v8, task 040). Older saves synthesize a
+    // minimal log from the aggregate history on migration.
+    eventLog?: EventLogTable;
+    eventLogSeq?: number;
+    // Pending automated event triggers (v8, task 042). Optional so older saves load with an empty queue.
+    eventSchedule?: ScheduleState;
     // Money balances (v6+). Optional so older saves load with empty balances.
     economy?: EconomyState;
+    // Object instances & Possessions (v8, task 041). Optional so older saves load with none.
+    objects?: InventoryState;
+    // Action instances + aggregate action history (v8, task 043). Optional so older saves load with none.
+    actions?: ActionEngineState;
 }

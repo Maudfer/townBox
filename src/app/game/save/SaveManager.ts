@@ -10,6 +10,7 @@ import Vehicle from 'game/Vehicle';
 
 import { SaveProvider } from 'game/save/SaveProvider';
 import LocalStorageProvider from 'game/save/LocalStorageProvider';
+import { migrateSnapshot } from 'game/save/migrations';
 
 import { compress, decompress } from 'util/compress';
 import { Relationships } from 'types/Social';
@@ -135,7 +136,12 @@ export default class SaveManager {
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
             eventHistory: this.game.eventEngine?.getHistory(),
+            eventLog: this.game.eventEngine?.getLog(),
+            eventLogSeq: this.game.eventEngine?.getNextLogSeq(),
+            eventSchedule: this.game.eventEngine?.getScheduleState(),
             economy: this.game.economy?.getState(),
+            objects: this.game.inventory?.getState(),
+            actions: this.game.actionEngine?.getState(),
         };
     }
 
@@ -257,6 +263,7 @@ export default class SaveManager {
         if (snapshot.version > SAVE_VERSION) {
             throw new Error(`[SaveManager] Save version ${snapshot.version} is newer than supported ${SAVE_VERSION}`);
         }
+        migrateSnapshot(snapshot);
 
         city.setName(snapshot.city.name);
         city.setPopulation(snapshot.city.population);
@@ -276,9 +283,30 @@ export default class SaveManager {
             this.game.eventEngine?.loadHistory(snapshot.eventHistory);
         }
 
+        // Append-only event log (v8+, task 040). Pre-v8 saves arrive here with a log synthesized by the
+        // migration from the aggregate history.
+        if (snapshot.eventLog) {
+            this.game.eventEngine?.loadLog(snapshot.eventLog, snapshot.eventLogSeq);
+        }
+
+        // Pending automated triggers (v8+, task 042). Older saves carry none; the queue starts empty.
+        if (snapshot.eventSchedule) {
+            this.game.eventEngine?.loadScheduleState(snapshot.eventSchedule);
+        }
+
         // Economy (v6+). Older saves carry none; balances stay empty.
         if (snapshot.economy) {
             this.game.economy?.loadState(snapshot.economy);
+        }
+
+        // Object instances & Possessions (v8+, task 041). Older saves carry none; the inventory stays empty.
+        if (snapshot.objects) {
+            this.game.inventory?.loadState(snapshot.objects);
+        }
+
+        // Action instances + history (v8+, task 043). Older saves carry none; the engine starts idle.
+        if (snapshot.actions) {
+            this.game.actionEngine?.loadState(snapshot.actions);
         }
 
         // Structures first, so houses/workplaces exist to be referenced by people and families.

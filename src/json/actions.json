@@ -1,0 +1,465 @@
+{
+    "sleep": {
+        "label": "Sleeping",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "home",
+        "durationTicks": 8,
+        "selection": {
+            "weight": 0.2,
+            "modifiers": [
+                {
+                    "when": {
+                        "any": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 21
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 4
+                            }
+                        ]
+                    },
+                    "multiply": 30
+                }
+            ]
+        },
+        "events": {
+            "onComplete": "woke_up"
+        }
+    },
+    "rest": {
+        "label": "Resting",
+        "type": "continuous",
+        "category": "recovery",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0.6
+        }
+    },
+    "read_book": {
+        "label": "Reading",
+        "type": "continuous",
+        "category": "leisure",
+        "durationTicks": 3,
+        "requirements": {
+            "carries": {
+                "archetype": "book"
+            }
+        },
+        "selection": {
+            "weight": 0.8,
+            "cooldownTicks": 12
+        }
+    },
+    "wander": {
+        "label": "Wandering around",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "durationTicks": 4,
+        "selection": {
+            "weight": 0.9,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "age",
+                        "op": ">=",
+                        "value": 65
+                    },
+                    "multiply": 1.5
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "sat_on_bench",
+                    "chancePerTick": 0.35,
+                    "cooldownTicks": 2
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.25,
+                    "maxPerTick": 2
+                },
+                {
+                    "action": "found_coin",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "pocketed_small_object",
+                    "chancePerTick": 0.1,
+                    "requirements": {
+                        "objectAtLocation": {
+                            "flag": "pocketable"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "bake_cake": {
+        "label": "Baking a cake",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "home",
+        "parameters": {
+            "recipe": {
+                "type": "recipe",
+                "required": false
+            }
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 48
+        },
+        "children": {
+            "mode": "sequence",
+            "onStepFailure": "blockParent",
+            "steps": [
+                {
+                    "action": "mix_dough",
+                    "params": {
+                        "recipe": "$parent.recipe"
+                    }
+                },
+                {
+                    "action": "bake_dough"
+                },
+                {
+                    "action": "add_topping",
+                    "params": {
+                        "topping": "$previous.output"
+                    }
+                }
+            ]
+        }
+    },
+    "sat_on_bench": {
+        "label": "Sat on a bench",
+        "type": "discrete",
+        "category": "leisure"
+    },
+    "greeted_neighbor": {
+        "label": "Greeted a neighbor",
+        "type": "discrete",
+        "category": "social"
+    },
+    "found_coin": {
+        "label": "Found a coin",
+        "type": "discrete",
+        "category": "leisure",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "coin",
+                "quantity": 1,
+                "owner": "person",
+                "container": "possessions"
+            }
+        ]
+    },
+    "pocketed_small_object": {
+        "label": "Pocketed a small object",
+        "type": "discrete",
+        "category": "leisure",
+        "requirements": {
+            "objectAtLocation": {
+                "flag": "pocketable"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "flag": "pocketable"
+                    }
+                },
+                "container": "possessions"
+            },
+            {
+                "op": "transferObject",
+                "object": {
+                    "atLocation": {
+                        "flag": "pocketable"
+                    }
+                },
+                "owner": "person"
+            }
+        ]
+    },
+    "grab_pencil": {
+        "label": "Grabbed a pencil",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "pencil"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "pencil"
+                    }
+                },
+                "container": "possessions"
+            },
+            {
+                "op": "transferObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "pencil"
+                    }
+                },
+                "owner": "person"
+            }
+        ]
+    },
+    "mix_dough": {
+        "label": "Mixed the dough",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "recipe": {
+                "type": "recipe",
+                "required": false
+            }
+        }
+    },
+    "bake_dough": {
+        "label": "Baked the dough",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "add_topping": {
+        "label": "Added a topping",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "topping": {
+                "type": "objectInstance",
+                "required": false
+            }
+        }
+    },
+    "attending_customers": {
+        "label": "Attending customers",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "working_the_register": {
+        "label": "Working the register",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "doing_paperwork": {
+        "label": "Doing paperwork",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "doing_rounds": {
+        "label": "Doing rounds",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "working_the_kitchen": {
+        "label": "Working the kitchen",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "doing_manual_labor": {
+        "label": "Doing manual labor",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "teaching_class": {
+        "label": "Teaching a class",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "fixing_equipment": {
+        "label": "Fixing equipment",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "keeping_watch": {
+        "label": "Keeping watch",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "cleaning_premises": {
+        "label": "Cleaning the premises",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "driving_route": {
+        "label": "Driving a route",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "treating_patients": {
+        "label": "Treating patients",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "styling_clients": {
+        "label": "Styling clients",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "coaching_session": {
+        "label": "Running a coaching session",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "drafting_designs": {
+        "label": "Drafting designs",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "screening_film": {
+        "label": "Screening a film",
+        "type": "continuous",
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
+    },
+    "greeted_a_customer": {
+        "label": "Greeted a customer",
+        "type": "discrete",
+        "category": "work"
+    },
+    "tidied_the_workspace": {
+        "label": "Tidied the workspace",
+        "type": "discrete",
+        "category": "work"
+    },
+    "complained_about_the_time": {
+        "label": "Complained about the time",
+        "type": "discrete",
+        "category": "work"
+    },
+    "misplaced_a_document": {
+        "label": "Misplaced a document",
+        "type": "discrete",
+        "category": "work"
+    },
+    "checked_the_clock": {
+        "label": "Checked the clock",
+        "type": "discrete",
+        "category": "work"
+    },
+    "took_a_short_break": {
+        "label": "Took a short break",
+        "type": "discrete",
+        "category": "work"
+    },
+    "refilled_the_coffee_mug": {
+        "label": "Refilled the coffee mug",
+        "type": "discrete",
+        "category": "work"
+    },
+    "answered_a_phone_call": {
+        "label": "Answered a phone call",
+        "type": "discrete",
+        "category": "work"
+    },
+    "jotted_a_note": {
+        "label": "Jotted a note",
+        "type": "discrete",
+        "category": "work"
+    },
+    "dropped_something": {
+        "label": "Dropped something",
+        "type": "discrete",
+        "category": "work"
+    }
+}

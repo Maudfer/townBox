@@ -4,11 +4,12 @@ import Window from 'hud/Window';
 import Person from 'game/Person';
 import Workplace from 'game/Workplace';
 
-import { formatDay } from 'util/time';
+import { formatTick } from 'util/time';
 import { DetailsWindowProps } from 'types/HUD';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;
+const MAX_LOG_ENTRIES = 40;
 
 // Fallback for an event id when the engine isn't available; the engine's getEventLabel prefers the manifest's
 // authored label (task 032) and otherwise prettifies the id the same way.
@@ -47,9 +48,11 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
 
     const personId = person.social.getPersonId();
     const balance = personId ? game.economy?.getPersonBalance(personId) : undefined;
-    const history = game.eventEngine?.getHistory() ?? {};
-    const events = personId ? history[personId] ?? {} : {};
-    const logEntries = Object.entries(events).sort((a, b) => b[1].lastTick - a[1].lastTick);
+    // The append-only life log (task 040): every committed occurrence, newest first, capped for rendering.
+    const fullLog = personId ? game.eventEngine?.getPersonLog(personId) ?? [] : [];
+    const logEntries = fullLog.slice(-MAX_LOG_ENTRIES).reverse();
+    // Carried Possessions (task 041): top-level items; containers note their contents count.
+    const possessions = personId ? game.inventory?.possessionsOf(personId) ?? [] : [];
 
     const relationshipRows = Object.entries(overview.relationships).filter(([, names]) => !!names);
 
@@ -90,14 +93,40 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                 </section>
 
                 <section>
+                    <h4>Possessions</h4>
+                    {possessions.length ? (
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                            {possessions.map(instance => {
+                                const archetype = game.inventory?.getArchetype(instance.archetypeId);
+                                const contained = game.inventory?.contentsOf({ kind: 'object', instanceId: instance.id }) ?? [];
+                                return (
+                                    <li key={instance.id}>
+                                        {archetype?.label ?? instance.archetypeId}{instance.quantity > 1 ? ` ×${instance.quantity}` : ''}
+                                        {contained.length > 0 && <small> (contains {contained.length})</small>}
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    ) : (
+                        <p>—</p>
+                    )}
+                </section>
+
+                <section>
                     <h4>Life events</h4>
                     {logEntries.length ? (
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {logEntries.map(([eventId, record]) => (
-                                <li key={eventId}>
-                                    {game.eventEngine?.getEventLabel(eventId) ?? prettifyEventId(eventId)} — <small>{formatDay(record.lastTick)}{record.count > 1 ? ` (×${record.count})` : ''}</small>
-                                </li>
-                            ))}
+                            {logEntries.map(entry => {
+                                const label = entry.kind === 'action'
+                                    ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle})` : ''}`
+                                    : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
+                                return (
+                                    <li key={entry.seq}>
+                                        {label} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
+                                    </li>
+                                );
+                            })}
+                            {fullLog.length > MAX_LOG_ENTRIES && <li><em>… {fullLog.length - MAX_LOG_ENTRIES} earlier entries</em></li>}
                         </ul>
                     ) : (
                         <p><em>No recorded events yet.</em></p>

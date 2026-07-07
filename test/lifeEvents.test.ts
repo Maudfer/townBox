@@ -26,17 +26,17 @@ describe('Life events — health attribute (task 032)', () => {
         const manifest: EventManifest = {
             fell_ill: {
                 roles: { subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'health', op: '>=', value: 1 }] } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'setAttr', attr: 'health', value: 0.5 }, { type: 'emit', signal: 'fellIll', target: 'subject' }],
             },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 40)]);
 
-        const day0 = engine.simulateDay(state, ['a'], 0, TPY);
+        const day0 = engine.simulateTick(state, ['a'], 0, TPY);
         expect(day0.signals.map(s => s.signal)).toContain('fellIll');
 
-        const day1 = engine.simulateDay(state, ['a'], 1, TPY);
+        const day1 = engine.simulateTick(state, ['a'], 1, TPY);
         expect(day1.signals.map(s => s.signal)).not.toContain('fellIll'); // health is 0.5 now, predicate health>=1 fails
     });
 
@@ -45,12 +45,12 @@ describe('Life events — health attribute (task 032)', () => {
             // Healthy (health >= 0.95) → factor 0 → never dies; once sick → factor 1 → certain that day.
             death: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1, factors: [{ driver: 'subject.health', curve: { mode: 'step', points: [{ at: 0, value: 1 }, { at: 0.95, value: 0 }] } }] },
+                triggers: { probabilistic: { perYear: 1, factors: [{ driver: 'subject.health', curve: { mode: 'step', points: [{ at: 0, value: 1 }, { at: 0.95, value: 0 }] } }] } },
                 effects: [{ type: 'setDeath' }],
             },
             fell_ill: {
                 roles: { subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'health', op: '>=', value: 1 }] } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'setAttr', attr: 'health', value: 0.5 }],
             },
         };
@@ -58,11 +58,11 @@ describe('Life events — health attribute (task 032)', () => {
         const state = makeState([gen('a', Genders.Male, 40)]);
 
         // Day 0: death runs first while healthy (factor 0 → survives), then fell_ill lowers health to 0.5.
-        const day0 = engine.simulateDay(state, ['a'], 0, TPY);
+        const day0 = engine.simulateTick(state, ['a'], 0, TPY);
         expect(day0.died).toEqual([]);
 
         // Day 1: now sick, the health gradient makes death certain.
-        const day1 = engine.simulateDay(state, ['a'], 1, TPY);
+        const day1 = engine.simulateTick(state, ['a'], 1, TPY);
         expect(day1.died).toEqual(['a']);
     });
 });
@@ -83,7 +83,7 @@ describe('Life events — acquireSkill effect (task 032)', () => {
         const manifest: EventManifest = {
             nursing_school: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'acquireSkill', value: 'MedicalSkill', target: 'subject' }, { type: 'emit', signal: 'graduated', target: 'subject' }],
             },
         };
@@ -92,7 +92,7 @@ describe('Life events — acquireSkill effect (task 032)', () => {
         const registry = new SkillRegistry(new Map<PersonId, Person>([['a', person]]));
         const state = makeState([gen('a', Genders.Female, 24)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { skills: registry });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { markets: { skills: registry } });
 
         expect(result.signals.map(s => s.signal)).toContain('graduated');
         expect(person.work.getSkills()).toContain(JobRequirements.MedicalSkill);
@@ -111,14 +111,14 @@ describe('Life events — retirement (task 032)', () => {
         const manifest: EventManifest = {
             retirement: {
                 roles: { subject: { where: { all: [{ attr: 'alive', op: '==', value: true }, { attr: 'age', op: '>=', value: 65 }, { attr: 'employed', op: '==', value: true }] } } },
-                probability: { perYear: 1 },
+                triggers: { probabilistic: { perYear: 1 } },
                 effects: [{ type: 'releaseSlot', resource: 'job', target: 'subject' }, { type: 'setAttr', attr: 'retired', value: true }, { type: 'emit', signal: 'retired', target: 'subject' }],
             },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 70)]);
 
-        const result = engine.simulateDay(state, ['a'], 0, TPY, { jobMarket });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { markets: { jobMarket } });
 
         expect(fired).toEqual(['a']);
         expect(result.signals.map(s => s.signal)).toContain('retired');

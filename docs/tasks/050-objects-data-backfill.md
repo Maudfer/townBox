@@ -2,7 +2,7 @@
 
 - **Type:** Content / Data
 - **Labels:** `content`, `objects`, `data`, `enrichment-arc`
-- **Depends on:** [041](041-objects-and-possessions.md) (schema + validators), [049](049-content-planning-lists_DONE.md) (the name lists)
+- **Depends on:** [041](041-objects-and-possessions_DONE.md) (schema + validators), [049](049-content-planning-lists_DONE.md) (the name lists)
 
 ## Goal
 

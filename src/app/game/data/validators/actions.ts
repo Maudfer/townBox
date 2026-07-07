@@ -1,0 +1,225 @@
+// Validator for the Action manifest (src/json/actions.json, task 043). Structure: shapes, enums, parameter
+// specs, children (pool/sequence), binding syntax. Semantics: child action refs must exist and be discrete,
+// lifecycle event links must reference events that declare a `manual` trigger (the action↔event coupling is
+// managed data, 038 §7), and sequence bindings must reference declared parent parameters.
+
+import { IssueCollector } from 'game/data/registry';
+import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
+import { validatePredicate } from 'game/data/substrate';
+import { ActionManifest } from 'types/Action';
+import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/data/validators/oar';
+import { EventManifest } from 'types/LifeEvent';
+
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'consequences'];
+const ACTION_TYPES = ['discrete', 'continuous'];
+const CATEGORIES = ['obligation', 'work', 'leisure', 'social', 'recovery', 'movement', 'maintenance'];
+const PARAMETER_TYPES = ['person', 'objectArchetype', 'objectInstance', 'recipe', 'string', 'number', 'boolean'];
+const CONTINUOUS_ONLY = ['location', 'durationTicks', 'completeWhen', 'children'];
+const STEP_FAILURE_POLICIES = ['blockParent', 'skipStep', 'failParent'];
+const LOCATION_KEY_PATTERN = /^(home|outside|building:.+|venue:.+)$/;
+
+export function validateActionsStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, '', data)) {
+        return;
+    }
+    for (const [id, action] of Object.entries(data)) {
+        if (!checkRecord(issues, id, action)) {
+            continue;
+        }
+        checkUnknownKeys(issues, id, action, ACTION_KEYS);
+        checkString(issues, `${id}.label`, action['label']);
+        const typeOk = checkEnum(issues, `${id}.type`, action['type'], ACTION_TYPES);
+        checkEnum(issues, `${id}.category`, action['category'], CATEGORIES);
+
+        if (typeOk && action['type'] === 'discrete') {
+            for (const field of CONTINUOUS_ONLY) {
+                if (field in action) {
+                    issues.add(`${id}.${field}`, 'only continuous actions may declare this field');
+                }
+            }
+        }
+
+        if ('requirements' in action) {
+            validatePredicate(issues, `${id}.requirements`, action['requirements']);
+        }
+        const parameterNames = new Set<string>();
+        if ('parameters' in action && checkRecord(issues, `${id}.parameters`, action['parameters'])) {
+            for (const [name, spec] of Object.entries(action['parameters'] as Record<string, unknown>)) {
+                parameterNames.add(name);
+                const path = `${id}.parameters.${name}`;
+                if (!checkRecord(issues, path, spec)) {
+                    continue;
+                }
+                checkUnknownKeys(issues, path, spec, ['type', 'required']);
+                checkEnum(issues, `${path}.type`, (spec as Record<string, unknown>)['type'], PARAMETER_TYPES);
+            }
+        }
+        if ('selection' in action && checkRecord(issues, `${id}.selection`, action['selection'])) {
+            const selection = action['selection'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.selection`, selection, ['weight', 'cooldownTicks', 'modifiers']);
+            if ('weight' in selection) {
+                checkNumber(issues, `${id}.selection.weight`, selection['weight'], { min: 0 });
+            }
+            if ('cooldownTicks' in selection) {
+                checkNumber(issues, `${id}.selection.cooldownTicks`, selection['cooldownTicks'], { min: 1, integer: true });
+            }
+            if ('modifiers' in selection && checkArray(issues, `${id}.selection.modifiers`, selection['modifiers'])) {
+                (selection['modifiers'] as unknown[]).forEach((modifier, index) => {
+                    const path = `${id}.selection.modifiers[${index}]`;
+                    if (!checkRecord(issues, path, modifier)) {
+                        return;
+                    }
+                    checkUnknownKeys(issues, path, modifier, ['when', 'multiply']);
+                    validatePredicate(issues, `${path}.when`, (modifier as Record<string, unknown>)['when']);
+                    checkNumber(issues, `${path}.multiply`, (modifier as Record<string, unknown>)['multiply'], { min: 0 });
+                });
+            }
+        }
+        if ('location' in action && checkString(issues, `${id}.location`, action['location'])) {
+            if (!LOCATION_KEY_PATTERN.test(action['location'] as string)) {
+                issues.add(`${id}.location`, 'expected a canonical location key (home, outside, building:<key>, venue:<kind>)');
+            }
+        }
+        if ('durationTicks' in action) {
+            checkNumber(issues, `${id}.durationTicks`, action['durationTicks'], { min: 1, integer: true });
+        }
+        if ('completeWhen' in action) {
+            validatePredicate(issues, `${id}.completeWhen`, action['completeWhen']);
+        }
+        if ('children' in action) {
+            validateChildren(issues, id, action['children'], parameterNames);
+        }
+        if ('consequences' in action) {
+            validateConsequenceOps(issues, `${id}.consequences`, action['consequences']);
+        }
+        if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {
+            const events = action['events'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt']);
+            for (const hook of ['onStart', 'onComplete', 'onInterrupt']) {
+                if (hook in events) {
+                    checkString(issues, `${id}.events.${hook}`, events[hook]);
+                }
+            }
+        }
+    }
+}
+
+function validateChildren(issues: IssueCollector, id: string, children: unknown, parameterNames: Set<string>): void {
+    const path = `${id}.children`;
+    if (!checkRecord(issues, path, children)) {
+        return;
+    }
+    const mode = children['mode'];
+    if (mode === 'pool') {
+        checkUnknownKeys(issues, path, children, ['mode', 'entries']);
+        if (!checkArray(issues, `${path}.entries`, children['entries'])) {
+            return;
+        }
+        const entries = children['entries'] as unknown[];
+        if (entries.length === 0) {
+            issues.add(`${path}.entries`, 'a pool needs at least one entry');
+        }
+        entries.forEach((entry, index) => {
+            const entryPath = `${path}.entries[${index}]`;
+            if (!checkRecord(issues, entryPath, entry)) {
+                return;
+            }
+            checkUnknownKeys(issues, entryPath, entry, ['action', 'chancePerTick', 'maxPerTick', 'cooldownTicks', 'maxTotal', 'requirements']);
+            checkString(issues, `${entryPath}.action`, entry['action']);
+            checkNumber(issues, `${entryPath}.chancePerTick`, entry['chancePerTick'], { min: 0, max: 1 });
+            for (const field of ['maxPerTick', 'cooldownTicks', 'maxTotal']) {
+                if (field in entry) {
+                    checkNumber(issues, `${entryPath}.${field}`, entry[field], { min: 1, integer: true });
+                }
+            }
+            if ('requirements' in entry) {
+                validatePredicate(issues, `${entryPath}.requirements`, entry['requirements']);
+            }
+        });
+        return;
+    }
+    if (mode === 'sequence') {
+        checkUnknownKeys(issues, path, children, ['mode', 'steps', 'onStepFailure']);
+        if ('onStepFailure' in children) {
+            checkEnum(issues, `${path}.onStepFailure`, children['onStepFailure'], STEP_FAILURE_POLICIES);
+        }
+        if (!checkArray(issues, `${path}.steps`, children['steps'])) {
+            return;
+        }
+        const steps = children['steps'] as unknown[];
+        if (steps.length === 0) {
+            issues.add(`${path}.steps`, 'a sequence needs at least one step');
+        }
+        steps.forEach((step, index) => {
+            const stepPath = `${path}.steps[${index}]`;
+            if (!checkRecord(issues, stepPath, step)) {
+                return;
+            }
+            checkUnknownKeys(issues, stepPath, step, ['action', 'params']);
+            checkString(issues, `${stepPath}.action`, step['action']);
+            if ('params' in step && checkRecord(issues, `${stepPath}.params`, step['params'])) {
+                for (const [name, value] of Object.entries(step['params'] as Record<string, unknown>)) {
+                    const paramPath = `${stepPath}.params.${name}`;
+                    if (typeof value === 'string' && value.startsWith('$')) {
+                        // Named bindings (038 §7.3): $parent.<declared param> or $previous.output.
+                        if (value.startsWith('$parent.')) {
+                            const bound = value.slice('$parent.'.length);
+                            if (!parameterNames.has(bound)) {
+                                issues.add(paramPath, `binding "${value}" references undeclared parent parameter "${bound}"`);
+                            }
+                        } else if (value !== '$previous.output') {
+                            issues.add(paramPath, `unknown binding "${value}" (allowed: $parent.<param>, $previous.output)`);
+                        }
+                    } else if (!isScalar(value)) {
+                        issues.add(paramPath, 'step params must be scalars or bindings');
+                    }
+                }
+            }
+        });
+        return;
+    }
+    issues.add(`${path}.mode`, `expected one of [pool, sequence], got ${JSON.stringify(mode)}`);
+}
+
+export function validateActionsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
+    const manifest = data as ActionManifest;
+    const events = (peers['events'] ?? {}) as EventManifest;
+    const archetypes = new Set(Object.keys((peers['objects'] ?? {}) as Record<string, unknown>));
+
+    for (const [id, action] of Object.entries(manifest)) {
+        if (action.consequences) {
+            validateConsequenceOpsSemantics(issues, `${id}.consequences`, action.consequences as { op: string; archetype?: string; event?: string }[], archetypes, events);
+        }
+        // Children must reference existing DISCRETE actions (v1: no nested continuous children — a sequence
+        // of continuous activities is a Brain-level plan, not an action definition).
+        const childRefs: { ref: string; path: string }[] = [];
+        if (action.children?.mode === 'pool') {
+            action.children.entries.forEach((entry, index) => childRefs.push({ ref: entry.action, path: `${id}.children.entries[${index}].action` }));
+        } else if (action.children?.mode === 'sequence') {
+            action.children.steps.forEach((step, index) => childRefs.push({ ref: step.action, path: `${id}.children.steps[${index}].action` }));
+        }
+        for (const { ref, path } of childRefs) {
+            const child = manifest[ref];
+            if (!child) {
+                issues.add(path, `references unknown action "${ref}"`);
+            } else if (child.type !== 'discrete') {
+                issues.add(path, `child actions must be discrete (v1); "${ref}" is continuous`);
+            }
+        }
+
+        // Lifecycle event links: the event must exist AND be manually triggerable (both directions of the
+        // action↔event coupling are managed data — 038 §7).
+        for (const hook of ['onStart', 'onComplete', 'onInterrupt'] as const) {
+            const eventId = action.events?.[hook];
+            if (!eventId) {
+                continue;
+            }
+            const event = events[eventId];
+            if (!event) {
+                issues.add(`${id}.events.${hook}`, `references unknown event "${eventId}"`);
+            } else if (!event.triggers?.manual) {
+                issues.add(`${id}.events.${hook}`, `event "${eventId}" does not declare a manual trigger (actions fire events through EventEngine.invoke)`);
+            }
+        }
+    }
+}

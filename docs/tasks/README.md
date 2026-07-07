@@ -51,15 +51,15 @@ Always run `npm test` before opening the PR.**
 | 036 | [Pre-game history bootstrap (detailed fast-forward sim)](036-pregame-history-bootstrap_DONE.md) | Simulation | ✅ Done |
 | 037 | [Bankrupt-lot re-occupancy (vacant buildings attract new businesses)](037-bankrupt-lot-reoccupancy_DONE.md) | Economy | ✅ Done |
 | 038 | [Simulation enrichment & execution boundary — architecture + discovery baseline](038-simulation-enrichment-architecture_DONE.md) | Planning | ✅ Done |
-| 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators.md) | Framework | ⬜ Open |
-| 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary.md) | Framework | ⬜ Open |
-| 041 | [Objects & Person Possessions](041-objects-and-possessions.md) | Feature | ⬜ Open |
-| 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation.md) | Feature | ⬜ Open |
-| 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core.md) | Feature | ⬜ Open |
-| 044 | [Action Consequences DSL & object-action relationships](044-action-consequences-and-object-action-relationships.md) | Feature | ⬜ Open |
-| 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions.md) | Feature | ⬜ Open |
-| 046 | [Brain & the Hooks pattern](046-brain-and-hooks.md) | Feature | ⬜ Open |
-| 047 | [The Job Orchestrator](047-job-orchestrator.md) | Feature | ⬜ Open |
+| 039 | [Data-schema registry, validators & CI gate](039-data-schema-registry-and-validators_DONE.md) | Framework | ✅ Done |
+| 040 | [Hourly ticks, shared tick lifecycle & execution boundary](040-hourly-ticks-and-execution-boundary_DONE.md) | Framework | ✅ Done |
+| 041 | [Objects & Person Possessions](041-objects-and-possessions_DONE.md) | Feature | ✅ Done |
+| 042 | [Event triggers (manual/probabilistic/automated) & causation](042-event-triggers-and-causation_DONE.md) | Feature | ✅ Done |
+| 043 | [Actions: definitions, parameters, lifecycle, pools & sequences](043-actions-core_DONE.md) | Feature | ✅ Done |
+| 044 | [Action Consequences DSL & object-action relationships](044-action-consequences-and-object-action-relationships_DONE.md) | Feature | ✅ Done |
+| 045 | [Job shift schedules & work-Action declarations](045-job-shifts-and-work-actions_DONE.md) | Feature | ✅ Done |
+| 046 | [Brain & the Hooks pattern](046-brain-and-hooks_DONE.md) | Feature | ✅ Done |
+| 047 | [The Job Orchestrator](047-job-orchestrator_DONE.md) | Feature | ✅ Done |
 | 048 | [Revise & backfill all existing Events (triggers, hourly, action links)](048-events-revision-hourly-migration.md) | Migration | ⬜ Open |
 | 049 | [Pre-initiative content planning lists](049-content-planning-lists_DONE.md) | Content | ✅ Done |
 | 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill.md) | Content | ⬜ Open |
@@ -90,14 +90,14 @@ so it lands *after* the enrichment it should capture).
 simulation dramatically richer before the offline pipeline freezes it into an asset. One system, two execution
 modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `if bootstrap` branches. Phases:
 
-- **Foundation:** [039](039-data-schema-registry-and-validators.md) (schema registry/validators/CI gate) →
-  [040](040-hourly-ticks-and-execution-boundary.md) (24 ticks/day, shared tick lifecycle, append-only
+- **Foundation:** [039](039-data-schema-registry-and-validators_DONE.md) (schema registry/validators/CI gate) →
+  [040](040-hourly-ticks-and-execution-boundary_DONE.md) (24 ticks/day, shared tick lifecycle, append-only
   logs with causation, the world/materialization adapter).
-- **Core systems:** [041](041-objects-and-possessions.md) (objects & possessions),
-  [042](042-event-triggers-and-causation.md) (event triggers), [043](043-actions-core.md) (actions) →
-  [044](044-action-consequences-and-object-action-relationships.md) (consequences & object transformations).
-- **Integration:** [045](045-job-shifts-and-work-actions.md) (shifts & work actions),
-  [046](046-brain-and-hooks.md) (Brain), [047](047-job-orchestrator.md) (Job Orchestrator) →
+- **Core systems:** [041](041-objects-and-possessions_DONE.md) (objects & possessions),
+  [042](042-event-triggers-and-causation_DONE.md) (event triggers), [043](043-actions-core_DONE.md) (actions) →
+  [044](044-action-consequences-and-object-action-relationships_DONE.md) (consequences & object transformations).
+- **Integration:** [045](045-job-shifts-and-work-actions_DONE.md) (shifts & work actions),
+  [046](046-brain-and-hooks_DONE.md) (Brain), [047](047-job-orchestrator_DONE.md) (Job Orchestrator) →
   [048](048-events-revision-hourly-migration.md) (per-event revision for the new model).
 - **Content:** [049](049-content-planning-lists_DONE.md) (planning lists, done) feeds
   [050](050-objects-data-backfill.md)–[053](053-object-action-relationships-backfill.md);

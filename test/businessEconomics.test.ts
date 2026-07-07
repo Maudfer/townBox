@@ -7,7 +7,7 @@ import GameManager from '../src/app/game/GameManager';
 
 import { unitMaterialCost } from '../src/util/businessFinance';
 import { evaluateCurve } from '../src/util/curve';
-import { DAYS_PER_MONTH } from '../src/util/time';
+import { TICKS_PER_MONTH } from '../src/util/time';
 import { BusinessBlueprint, BusinessBlueprintTable } from '../src/types/Business';
 import { DemandTable } from '../src/types/Demand';
 import { JobPosition, JobRequirements } from '../src/types/Work';
@@ -155,9 +155,9 @@ describe('City business bankruptcy (task 021)', () => {
         // Insolvent every month → bankruptcy on the third consecutive one (bankruptcyMonths = 3).
         city.processMonthlyEconomy(0);
         expect(workplace.getBusiness()).not.toBeNull();
-        city.processMonthlyEconomy(DAYS_PER_MONTH);
+        city.processMonthlyEconomy(TICKS_PER_MONTH);
         expect(workplace.getBusiness()).not.toBeNull();
-        city.processMonthlyEconomy(2 * DAYS_PER_MONTH);
+        city.processMonthlyEconomy(2 * TICKS_PER_MONTH);
 
         expect(workplace.getBusiness()).toBeNull(); // closed → vacant
         expect(workplace.getEmployees()).toHaveLength(0); // everyone laid off
@@ -175,7 +175,7 @@ describe('City business bankruptcy (task 021)', () => {
         economy.setBusinessBalance(key, 100000); // comfortably above the debt floor
 
         for (let month = 0; month < 5; month++) {
-            city.processMonthlyEconomy(month * DAYS_PER_MONTH);
+            city.processMonthlyEconomy(month * TICKS_PER_MONTH);
         }
 
         expect(workplace.getBusiness()).not.toBeNull();
@@ -201,7 +201,7 @@ describe('City vacant-lot re-occupancy (task 037)', () => {
         expect(workplace.getBusiness()).toBeNull();
         expect(workplace.getVacantMonths()).toBe(1);
 
-        city.processMonthlyEconomy(DAYS_PER_MONTH);
+        city.processMonthlyEconomy(TICKS_PER_MONTH);
         expect(workplace.getBusiness()).not.toBeNull();
         expect(economy.getBusinessBalance('10-10')).toBeGreaterThan(0); // capital reseeded
         expect(workplace.getVacantMonths()).toBe(0);
@@ -213,7 +213,7 @@ describe('City vacant-lot re-occupancy (task 037)', () => {
         const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
 
         for (let month = 0; month < 6; month++) {
-            city.processMonthlyEconomy(month * DAYS_PER_MONTH);
+            city.processMonthlyEconomy(month * TICKS_PER_MONTH);
         }
 
         expect(workplace.getBusiness()).toBeNull();

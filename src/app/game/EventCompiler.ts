@@ -19,7 +19,9 @@ import { EventManifest, EventDefinition, Effect } from 'types/LifeEvent';
 
 const DISCRIMINANT_ATTRS = new Set(['alive', 'gender', 'marital', 'employed']);
 
-const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'health', 'retired'];
+// Exported so the data validators (game/data/validators/events.ts, task 039) share the same closed attribute
+// vocabulary — a setAttr targeting an attribute outside this list is an authoring error, not a new feature.
+export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'health', 'retired'];
 
 export interface EventGraph {
     ids: string[];
@@ -72,10 +74,13 @@ function walk(pred: Predicate, negated: boolean, isSubject: boolean, soft: boole
         }
         if (!negated) {
             out.positiveEvents.add(pred.hasEvent);
-        } else if (pred.withinDays === undefined) {
+        } else if (pred.withinTicks === undefined) {
             out.negativePermanentEvents.add(pred.hasEvent); // a windowed negation is a runtime cooldown, not a hard conflict
         }
         return;
+    }
+    if ('hasAction' in pred || 'carries' in pred || 'objectAtLocation' in pred) {
+        return; // action-era queries (task 043) are runtime-only gates, never part of the static event graph
     }
     // attribute comparison
     if (isSubject) {

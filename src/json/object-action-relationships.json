@@ -1,0 +1,65 @@
+{
+    "mix_dough_from_ingredients": {
+        "action": "mix_dough",
+        "inputs": [
+            {
+                "archetype": "flour_bag",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "egg",
+                "quantity": 2,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": [
+            {
+                "archetype": "raw_dough",
+                "quantity": 1,
+                "container": "possessions",
+                "bindAs": "output"
+            }
+        ]
+    },
+    "bake_dough_in_oven": {
+        "action": "bake_dough",
+        "inputs": [
+            {
+                "archetype": "raw_dough",
+                "quantity": 1,
+                "disposition": "transformed",
+                "transformTo": {
+                    "archetype": "baked_dough"
+                },
+                "bindAs": "output"
+            }
+        ],
+        "outputs": [],
+        "context": {
+            "objectAtLocation": {
+                "archetype": "oven"
+            }
+        }
+    },
+    "top_dough_into_cake": {
+        "action": "add_topping",
+        "inputs": [
+            {
+                "archetype": "baked_dough",
+                "quantity": 1,
+                "disposition": "transformed",
+                "transformTo": {
+                    "archetype": "cake"
+                },
+                "bindAs": "output"
+            },
+            {
+                "archetype": "cream_jar",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    }
+}

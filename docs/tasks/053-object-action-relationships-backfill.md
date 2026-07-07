@@ -2,7 +2,7 @@
 
 - **Type:** Content / Data
 - **Labels:** `content`, `objects`, `actions`, `data`, `enrichment-arc`
-- **Depends on:** [044](044-action-consequences-and-object-action-relationships.md) (schema), [050](050-objects-data-backfill.md) (archetypes), [051](051-actions-data-backfill.md) (actions — may land jointly, see 051)
+- **Depends on:** [044](044-action-consequences-and-object-action-relationships_DONE.md) (schema), [050](050-objects-data-backfill.md) (archetypes), [051](051-actions-data-backfill.md) (actions — may land jointly, see 051)
 
 ## Goal
 

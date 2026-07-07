@@ -12,24 +12,24 @@ import { Genders, Gender } from '../src/types/Social';
 import { EventManifest } from '../src/types/LifeEvent';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
-const TPY = 360;
-const HOUR_MS = 3_600_000;
+const TPY = 8640; // hour ticks (task 040)
+const MS_PER_TICK = 150_000; // one hour tick of real time
 
 // A manifest that guarantees a birth: had_sex fires (perYear huge), satisfying pregnancy the same day.
 const BIRTH_MANIFEST: EventManifest = {
-    had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, probability: { perYear: 1000 }, effects: [] },
+    had_sex: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1000 } }, effects: [] },
     pregnancy: {
         roles: {
             subject: { where: { all: [
                 { attr: 'alive', op: '==', value: true },
                 { attr: 'gender', op: '==', value: 'female' },
                 { attr: 'age', op: '>=', value: 18 },
-                { hasEvent: 'had_sex', withinDays: 280 },
-                { not: { hasEvent: 'pregnancy', withinDays: 300 } },
+                { hasEvent: 'had_sex', withinTicks: 280 },
+                { not: { hasEvent: 'pregnancy', withinTicks: 300 } },
             ] } },
             father: { bind: 'partnerOf:subject' },
         },
-        probability: { perYear: 1000 },
+        triggers: { probabilistic: { perYear: 1000 } },
         effects: [{ type: 'birth', mother: 'subject', father: 'father' }],
     },
 };
@@ -72,7 +72,7 @@ function makeGame(rows: number, cols: number, manifest: EventManifest): { game: 
     return { game, field, population, clock };
 }
 
-describe('City.handleNewDay — birth materialization', () => {
+describe('City.handleTick — birth materialization', () => {
     test('a newborn is materialized into the mother\'s house and joins the household', async () => {
         const tickNow = 10 * TPY;
         const { game, field, population, clock } = makeGame(20, 20, BIRTH_MANIFEST);
@@ -85,7 +85,7 @@ describe('City.handleNewDay — birth materialization', () => {
         const people: PersonTable = { mom: mother, dad: father };
         const state: PopulationState = { worldSeed: 11, people, drawSeed: 0, placedIds: ['mom', 'dad'], nextSeq: 2, lastSimulatedYear: 0 };
         population.loadState(state);
-        clock.setElapsedMs(tickNow * HOUR_MS);
+        clock.setElapsedMs(tickNow * MS_PER_TICK);
 
         const house = field.loadStructure('house', 7, 7, 'building_1x1x1_1') as House;
         const momPerson = field.loadPerson(112, 112);
@@ -100,7 +100,7 @@ describe('City.handleNewDay — birth materialization', () => {
         city.setPopulation(2);
 
         const before = field.getPeople().length;
-        await city.handleNewDay({ tick: tickNow, timestamp: clock.getTimestamp() });
+        await city.handleTick({ tick: tickNow, timestamp: clock.getTimestamp() });
 
         // A child was appended to the pool and materialized into the house.
         expect(Object.keys(population.getPeople()).length).toBe(3);

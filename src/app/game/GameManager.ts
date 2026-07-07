@@ -8,14 +8,17 @@ import City from './City';
 import Population from 'game/Population';
 import Clock from 'game/Clock';
 import EventEngine from 'game/EventEngine';
+import ActionEngine from 'game/ActionEngine';
+import Brain from 'game/Brain';
 import Economy from 'game/Economy';
+import Inventory from 'game/Inventory';
 import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
 import { bootstrapHistory, DEFAULT_BOOTSTRAP_PARAMS, BootstrapParams } from 'game/HistoryBootstrap';
 import type { BootstrapMessage } from 'game/bootstrap.worker';
 
 import { PopulationState } from 'types/Genealogy';
-import { EventHistoryTable } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';
@@ -27,6 +30,8 @@ import { DEFAULT_SAVE_SLOT } from 'types/Save';
 import config from 'json/config.json';
 import toolAssets from 'json/toolAssets.json';
 
+import { assertValidData } from 'game/data/schemas';
+
 export default class GameManager {
     private eventListeners: EventListeners = {};
 
@@ -36,9 +41,13 @@ export default class GameManager {
     public population: Population | null;
     public clock: Clock | null;
     public eventEngine: EventEngine | null;
+    public actionEngine: ActionEngine | null;
+    public brain: Brain | null;
     public economy: Economy | null;
+    public inventory: Inventory | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
+    private lastDayEmitted: number;
     private lastTickEmitted: number;
     private lastMinuteEmitted: number;
 
@@ -50,6 +59,11 @@ export default class GameManager {
     private skipSplash: boolean;
 
     constructor() {
+        // Fail loudly on invalid data files before anything consumes them (task 039). The registry validated
+        // in CI too, so shipping builds never trip this — it exists to stop a dev session from running against
+        // a manifest whose errors would otherwise be silently ignored (e.g. a typo'd event effect kind).
+        assertValidData();
+
         // A structure (road/building/soil) occupies a square footprint of FOOTPRINT_TILES x FOOTPRINT_TILES tiles.
         // The world keeps the same number of footprints as the legacy tile grid (128x128), but each footprint is
         // now subdivided into finer tiles, giving placement granularity at the sub-footprint level.
@@ -107,7 +121,11 @@ export default class GameManager {
         this.population = null;
         this.clock = null;
         this.eventEngine = null;
+        this.actionEngine = null;
+        this.brain = null;
         this.economy = null;
+        this.inventory = null;
+        this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
 
@@ -168,9 +186,20 @@ export default class GameManager {
             // materialized people each day via City.handleNewDay; a load restores its history during deserialize.
             this.eventEngine = new EventEngine();
 
+            // The Action engine (task 043) shares the event engine's LifeLog, so events and actions land in
+            // ONE totally-ordered per-person log. A load restores its instances during deserialize.
+            this.actionEngine = new ActionEngine(undefined, this.eventEngine.getLifeLog());
+
+            // The Brain (task 046): the stateless per-person decision layer over the Action engine.
+            this.brain = new Brain(this.actionEngine);
+
             // Economy: per-person/business money balances + the ledger. A load restores balances during
             // deserialize; balances are otherwise seeded at household/business placement.
             this.economy = new Economy();
+
+            // Object instances & Possessions (task 041). A load restores instances during deserialize;
+            // instances are otherwise created by consequences (044) and world seeding.
+            this.inventory = new Inventory();
 
             // Pre-game history bootstrap (task 036): on a fresh game, fast-forward the detailed event engine
             // over the pool's recent past (off the main thread) so drawn households arrive with real histories.
@@ -202,15 +231,18 @@ export default class GameManager {
 
         this.emit("bootstrapStarted");
 
-        const install = (state: PopulationState, history: EventHistoryTable): void => {
+        const install = (state: PopulationState, history: EventHistoryTable, log?: EventLogTable, logSeq?: number): void => {
             population.loadState(state);
             this.eventEngine?.loadHistory(history);
+            if (log) {
+                this.eventEngine?.loadLog(log, logSeq);
+            }
             this.emit("bootstrapFinished");
         };
 
-        const runSync = (): void => {
-            const result = bootstrapHistory(population.getState(), params, progress => this.emit("bootstrapProgress", progress));
-            install(result.state, result.history);
+        const runSync = async (): Promise<void> => {
+            const result = await bootstrapHistory(population.getState(), params, progress => this.emit("bootstrapProgress", progress));
+            install(result.state, result.history, result.log, result.logSeq);
         };
 
         return new Promise<void>(resolve => {
@@ -226,25 +258,24 @@ export default class GameManager {
                             return;
                         }
                         worker.terminate();
-                        install(message.state, message.history);
+                        install(message.state, message.history, message.log, message.logSeq);
                         resolve();
                     };
                     worker.onerror = () => {
                         worker.terminate();
-                        runSync(); // worker failed to load/run — fall back to the main thread
-                        resolve();
+                        void runSync().then(resolve); // worker failed to load/run — fall back to the main thread
                     };
                     worker.postMessage({ state: population.getState(), params });
                 })
                 .catch(() => {
-                    runSync();
-                    resolve();
+                    void runSync().then(resolve);
                 });
         });
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:
-    // `timeChanged` once per in-game minute (the HUD's display granularity) and `newDay` on each rollover.
+    // `timeChanged` once per in-game minute (the HUD's display granularity), `newTick` once per in-game hour
+    // (the canonical simulation tick, task 040), and `newDay` on each day rollover.
     private advanceTime(payload: UpdateEvent): void {
         if (!this.clock) {
             return;
@@ -252,15 +283,20 @@ export default class GameManager {
         this.clock.advance(payload.timeDelta);
 
         const timestamp = this.clock.getTimestamp();
+        const tick = this.clock.getCurrentTick();
         const minuteOfDay = timestamp.hour * 60 + timestamp.minute;
 
-        if (timestamp.absoluteDay !== this.lastTickEmitted) {
-            this.lastTickEmitted = timestamp.absoluteDay;
-            this.emit("newDay", { timestamp, tick: timestamp.absoluteDay });
+        if (timestamp.absoluteDay !== this.lastDayEmitted) {
+            this.lastDayEmitted = timestamp.absoluteDay;
+            this.emit("newDay", { timestamp, tick });
+        }
+        if (tick !== this.lastTickEmitted) {
+            this.lastTickEmitted = tick;
+            this.emit("newTick", { timestamp, tick });
         }
         if (minuteOfDay !== this.lastMinuteEmitted) {
             this.lastMinuteEmitted = minuteOfDay;
-            this.emit("timeChanged", { timestamp, tick: timestamp.absoluteDay });
+            this.emit("timeChanged", { timestamp, tick });
         }
     }
 
@@ -270,7 +306,8 @@ export default class GameManager {
             return;
         }
         const timestamp = this.clock.getTimestamp();
-        this.lastTickEmitted = timestamp.absoluteDay;
+        this.lastDayEmitted = timestamp.absoluteDay;
+        this.lastTickEmitted = this.clock.getCurrentTick();
         this.lastMinuteEmitted = timestamp.hour * 60 + timestamp.minute;
     }
 

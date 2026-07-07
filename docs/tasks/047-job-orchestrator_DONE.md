@@ -2,7 +2,7 @@
 
 - **Type:** Integration / Simulation
 - **Labels:** `jobs`, `actions`, `brain`, `enrichment-arc`
-- **Depends on:** [045](045-job-shifts-and-work-actions.md) (work-action declarations), [046](046-brain-and-hooks.md) (intent publishing)
+- **Depends on:** [045](045-job-shifts-and-work-actions_DONE.md) (work-action declarations), [046](046-brain-and-hooks_DONE.md) (intent publishing)
 - **Blocks:** [048](048-events-revision-hourly-migration.md) benefits (job events get real sources), [051](051-actions-data-backfill.md) exercises it at scale
 
 ## Goal
@@ -12,7 +12,7 @@ A per-business **Job Orchestrator** ([038 §9](038-simulation-enrichment-archite
 ## Requirements
 
 - **Knows** which Persons are assigned to the job/business (from `Workplace`/`WorkLife`) and who is currently on shift (045's shift math).
-- **Publishes high-priority work Action intents** to each on-shift Person's Brain (046 intent shape, `sourceHook: jobOrchestrator`, causation = shift/schedule record): the continuous work Action at shift start (after arrival), replacements when one completes, and completion/interruption requests at shift end (pairing with 046's shift hooks — decide and document which side owns the shift-end request; suggested: the Orchestrator proposes, Brain resolves, the automated `stopped_working` fallback of [042](042-event-triggers-and-causation.md) is the safety net if the person never got a resolution, e.g. despawned mid-shift).
+- **Publishes high-priority work Action intents** to each on-shift Person's Brain (046 intent shape, `sourceHook: jobOrchestrator`, causation = shift/schedule record): the continuous work Action at shift start (after arrival), replacements when one completes, and completion/interruption requests at shift end (pairing with 046's shift hooks — decide and document which side owns the shift-end request; suggested: the Orchestrator proposes, Brain resolves, the automated `stopped_working` fallback of [042](042-event-triggers-and-causation_DONE.md) is the safety net if the person never got a resolution, e.g. despawned mid-shift).
 - **Proposes discrete work Actions** on ticks — sometimes several — from the job's declared discrete pool, under the **same pooling/interleaving/cooldown/eligibility rules as 043 child pools** (reuse that machinery, don't reimplement).
 - **Waits** on the Brain/Action engine for outcomes; never applies effects itself.
 - **Tracks workplace outputs & business inventory:** work-Action consequences with `ownership: employer` (044) land in a per-business inventory (041 instances, owner = business, container = building). No indiscriminate confiscation — personal-lunch-vs-factory-output routes purely by declared consequence ownership.
