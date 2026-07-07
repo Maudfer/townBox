@@ -150,7 +150,7 @@ src/
     householdDraw.json    # Household draw params (arrangement weights, adult age, …)
     lifeSimulation.json   # Coarse off-map mortality/fertility params (death curve, birth rate, age cap, …)
     businesses.json       # Engine A blueprints: lines of work, size range, per-job count curves, economics
-    objects.json          # Object archetypes: dimensions/weight, flags, container behavior, tags (task 041)
+    objects.json          # 1,500+ object archetypes: dimensions/weight, flags, containers, tags (041/050)
     actions.json          # Action manifest (task 043): discrete/continuous, requirements, children, event links
     object-action-relationships.json # Multi-input object transformations per action (task 044)
     jobs.json             # Job reference table: title, salary, required skills, design-for strain/admiration

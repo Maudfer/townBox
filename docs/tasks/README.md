@@ -62,7 +62,7 @@ Always run `npm test` before opening the PR.**
 | 047 | [The Job Orchestrator](047-job-orchestrator_DONE.md) | Feature | ✅ Done |
 | 048 | [Revise & backfill all existing Events (triggers, hourly, action links)](048-events-revision-hourly-migration_DONE.md) | Migration | ✅ Done |
 | 049 | [Pre-initiative content planning lists](049-content-planning-lists_DONE.md) | Content | ✅ Done |
-| 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill.md) | Content | ⬜ Open |
+| 050 | [Objects data backfill (1,200+ archetypes)](050-objects-data-backfill_DONE.md) | Content | ✅ Done |
 | 051 | [Actions data backfill (general + per-job)](051-actions-data-backfill.md) | Content | ⬜ Open |
 | 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill.md) | Content | ⬜ Open |
 | 053 | [object-action-relationships backfill](053-object-action-relationships-backfill.md) | Content | ⬜ Open |
@@ -100,7 +100,7 @@ modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `i
   [046](046-brain-and-hooks_DONE.md) (Brain), [047](047-job-orchestrator_DONE.md) (Job Orchestrator) →
   [048](048-events-revision-hourly-migration_DONE.md) (per-event revision for the new model).
 - **Content:** [049](049-content-planning-lists_DONE.md) (planning lists, done) feeds
-  [050](050-objects-data-backfill.md)–[053](053-object-action-relationships-backfill.md);
+  [050](050-objects-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill.md);
   [054](054-action-event-relationship-docs.md) documents the action↔event web.
 - **Strategic:** [055](055-history-asset-pipeline.md) then runs the *enriched* sim offline into the
   versioned history asset.
