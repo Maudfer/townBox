@@ -12,6 +12,7 @@ import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
 import SkillRegistry from 'game/SkillRegistry';
 import { SchoolSeat } from 'game/SchoolRegistry';
+import SkillProgression from 'game/SkillProgression';
 import LiveWorld from 'game/LiveWorld';
 import { runTick } from 'game/TickRunner';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
@@ -71,6 +72,9 @@ export default class City {
     // The live-mode WorldAdapter (task 040): the map-backed side of the execution boundary. Location
     // transitions requested through it drive the real commute machinery and resolve on physical arrival.
     private world: LiveWorld;
+    // Completed-day -> proficiency service (task 063). One instance so its per-day duplicate guard persists
+    // across ticks; constructed lazily because the SkillBook exists only after postSceneInit.
+    private skillProgression: SkillProgression | null;
 
 
     constructor(gameManager: GameManager) {
@@ -83,6 +87,7 @@ export default class City {
         this.deaths = 0;
         this.bankruptcies = 0;
         this.evictions = 0;
+        this.skillProgression = null;
         this.world = new LiveWorld({
             getPeople: () => Game.field?.getPeople() ?? [],
             buildingByKey: key => {
@@ -556,6 +561,9 @@ export default class City {
         const housing = new HousingMarket(personByGenId, field);
         // Skill registry lets education events grant real proficiency (tasks 032/059).
         const skills = Game.skillBook ? new SkillRegistry(Game.skillBook, event.tick) : null;
+        if (!this.skillProgression && Game.skillBook) {
+            this.skillProgression = new SkillProgression(Game.skillBook);
+        }
 
         // The shared per-tick lifecycle (task 040): the same TickRunner the bootstrap uses, under the `live`
         // execution context. Phase 6 (onCommitted) is this city's world reconciliation.
@@ -589,6 +597,7 @@ export default class City {
             },
             // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.
             schoolOf: id => this.schoolFactsOf(id, personByGenId, event.tick, ticksPerYear),
+            ...(this.skillProgression ? { skillProgression: this.skillProgression } : {}),
             state: population.getState(),
             agentIds: [...materializedIds],
             tick: event.tick,

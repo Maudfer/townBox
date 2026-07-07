@@ -3,7 +3,7 @@
 - **Type:** Framework / Simulation
 - **Labels:** `calendar`, `time`, `progression-arc`
 - **Depends on:** [056](056-progression-arc-discovery-baseline_DONE.md) (decision ratification)
-- **Blocks:** [058](058-school-assignments-and-scheduling_DONE.md) (weekday school), [063](063-school-day-skill-progression.md) (eligible-day counting)
+- **Blocks:** [058](058-school-assignments-and-scheduling_DONE.md) (weekday school), [063](063-school-day-skill-progression_DONE.md) (eligible-day counting)
 
 ## Goal
 
