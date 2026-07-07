@@ -35,6 +35,8 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
 
     const positions = summarizePositions(business.positions, workplace.getOpenPositions());
     const balance = game.economy?.getBusinessBalance(workplace.getIdentifier());
+    // Business-owned object instances (task 047): employer-owned work outputs, wherever they physically sit.
+    const stock = game.inventory?.instancesOwnedBy({ kind: 'business', key: workplace.getIdentifier() }) ?? [];
 
     return (
         <Window game={game} index={index} title={business.name} initialSize={INITIAL_SIZE} onClose={onClose}>
@@ -61,6 +63,21 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
                         ))}
                     </ul>
                 </section>
+
+                {stock.length > 0 && (
+                    <section>
+                        <h4>Inventory ({stock.length})</h4>
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                            {stock.slice(0, 12).map(instance => (
+                                <li key={instance.id}>
+                                    {game.inventory?.getArchetype(instance.archetypeId)?.label ?? instance.archetypeId}
+                                    {instance.quantity > 1 ? ` ×${instance.quantity}` : ''}
+                                </li>
+                            ))}
+                            {stock.length > 12 && <li><em>… {stock.length - 12} more</em></li>}
+                        </ul>
+                    </section>
+                )}
 
                 <section>
                     <h4>Employees ({employees.length})</h4>

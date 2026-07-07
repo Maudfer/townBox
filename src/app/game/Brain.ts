@@ -13,6 +13,8 @@
 
 import ActionEngine, { ActionDeps } from 'game/ActionEngine';
 
+import { jobOrchestratorHook } from 'game/JobOrchestrator';
+
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
 import { isOnShiftAtTick } from 'util/shifts';
@@ -45,9 +47,10 @@ export interface JobFacts {
     shiftEnd: number;
     daysOfWeek?: readonly string[];
     workplaceKey: string;
-    // The job's continuous work-action repertoire (045); the Brain starts the first entry, the Job
-    // Orchestrator (047) refines rotation/discrete proposals.
-    continuousActions: { action: string }[];
+    // The job's work-action repertoire (045), proposed by the Job Orchestrator hook (047): continuous
+    // entries rotate by weight; discrete entries roll per tick on duty.
+    continuousActions: { action: string; chancePerTick?: number }[];
+    discreteActions: { action: string; chancePerTick?: number; maxPerTick?: number; cooldownTicks?: number }[];
 }
 
 export interface BrainDeps extends ActionDeps {
@@ -82,7 +85,7 @@ export default class Brain {
         // Built-in hooks in deterministic registration order. Registration is open for future hooks
         // (need-driven stats etc.) without touching the resolution machinery.
         this.hooks = [
-            obligationHook,
+            jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             wokeUpHook,
             actionCompletedHook,
             inventoryOpportunityHook,
@@ -231,44 +234,6 @@ export default class Brain {
 }
 
 // --- Built-in hooks -----------------------------------------------------------------------------------------
-
-// Shift obligations (onTick): on shift and not working → start the job's continuous work action at the
-// person's OWN workplace (locationOverride); off shift and still working → request completion.
-const obligationHook: BrainHook = {
-    id: 'obligation',
-    kind: 'onTick',
-    propose({ personId, deps, brain }): ActionIntent[] {
-        const job = deps.jobOf?.(personId) ?? null;
-        if (!job) {
-            return [];
-        }
-        const onShift = isOnShiftAtTick(job, deps.tick);
-        const active = brain.getActionEngine().activeInstanceOf(personId);
-        const activeDef = active ? brain.getActionEngine().getDefinition(active.defId) : null;
-        const working = activeDef?.category === 'work';
-
-        if (onShift && !working) {
-            const workAction = job.continuousActions[0]?.action;
-            if (!workAction) {
-                return [];
-            }
-            return [{
-                actionId: workAction,
-                locationOverride: `building:${job.workplaceKey}`,
-                sourceHook: 'obligation',
-                priority: 100,
-                necessity: 'required',
-                mayInterrupt: true, // obligations displace leisure
-                causationId: null,
-            }];
-        }
-        if (!onShift && working && active) {
-            // Shift end: interrupt the work action (the interruption fires stopped_working via its lifecycle).
-            brain.getActionEngine().interrupt(active.id, { source: 'brain', causationId: null }, deps, { died: [], born: [], signals: [], committed: [] });
-        }
-        return [];
-    },
-};
 
 // Woke up (onEventCommitted 'woke_up'): the canonical morning decision — obligation first (the obligation
 // hook will catch the shift on this same tick), else pick a free-time activity now rather than idling.
