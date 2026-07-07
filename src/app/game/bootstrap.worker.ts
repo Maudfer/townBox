@@ -1,6 +1,6 @@
 import { bootstrapHistory, BootstrapParams, BootstrapProgress } from 'game/HistoryBootstrap';
 import { PopulationState } from 'types/Genealogy';
-import { EventHistoryTable } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
 
 // Web Worker that runs the pre-game history bootstrap (task 036) off the main thread, so the loading screen
 // stays responsive while the detailed event engine grinds through the pool's past. The heavy work lives in the
@@ -13,14 +13,14 @@ export interface BootstrapRequest {
 
 export type BootstrapMessage =
     | { type: 'progress'; progress: BootstrapProgress }
-    | { type: 'done'; state: PopulationState; history: EventHistoryTable };
+    | { type: 'done'; state: PopulationState; history: EventHistoryTable; log: EventLogTable; logSeq: number };
 
 const ctx = self as unknown as Worker;
 
-ctx.onmessage = (event: MessageEvent<BootstrapRequest>) => {
+ctx.onmessage = async (event: MessageEvent<BootstrapRequest>) => {
     const { state, params } = event.data;
-    const result = bootstrapHistory(state, params, progress => {
+    const result = await bootstrapHistory(state, params, progress => {
         ctx.postMessage({ type: 'progress', progress } as BootstrapMessage);
     });
-    ctx.postMessage({ type: 'done', state: result.state, history: result.history } as BootstrapMessage);
+    ctx.postMessage({ type: 'done', state: result.state, history: result.history, log: result.log, logSeq: result.logSeq } as BootstrapMessage);
 };

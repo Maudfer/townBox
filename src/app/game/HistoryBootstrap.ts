@@ -1,9 +1,11 @@
 import { isAliveAt } from 'util/kinship';
 import { TICKS_PER_DAY } from 'util/time';
 import { PopulationState, PersonId } from 'types/Genealogy';
-import { EventHistoryTable, EventManifest } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
 
-import EventEngine, { DEFAULT_EVENT_MANIFEST } from 'game/EventEngine';
+import EventEngine from 'game/EventEngine';
+import BootstrapWorld from 'game/BootstrapWorld';
+import { runTick } from 'game/TickRunner';
 
 import bootstrapConfig from 'json/bootstrap.json';
 
@@ -13,14 +15,17 @@ import bootstrapConfig from 'json/bootstrap.json';
 // the empty-history cold start that 013 accepted. Generation (game/Population.generatePopulation) still lays
 // down the deterministic family-tree backbone; this layers detailed recent life on top of it.
 //
-// It is a deterministic pure function of the pool + seed (the engine forks its RNG per tick from the world
-// seed), so the same world always bootstraps identically and the result serializes (pool + event history) into
-// the save — loads never re-run it. No materialized-world adapters are supplied, so employment/housing/skill
-// events (which need the on-map economy) stay live-only; the bootstrap covers the pool-intrinsic events.
+// It is a deterministic function of the pool + seed (the engine forks its RNG per tick from the world seed),
+// so the same world always bootstraps identically and the result serializes (pool + event history + log) into
+// the save — loads never re-run it. Since task 040 it runs through the SAME shared TickRunner lifecycle as
+// live play, under the `bootstrap` execution context (BootstrapWorld): the full event manifest, no filtering.
+// No markets are supplied (no on-map economy exists off-map), so employment/housing/skill/money events stay
+// ineligible by data; everything pool-intrinsic — marriage included — runs at full fidelity.
 //
-// Cost note: the engine's `marriage` role search is O(agents) per single adult per day, so the whole-pool span
-// is the heavy knob (json/bootstrap.json `years`). It is meant to run off the main thread on a loading screen
-// (see game/bootstrap.worker.ts); `stepDays` can coarsen the cadence to trade history granularity for speed.
+// Cost note: candidate role searches (marriage) are paid only on successful probability rolls (task 040's
+// roll-before-resolve), so the whole-pool span (json/bootstrap.json `years`) is the heavy knob. It is meant
+// to run off the main thread on a loading screen (see game/bootstrap.worker.ts); `stepDays` coarsens the
+// cadence to trade history granularity for speed.
 
 export interface BootstrapParams {
     enabled: boolean;
@@ -40,39 +45,31 @@ export interface BootstrapProgress {
 export interface BootstrapResult {
     state: PopulationState;
     history: EventHistoryTable;
-}
-
-// The manifest the bootstrap runs: the default life events MINUS any whose non-subject roles need a candidate
-// `where` search (currently `marriage`). Those are O(agents) per eligible subject — ruinous over the whole
-// living pool — and unnecessary here, since generation (generatePopulation) already lays down the marriage/
-// partnership backbone. Everything else resolves in O(1) (subject-only or `bind` roles: had_sex, pregnancy,
-// birth, death, divorce, illness/injury/recovery, friendship), keeping the bootstrap linear in pool × days.
-function bootstrapManifest(): EventManifest {
-    const manifest: EventManifest = {};
-    for (const [id, definition] of Object.entries(DEFAULT_EVENT_MANIFEST)) {
-        const hasSearchRole = Object.entries(definition.roles).some(([role, spec]) => role !== 'subject' && !!spec.where);
-        if (!hasSearchRole) {
-            manifest[id] = definition;
-        }
-    }
-    return manifest;
+    log: EventLogTable;
+    logSeq: number;
 }
 
 // Runs the bootstrap, mutating `state` (engine-driven births add people, deaths set deathTicks) and returning
 // the resulting state + the accumulated per-person event history. `onProgress` is called once per simulated
 // year so a loading screen can report progress.
-export function bootstrapHistory(
+export async function bootstrapHistory(
     state: PopulationState,
     params: BootstrapParams = DEFAULT_BOOTSTRAP_PARAMS,
     onProgress?: (progress: BootstrapProgress) => void
-): BootstrapResult {
-    const engine = new EventEngine(bootstrapManifest());
+): Promise<BootstrapResult> {
+    // The FULL default manifest (task 040): the pre-boundary bootstrap filtered out candidate-search events
+    // (marriage) because role searches ran before the probability roll — O(agents) per eligible subject per
+    // step. The engine now rolls first and searches only on success, so the whole manifest is affordable
+    // pool-wide and live/bootstrap run identical event sets. Markets stay absent (no on-map economy exists
+    // off-map), so employment/housing/skill/money events stay ineligible — by data, not by filtering.
+    const engine = new EventEngine();
+    const world = new BootstrapWorld();
     const tpy = params.ticksPerYear;
     // `stepDays` is authored in days (author-friendly); the engine steps in hour ticks (task 040).
     const step = Math.max(1, Math.floor(params.stepDays)) * TICKS_PER_DAY;
 
     if (!params.enabled || params.years <= 0 || tpy <= 0) {
-        return { state, history: engine.getHistory() };
+        return { state, history: engine.getHistory(), log: engine.getLog(), logSeq: engine.getNextLogSeq() };
     }
 
     const startTick = -Math.round(params.years * tpy);
@@ -86,7 +83,8 @@ export function bootstrapHistory(
             }
         }
 
-        engine.simulateTick(state, agentIds, tick, tpy, {}, step);
+        // The same shared lifecycle live play runs (TickRunner), under the `bootstrap` execution context.
+        await runTick({ engine, state, agentIds, tick, ticksPerYear: tpy, ctx: { mode: 'bootstrap', world }, ticksPerStep: step });
 
         if (onProgress) {
             const yearsDone = Math.floor((tick - startTick) / tpy);
@@ -103,5 +101,5 @@ export function bootstrapHistory(
     // to run over the whole pool each day during play.)
     state.lastSimulatedYear = 0;
 
-    return { state, history: engine.getHistory() };
+    return { state, history: engine.getHistory(), log: engine.getLog(), logSeq: engine.getNextLogSeq() };
 }

@@ -92,7 +92,7 @@ describe('Life events — acquireSkill effect (task 032)', () => {
         const registry = new SkillRegistry(new Map<PersonId, Person>([['a', person]]));
         const state = makeState([gen('a', Genders.Female, 24)]);
 
-        const result = engine.simulateTick(state, ['a'], 0, TPY, { skills: registry });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { markets: { skills: registry } });
 
         expect(result.signals.map(s => s.signal)).toContain('graduated');
         expect(person.work.getSkills()).toContain(JobRequirements.MedicalSkill);
@@ -118,7 +118,7 @@ describe('Life events — retirement (task 032)', () => {
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 70)]);
 
-        const result = engine.simulateTick(state, ['a'], 0, TPY, { jobMarket });
+        const result = engine.simulateTick(state, ['a'], 0, TPY, { markets: { jobMarket } });
 
         expect(fired).toEqual(['a']);
         expect(result.signals.map(s => s.signal)).toContain('retired');

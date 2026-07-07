@@ -40,8 +40,8 @@ function clone(state: PopulationState): PopulationState {
 }
 
 describe('History bootstrap (task 036)', () => {
-    test('living pool people accrue real event history over the span', () => {
-        const { history } = bootstrapHistory(makePool(), PARAMS);
+    test('living pool people accrue real event history over the span', async () => {
+        const { history } = await bootstrapHistory(makePool(), PARAMS);
 
         // The married couple should have intimate history recorded (had_sex fires often for partners), which is
         // exactly the record pregnancy/other gated events need — the cold start it removes.
@@ -49,33 +49,33 @@ describe('History bootstrap (task 036)', () => {
         expect(coupleHasHistory).toBe(true);
     });
 
-    test('is deterministic: same world seed → identical resulting pool and history', () => {
-        const a = bootstrapHistory(clone(makePool()), PARAMS);
-        const b = bootstrapHistory(clone(makePool()), PARAMS);
+    test('is deterministic: same world seed → identical resulting pool and history', async () => {
+        const a = await bootstrapHistory(clone(makePool()), PARAMS);
+        const b = await bootstrapHistory(clone(makePool()), PARAMS);
         expect(JSON.stringify(a.history)).toBe(JSON.stringify(b.history));
         expect(JSON.stringify(a.state.people)).toBe(JSON.stringify(b.state.people));
     });
 
-    test('a different world seed yields a different history', () => {
-        const a = bootstrapHistory(makePool(1));
-        const b = bootstrapHistory(makePool(2));
+    test('a different world seed yields a different history', async () => {
+        const a = await bootstrapHistory(makePool(1));
+        const b = await bootstrapHistory(makePool(2));
         // Over a multi-year span the stochastic streams diverge (birth counts, event ticks, etc.).
         expect(JSON.stringify(a.history)).not.toBe(JSON.stringify(b.history));
     });
 
-    test('people already dead before the span are untouched and gain no history', () => {
-        const { state, history } = bootstrapHistory(makePool(), PARAMS);
+    test('people already dead before the span are untouched and gain no history', async () => {
+        const { state, history } = await bootstrapHistory(makePool(), PARAMS);
         expect(state.people['d']!.deathTick).toBe(-70 * TPY); // unchanged
         expect(history['d']).toBeUndefined();
     });
 
-    test('anchors lastSimulatedYear at the present so the coarse live sim will not re-run the span', () => {
-        const { state } = bootstrapHistory(makePool(), PARAMS);
+    test('anchors lastSimulatedYear at the present so the coarse live sim will not re-run the span', async () => {
+        const { state } = await bootstrapHistory(makePool(), PARAMS);
         expect(state.lastSimulatedYear).toBe(0);
     });
 
-    test('disabled bootstrap is a no-op', () => {
-        const { history } = bootstrapHistory(makePool(), { ...PARAMS, enabled: false });
+    test('disabled bootstrap is a no-op', async () => {
+        const { history } = await bootstrapHistory(makePool(), { ...PARAMS, enabled: false });
         expect(Object.keys(history)).toHaveLength(0);
     });
 });

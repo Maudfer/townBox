@@ -15,7 +15,7 @@ import { bootstrapHistory, DEFAULT_BOOTSTRAP_PARAMS, BootstrapParams } from 'gam
 import type { BootstrapMessage } from 'game/bootstrap.worker';
 
 import { PopulationState } from 'types/Genealogy';
-import { EventHistoryTable } from 'types/LifeEvent';
+import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';
@@ -211,15 +211,18 @@ export default class GameManager {
 
         this.emit("bootstrapStarted");
 
-        const install = (state: PopulationState, history: EventHistoryTable): void => {
+        const install = (state: PopulationState, history: EventHistoryTable, log?: EventLogTable, logSeq?: number): void => {
             population.loadState(state);
             this.eventEngine?.loadHistory(history);
+            if (log) {
+                this.eventEngine?.loadLog(log, logSeq);
+            }
             this.emit("bootstrapFinished");
         };
 
-        const runSync = (): void => {
-            const result = bootstrapHistory(population.getState(), params, progress => this.emit("bootstrapProgress", progress));
-            install(result.state, result.history);
+        const runSync = async (): Promise<void> => {
+            const result = await bootstrapHistory(population.getState(), params, progress => this.emit("bootstrapProgress", progress));
+            install(result.state, result.history, result.log, result.logSeq);
         };
 
         return new Promise<void>(resolve => {
@@ -235,19 +238,17 @@ export default class GameManager {
                             return;
                         }
                         worker.terminate();
-                        install(message.state, message.history);
+                        install(message.state, message.history, message.log, message.logSeq);
                         resolve();
                     };
                     worker.onerror = () => {
                         worker.terminate();
-                        runSync(); // worker failed to load/run — fall back to the main thread
-                        resolve();
+                        void runSync().then(resolve); // worker failed to load/run — fall back to the main thread
                     };
                     worker.postMessage({ state: population.getState(), params });
                 })
                 .catch(() => {
-                    runSync();
-                    resolve();
+                    void runSync().then(resolve);
                 });
         });
     }
