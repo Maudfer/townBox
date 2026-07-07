@@ -83,7 +83,7 @@ function makeDeps(state: PopulationState, tick: number, world: WorldAdapter = ne
     return { deps, engine, actions };
 }
 
-const emptyResult = (): TickResult => ({ died: [], born: [], signals: [] });
+const emptyResult = (): TickResult => ({ died: [], born: [], signals: [], committed: [] });
 const cause = { source: 'system' as const, causationId: null };
 
 function actionEntries(engine: EventEngine, personId: string): ActionLogEntry[] {

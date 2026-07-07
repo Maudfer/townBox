@@ -324,6 +324,7 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     ctx.result.died.push(...result.died);
                     ctx.result.born.push(...result.born);
                     ctx.result.signals.push(...result.signals);
+                    ctx.result.committed.push(...result.committed);
                 });
                 break;
             }

@@ -102,6 +102,9 @@ export interface ActionInstance {
     defId: ActionId;
     personId: string;
     params: Record<string, Value>;
+    // Per-instance location requirement override (task 046): shared work actions run at the person's OWN
+    // workplace, which only the caller knows.
+    locationOverride?: string;
     status: ActionStatus;
     startedTick: number; // when the instance was created (requested)
     runningSinceTick: number | null; // when it actually entered `running` (post-materialization)

@@ -5,6 +5,7 @@ import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
 
 import EventEngine from 'game/EventEngine';
 import ActionEngine from 'game/ActionEngine';
+import Brain from 'game/Brain';
 import BootstrapWorld from 'game/BootstrapWorld';
 import { runTick } from 'game/TickRunner';
 
@@ -67,6 +68,7 @@ export async function bootstrapHistory(
     // Symmetric with live play (task 043): the Action engine runs in the same lifecycle. Nothing starts
     // actions during the bootstrap yet (Brain, 046), but the spine is identical in both modes.
     const actionEngine = new ActionEngine(undefined, engine.getLifeLog());
+    const brain = new Brain(actionEngine);
     const world = new BootstrapWorld();
     const tpy = params.ticksPerYear;
     // `stepDays` is authored in days (author-friendly); the engine steps in hour ticks (task 040).
@@ -88,7 +90,7 @@ export async function bootstrapHistory(
         }
 
         // The same shared lifecycle live play runs (TickRunner), under the `bootstrap` execution context.
-        await runTick({ engine, actionEngine, state, agentIds, tick, ticksPerYear: tpy, ctx: { mode: 'bootstrap', world }, ticksPerStep: step });
+        await runTick({ engine, actionEngine, brain, state, agentIds, tick, ticksPerYear: tpy, ctx: { mode: 'bootstrap', world }, ticksPerStep: step });
 
         if (onProgress) {
             const yearsDone = Math.floor((tick - startTick) / tpy);

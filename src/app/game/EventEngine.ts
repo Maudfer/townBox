@@ -509,7 +509,7 @@ export default class EventEngine {
         ctx: Partial<ExecutionContext> = {},
         ticksPerStep: number = 1
     ): TickResult {
-        const result: TickResult = { died: [], born: [], signals: [] };
+        const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const rng = new SeededRandom(state.worldSeed).fork(tick);
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1)) >>> 0);
         this.bindMarkets(ctx);
@@ -693,6 +693,7 @@ export default class EventEngine {
             return null;
         }
         const seq = this.recordEvent(subjectId, eventId, tick, roleMap, source, causationId);
+        result.committed.push({ personId: subjectId, eventId, seq });
         for (const pending of pendingSignals) {
             result.signals.push({ ...pending, eventId, causationId: seq });
         }
@@ -718,7 +719,7 @@ export default class EventEngine {
         bindings: Record<string, PersonId> = {},
         ctx: Partial<ExecutionContext> = {}
     ): { outcome: InvokeOutcome; result: TickResult } {
-        const result: TickResult = { died: [], born: [], signals: [] };
+        const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const event = this.manifest[eventId];
         if (!event) {
             return { outcome: { ok: false, reason: 'unknownEvent' }, result };

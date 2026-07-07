@@ -188,6 +188,8 @@ export interface TickResult {
     died: string[];
     born: { id: string; motherId: string; fatherId: string }[];
     signals: { signal: string; personId: string | null; tick: number; eventId: string; causationId: number }[];
+    // Every event commit this tick (task 046): Brain's onEventCommitted hooks consume these.
+    committed: { personId: string; eventId: string; seq: number }[];
 }
 
 // The money adapter the event runtime consults so the pure engine can read wealth (the `money` Context
