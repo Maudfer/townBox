@@ -2,7 +2,7 @@
 
 - **Type:** Test / Documentation
 - **Labels:** `testing`, `docs`, `progression-arc`
-- **Depends on:** all of [057](057-calendar-weekdays-and-weekends.md)–[074](074-person-targeted-actions-backfill.md) (final gate of the arc)
+- **Depends on:** all of [057](057-calendar-weekdays-and-weekends_DONE.md)–[074](074-person-targeted-actions-backfill.md) (final gate of the arc)
 - **Blocks:** [055](055-history-asset-pipeline.md) should start only after this passes (the asset captures the arc)
 
 ## Goal

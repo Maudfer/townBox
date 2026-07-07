@@ -2,7 +2,7 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `school`, `brain`, `calendar`, `progression-arc`
-- **Depends on:** [057](057-calendar-weekdays-and-weekends.md) (`isWeekend`), [056](056-progression-arc-discovery-baseline_DONE.md)
+- **Depends on:** [057](057-calendar-weekdays-and-weekends_DONE.md) (`isWeekend`), [056](056-progression-arc-discovery-baseline_DONE.md)
 - **Blocks:** [063](063-school-day-skill-progression.md) (progression needs completed school days), [055](055-history-asset-pipeline.md) (offline world must include logical schools)
 
 ## Goal
