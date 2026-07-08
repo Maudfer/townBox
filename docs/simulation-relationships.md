@@ -116,3 +116,152 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `workshop_planks` | `milled_some_planks` | — | 4× `wood_plank`, owner: employer | — |
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
+
+## Interaction contracts (person-targeted actions)
+
+Every action with a `person` parameter carries a contract (072); `askFirst` routes consent through the target (073); decline events are curated, not universal (074). All require same-building co-location this iteration.
+
+| Action | Consent | onDecline | Decline event | Selection |
+|---|---|---|---|---|
+| `apologized_to_person` | no consent | — | — | w 0.15, cd 24 |
+| `argued_with_person` | no consent | — | — | w 0.15, cd 24 |
+| `asked_for_advice` | no consent | — | — | w 0.4, cd 12 |
+| `asked_for_help` | no consent | — | — | w 0.4, cd 12 |
+| `celebrated_with_person` | no consent | — | — | w 0.3, cd 24 |
+| `complimented_person` | no consent | — | — | w 0.6, cd 8 |
+| `consoled_person` | no consent | — | — | w 0.2, cd 24 |
+| `gave_object_to_person` | ask first | failParent | `action_declined` | w 0.12, cd 72 |
+| `greeted_person` | no consent | — | — | w 1.5, cd 2 |
+| `hugged_person` | ask first | skipStep | — | w 0.6, cd 8 |
+| `invited_person_over` | ask first | skipStep | — | w 0.2, cd 48 |
+| `lent_an_object` | ask first | failParent | `action_declined` | w 0.2, cd 48 |
+| `offered_job_lead` | no consent | — | — | w 0.1, cd 48 |
+| `played_with_person` | no consent | — | — | w 0.5, cd 8 |
+| `returned_borrowed_object` | ask first | failParent | — | w 3, cd 12 |
+| `shared_food_with_person` | ask first | failParent | — | w 0.4, cd 12 |
+| `talked_to_person` | no consent | — | — | w 1.2, cd 2 |
+| `taught_person_something` | ask first | skipStep | — | w 0.25, cd 24 |
+| `told_a_joke` | no consent | — | — | w 0.7, cd 6 |
+
+## Skills (dependency DAG summary)
+
+335 skills — 15 basics, 320 specific abilities gated by the dependency DAG (059–062). School lands every basic at 60 by 18 (perfect attendance); the band above 60 is career/talent territory.
+
+| Basic skill | Direct dependents |
+|---|---|
+| `art` | 0 |
+| `biology` | 0 |
+| `chemistry` | 0 |
+| `civics` | 0 |
+| `digital_literacy` | 0 |
+| `geography` | 0 |
+| `history` | 0 |
+| `math` | 0 |
+| `music` | 0 |
+| `physical_coordination` | 0 |
+| `physics` | 0 |
+| `problem_solving` | 0 |
+| `reading` | 0 |
+| `speaking` | 0 |
+| `writing` | 0 |
+
+## Job rank ladders
+
+Every job carries a full authored ladder (064/066) with an explicit entry-rank training grant (the temporary College shortcut, applied atomically ONLY inside a successful hire) and a deterministic promotion cadence; the self-climbing rule (CI-enforced) guarantees no ladder silently stalls.
+
+| Job | Ladder | Entry grant | Promotion cadence |
+|---|---|---|---|
+| `accountant` | Trainee Accountant → Accountant → Senior Accountant → Controller | 2 skills | every 30 work days |
+| `architect` | Trainee Architect → Architect → Senior Architect → Principal Architect | 3 skills | every 30 work days |
+| `baker` | Trainee Baker → Baker → Master Baker | 2 skills | every 30 work days |
+| `bank_teller` | Trainee Bank Teller → Bank Teller → Head Teller | 2 skills | every 30 work days |
+| `barista` | Trainee Barista → Barista → Head Barista | 2 skills | every 30 work days |
+| `beautician` | Trainee Beautician → Beautician → Senior Beautician | 2 skills | every 30 work days |
+| `checkout_clerk` | Trainee Checkout Clerk → Checkout Clerk → Head Cashier | 2 skills | every 30 work days |
+| `concierge` | Trainee Concierge → Concierge → Head Concierge | 2 skills | every 30 work days |
+| `cook` | Trainee Cook → Line Cook → Head Cook | 2 skills | every 30 work days |
+| `delivery_driver` | Trainee Delivery Driver → Delivery Driver → Route Supervisor | 2 skills | every 30 work days |
+| `doctor` | Trainee Doctor → Resident → Attending Physician → Senior Physician | 4 skills | every 30 work days |
+| `electronics_technician` | Trainee Electronics Technician → Technician → Senior Technician | 2 skills | every 30 work days |
+| `engineer` | Trainee Engineer → Engineer → Senior Engineer → Principal Engineer | 2 skills | every 30 work days |
+| `fitness_trainer` | Trainee Fitness Trainer → Fitness Trainer → Head Trainer | 2 skills | every 30 work days |
+| `hairdresser` | Trainee Hairdresser → Hair Stylist → Salon Stylist | 2 skills | every 30 work days |
+| `hardware_clerk` | Trainee Hardware Clerk → Hardware Clerk → Floor Supervisor | 2 skills | every 30 work days |
+| `housekeeper` | Trainee Housekeeper → Housekeeper → Head Housekeeper | 2 skills | every 30 work days |
+| `janitor` | Trainee Janitor → Janitor → Head Custodian | 2 skills | every 30 work days |
+| `laborer` | Trainee Laborer → Construction Worker → Site Foreman | 2 skills | every 30 work days |
+| `manager` | Trainee Manager → Manager → General Manager | 2 skills | every 30 work days |
+| `mechanic` | Trainee Mechanic → Mechanic → Master Mechanic | 2 skills | every 30 work days |
+| `nurse` | Trainee Nurse → Nurse → Charge Nurse → Nurse Practitioner | 2 skills | every 30 work days |
+| `pharmacist` | Trainee Pharmacist → Pharmacist → Senior Pharmacist → Chief Pharmacist | 2 skills | every 30 work days |
+| `projectionist` | Trainee Projectionist → Projectionist → Chief Projectionist | 2 skills | every 30 work days |
+| `receptionist` | Trainee Receptionist → Receptionist → Front Desk Manager | 2 skills | every 30 work days |
+| `restocker` | Trainee Restocker → Restocker → Warehouse Lead | 2 skills | every 30 work days |
+| `sales_associate` | Trainee Sales Associate → Sales Associate → Senior Sales Associate | 2 skills | every 30 work days |
+| `security_guard` | Trainee Security Guard → Security Guard → Security Supervisor | 2 skills | every 30 work days |
+| `service_advisor` | Trainee Service Advisor → Service Advisor → Senior Advisor | 2 skills | every 30 work days |
+| `teacher` | Trainee Teacher → Teacher → Senior Teacher → Head Teacher | 3 skills | every 30 work days |
+| `ticket_clerk` | Trainee Ticket Clerk → Ticket Clerk → Box Office Lead | 2 skills | every 30 work days |
+| `usher` | Trainee Usher → Usher → Head Usher | 2 skills | every 30 work days |
+| `waiter` | Trainee Waiter → Waiter → Head Waiter | 2 skills | every 30 work days |
+
+## Placement tags (context vocabulary)
+
+The controlled vocabulary (069): tags mean "this environmental context exists here" — rooms are never simulated. `building`-scoped tags drive object generation (070); `deferred` tags await the venue model.
+
+| Tag | Scope | Archetypes | Buildings |
+|---|---|---|---|
+| `art-studio` | deferred | 27 | 0 |
+| `attic-basement` | building | 27 | 1 |
+| `auto-repair-shop` | building | 31 | 1 |
+| `backyard-garden` | building | 33 | 2 |
+| `bakery` | building | 31 | 1 |
+| `bank` | building | 28 | 1 |
+| `bar` | deferred | 30 | 0 |
+| `bathroom` | building | 31 | 1 |
+| `beach` | deferred | 27 | 0 |
+| `bedroom` | building | 31 | 1 |
+| `bookstore` | deferred | 27 | 0 |
+| `bus-stop` | deferred | 24 | 0 |
+| `cafe` | building | 30 | 1 |
+| `campsite` | deferred | 33 | 0 |
+| `cemetery` | deferred | 24 | 0 |
+| `church` | deferred | 27 | 0 |
+| `cinema` | building | 26 | 1 |
+| `classroom` | building | 29 | 1 |
+| `clothing-store` | building | 31 | 1 |
+| `construction-site` | building | 31 | 1 |
+| `dentist-office` | deferred | 28 | 0 |
+| `electronics-store` | building | 29 | 1 |
+| `factory` | building | 26 | 1 |
+| `farm` | building | 31 | 1 |
+| `fire-station` | deferred | 24 | 0 |
+| `fishing-pier` | deferred | 26 | 0 |
+| `garage` | building | 31 | 2 |
+| `gym` | building | 30 | 1 |
+| `hair-salon` | building | 31 | 1 |
+| `hardware-store` | building | 30 | 1 |
+| `hospital` | building | 30 | 2 |
+| `hotel-room` | building | 27 | 1 |
+| `kitchen` | building | 35 | 4 |
+| `laundromat` | deferred | 26 | 0 |
+| `library` | deferred | 28 | 0 |
+| `living-room` | building | 32 | 1 |
+| `music-studio` | deferred | 30 | 0 |
+| `office` | building | 33 | 14 |
+| `park` | deferred | 30 | 0 |
+| `pet-shop` | deferred | 28 | 0 |
+| `pharmacy` | building | 30 | 1 |
+| `playground` | building | 28 | 1 |
+| `police-station` | deferred | 27 | 0 |
+| `post-office` | deferred | 25 | 0 |
+| `restaurant` | building | 27 | 1 |
+| `school-cafeteria` | building | 27 | 1 |
+| `sports-field` | deferred | 30 | 0 |
+| `street-sidewalk` | deferred | 26 | 0 |
+| `supermarket` | building | 33 | 1 |
+| `swimming-pool` | deferred | 27 | 0 |
+| `toy-store` | deferred | 31 | 0 |
+| `veterinary-clinic` | deferred | 25 | 0 |
+| `warehouse` | building | 27 | 2 |
+| `workshop` | building | 34 | 3 |
