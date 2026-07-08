@@ -33,6 +33,15 @@ export default class BootstrapWorld implements WorldAdapter {
         return this.locationOf(personId);
     }
 
+    // Declare a person as present in this logical world (task 072): people default to {kind:'home'} but
+    // peopleAt can only enumerate KNOWN people — hosts (tests today; 055's offline world) register their
+    // agents so co-location queries see everyone, not just those who already transitioned somewhere.
+    register(personId: PersonId): void {
+        if (!this.locations.has(personId)) {
+            this.locations.set(personId, { kind: 'home' });
+        }
+    }
+
     peopleAt(location: LogicalLocation): PersonId[] {
         const ids: PersonId[] = [];
         for (const [personId, current] of this.locations) {

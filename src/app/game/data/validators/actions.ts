@@ -4,13 +4,13 @@
 // managed data, 038 §7), and sequence bindings must reference declared parent parameters.
 
 import { IssueCollector } from 'game/data/registry';
-import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
+import { checkBoolean, checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
 import { validatePredicate } from 'game/data/substrate';
 import { ActionManifest } from 'types/Action';
 import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/data/validators/oar';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'consequences'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences'];
 const ACTION_TYPES = ['discrete', 'continuous'];
 const CATEGORIES = ['obligation', 'work', 'leisure', 'social', 'recovery', 'movement', 'maintenance'];
 const PARAMETER_TYPES = ['person', 'objectArchetype', 'objectInstance', 'recipe', 'string', 'number', 'boolean'];
@@ -91,6 +91,31 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('consequences' in action) {
             validateConsequenceOps(issues, `${id}.consequences`, action['consequences']);
+        }
+        const personParams = Object.entries((action['parameters'] ?? {}) as Record<string, { type?: string }>)
+            .filter(([, spec]) => spec && spec.type === 'person').map(([name]) => name);
+        if (personParams.length > 0 && !('interaction' in action)) {
+            issues.add(`${id}.interaction`, 'an action with a person-typed parameter must declare its interaction contract (task 072)');
+        }
+        if ('interaction' in action && checkRecord(issues, `${id}.interaction`, action['interaction'])) {
+            const interaction = action['interaction'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.interaction`, interaction, ['targetParam', 'requiresSameBuilding', 'askFirst', 'allowSelf', 'onDecline']);
+            if (checkString(issues, `${id}.interaction.targetParam`, interaction['targetParam'])
+                && !personParams.includes(interaction['targetParam'] as string)) {
+                issues.add(`${id}.interaction.targetParam`, `must name a declared person-typed parameter (have: ${personParams.join(', ') || 'none'})`);
+            }
+            checkBoolean(issues, `${id}.interaction.requiresSameBuilding`, interaction['requiresSameBuilding']);
+            if (interaction['requiresSameBuilding'] === false) {
+                // No remote interaction this iteration (task 072): relaxing this is a deliberate future change.
+                issues.add(`${id}.interaction.requiresSameBuilding`, 'must be true (remote interaction is not modeled yet)');
+            }
+            checkBoolean(issues, `${id}.interaction.askFirst`, interaction['askFirst']);
+            if ('allowSelf' in interaction) {
+                checkBoolean(issues, `${id}.interaction.allowSelf`, interaction['allowSelf']);
+            }
+            if ('onDecline' in interaction) {
+                checkEnum(issues, `${id}.interaction.onDecline`, interaction['onDecline'], ['blockParent', 'skipStep', 'failParent']);
+            }
         }
         if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {
             const events = action['events'] as Record<string, unknown>;

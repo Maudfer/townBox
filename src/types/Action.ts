@@ -68,6 +68,18 @@ export interface ActionEventLinks {
     onInterrupt?: EventLink;
 }
 
+// The interaction contract every Person-targeted action must declare (task 072): which parameter names the
+// target, same-building co-location (REQUIRED true this iteration — no remote interaction yet; the field
+// exists so relaxing later is data), whether consent is asked first (073 implements the flow), whether the
+// action may target its own actor, and how a declined/failed instance behaves as a sequence child.
+export interface InteractionContract {
+    targetParam: string;
+    requiresSameBuilding: boolean;
+    askFirst: boolean;
+    allowSelf?: boolean;
+    onDecline?: StepFailurePolicy;
+}
+
 export interface ActionDefinition {
     label: string;
     type: 'discrete' | 'continuous';
@@ -88,6 +100,9 @@ export interface ActionDefinition {
     events?: ActionEventLinks;
     // Applied atomically when the action commits (discrete: at perform; continuous: at completion) — after
     // any object-action-relationship entry for the action (whose outputs these ops may reference).
+    // The Person-target interaction contract (task 072) — validator-required on any action with a
+    // person-typed parameter.
+    interaction?: InteractionContract;
     consequences?: ConsequenceOp[];
 }
 
@@ -140,7 +155,7 @@ export interface ActionEngineState {
 // Typed result of starting an action — failures are explicit, never silent skips.
 export type ActionStartOutcome =
     | { ok: true; instanceId: ActionInstanceId | null; logSeq: number } // instanceId null for discrete actions
-    | { ok: false; reason: 'unknownAction' | 'requirementsUnmet' | 'missingParameter' | 'alreadyActive' | 'invalidParent' | 'inputsUnavailable' };
+    | { ok: false; reason: 'unknownAction' | 'requirementsUnmet' | 'missingParameter' | 'targetNotPresent' | 'alreadyActive' | 'invalidParent' | 'inputsUnavailable' };
 
 export interface ActionCause {
     source: TriggerSource;

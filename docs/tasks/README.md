@@ -84,7 +84,7 @@ Always run `npm test` before opening the PR.**
 | 069 | [Contextual placement tags — objects, buildings & businesses](069-object-placement-tags_DONE.md) | Framework | ✅ Done |
 | 070 | [Deterministic contextual object generation](070-contextual-object-generation_DONE.md) | Feature | ✅ Done |
 | 071 | [Backfill Action requirements from building context](071-building-context-action-requirements_DONE.md) | Content | ✅ Done |
-| 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts.md) | Framework | ⬜ Open |
+| 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts_DONE.md) | Framework | ✅ Done |
 | 073 | [Consent evaluation & Action failure handling](073-consent-and-action-failure.md) | Feature | ⬜ Open |
 | 074 | [Person-targeted Actions backfill](074-person-targeted-actions-backfill.md) | Content | ⬜ Open |
 | 075 | [Progression arc — end-to-end validation & documentation](075-progression-arc-validation-and-docs.md) | Test/Docs | ⬜ Open |
@@ -160,7 +160,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   vocabulary from the 049 settings lists) → [070](070-contextual-object-generation_DONE.md) (deterministic
   building fill, teardown symmetry) → [071](071-building-context-action-requirements_DONE.md) (activities require
   real environmental context; no conjured objects).
-- **People acting on people:** [072](072-person-targeted-action-contracts.md) (interaction contracts,
+- **People acting on people:** [072](072-person-targeted-action-contracts_DONE.md) (interaction contracts,
   same-building, the target-binding social hook that revives today's dead social actions) →
   [073](073-consent-and-action-failure.md) (consent via the target's Brain — deterministic 80% placeholder —
   and typed action failure consumed by Brain) → [074](074-person-targeted-actions-backfill.md) (askFirst

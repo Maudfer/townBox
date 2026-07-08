@@ -3180,6 +3180,11 @@
                 "required": true
             }
         },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true
+        },
         "requirements": {
             "carries": {
                 "tag": "giftable"
@@ -3226,6 +3231,11 @@
                 "type": "objectInstance",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true
         },
         "consequences": [
             {
@@ -3313,6 +3323,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "talked_to_person": {
@@ -3324,6 +3339,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "asked_for_help": {
@@ -3335,6 +3355,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "complimented_person": {
@@ -3346,6 +3371,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "apologized_to_person": {
@@ -3357,6 +3387,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "argued_with_person": {
@@ -3368,6 +3403,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "invited_person_over": {
@@ -3379,6 +3419,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true
         }
     },
     "told_a_joke": {
@@ -3390,6 +3435,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "asked_for_advice": {
@@ -3401,6 +3451,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "offered_job_lead": {
@@ -3412,6 +3467,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "celebrated_with_person": {
@@ -3423,6 +3483,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "consoled_person": {
@@ -3434,6 +3499,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "played_with_person": {
@@ -3445,6 +3515,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
         }
     },
     "taught_person_something": {
@@ -3456,6 +3531,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true
         }
     },
     "gave_object_to_person": {
@@ -3467,6 +3547,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true
         },
         "requirements": {
             "carries": {
@@ -3497,6 +3582,11 @@
                 "type": "person",
                 "required": true
             }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true
         },
         "requirements": {
             "carries": {
