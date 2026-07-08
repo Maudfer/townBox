@@ -96,6 +96,32 @@ describe('simulatePopulation', () => {
         expect(state.lastSimulatedYear).toBe(10);
     });
 
+    test('a stride larger than the catch-up cap drops no years (task 076/M7)', () => {
+        const capped = generatePopulation(77, GEN_PARAMS);
+        const params: SimulationParams = { ...DEFAULT_SIMULATION_PARAMS, maxCatchUpYears: 3 };
+
+        // One big-stride call advances the cursor by the cap only — it does NOT jump to year 20 (which used to
+        // silently drop years 4..20).
+        simulatePopulation(capped, 20 * TPY, TPY, params);
+        expect(capped.lastSimulatedYear).toBe(3);
+
+        // Subsequent calls catch up the remainder in cap-sized chunks until fully caught up.
+        let guard = 0;
+        while (capped.lastSimulatedYear < 20 && guard++ < 50) {
+            simulatePopulation(capped, 20 * TPY, TPY, params);
+        }
+        expect(capped.lastSimulatedYear).toBe(20);
+
+        // The capped multi-call path simulates exactly the same per-year set as an uncapped per-year loop
+        // (each year forks its own RNG), so no mortality/fertility year is lost or duplicated.
+        const perYear = generatePopulation(77, GEN_PARAMS);
+        for (let year = 1; year <= 20; year++) {
+            simulatePopulation(perYear, year * TPY, TPY, { ...DEFAULT_SIMULATION_PARAMS, maxCatchUpYears: 1 });
+        }
+        const deaths = (state: typeof capped) => Object.entries(state.people).filter(([, p]) => p.deathTick !== null).map(([id, p]) => `${id}@${p.deathTick}`).sort();
+        expect(deaths(capped)).toEqual(deaths(perYear));
+    });
+
     test('over many years a generated population accrues deaths', () => {
         const state = generatePopulation(55, GEN_PARAMS);
         const deceasedBefore = Object.values(state.people).filter(p => p.deathTick !== null).length;
