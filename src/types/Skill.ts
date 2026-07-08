@@ -48,6 +48,17 @@ export interface SkillBookState {
     initialized: Record<PersonId, true>;
 }
 
+// A per-person point-in-time skill snapshot (task 077 per-window snapshotting). The offline history generator
+// records a timeline of these so asset selection can install each drawn person's skills AS OF the chosen
+// window `w` — instead of an end-of-generation snapshot that over-states the living cohort's job proficiency.
+export interface SkillSnapshot {
+    tick: number;       // generator-relative tick the snapshot was taken at
+    skills: PersonSkills;
+}
+
+// Per person, ascending by tick. Selection binary-picks the latest snapshot with tick <= w.
+export type SkillTimeline = Record<PersonId, SkillSnapshot[]>;
+
 // A grant amount: raise to at least a floor, or add an increment. Both clamp at 100.
 export type SkillGrantAmount = { toAtLeast: number } | { add: number };
 

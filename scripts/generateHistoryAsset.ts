@@ -5,12 +5,14 @@
 // and the per-decade population trajectory), and writes the compressed, versioned asset under
 // src/assets/history/.
 //
-// CLI flags override json/historyGenerator.json for calibration draft runs:
-//   --seed N  --years N  --threshold N  --founders N  --capacity N  --steepness N  --step-days N
-//   --max-hours N  --max-people N  --no-capacity  --out PATH
+// The DEFAULT config (json/historyGenerator.json) is the RICHEST, most expensive simulation: daily stepping
+// (daysPerStep 1), the full action log kept, yearly skill snapshots, and the logical-economy world fully on.
+// A centuries-long default run is very long AND produces a very large asset — that is intended. Use the flags
+// below to dial it back for calibration / a feasible run.
 //
-// A centuries-long run at daily cadence can take a long time; that is expected and fine offline. Use
-// --step-days > 1 (coarser) and a smaller --years/--threshold for quick calibration passes.
+// CLI flags override json/historyGenerator.json:
+//   --seed N  --years N  --threshold N  --founders N  --capacity N  --steepness N  --step-days N
+//   --snapshot-years N  --no-action-log  --no-capacity  --max-hours N  --max-people N  --out PATH
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
@@ -72,7 +74,8 @@ async function main(): Promise<void> {
         recordThreshold: num(flags.threshold, base.recordThreshold),
         founderCount: num(flags.founders, base.founderCount),
         daysPerStep: num(flags['step-days'], base.daysPerStep),
-        keepActionLog: flags['keep-action-log'] ? true : base.keepActionLog,
+        keepActionLog: flags['no-action-log'] ? false : (flags['keep-action-log'] ? true : base.keepActionLog),
+        skillSnapshotYears: num(flags['snapshot-years'], base.skillSnapshotYears),
         carryingCapacity: {
             enabled: flags['no-capacity'] ? false : base.carryingCapacity.enabled,
             soft: num(flags.capacity, base.carryingCapacity.soft),

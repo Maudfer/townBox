@@ -363,9 +363,11 @@ external sector.
   *once, offline* (`npm run generate-history` — 100 founders → grow to 1,000 → simulate 500 years, with an
   incremental living index and a soft carrying capacity) into a **versioned, compressed asset**, and new games
   *select* a random window from it (rebased to tick 0, identities re-randomized) instead of simulating — the
-  per-load history bootstrap is retired. The asset currently captures the pool-intrinsic sim (deep genealogies +
-  real life histories); running the off-map logical economy/school/object world during generation, so the asset
-  also carries career histories/skills/possessions, is the immediate follow-up.
+  per-load history bootstrap is retired.
+- **077 — offline logical-economy world** (055 follow-up, landed). The generator can run an **off-map logical
+  world** (homes, schools, jobs, object generation) during generation, so the asset carries **lived skills,
+  real careers-as-history, and possessions** — not just pool-intrinsic demographics. Skills are a **per-person
+  timeline**, so new-game selection installs each drawn person's proficiency *as of the chosen window*.
 - **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).

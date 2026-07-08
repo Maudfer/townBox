@@ -245,6 +245,15 @@ export default class GameManager {
             population.loadState(selected.population);
             this.eventEngine?.loadHistory(selected.eventHistory);
             this.eventEngine?.loadLog(selected.eventLog, selected.eventLogSeq);
+            // Lived skills + carried possessions (task 077), when the asset carries them. Installing the
+            // SkillBook (with its `initialized` set) makes City.setupHousehold's initialize() a no-op for these
+            // people, so their real proficiency survives materialization instead of being re-synthesized.
+            if (selected.skillBook) {
+                this.skillBook?.loadState(selected.skillBook);
+            }
+            if (selected.objects) {
+                this.inventory?.loadState(selected.objects);
+            }
             return;
         }
 
