@@ -8,7 +8,7 @@
 
 - **Type:** Feature / Simulation + Architecture + Tooling
 - **Labels:** `feature`, `simulation`, `tooling`, `asset`, `strategic`, `framework-followup`
-- **Depends on:** **[040](040-hourly-ticks-and-execution-boundary_DONE.md) (the execution boundary — the generator runs the shared `TickRunner` under the `bootstrap` execution context)**, the enrichment content it should capture (ideally [043](043-actions-core_DONE.md)–[052](052-events-data-backfill_DONE.md)), **and the progression & context arc ([056](056-progression-arc-discovery-baseline_DONE.md)–[075](075-progression-arc-validation-and-docs.md) — school, skill proficiency/progression, job ranks, contextual objects, and consent must exist so the asset captures them; the offline logical world (§0-bis) must include logical schools and building object generation)**, plus the original bases: 036 (the history bootstrap — its engine loop, step coarsening, worker/config are the raw material this repurposes), 013 (event engine), 003/save (compression + id-based serialization).
+- **Depends on:** **[040](040-hourly-ticks-and-execution-boundary_DONE.md) (the execution boundary — the generator runs the shared `TickRunner` under the `bootstrap` execution context)**, the enrichment content it should capture (ideally [043](043-actions-core_DONE.md)–[052](052-events-data-backfill_DONE.md)), **and the progression & context arc ([056](056-progression-arc-discovery-baseline_DONE.md)–[075](075-progression-arc-validation-and-docs_DONE.md) — school, skill proficiency/progression, job ranks, contextual objects, and consent must exist so the asset captures them; the offline logical world (§0-bis) must include logical schools and building object generation)**, plus the original bases: 036 (the history bootstrap — its engine loop, step coarsening, worker/config are the raw material this repurposes), 013 (event engine), 003/save (compression + id-based serialization).
 - **Supersedes / retires:** the **per-load** history bootstrap from 036 (`GameManager.runBootstrap`, `bootstrap.worker.ts`, `bootstrapWorkerFactory.ts`, `BootstrapLoader.tsx`, `json/bootstrap.json`). Their *logic* is repurposed into an offline generator; the browser worker/overlay are removed.
 
 ## 0-bis. Reframe by the enrichment arc (read first)
@@ -35,6 +35,17 @@ pass). What changes:
   in hours; `daysPerStep` has become `ticksPerStep`.
 
 ---
+
+**Captures the progression arc (056–075, appended by task 075).** The offline world must run the WHOLE
+progression loop, not just Engine B: logical **schools** (assignments + the weekday obligation, so children
+arrive with calendar-exact school proficiency), the **SkillBook** (proficiency records serialize into the
+asset), job **rank ladders** (grant-hires, work-day progression, promotions on the tick spine), **building
+object generation** (the logical world's houses/venues carry placement tags and generate instances, so
+Possessions and context-grounded actions are real off-map), and the **consent/social** layer
+(`BootstrapWorld.register` + `peopleAt` make co-location work; the social hook and interaction contracts run
+identically). The keystone guarantee is pinned by `test/arcScenarios.test.ts` (075): live ↔ bootstrap skill
+outcomes are identical modulo arrival-tick offsets, and the full-spine tick budget (~11ms at 60 agents) leaves
+the generator its headroom.
 
 ## 0. Why this exists (the paradigm)
 

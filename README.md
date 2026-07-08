@@ -125,7 +125,9 @@ graph TD
         POOL[Genealogy pool<br/>deterministic generation]
         HH[Households<br/>living arrangements]
         PPL[People<br/>age · gender · relationships]
-        SKILL[Skills]
+        SKILL[Skills · proficiency 0–100<br/>335-skill dependency DAG]
+        SCHOOL[School<br/>weekdays · ages 7–17]
+        OBJ[Objects & context<br/>placement tags → generated instances]
         EVT{{Life-event engine<br/>Engine B · per hour}}
     end
 
@@ -139,6 +141,10 @@ graph TD
 
     POOL -->|draw on house placement| HH -->|materialize living members| PPL
     PPL --> SKILL
+    CLOCK -->|weekday school days| SCHOOL -->|basics → 60 at 18| SKILL
+    HH -->|context tags fill homes| OBJ
+    BIZ -->|context tags fill venues| OBJ
+    OBJ -->|action requirements<br/>cook · clean · shower| PPL
     CLOCK -->|newTick| EVT
     CLOCK -->|monthly| MONEY
 
@@ -149,7 +155,8 @@ graph TD
     EVT -->|illness / injury / recovery| PPL
     EVT -->|retirement| JOB
 
-    SKILL -->|makes hireable| JOB --> BIZ
+    SKILL -->|rank ladders + entry grants| JOB --> BIZ
+    JOB -->|work days progress skills · promotions| SKILL
     BIZ -->|wages| MONEY -->|income| PPL
     PPL -->|cost of living| MONEY
     PPL -->|consume goods/services| DEM
@@ -169,8 +176,12 @@ graph TD
 **Reading the loop.** A household is drawn from the pool and its living members become `People` on the map, each
 with a deterministic set of `Skills`. The **life-event engine** runs every in-game hour, aging the world forward: it
 marries people (who then move in together), grows families (births), ends lives (deaths, which trigger orphan
-re-housing), grants skills through education, and toggles health via illness/injury/recovery. Skills make a
-person **hireable**; the **job market** matches them to open positions at **businesses** (generated from
+re-housing), grants skills through education, and toggles health via illness/injury/recovery. Children attend **school**
+on weekdays, landing every basic skill at exactly 60 by 18 (perfect attendance); **proficiency** (0–100, on a
+335-skill dependency DAG) gates hiring — jobs carry full **rank ladders** with entry training grants, and
+completed work days progress skills until a deterministic **promotion**. Placement **tags** on homes and
+businesses generate real **object instances**, and what people can *do* somewhere (cook, clean, shower, grab,
+lend) follows from what's there. Skills make a person **hireable**; the **job market** matches them to open positions at **businesses** (generated from
 blueprints, their job counts scaling with size). Businesses pay **wages** into the money ledger; people spend on
 **cost of living** and generate per-category **demand**; businesses compete for that demand by staffing capacity,
 earning **revenue** and buying **input materials** — which become **B2B demand** on local producers (farms,
@@ -198,18 +209,23 @@ and fertility for people who aren't on the map.
 relation or found by a candidate search), a per-year **probability** with `Curve` factors (e.g. mortality rises
 with age; a `health` attribute raises death probability), and a closed, typed **effects** vocabulary
 (`setDeath`, `marry`, `birth`, `setAttr`, `acquireSlot`, `acquireSkill`, `adjustMoney`, `emit`, …). A compiler
-derives the dependency/exclusivity graph; the runtime resolves it per day over materialized people, records a
+derives the dependency/exclusivity graph; the runtime resolves it per hour over materialized people, records a
 per-person history, and queues signals the `City` turns into world changes (re-housing, cohabitation, move-out)
 and feed entries. Adding an event is **pure data**; adding a new attribute or effect primitive is a deliberate,
 tested code change.
 
 ### Skills, jobs & businesses (Engine A)
-Skills (16) and jobs (≈33) are JSON reference tables kept internally consistent by a validation test. Business
+Skills (335 — 15 basics + 320 specific abilities on a dependency DAG, each held as a 0–100 **proficiency** with
+provenance) and jobs (≈33, each with a full authored **rank ladder** and an explicit entry training grant) are
+JSON reference tables kept internally consistent by validators — including the CI-enforced reachability rule (a
+fresh 18-year-old with school basics can reach every job's entry rank) and the self-climbing rule (no ladder
+silently stalls). Business
 **blueprints** (≈18, across groceries, dining, healthcare, education, construction, retail, leisure, services,
 hospitality, plus B2B producers) describe how to generate a business of a given size: each job's position count
 is a `Curve` over size, so a big supermarket has proportionally more clerks than janitors. Hiring is a real
 event (`get_job`) resolved through a **`JobMarket`** adapter that scores candidates by skill fit minus
-home↔work distance — so education (which grants skills) genuinely unlocks better jobs.
+home↔work distance and hires into the highest rank strictly met (else the entry rank via its grant) — so school,
+education and work experience genuinely unlock better jobs and promotions.
 
 ### Money & the economy
 A serializable `Economy` holds per-person and per-business balances behind one ledger primitive (`transfer`). A
@@ -310,14 +326,19 @@ business P&L → bankruptcy → eviction/homelessness → recovery, with a B2B s
 dynamics, the UI/inspector layer, content expansion, CI, and a per-load history bootstrap that gives freshly
 drawn people real event histories.
 
+The **039–054 simulation-enrichment arc** is complete (architecture in
+[task 038](docs/tasks/038-simulation-enrichment-architecture_DONE.md)): hourly ticks (24/day), object archetypes
+& per-person **Possessions**, the data-driven **Action** system, event **triggers** with causation-chained logs,
+the per-person **Brain**, job shifts & the **Job Orchestrator** — all behind the live/bootstrap **execution
+boundary**. So is the **056–075 progression & context arc**: the weekday/weekend calendar, **school** (ages
+7–17, weekdays), **skill proficiency** (0–100 on a 335-skill dependency DAG, school basics landing at exactly
+60 by 18), **job rank ladders** with entry training grants and deterministic **promotions**, **placement tags**
+and deterministic **building object generation**, context-grounded action requirements, and person-targeted
+interaction **contracts** with a deterministic **consent** flow and typed action failure — validated end-to-end
+(live ↔ bootstrap equivalence, tick-budget re-pins) by task 075.
+
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/README.md)):
 
-- **039–054 — the simulation-enrichment arc** (architecture in
-  [task 038](docs/tasks/038-simulation-enrichment-architecture_DONE.md)): hourly ticks (24/day), object
-  archetypes & per-person **Possessions**, a data-driven **Action** system (discrete/continuous, child pools &
-  sequences, bounded consequences), event **triggers** (probabilistic/manual/automated) with causation-chained
-  logs, per-person **Brain** decision-making, job shifts & a **Job Orchestrator** — all behind a formal
-  live/bootstrap **execution boundary** so the exact same simulation runs on-map and off.
 - **055 — offline history-asset pipeline** (renumbered from 038; lands *after* the enrichment it should
   capture). Reframe the history bootstrap: run the deep, full-fidelity
   simulation *once, offline* (100 founders → grow to 1,000 → simulate 500 years), save it as a **versioned data

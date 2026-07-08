@@ -109,7 +109,7 @@ No code or data changes. No new decisions beyond ratifying the flagged ones — 
 ## Testing
 
 None (planning task). The arc's quality gates are specified per-task; the end-to-end net is
-[075](075-progression-arc-validation-and-docs.md).
+[075](075-progression-arc-validation-and-docs_DONE.md).
 
 ---
 

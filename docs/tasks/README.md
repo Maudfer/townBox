@@ -87,7 +87,7 @@ Always run `npm test` before opening the PR.**
 | 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts_DONE.md) | Framework | ✅ Done |
 | 073 | [Consent evaluation & Action failure handling](073-consent-and-action-failure_DONE.md) | Feature | ✅ Done |
 | 074 | [Person-targeted Actions backfill](074-person-targeted-actions-backfill_DONE.md) | Content | ⬜ Open |
-| 075 | [Progression arc — end-to-end validation & documentation](075-progression-arc-validation-and-docs.md) | Test/Docs | ⬜ Open |
+| 075 | [Progression arc — end-to-end validation & documentation](075-progression-arc-validation-and-docs_DONE.md) | Test/Docs | ✅ Done |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
@@ -165,7 +165,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   [073](073-consent-and-action-failure_DONE.md) (consent via the target's Brain — deterministic 80% placeholder —
   and typed action failure consumed by Brain) → [074](074-person-targeted-actions-backfill_DONE.md) (askFirst
   posture across the social repertoire).
-- **Gate:** [075](075-progression-arc-validation-and-docs.md) (end-to-end scenarios, live↔bootstrap
+- **Gate:** [075](075-progression-arc-validation-and-docs_DONE.md) (end-to-end scenarios, live↔bootstrap
   equivalence, budget re-pins, flows/relationships/CLAUDE.md documentation) — then
   [055](055-history-asset-pipeline.md).
 

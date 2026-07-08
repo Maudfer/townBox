@@ -1,6 +1,7 @@
 # Simulation flows: how Actions, Events, Objects and the Brain interlock
 
-The enrichment arc (tasks 038–053) made Actions and Events deliberately coupled *at the data level*:
+The enrichment arc (tasks 038–053) made Actions and Events deliberately coupled *at the data level*,
+and the progression & context arc (056–075) grew the loop into careers and places (flows 5–8):
 actions fire events on lifecycle transitions, events are invokable by actions and systems, and object
 transformations ride on action commits. This document walks the load-bearing flows through real,
 shipped data so a contributor can hold the whole loop in their head. The mechanical, always-current
@@ -103,13 +104,115 @@ sequenceDiagram
     Note over I,EE: the instance's provenance, the action entry, and the event entry<br/>all trace back to seq N — one auditable chain
 ```
 
+## 5. A school day → proficiency: the calendar-exact 60-at-18 contract
+
+The calendar (057) gates the obligation, the Brain proposes it, the Action completes itself, the
+completion event is the progression seam (063). Each credited day awards `schoolDailyGain` = 60 ÷ the
+person's OWN eligible-weekday count between their 7th and 18th birthdays — perfect attendance lands
+every basic at exactly 60.0 at 18; missed days simply end lower. One credit per calendar day, never
+per child action; school-sourced progression caps at 60.
+
+```mermaid
+sequenceDiagram
+    participant CL as Clock/Calendar (057)
+    participant SR as SchoolRegistry (058)
+    participant B as Brain (schoolObligationHook)
+    participant AE as ActionEngine
+    participant EE as EventEngine
+    participant SP as SkillProgression (063)
+    CL->>B: newTick — weekday, 08:00 (isSchoolDay)
+    SR->>B: schoolFactsOf(kid) — VALID assignment at building 5-5
+    B->>AE: intent: attend_school @ building 5-5 (obligation)
+    AE->>AE: location ≠ 5-5 → requestTransition (live: walk; bootstrap: instant)
+    AE->>AE: arrived → running, log 'started'
+    AE->>EE: completeWhen hourOfDay ≥ 14 → invoke completed_school_day (once: perDay)
+    EE->>SP: phase 5.5 — the commit converts to proficiency
+    SP->>SP: every basic += schoolDailyGain (provenance 'school', cap 60)
+```
+
+## 6. Grant-hire → work days → promotion: the career ladder
+
+Hiring is two-path (064): the highest rank the candidate STRICTLY meets, else the entry rank via its
+explicit `entryTrainingGrant` — the *temporary College shortcut*, applied atomically ONLY inside a
+successful hire (evaluation can farm nothing; a fresh 18-year-old with school basics at 60 reaches
+every job's entry rank — CI-enforced). Each completed work day (the per-day-limited `stopped_working`
+close) awards `100/3650 × multiplier` to the rank's `progresses` skills (065); every
+`evaluateEveryWorkDays` days in rank a deterministic evaluation promotes the qualified (066: full
+ladders, ascending thresholds, the self-climbing rule).
+
+```mermaid
+sequenceDiagram
+    participant JM as JobMarket (064)
+    participant SB as SkillBook
+    participant JO as Job Orchestrator (047)
+    participant EE as EventEngine
+    participant SP as SkillProgression (065)
+    JM->>SB: meets(rank.requires)? highest match, else entry + grantClosure (atomic, in-hire only)
+    JM->>JM: assignment: rankId 'entry', counters zeroed (save v11)
+    JO->>EE: shift end → stopped_working (once: perDay + automated fallback)
+    EE->>SP: phase 5.5 — one work-day credit
+    SP->>SB: progresses[]: += 100/3650 × multiplier (provenance 'job:key')
+    SP->>SP: workDaysInRank % evaluateEveryWorkDays == 0 → evaluate next rank
+    SP->>EE: qualified → invoke got_promoted (signal 'promoted' → feed); rank flips, counters reset
+```
+
+## 7. Building tags → generated objects → action requirements → Possessions
+
+The context loop (069/070/071): placement tags declare "this environmental context exists here"
+(rooms are never simulated), deterministic generation fills buildings with real Object Instances, and
+action requirements read that context — so what people can DO somewhere follows from what's THERE.
+
+```mermaid
+flowchart LR
+    T[placement.json<br/>54-tag vocabulary 069] --> B[blueprint/house tags]
+    B --> G[generateBuildingObjects 070<br/>essentials pinned, weighted draws,<br/>seed = worldSeed ^ objgen:anchor]
+    G --> I[Inventory: instances at<br/>building:anchor, cap 40]
+    I --> R[071 requirements:<br/>objectAtLocation stove+ingredients,<br/>bathtub, supplies, garden]
+    R --> A[Actions run / fail-fast typed]
+    A --> P[grab/buy/lend → Possessions<br/>ownership ≠ containment 041]
+```
+
+## 8. The consent handshake
+
+An `askFirst` interaction (072) consults the TARGET's decision layer (073) before anything commits —
+today a deterministic, stream-isolated 80%-yes placeholder behind the future contextual signature. A
+decline is a zero-mutation `failed` log entry (`failureReason: 'consent_declined'`) that counts toward
+the actor's recency (no instant retry), dispatches to `onActionFailed` hooks one level deep, and fires
+the curated `action_declined` event on object transfers only (074).
+
+```mermaid
+sequenceDiagram
+    participant B as Brain (socialOpportunityHook)
+    participant AE as ActionEngine
+    participant C as Consent (target's layer)
+    participant EE as EventEngine
+    B->>AE: intent: gave_object_to_person (bound co-located target)
+    AE->>AE: contract checks — alive, not self, same building
+    AE->>C: evaluateConsent(worldSeed→tick→salt→source→target→action)
+    alt consented (~80%)
+        AE->>AE: requirements → consequences → 'performed' (identical to non-askFirst)
+        AE->>EE: onComplete → gave_gift
+    else declined
+        AE->>AE: log 'failed' + consent_declined, ZERO mutations, recency recorded
+        AE->>EE: onDecline (curated) → action_declined(action, reason)
+        AE->>B: onActionFailed dispatch (one level — no retry loops)
+    end
+```
+
 ## Where the boundaries are
 
 - **Pure data:** new events, actions, OAR entries, archetypes, job repertoires — files only, gated by
-  the schema registry (039) and the reachability/statistical tests.
+  the schema registry (039) and the reachability/statistical tests. Arc examples: a new rank on a
+  ladder (066), a new placement tag + tagged archetypes (069), an askFirst posture or curated decline
+  event (074), selection weights.
 - **Code changes:** new effect kinds, Context attributes, consequence ops, predicate node types,
-  Brain hooks. Deliberate and rare (038's flexibility line).
+  Brain hooks. Deliberate and rare (038's flexibility line). Arc examples: the consent policy itself
+  (073 — the contextual logic that replaces the placeholder), a new failure-reason vocabulary entry,
+  a new progression seam (a third completed-day event kind), pool person-param binding.
 - **Execution boundary:** anything that needs physical presence requests a transition through the
   `WorldAdapter` and waits (`waiting_for_materialization`); only the *wait* differs between live and
-  bootstrap. If you find yourself writing `if (mode === 'bootstrap')`, stop — that's the line the
-  whole arc exists to hold.
+  bootstrap. Arc examples: attending school (§5 — live kids WALK, bootstrap kids are logically there;
+  the skill outcome is identical, the keystone `test/arcScenarios.test.ts` equivalence), starting a
+  shift, co-location for social targets (`peopleAt`), object queries (`objectLocationOf`). If you
+  find yourself writing `if (mode === 'bootstrap')`, stop — that's the line the whole arc exists to
+  hold.

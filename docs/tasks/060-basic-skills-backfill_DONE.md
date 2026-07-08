@@ -29,7 +29,7 @@ Basic skills are the **only** skills allowed to carry field-of-study names, and 
   list sized accordingly (each addition dilutes nothing — the daily gain is per-skill — but each must be
   plausible as a school subject/capability).
 - Update `docs/simulation-relationships.md` generation inputs if the 054 doc generator grows a skills section
-  (optional here; required by [075](075-progression-arc-validation-and-docs.md)).
+  (optional here; required by [075](075-progression-arc-validation-and-docs_DONE.md)).
 
 ## Non-goals
 
