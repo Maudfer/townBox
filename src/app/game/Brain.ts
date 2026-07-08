@@ -329,8 +329,12 @@ const actionFailedHook: BrainHook = {
     },
 };
 
-// Inventory opportunity (onTick): something pocketable is lying at the person's location and they're not
-// otherwise engaged → a discrete pocket action (038 §8's "natural variety in Possessions").
+// Inventory opportunity (onTick): an idle person interacts with objects around them (038 §8's "natural variety
+// in Possessions"). This is the sole proposer of the generic object verbs (task 076/M3 — grab/use_object/
+// put_down/discard_object were dead before this): pools can't bind params (they start children with {}), so
+// param-bound verbs must come from a hook. Preference order: pick up a free loose carryable here (grab),
+// else pocket a small item (generic flavor), else occasionally fiddle with what they carry (use/put-down/
+// discard). The carried-fiddle is probability-gated so it doesn't starve free-time continuous actions.
 const inventoryOpportunityHook: BrainHook = {
     id: 'inventoryOpportunity',
     kind: 'onTick',
@@ -338,18 +342,63 @@ const inventoryOpportunityHook: BrainHook = {
         if (brain.statusOf(personId).status !== 'idle') {
             return [];
         }
-        const context = brain.getActionEngine().contextFor(personId, deps);
-        if (!context.objectAtLocation?.({ flag: 'pocketable' })) {
-            return [];
-        }
-        return [{
-            actionId: 'pocketed_small_object',
+        const intent = (actionId: string, object?: string): ActionIntent => ({
+            actionId,
+            ...(object ? { params: { object } } : {}),
             sourceHook: 'inventoryOpportunity',
             priority: 15,
             necessity: 'optional',
             mayInterrupt: false,
             causationId: null,
-        }];
+        });
+
+        const world = deps.ctx.world ?? null;
+        const inventory = deps.inventory ?? null;
+        const context = brain.getActionEngine().contextFor(personId, deps);
+
+        // No object substrate (e.g. today's bootstrap, pure tests): keep the generic pocket flavor if eligible.
+        if (!world || !inventory) {
+            return context.objectAtLocation?.({ flag: 'pocketable' })
+                ? [intent('pocketed_small_object')]
+                : [];
+        }
+
+        const flagsOf = (archetypeId: string): Record<string, boolean> =>
+            (inventory.getArchetype(archetypeId)?.flags as unknown as Record<string, boolean>) ?? {};
+        const carriedArchetypes = new Set(inventory.carriedInstances(personId).map(instance => instance.archetypeId));
+
+        // Free-to-take, carryable (non-pocketable) loose objects here that they aren't already carrying → Grab X.
+        const grabbable = world.objectsAt(world.objectLocationOf(personId))
+            .map(id => inventory.getInstance(id))
+            .filter((instance): instance is NonNullable<typeof instance> => !!instance && instance.owner.kind === 'none')
+            .map(instance => instance.archetypeId)
+            .filter(archetypeId => {
+                const flags = flagsOf(archetypeId);
+                return flags.carryable && !flags.pocketable && !carriedArchetypes.has(archetypeId);
+            })
+            .sort();
+        if (grabbable.length > 0) {
+            return [intent('grab', grabbable[0])];
+        }
+
+        // Small item lying around → pocket it (generic, unchanged behavior; self-limits as it's consumed).
+        if (context.objectAtLocation?.({ flag: 'pocketable' })) {
+            return [intent('pocketed_small_object')];
+        }
+
+        // Otherwise, occasionally use/put-down/discard something they carry. Gated so most idle ticks fall
+        // through to the free-time continuous action (idleFallback, lower priority).
+        const carried = [...carriedArchetypes].sort();
+        if (carried.length > 0) {
+            const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x0b1);
+            if (rng.next() < 0.15) {
+                const object = carried[Math.floor(rng.next() * carried.length)]!;
+                const roll = rng.next();
+                const verb = roll < 0.7 ? 'use_object' : roll < 0.9 ? 'put_down' : 'discard_object';
+                return [intent(verb, object)];
+            }
+        }
+        return [];
     },
 };
 

@@ -2828,6 +2828,10 @@
                     "chancePerTick": 0.35
                 },
                 {
+                    "action": "shelving_returns",
+                    "chancePerTick": 0.3
+                },
+                {
                     "action": "balancing_the_till",
                     "chancePerTick": 0.2
                 }
