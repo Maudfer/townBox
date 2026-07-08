@@ -3,7 +3,7 @@
 - **Type:** Framework / Simulation
 - **Labels:** `jobs`, `skills`, `hiring`, `save`, `progression-arc`
 - **Depends on:** [059](059-skill-proficiency-schema-and-store_DONE.md) (`grantClosure`), [061](061-specific-skills-backfill-and-migration_DONE.md) (specific skills)
-- **Blocks:** [065](065-job-skill-progression-and-promotion_DONE.md), [066](066-jobs-ranks-data-backfill.md)
+- **Blocks:** [065](065-job-skill-progression-and-promotion_DONE.md), [066](066-jobs-ranks-data-backfill_DONE.md)
 
 ## Goal
 

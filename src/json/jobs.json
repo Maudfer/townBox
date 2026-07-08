@@ -29,6 +29,10 @@
                     {
                         "skill": "assist_customers",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "process_returns",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -42,7 +46,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Checkout Clerk",
+                "requires": [
+                    {
+                        "skill": "operate_cash_register",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "process_returns",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_cash_register",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "process_returns",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "balance_a_register_drawer",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Cashier",
+                "requires": [
+                    {
+                        "skill": "operate_cash_register",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "balance_a_register_drawer",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_cash_register",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "balance_a_register_drawer",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.3,
@@ -148,6 +227,10 @@
                     {
                         "skill": "pack_boxes_efficiently",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "rotate_perishable_stock",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -161,7 +244,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Restocker",
+                "requires": [
+                    {
+                        "skill": "stock_shelves",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "pack_boxes_efficiently",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "rotate_perishable_stock",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "stock_shelves",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "pack_boxes_efficiently",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "rotate_perishable_stock",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "manage_storage_space",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Warehouse Lead",
+                "requires": [
+                    {
+                        "skill": "stock_shelves",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "pack_boxes_efficiently",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "manage_storage_space",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "stock_shelves",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "pack_boxes_efficiently",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_storage_space",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.6,
@@ -266,6 +424,10 @@
                     {
                         "skill": "sanitize_surfaces",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "deep_clean_kitchens",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -279,7 +441,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Janitor",
+                "requires": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "deep_clean_kitchens",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "deep_clean_kitchens",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Custodian",
+                "requires": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.7,
@@ -386,6 +623,10 @@
                     {
                         "skill": "delegate_tasks",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "plan_shift_coverage",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -399,7 +640,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Manager",
+                "requires": [
+                    {
+                        "skill": "coordinate_staff_schedules",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "delegate_tasks",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "plan_shift_coverage",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "coordinate_staff_schedules",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "delegate_tasks",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "plan_shift_coverage",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "forecast_busy_periods",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "General Manager",
+                "requires": [
+                    {
+                        "skill": "coordinate_staff_schedules",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "delegate_tasks",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "forecast_busy_periods",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "coordinate_staff_schedules",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "delegate_tasks",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "forecast_busy_periods",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -521,6 +837,10 @@
                     {
                         "skill": "suture_wounds",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "read_lab_results",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -540,6 +860,185 @@
                         {
                             "skill": "use_sterile_equipment",
                             "toProficiency": 15
+                        }
+                    ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                },
+                "workActions": {
+                    "continuous": [
+                        {
+                            "action": "treating_patients",
+                            "chancePerTick": 0.4
+                        },
+                        {
+                            "action": "doing_rounds",
+                            "chancePerTick": 1.0
+                        },
+                        {
+                            "action": "reviewing_charts",
+                            "chancePerTick": 1.0
+                        },
+                        {
+                            "action": "sterilizing_equipment",
+                            "chancePerTick": 1.0
+                        }
+                    ]
+                }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Resident",
+                "requires": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "read_lab_results",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "read_lab_results",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "triage_patients",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Attending Physician",
+                "requires": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "triage_patients",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "triage_patients",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "counsel_patients_gently",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Senior Physician",
+                "requires": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "counsel_patients_gently",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "counsel_patients_gently",
+                        "multiplier": 0.5
+                    }
+                ],
+                "workActions": {
+                    "continuous": [
+                        {
+                            "action": "treating_patients",
+                            "chancePerTick": 1.0
+                        },
+                        {
+                            "action": "doing_rounds",
+                            "chancePerTick": 0.3
+                        },
+                        {
+                            "action": "reviewing_charts",
+                            "chancePerTick": 0.3
+                        },
+                        {
+                            "action": "sterilizing_equipment",
+                            "chancePerTick": 0.3
                         }
                     ]
                 }
@@ -652,6 +1151,10 @@
                     {
                         "skill": "administer_medication",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "give_injections",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -665,7 +1168,122 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Nurse",
+                "requires": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "give_injections",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "give_injections",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "monitor_iv_lines",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Charge Nurse",
+                "requires": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "monitor_iv_lines",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "monitor_iv_lines",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "triage_patients",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Nurse Practitioner",
+                "requires": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "triage_patients",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "triage_patients",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.6,
@@ -784,6 +1402,10 @@
                     {
                         "skill": "manage_a_classroom",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "grade_assignments",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -799,6 +1421,177 @@
                         {
                             "skill": "plan_lessons",
                             "toProficiency": 10
+                        }
+                    ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                },
+                "workActions": {
+                    "continuous": [
+                        {
+                            "action": "teaching_class",
+                            "chancePerTick": 0.4
+                        },
+                        {
+                            "action": "grading_papers",
+                            "chancePerTick": 1.0
+                        },
+                        {
+                            "action": "doing_paperwork",
+                            "chancePerTick": 1.0
+                        }
+                    ]
+                }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Teacher",
+                "requires": [
+                    {
+                        "skill": "plan_lessons",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "grade_assignments",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "plan_lessons",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "grade_assignments",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "design_quizzes_and_tests",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Teacher",
+                "requires": [
+                    {
+                        "skill": "plan_lessons",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "design_quizzes_and_tests",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "plan_lessons",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "design_quizzes_and_tests",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "build_a_curriculum",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Head Teacher",
+                "requires": [
+                    {
+                        "skill": "plan_lessons",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "build_a_curriculum",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "plan_lessons",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "build_a_curriculum",
+                        "multiplier": 0.5
+                    }
+                ],
+                "workActions": {
+                    "continuous": [
+                        {
+                            "action": "teaching_class",
+                            "chancePerTick": 1.0
+                        },
+                        {
+                            "action": "grading_papers",
+                            "chancePerTick": 0.3
+                        },
+                        {
+                            "action": "doing_paperwork",
+                            "chancePerTick": 0.3
                         }
                     ]
                 }
@@ -905,6 +1698,10 @@
                     {
                         "skill": "saute_and_grill",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "work_a_flat_top",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -918,7 +1715,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Line Cook",
+                "requires": [
+                    {
+                        "skill": "chop_and_prep_ingredients",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "saute_and_grill",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "work_a_flat_top",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "chop_and_prep_ingredients",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "saute_and_grill",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "work_a_flat_top",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "time_multiple_dishes",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Cook",
+                "requires": [
+                    {
+                        "skill": "chop_and_prep_ingredients",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "saute_and_grill",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "time_multiple_dishes",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "chop_and_prep_ingredients",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "saute_and_grill",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "time_multiple_dishes",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.6,
@@ -1028,6 +1900,10 @@
                     {
                         "skill": "take_food_orders",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "recommend_menu_items",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1041,7 +1917,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Waiter",
+                "requires": [
+                    {
+                        "skill": "serve_tables",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "take_food_orders",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "recommend_menu_items",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "serve_tables",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_food_orders",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "recommend_menu_items",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "handle_guest_complaints",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Waiter",
+                "requires": [
+                    {
+                        "skill": "serve_tables",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "take_food_orders",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "handle_guest_complaints",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "serve_tables",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_food_orders",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "handle_guest_complaints",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.5,
@@ -1146,6 +2097,10 @@
                     {
                         "skill": "mix_and_pour_concrete",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "operate_power_tools",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1159,7 +2114,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Construction Worker",
+                "requires": [
+                    {
+                        "skill": "carry_building_materials",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "mix_and_pour_concrete",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "operate_power_tools",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "carry_building_materials",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "mix_and_pour_concrete",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "operate_power_tools",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "erect_scaffolding",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Site Foreman",
+                "requires": [
+                    {
+                        "skill": "carry_building_materials",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "mix_and_pour_concrete",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "erect_scaffolding",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "carry_building_materials",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "mix_and_pour_concrete",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "erect_scaffolding",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.8,
@@ -1269,6 +2299,10 @@
                     {
                         "skill": "bake_breads_and_pastries",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "decorate_cakes",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1282,7 +2316,82 @@
                             "toProficiency": 20
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Baker",
+                "requires": [
+                    {
+                        "skill": "knead_and_proof_dough",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "bake_breads_and_pastries",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "decorate_cakes",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "knead_and_proof_dough",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "bake_breads_and_pastries",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "decorate_cakes",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "make_fresh_pasta",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Master Baker",
+                "requires": [
+                    {
+                        "skill": "knead_and_proof_dough",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "bake_breads_and_pastries",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "make_fresh_pasta",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "knead_and_proof_dough",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "bake_breads_and_pastries",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "make_fresh_pasta",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.6,
@@ -1393,6 +2502,10 @@
                     {
                         "skill": "serve_counter_customers",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "remember_regulars_preferences",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1406,7 +2519,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Barista",
+                "requires": [
+                    {
+                        "skill": "brew_espresso_drinks",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "serve_counter_customers",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "remember_regulars_preferences",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "brew_espresso_drinks",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "serve_counter_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "remember_regulars_preferences",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "manage_waitlists",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Barista",
+                "requires": [
+                    {
+                        "skill": "brew_espresso_drinks",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "serve_counter_customers",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "manage_waitlists",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "brew_espresso_drinks",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "serve_counter_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_waitlists",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.4,
@@ -1517,6 +2705,10 @@
                     {
                         "skill": "arrange_product_displays",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1530,7 +2722,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Sales Associate",
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "arrange_product_displays",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "arrange_product_displays",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "upsell_products",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Sales Associate",
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "arrange_product_displays",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "upsell_products",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "arrange_product_displays",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "upsell_products",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.3,
@@ -1636,6 +2903,10 @@
                     {
                         "skill": "solder_components",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "design_simple_circuits",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1649,7 +2920,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Technician",
+                "requires": [
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "solder_components",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "design_simple_circuits",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "solder_components",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "design_simple_circuits",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "wire_control_panels",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Technician",
+                "requires": [
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "solder_components",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "wire_control_panels",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "solder_components",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "wire_control_panels",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.3,
@@ -1753,6 +3099,10 @@
                     {
                         "skill": "explain_product_features",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "demonstrate_products",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1766,7 +3116,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Hardware Clerk",
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "demonstrate_products",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "demonstrate_products",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "handle_complaints",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Floor Supervisor",
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "handle_complaints",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "handle_complaints",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.4,
@@ -1872,6 +3297,10 @@
                     {
                         "skill": "process_transactions",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "detect_counterfeit_bills",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1885,7 +3314,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Bank Teller",
+                "requires": [
+                    {
+                        "skill": "count_cash_accurately",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "process_transactions",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "detect_counterfeit_bills",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "count_cash_accurately",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "process_transactions",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "detect_counterfeit_bills",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "reconcile_accounts",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Teller",
+                "requires": [
+                    {
+                        "skill": "count_cash_accurately",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "process_transactions",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "reconcile_accounts",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "count_cash_accurately",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "process_transactions",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "reconcile_accounts",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -1993,6 +3497,10 @@
                     {
                         "skill": "prepare_financial_statements",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "reconcile_accounts",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2006,7 +3514,122 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Accountant",
+                "requires": [
+                    {
+                        "skill": "balance_ledgers",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "reconcile_accounts",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "balance_ledgers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "reconcile_accounts",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "audit_expense_reports",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Accountant",
+                "requires": [
+                    {
+                        "skill": "balance_ledgers",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "audit_expense_reports",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "balance_ledgers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "audit_expense_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "forecast_cash_flow",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Controller",
+                "requires": [
+                    {
+                        "skill": "balance_ledgers",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "forecast_cash_flow",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "balance_ledgers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "forecast_cash_flow",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.1,
@@ -2115,6 +3738,10 @@
                     {
                         "skill": "monitor_security_cameras",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2128,7 +3755,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Security Guard",
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "monitor_security_cameras",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "monitor_security_cameras",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Security Supervisor",
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "monitor_security_cameras",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "monitor_security_cameras",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.5,
@@ -2230,6 +3932,10 @@
                     {
                         "skill": "blow_dry_and_set",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "color_and_highlight_hair",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2243,7 +3949,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Hair Stylist",
+                "requires": [
+                    {
+                        "skill": "cut_and_style_hair",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "blow_dry_and_set",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "color_and_highlight_hair",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "cut_and_style_hair",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "blow_dry_and_set",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "color_and_highlight_hair",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "perm_and_relax_hair",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Salon Stylist",
+                "requires": [
+                    {
+                        "skill": "cut_and_style_hair",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "blow_dry_and_set",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "perm_and_relax_hair",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "cut_and_style_hair",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "blow_dry_and_set",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "perm_and_relax_hair",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.4,
@@ -2347,6 +4128,10 @@
                     {
                         "skill": "do_manicures_and_pedicures",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "apply_makeup",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2360,7 +4145,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Beautician",
+                "requires": [
+                    {
+                        "skill": "apply_skin_treatments",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "do_manicures_and_pedicures",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "apply_makeup",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "apply_skin_treatments",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "do_manicures_and_pedicures",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "apply_makeup",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "apply_nail_extensions",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Beautician",
+                "requires": [
+                    {
+                        "skill": "apply_skin_treatments",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "do_manicures_and_pedicures",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "apply_nail_extensions",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "apply_skin_treatments",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "do_manicures_and_pedicures",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "apply_nail_extensions",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.4,
@@ -2464,6 +4324,10 @@
                     {
                         "skill": "replace_worn_parts",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "tune_engines",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2477,7 +4341,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Mechanic",
+                "requires": [
+                    {
+                        "skill": "diagnose_mechanical_failure",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "replace_worn_parts",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "tune_engines",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "diagnose_mechanical_failure",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "replace_worn_parts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "tune_engines",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "rebuild_carburetors",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Master Mechanic",
+                "requires": [
+                    {
+                        "skill": "diagnose_mechanical_failure",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "replace_worn_parts",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "rebuild_carburetors",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "diagnose_mechanical_failure",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "replace_worn_parts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "rebuild_carburetors",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.7,
@@ -2581,6 +4520,10 @@
                     {
                         "skill": "estimate_repair_costs",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "keep_service_records",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2594,7 +4537,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Service Advisor",
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "estimate_repair_costs",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "keep_service_records",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "estimate_repair_costs",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "keep_service_records",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "handle_complaints",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Advisor",
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "estimate_repair_costs",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "handle_complaints",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "estimate_repair_costs",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "handle_complaints",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -2698,6 +4716,10 @@
                     {
                         "skill": "demonstrate_exercises",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "assess_client_fitness",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2711,7 +4733,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Fitness Trainer",
+                "requires": [
+                    {
+                        "skill": "design_workout_plans",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "demonstrate_exercises",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "assess_client_fitness",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "design_workout_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "demonstrate_exercises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "assess_client_fitness",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "lead_group_classes",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Trainer",
+                "requires": [
+                    {
+                        "skill": "design_workout_plans",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "demonstrate_exercises",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "lead_group_classes",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "design_workout_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "demonstrate_exercises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "lead_group_classes",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.7,
@@ -2812,6 +4909,10 @@
                     {
                         "skill": "manage_bookings",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "answer_switchboard_calls",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2825,7 +4926,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Receptionist",
+                "requires": [
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "manage_bookings",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "answer_switchboard_calls",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_bookings",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "answer_switchboard_calls",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "coordinate_room_service",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Front Desk Manager",
+                "requires": [
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "manage_bookings",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "coordinate_room_service",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_bookings",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "coordinate_room_service",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -2937,6 +5113,10 @@
                     {
                         "skill": "calibrate_equipment",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "document_technical_work",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2950,7 +5130,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Projectionist",
+                "requires": [
+                    {
+                        "skill": "operate_av_equipment",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "calibrate_equipment",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "document_technical_work",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_av_equipment",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "calibrate_equipment",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "document_technical_work",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Chief Projectionist",
+                "requires": [
+                    {
+                        "skill": "operate_av_equipment",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "calibrate_equipment",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_av_equipment",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "calibrate_equipment",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.3,
@@ -3053,6 +5308,10 @@
                     {
                         "skill": "check_tickets",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "escort_visitors",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3066,7 +5325,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Usher",
+                "requires": [
+                    {
+                        "skill": "guide_guests",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "escort_visitors",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "guide_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "escort_visitors",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "manage_lost_and_found",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Usher",
+                "requires": [
+                    {
+                        "skill": "guide_guests",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "manage_lost_and_found",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "guide_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_lost_and_found",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.4,
@@ -3172,6 +5506,10 @@
                     {
                         "skill": "check_tickets",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "process_returns",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3185,7 +5523,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Ticket Clerk",
+                "requires": [
+                    {
+                        "skill": "operate_cash_register",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "process_returns",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_cash_register",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "process_returns",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "balance_a_register_drawer",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Box Office Lead",
+                "requires": [
+                    {
+                        "skill": "operate_cash_register",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "balance_a_register_drawer",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_cash_register",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "balance_a_register_drawer",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -3288,6 +5701,10 @@
                     {
                         "skill": "sanitize_surfaces",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "iron_garments",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3301,7 +5718,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Housekeeper",
+                "requires": [
+                    {
+                        "skill": "change_bed_linens",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "iron_garments",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "change_bed_linens",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "iron_garments",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Housekeeper",
+                "requires": [
+                    {
+                        "skill": "change_bed_linens",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "change_bed_linens",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.7,
@@ -3408,6 +5900,10 @@
                     {
                         "skill": "greet_and_check_in_guests",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "remember_regulars_preferences",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3421,7 +5917,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Concierge",
+                "requires": [
+                    {
+                        "skill": "arrange_guest_services",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "remember_regulars_preferences",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "arrange_guest_services",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "remember_regulars_preferences",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "host_private_events",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Head Concierge",
+                "requires": [
+                    {
+                        "skill": "arrange_guest_services",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "host_private_events",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "arrange_guest_services",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "host_private_events",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -3527,6 +6098,10 @@
                     {
                         "skill": "check_drug_interactions",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "educate_on_medication_use",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3540,7 +6115,122 @@
                             "toProficiency": 15
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Pharmacist",
+                "requires": [
+                    {
+                        "skill": "dispense_medication",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "educate_on_medication_use",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "dispense_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "educate_on_medication_use",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "read_lab_results",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Pharmacist",
+                "requires": [
+                    {
+                        "skill": "dispense_medication",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "read_lab_results",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "dispense_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "read_lab_results",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "counsel_patients_gently",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Chief Pharmacist",
+                "requires": [
+                    {
+                        "skill": "dispense_medication",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "counsel_patients_gently",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "dispense_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "counsel_patients_gently",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,
@@ -3650,6 +6340,10 @@
                     {
                         "skill": "plan_delivery_routes",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "deliver_on_schedule",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3663,7 +6357,82 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Delivery Driver",
+                "requires": [
+                    {
+                        "skill": "drive_delivery_van",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "plan_delivery_routes",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "deliver_on_schedule",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "drive_delivery_van",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "plan_delivery_routes",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "deliver_on_schedule",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "dispatch_couriers",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Route Supervisor",
+                "requires": [
+                    {
+                        "skill": "drive_delivery_van",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "plan_delivery_routes",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "dispatch_couriers",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "drive_delivery_van",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "plan_delivery_routes",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "dispatch_couriers",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.5,
@@ -3764,6 +6533,10 @@
                     {
                         "skill": "draft_technical_plans",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "estimate_material_requirements",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3777,7 +6550,122 @@
                             "toProficiency": 20
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Engineer",
+                "requires": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "estimate_material_requirements",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "estimate_material_requirements",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "test_mechanical_systems",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Engineer",
+                "requires": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "test_mechanical_systems",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "test_mechanical_systems",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "analyze_load_requirements",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Principal Engineer",
+                "requires": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "analyze_load_requirements",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "analyze_load_requirements",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.3,
@@ -3882,6 +6770,10 @@
                     {
                         "skill": "use_cad_software",
                         "multiplier": 1
+                    },
+                    {
+                        "skill": "perform_structural_inspection",
+                        "multiplier": 0.5
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3899,7 +6791,122 @@
                             "toProficiency": 10
                         }
                     ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
                 }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Architect",
+                "requires": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "perform_structural_inspection",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "perform_structural_inspection",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "estimate_material_requirements",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Senior Architect",
+                "requires": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "estimate_material_requirements",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "estimate_material_requirements",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "analyze_load_requirements",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30,
+                    "minWorkDaysInRank": 90
+                }
+            },
+            {
+                "rankId": "rank4",
+                "label": "Principal Architect",
+                "requires": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "minProficiency": 70
+                    },
+                    {
+                        "skill": "analyze_load_requirements",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "analyze_load_requirements",
+                        "multiplier": 0.5
+                    }
+                ]
             }
         ],
         "physicalStrain": 0.2,

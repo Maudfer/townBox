@@ -91,6 +91,26 @@ export function validateJobsStructure(data: unknown, issues: IssueCollector): vo
                         });
                     }
                 }
+                if ('workActions' in rank && checkRecord(issues, `${path}.workActions`, rank['workActions'])) {
+                    const overrides = rank['workActions'] as Record<string, unknown>;
+                    checkUnknownKeys(issues, `${path}.workActions`, overrides, ['continuous', 'discrete']);
+                    for (const kind of ['continuous', 'discrete']) {
+                        if (!(kind in overrides) || !checkArray(issues, `${path}.workActions.${kind}`, overrides[kind])) {
+                            continue;
+                        }
+                        (overrides[kind] as unknown[]).forEach((spec, specIndex) => {
+                            const specPath = `${path}.workActions.${kind}[${specIndex}]`;
+                            if (!checkRecord(issues, specPath, spec)) {
+                                return;
+                            }
+                            checkUnknownKeys(issues, specPath, spec, ['action', 'chancePerTick', 'maxPerTick', 'cooldownTicks']);
+                            checkString(issues, `${specPath}.action`, spec['action']);
+                            if ('chancePerTick' in spec) {
+                                checkNumber(issues, `${specPath}.chancePerTick`, spec['chancePerTick'], { min: 0, max: 1 });
+                            }
+                        });
+                    }
+                }
                 if ('promotion' in rank && checkRecord(issues, `${path}.promotion`, rank['promotion'])) {
                     const promotion = rank['promotion'] as Record<string, unknown>;
                     checkUnknownKeys(issues, `${path}.promotion`, promotion, ['evaluateEveryWorkDays', 'minWorkDaysInRank']);
@@ -208,6 +228,43 @@ export function validateJobsSemantics(data: unknown, peers: Record<string, unkno
                 if (!(grant.skill in skills)) {
                     issues.add(`${rankPath}.entryTrainingGrant`, `unknown skill "${grant.skill}"`);
                 }
+            }
+        }
+        // Self-climbing ladder rule (task 066): every skill a non-entry rank requires must be a school basic,
+        // covered by the entry grant at the required floor, or PROGRESSED by an earlier rank — otherwise the
+        // ladder silently stalls (nobody can ever qualify for the rung).
+        {
+            const entryFloor = new Map(((job.ranks ?? []).find(rank => rank.entry)?.entryTrainingGrant?.grants ?? []).map(grant => [grant.skill, grant.toProficiency]));
+            const skillDefs = skills as Record<string, { basic?: boolean }>;
+            const progressedBefore = new Set<string>();
+            for (const [rankIndex, rank] of (job.ranks ?? []).entries()) {
+                if (!rank.entry) {
+                    for (const requirement of rank.requires) {
+                        const basic = skillDefs[requirement.skill]?.basic === true && requirement.minProficiency <= 60;
+                        const granted = (entryFloor.get(requirement.skill) ?? 0) >= requirement.minProficiency;
+                        if (requirement.skill in skillDefs && !basic && !granted && !progressedBefore.has(requirement.skill)) {
+                            issues.add(`${id}.ranks[${rankIndex}]`, `requirement "${requirement.skill}" is not progressed by any earlier rank (self-climbing ladder rule, task 066)`);
+                        }
+                    }
+                }
+                for (const progress of rank.progresses) {
+                    progressedBefore.add(progress.skill);
+                }
+            }
+        }
+        // Rank work-action overrides must reference real actions of the matching kind (like the job-level
+        // repertoire).
+        for (const [rankIndex, rank] of (job.ranks ?? []).entries()) {
+            for (const kind of ['continuous', 'discrete'] as const) {
+                (rank.workActions?.[kind] ?? []).forEach((spec, specIndex) => {
+                    const specPath = `${id}.ranks[${rankIndex}].workActions.${kind}[${specIndex}].action`;
+                    const target = actions[spec.action];
+                    if (!target) {
+                        issues.add(specPath, `references unknown action "${spec.action}"`);
+                    } else if (target.type !== kind) {
+                        issues.add(specPath, `"${spec.action}" is not a ${kind} action`);
+                    }
+                });
             }
         }
         if (entry) {

@@ -15,6 +15,13 @@ import { JobPosition } from '../src/types/Work';
 import { WorldSnapshot } from '../src/types/Save';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
+import SkillProgression from '../src/app/game/SkillProgression';
+import EventEngine from '../src/app/game/EventEngine';
+import { TICKS_PER_DAY, TICKS_PER_YEAR } from '../src/util/time';
+import { PopulationState } from '../src/types/Genealogy';
+import { Genders } from '../src/types/Social';
+import { JobTable } from '../src/types/Business';
+
 import jobsConfig from '../src/json/jobs.json';
 import skillsConfig from '../src/json/skills.json';
 
@@ -232,5 +239,81 @@ describe('rank validation (the keystone rules)', () => {
     test('the shipped roster passes: every job has a reachable entry rank', () => {
         expect(structure(validateJobsStructure, jobsConfig)).toEqual([]);
         expect(semantics(validateJobsSemantics, jobsConfig, { skills, actions: undefined }).filter(issue => !issue.message.includes('unknown action'))).toEqual([]);
+    });
+});
+
+describe('the full ladders (task 066)', () => {
+    const JOBS = jobsConfig as unknown as JobTable;
+
+    test('every job has 3-4 ranks, one entry, ascending primary thresholds, and a promotion cadence', () => {
+        for (const [jobId, definition] of Object.entries(JOBS)) {
+            expect(definition.ranks.length).toBeGreaterThanOrEqual(3);
+            expect(definition.ranks.filter(rank => rank.entry).length).toBe(1);
+            expect(definition.ranks[0]!.entry).toBe(true);
+            expect(definition.ranks[0]!.promotion?.evaluateEveryWorkDays).toBe(30);
+            // Primary requirements strictly ascend rung to rung.
+            const primaries = definition.requiredSkills;
+            let previousFloor = 0;
+            for (const rank of definition.ranks) {
+                const floors = rank.requires.filter(requirement => primaries.includes(requirement.skill)).map(requirement => requirement.minProficiency);
+                const floor = Math.min(...floors);
+                expect(floor).toBeGreaterThan(previousFloor - 1);
+                previousFloor = Math.max(previousFloor, floor);
+                void jobId;
+            }
+        }
+    });
+
+    test('the self-climbing validator rule trips on a rung nothing progresses toward', () => {
+        const skills = skillsConfig as Record<string, unknown>;
+        const fixture = { t: {
+            title: 'T', salary: 100, shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon'],
+            workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note' }] },
+            requiredSkills: ['patrol_premises'],
+            ranks: [
+                { rankId: 'entry', label: 'A', entry: true,
+                  requires: [{ skill: 'patrol_premises', minProficiency: 10 }],
+                  progresses: [{ skill: 'patrol_premises', multiplier: 1 }],
+                  entryTrainingGrant: { grants: [{ skill: 'patrol_premises', toProficiency: 10 }] } },
+                { rankId: 'senior', label: 'B',
+                  requires: [{ skill: 'patrol_premises', minProficiency: 25 }, { skill: 'weld_metal', minProficiency: 10 }],
+                  progresses: [{ skill: 'patrol_premises', multiplier: 1 }] },
+            ],
+        } };
+        const output = semantics(validateJobsSemantics, fixture, { skills, actions: { doing_paperwork: { type: 'continuous' }, jotted_a_note: { type: 'discrete' } } }).map(issue => issue.message).join(' | ');
+        expect(output).toMatch(/self-climbing ladder rule/);
+    });
+
+    test('end-to-end on real data: grant hire -> daily work -> promotion up the doctor ladder', () => {
+        const { field, person } = world();
+        const skillBook = new SkillBook();
+        freshGraduate(skillBook, 'p1');
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBook, 0);
+        expect(market.hire('p1')).toBe(true); // via the entry grant
+
+        const engine = new EventEngine();
+        const service = new SkillProgression(skillBook);
+        const pool: PopulationState = {
+            worldSeed: 7, drawSeed: 1, placedIds: [], nextSeq: 100, lastSimulatedYear: 0,
+            people: { p1: { id: 'p1', firstName: 'A', familyName: 'B', gender: Genders.Female, birthTick: -30 * TICKS_PER_YEAR, deathTick: null, fatherId: null, motherId: null, partnerships: [] } },
+        };
+        const assignment = person.work.getJob()!;
+        const deps = { engine, ticksPerYear: TICKS_PER_YEAR, assignmentOf: () => assignment };
+
+        // Work daily; the entry->Resident rung needs primaries@25 (from 10: ~548 days) + read_lab_results@10
+        // (x0.5 from 0: ~730 days) -> promotion lands at the first 30-day evaluation past both.
+        let promotedOnDay = 0;
+        for (let day = 1; day <= 900 && !promotedOnDay; day++) {
+            service.processCommits([{ personId: 'p1', eventId: 'stopped_working', seq: day }], pool, day * TICKS_PER_DAY + 17, deps);
+            if (assignment.rankId === 'rank2') {
+                promotedOnDay = day;
+            }
+        }
+        expect(promotedOnDay).toBeGreaterThan(500);
+        expect(promotedOnDay).toBeLessThanOrEqual(780);
+        expect(promotedOnDay % 30).toBe(0); // the deterministic cadence
+        expect(assignment.workDaysInRank).toBe(0);
+        expect(skillBook.proficiency('p1', 'suture_wounds')).toBeGreaterThanOrEqual(25);
+        expect(engine.getPersonLog('p1').some(entry => entry.kind === 'event' && entry.defId === 'got_promoted')).toBe(true);
     });
 });

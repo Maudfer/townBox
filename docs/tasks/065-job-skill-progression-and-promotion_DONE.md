@@ -3,7 +3,7 @@
 - **Type:** Feature / Simulation
 - **Labels:** `jobs`, `skills`, `brain`, `progression-arc`
 - **Depends on:** [064](064-job-ranks-and-training-grants_DONE.md) (ranks + counters), [063](063-school-day-skill-progression_DONE.md) (the SkillProgression service it extends)
-- **Blocks:** [066](066-jobs-ranks-data-backfill.md) exercises it at scale
+- **Blocks:** [066](066-jobs-ranks-data-backfill_DONE.md) exercises it at scale
 
 ## Goal
 
