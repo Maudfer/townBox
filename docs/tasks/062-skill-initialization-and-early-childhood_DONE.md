@@ -35,7 +35,7 @@ detailed simulation" (materialization in live play; agent-list entry in bootstra
   all basics, and no full preschool simulation. Two entry paths, same table: (a) initialization at age N seeds
   all milestones ≤ N; (b) **live progression** — a birthday-cadence check (day cadence, deterministic,
   RNG-free or salted per person) grants the next milestone as simulated children age. Both modes share the code.
-- **Ages 7–17:** school-derived proficiency using [063](063-school-day-skill-progression.md)'s exact math:
+- **Ages 7–17:** school-derived proficiency using [063](063-school-day-skill-progression_DONE.md)'s exact math:
   proficiency = `schoolDailyGain(person) × eligibleWeekdaysSince7thBirthday`, i.e. **synthesized full
   attendance** — but *only* for people initialized at that age without a simulated history. A person who
   actually lived through simulation (bootstrap/055, or born in live play) earns theirs through 063 and is never

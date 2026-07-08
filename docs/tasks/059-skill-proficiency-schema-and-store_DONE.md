@@ -3,7 +3,7 @@
 - **Type:** Framework / Simulation
 - **Labels:** `skills`, `data-schema`, `save`, `progression-arc`
 - **Depends on:** [056](056-progression-arc-discovery-baseline_DONE.md) (decisions b/c)
-- **Blocks:** [060](060-basic-skills-backfill_DONE.md), [061](061-specific-skills-backfill-and-migration_DONE.md), [062](062-skill-initialization-and-early-childhood_DONE.md), [063](063-school-day-skill-progression.md), [064](064-job-ranks-and-training-grants.md)
+- **Blocks:** [060](060-basic-skills-backfill_DONE.md), [061](061-specific-skills-backfill-and-migration_DONE.md), [062](062-skill-initialization-and-early-childhood_DONE.md), [063](063-school-day-skill-progression_DONE.md), [064](064-job-ranks-and-training-grants.md)
 - **Bundling (ratified 056 decision c):** **059+060+061+062 land as ONE branch/PR** — the skill model is
   replaced atomically (schema + store + data + reference remaps + initialization); `main` only ever sees the
   completed bundle, so no transitional legacy entries are needed.

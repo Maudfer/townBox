@@ -18,6 +18,7 @@ import EventEngine from 'game/EventEngine';
 import ActionEngine from 'game/ActionEngine';
 import Brain, { JobFacts } from 'game/Brain';
 import Inventory from 'game/Inventory';
+import SkillProgression from 'game/SkillProgression';
 
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
@@ -32,6 +33,9 @@ export interface TickPlan {
     employerKeyOf?: (personId: PersonId) => string | null;
     jobOf?: (personId: PersonId) => JobFacts | null;
     schoolOf?: (personId: PersonId) => SchoolFacts | null;
+    // Completed-day skill progression (tasks 063/065): consumes this tick's commits inside the shared spine,
+    // so school/work days convert to proficiency identically in both execution modes.
+    skillProgression?: SkillProgression;
     state: PopulationState;
     agentIds: PersonId[];
     tick: number;
@@ -76,6 +80,12 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
     // Phase 6: dispatch to the committed-notification consumer.
     if (plan.onCommitted) {
         await plan.onCommitted(result);
+    }
+
+    // Phase 6.5 (task 063): completed-day events convert into skill proficiency — in the SHARED spine, so
+    // live play and the bootstrap progress people identically.
+    if (plan.skillProgression) {
+        plan.skillProgression.processCommits(result.committed, plan.state, plan.tick);
     }
 
     // Phases 7–8 (task 046): Brain hooks propose intents (onTick + this tick's committed events), the Brain

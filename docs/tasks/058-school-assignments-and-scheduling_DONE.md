@@ -3,7 +3,7 @@
 - **Type:** Feature / Simulation
 - **Labels:** `school`, `brain`, `calendar`, `progression-arc`
 - **Depends on:** [057](057-calendar-weekdays-and-weekends_DONE.md) (`isWeekend`), [056](056-progression-arc-discovery-baseline_DONE.md)
-- **Blocks:** [063](063-school-day-skill-progression.md) (progression needs completed school days), [055](055-history-asset-pipeline.md) (offline world must include logical schools)
+- **Blocks:** [063](063-school-day-skill-progression_DONE.md) (progression needs completed school days), [055](055-history-asset-pipeline.md) (offline world must include logical schools)
 
 ## Goal
 
@@ -63,7 +63,7 @@ and its own market adapter, mirroring the `JobMarket`/`HousingMarket` pattern.
   `mayInterrupt: true`); outside the window or off-days → request completion of a running instance (same
   pattern as `JobOrchestrator`'s off-shift interrupt).
 - `attend_school` declares lifecycle events: `onComplete` → a new manual **`completed_school_day`** event with
-  `limit: { once: 'perDay' }` (the seam [063](063-school-day-skill-progression.md) hooks; mirrors
+  `limit: { once: 'perDay' }` (the seam [063](063-school-day-skill-progression_DONE.md) hooks; mirrors
   `stopped_working`'s per-day close). An automated `afterEvent` fallback (042 pattern) guarantees the day
   closes if the instance is never resolved.
 - No valid assignment / no reachable school / weekend / age out of band ⇒ the hook proposes nothing and the

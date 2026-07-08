@@ -3,7 +3,7 @@
 - **Type:** Content / Data
 - **Labels:** `skills`, `content`, `progression-arc`
 - **Depends on:** [059](059-skill-proficiency-schema-and-store_DONE.md) (schema)
-- **Blocks:** [061](061-specific-skills-backfill-and-migration_DONE.md) (specific skills depend on basics), [063](063-school-day-skill-progression.md) (school awards basics)
+- **Blocks:** [061](061-specific-skills-backfill-and-migration_DONE.md) (specific skills depend on basics), [063](063-school-day-skill-progression_DONE.md) (school awards basics)
 - **Bundling (ratified 056 decision c):** lands in the single **059+060+061+062** branch/PR.
 
 ## Goal
@@ -24,7 +24,7 @@ Basic skills are the **only** skills allowed to carry field-of-study names, and 
   requirements, and future action selection modifiers.
 - Validator confirmations (should already hold via 059; add fixtures if not): only `basic: true` entries pass
   the field-of-study naming check; basics with dependencies are rejected.
-- Cross-check the school progression contract early: [063](063-school-day-skill-progression.md) awards **every
+- Cross-check the school progression contract early: [063](063-school-day-skill-progression_DONE.md) awards **every
   basic skill** once per completed school day — so the basic set is exactly "what school teaches." Keep the
   list sized accordingly (each addition dilutes nothing — the daily gain is per-skill — but each must be
   plausible as a school subject/capability).
