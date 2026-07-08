@@ -15,6 +15,7 @@ const FEED_MESSAGES: Record<string, (name: string) => CityNotification> = {
     injured: name => ({ kind: 'illness', message: `${name} was injured in an accident` }),
     recovered: name => ({ kind: 'health', message: `${name} recovered their health` }),
     retired: name => ({ kind: 'career', message: `${name} retired` }),
+    promoted: name => ({ kind: 'career', message: `${name} was promoted` }),
     graduated: name => ({ kind: 'education', message: `${name} earned a new qualification` }),
     madeFriend: name => ({ kind: 'social', message: `${name} made a new friend` }),
     hadArgument: name => ({ kind: 'social', message: `${name} had a falling-out` }),

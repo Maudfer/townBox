@@ -604,6 +604,8 @@ export default class City {
             // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.
             schoolOf: id => this.schoolFactsOf(id, personByGenId, event.tick, ticksPerYear),
             ...(this.skillProgression ? { skillProgression: this.skillProgression } : {}),
+            // The mutable job assignment for work-day counters + promotion (task 065).
+            jobAssignmentOf: id => personByGenId.get(id)?.work.getJob() ?? null,
             state: population.getState(),
             agentIds: [...materializedIds],
             tick: event.tick,

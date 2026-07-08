@@ -24,6 +24,7 @@ import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
 import { ExecutionContext } from 'types/Execution';
 import { SchoolFacts } from 'types/School';
+import { JobPosition } from 'types/Work';
 
 export interface TickPlan {
     engine: EventEngine;
@@ -36,6 +37,9 @@ export interface TickPlan {
     // Completed-day skill progression (tasks 063/065): consumes this tick's commits inside the shared spine,
     // so school/work days convert to proficiency identically in both execution modes.
     skillProgression?: SkillProgression;
+    // The person's MUTABLE job assignment (065): work-day counters and promotions land on the serialized
+    // object. Live: WorkLife's JobPosition; bootstrap: the logical world when 055 builds it.
+    jobAssignmentOf?: (personId: PersonId) => JobPosition | null;
     state: PopulationState;
     agentIds: PersonId[];
     tick: number;
@@ -77,15 +81,17 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
     // Phases 3–5: automated-trigger drain + probabilistic evaluation + commit (task 042).
     mergeInto(result, plan.engine.simulateTick(plan.state, plan.agentIds, plan.tick, plan.ticksPerYear, plan.ctx, plan.ticksPerStep ?? 1));
 
+    // Phase 5.5 (tasks 063/065): completed-day events convert into skill proficiency and career progression
+    // — in the SHARED spine, so both execution modes progress people identically. Runs BEFORE the world
+    // reconciliation so promotion commits/signals ride this tick's dispatch (feed, Brain hooks).
+    if (plan.skillProgression) {
+        mergeInto(result, plan.skillProgression.processCommits(result.committed, plan.state, plan.tick,
+            plan.jobAssignmentOf ? { engine: plan.engine, ticksPerYear: plan.ticksPerYear, assignmentOf: plan.jobAssignmentOf } : undefined));
+    }
+
     // Phase 6: dispatch to the committed-notification consumer.
     if (plan.onCommitted) {
         await plan.onCommitted(result);
-    }
-
-    // Phase 6.5 (task 063): completed-day events convert into skill proficiency — in the SHARED spine, so
-    // live play and the bootstrap progress people identically.
-    if (plan.skillProgression) {
-        plan.skillProgression.processCommits(result.committed, plan.state, plan.tick);
     }
 
     // Phases 7–8 (task 046): Brain hooks propose intents (onTick + this tick's committed events), the Brain

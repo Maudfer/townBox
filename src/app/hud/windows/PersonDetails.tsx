@@ -6,6 +6,19 @@ import Workplace from 'game/Workplace';
 import { sortedSkillEntries } from 'game/SkillBook';
 
 import { formatTick } from 'util/time';
+import { JobTable } from 'types/Business';
+import jobsConfig from 'json/jobs.json';
+
+const JOBS = jobsConfig as unknown as JobTable;
+
+// The person's rank label on their job's ladder (task 064/065), or null for rank-less legacy positions.
+function rankLabel(job: { title: string; rankId?: string }): string | null {
+    if (!job.rankId) {
+        return null;
+    }
+    const definition = Object.values(JOBS).find(candidate => candidate.title === job.title);
+    return definition?.ranks.find(rank => rank.rankId === job.rankId)?.label ?? job.rankId;
+}
 import { DetailsWindowProps } from 'types/HUD';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
@@ -72,7 +85,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     <h4>Work</h4>
                     {job ? (
                         <p>
-                            {job.title}{employerName(person) ? ` @ ${employerName(person)}` : ''} — ${job.salary}
+                            {job.title}{rankLabel(job) ? ` (${rankLabel(job)})` : ''}{employerName(person) ? ` @ ${employerName(person)}` : ''} — ${job.salary}
                             <br />
                             <small>Shift {Math.floor(job.shiftStart / 60)}:00–{Math.floor(job.shiftEnd / 60)}:00</small>
                         </p>
