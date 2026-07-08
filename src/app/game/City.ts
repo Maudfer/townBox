@@ -8,6 +8,7 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
+import { generateBuildingObjects } from 'game/ObjectGeneration';
 import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
 import SkillRegistry from 'game/SkillRegistry';
@@ -39,6 +40,7 @@ import householdDrawConfig from 'json/householdDraw.json';
 import materialsConfig from 'json/materials.json';
 import demandConfig from 'json/demand.json';
 import schoolsConfig from 'json/schools.json';
+import residencesConfig from 'json/residences.json';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
@@ -46,6 +48,7 @@ const MATERIAL_PRICES: Record<string, number> = Object.fromEntries(
     Object.entries(materialsConfig as Record<string, { basePrice: number }>).map(([key, value]) => [key, value.basePrice])
 );
 const DEMAND_TABLE = demandConfig as unknown as DemandTable;
+const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { tags: string[] } }).house.tags;
 // Skill ids referenced by any job's requirements — the employability bias for initialization assortments
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
@@ -315,8 +318,40 @@ export default class City {
         };
         house.setHousehold(household);
 
+        // Fill the home with contextual objects at placement (task 070; H1 fix — previously only the
+        // save-load sweep ran this, so a fresh session's homes were empty and object-grounded actions were
+        // unreachable until a round-trip).
+        this.fillBuildingObjects(house);
+
         this.population += personByGenId.size;
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
+    }
+
+    // Fills a freshly placed/occupied building with contextual Object Instances (task 070). Idempotent via the
+    // building's objects-generated flag, so re-materialization and the load sweep never double-fill.
+    // Deterministic per (worldSeed, anchorKey, generation index) — matches the SaveManager sweep's convention
+    // (generationIndex = generations - 1) so a building fills identically whether at placement or on load.
+    private fillBuildingObjects(building: House | Workplace): void {
+        const inventory = Game.inventory;
+        if (!inventory || building.isObjectsGenerated()) {
+            return;
+        }
+        const worldSeed = Game.population ? Game.population.getState().worldSeed : 0;
+        const tick = Game.clock ? Game.clock.getCurrentTick() : 0;
+        if (building instanceof House) {
+            generateBuildingObjects({ anchorKey: building.getIdentifier(), tags: HOUSE_PLACEMENT_TAGS, host: 'house', worldSeed, tick }, inventory);
+        } else {
+            const business = building.getBusiness();
+            if (!business) {
+                return; // vacant lot — fills on re-occupancy
+            }
+            const blueprint = BUSINESS_BLUEPRINTS[business.blueprintKey] as { tags?: string[] } | undefined;
+            generateBuildingObjects({
+                anchorKey: building.getIdentifier(), tags: blueprint?.tags ?? [], host: 'business',
+                worldSeed, generationIndex: Math.max(0, building.getBusinessGenerations() - 1), tick,
+            }, inventory);
+        }
+        building.setObjectsGenerated(true);
     }
 
     // Generates a business for a newly placed work building (Engine A). Deterministic per save + location: the
@@ -367,6 +402,9 @@ export default class City {
         Game.economy?.setBusinessBalance(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size);
         workplace.setBusinessGenerations(generation + 1);
         workplace.setVacantMonths(0);
+        // Fill the venue with contextual objects at placement/re-occupancy (task 070; H1 fix). Runs after the
+        // generation count is bumped so generationIndex matches the SaveManager sweep convention.
+        this.fillBuildingObjects(workplace);
         return business;
     }
 
