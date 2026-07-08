@@ -13,7 +13,7 @@ import {
     validateSkillsSemantics,
     validateSkillsStructure,
 } from '../src/app/game/data/validators/skills';
-import { validateBootstrapStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
+import { validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
 import { validateObjectsSemantics, validateObjectsStructure } from '../src/app/game/data/validators/objects';
 import { validatePlacementSemantics } from '../src/app/game/data/validators/placement';
 import { validateActionsSemantics, validateActionsStructure } from '../src/app/game/data/validators/actions';
@@ -77,8 +77,8 @@ describe('data validation (task 039)', () => {
     test('all schemas are registered exactly once, with the expected roster', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
-            'actions', 'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy',
-            'events', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
+            'actions', 'assets', 'businesses', 'config', 'demand', 'economy',
+            'events', 'historyGenerator', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
             'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'residences', 'schools', 'skillInit', 'skills', 'toolAssets',
         ]);
     });
@@ -352,9 +352,13 @@ describe('params validation', () => {
         expect(output).toMatch(/commune: not a drawable arrangement/);
     });
 
-    test('bootstrap rejects a mismatched ticksPerYear', () => {
-        const fixture = { enabled: true, years: 8, ticksPerYear: 100, stepDays: 7 };
-        expect(messagesOf(structure(validateBootstrapStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
+    test('historyGenerator rejects a mismatched ticksPerYear', () => {
+        const fixture = {
+            seed: 1, founderCount: 100, recordThreshold: 1000, recordYears: 500, ticksPerYear: 100,
+            daysPerStep: 1, warmMarginYears: 40, maxWarmupYears: 400, keepActionLog: false,
+            carryingCapacity: { enabled: true, soft: 3000, steepness: 4 }, safety: { maxRuntimeMs: 0, maxPeople: 0 },
+        };
+        expect(messagesOf(structure(validateHistoryGeneratorStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
     });
 });
 

@@ -67,7 +67,7 @@ Always run `npm test` before opening the PR.**
 | 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill_DONE.md) | Content | ✅ Done |
 | 053 | [object-action-relationships backfill](053-object-action-relationships-backfill_DONE.md) | Content | ✅ Done |
 | 054 | [Action ↔ Event relationship documentation](054-action-event-relationship-docs_DONE.md) | Docs | ✅ Done |
-| 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038; runs after 056–075) |
+| 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | 🚧 Pipeline landed (Part A + B, live bootstrap retired); off-map logical-economy world open |
 | 056 | [Progression arc — discovery & migration baseline](056-progression-arc-discovery-baseline_DONE.md) | Planning | ✅ Done |
 | 057 | [Calendar weekday & weekend support](057-calendar-weekdays-and-weekends_DONE.md) | Framework | ✅ Done |
 | 058 | [School assignments, scheduling & weekend behavior](058-school-assignments-and-scheduling_DONE.md) | Feature | ✅ Done |

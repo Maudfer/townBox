@@ -3,11 +3,10 @@ import { createRoot } from 'react-dom/client';
 
 import GameManager from './game/GameManager';
 import HUD from './hud/Hud';
-import BootstrapLoader from './hud/BootstrapLoader';
 
-// Root React tree: the bootstrap loading overlay is always mounted (it self-hides unless the pre-game history
-// bootstrap is running, task 036), and the HUD mounts once the game is initialized — which, on a fresh game,
-// is after the bootstrap finishes.
+// Root React tree: the HUD mounts once the game is initialized. A new game no longer runs a loading-screen
+// history bootstrap (task 055 retired it) — it selects a slice of the offline history asset instead, which is
+// fast, so `gameInitialized` fires without a wait.
 const App: FC<{ game: GameManager }> = ({ game }) => {
     const [ready, setReady] = useState(false);
 
@@ -16,12 +15,7 @@ const App: FC<{ game: GameManager }> = ({ game }) => {
         return () => game.off('gameInitialized');
     }, []);
 
-    return (
-        <>
-            <BootstrapLoader game={game} />
-            {ready && <HUD game={game} />}
-        </>
-    );
+    return ready ? <HUD game={game} /> : null;
 };
 
 const main = () => {

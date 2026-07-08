@@ -25,9 +25,7 @@ module.exports = {
     'src/app/game/MainScene.ts',
     'src/app/game/TitleScene.ts',
     'src/app/game/GameManager.ts',
-    'src/app/game/DebugTools.ts',
-    'src/app/game/bootstrap.worker.ts',
-    'src/app/game/bootstrapWorkerFactory.ts'
+    'src/app/game/DebugTools.ts'
   ],
   coverageReporters: ['text-summary', 'lcov'],
   // A floor the current suite clears with headroom (~78% stmts / 66% branches); ratchet it up over

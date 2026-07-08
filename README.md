@@ -359,11 +359,13 @@ external sector.
 
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/README.md)):
 
-- **055 — offline history-asset pipeline** (renumbered from 038; lands *after* the enrichment it should
-  capture). Reframe the history bootstrap: run the deep, full-fidelity
-  simulation *once, offline* (100 founders → grow to 1,000 → simulate 500 years), save it as a **versioned data
-  asset**, and have new games *select* a random window from it (with re-randomized identities) instead of
-  simulating — the strategic key to one-fidelity simulation and near-infinite starting scenarios.
+- **055 — offline history-asset pipeline** (renumbered from 038). **Pipeline landed:** the deep sim runs
+  *once, offline* (`npm run generate-history` — 100 founders → grow to 1,000 → simulate 500 years, with an
+  incremental living index and a soft carrying capacity) into a **versioned, compressed asset**, and new games
+  *select* a random window from it (rebased to tick 0, identities re-randomized) instead of simulating — the
+  per-load history bootstrap is retired. The asset currently captures the pool-intrinsic sim (deep genealogies +
+  real life histories); running the off-map logical economy/school/object world during generation, so the asset
+  also carries career histories/skills/possessions, is the immediate follow-up.
 - **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).

@@ -16,7 +16,8 @@
     "validate-data": "jest test/dataValidation.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "docs:sim": "UPDATE_SIM_DOCS=1 jest test/simulationDocs.test.ts",
-    "docs:events": "UPDATE_EVENT_DOCS=1 jest test/eventClassification.test.ts"
+    "docs:events": "UPDATE_EVENT_DOCS=1 jest test/eventClassification.test.ts",
+    "generate-history": "tsx scripts/generateHistoryAsset.ts"
   },
   "keywords": [
     "game",
@@ -60,6 +61,7 @@
     "parcel": "^2.12.0",
     "process": "^0.11.10",
     "ts-jest": "^29.4.0",
+    "tsx": "^4.23.0",
     "typescript": "^5.4.5"
   }
 }
