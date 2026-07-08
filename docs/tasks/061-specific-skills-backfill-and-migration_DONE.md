@@ -3,7 +3,7 @@
 - **Type:** Content / Migration
 - **Labels:** `skills`, `content`, `migration`, `progression-arc`
 - **Depends on:** [059](059-skill-proficiency-schema-and-store_DONE.md), [060](060-basic-skills-backfill_DONE.md)
-- **Blocks:** [066](066-jobs-ranks-data-backfill.md) (rank requirements use these skills)
+- **Blocks:** [066](066-jobs-ranks-data-backfill_DONE.md) (rank requirements use these skills)
 - **Bundling (ratified 056 decision c):** lands in the **single 059+060+061+062 branch/PR** — after the
   remap, hiring depends on people actually *having* the new specific skills; 062 provides them in the same
   bundle, so `main` never sees a half-migrated skill model.

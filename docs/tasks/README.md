@@ -78,7 +78,7 @@ Always run `npm test` before opening the PR.**
 | 063 | [School-day skill progression](063-school-day-skill-progression_DONE.md) | Feature | ✅ Done |
 | 064 | [Job ranks & entry-level training grants](064-job-ranks-and-training-grants_DONE.md) | Framework | ✅ Done |
 | 065 | [Job skill progression & rank promotion](065-job-skill-progression-and-promotion_DONE.md) | Feature | ✅ Done |
-| 066 | [Jobs backfill — ranks, skills & progression](066-jobs-ranks-data-backfill.md) | Content | ⬜ Open |
+| 066 | [Jobs backfill — ranks, skills & progression](066-jobs-ranks-data-backfill_DONE.md) | Content | ✅ Done |
 | 067 | [Parameterized requirements, object refs & event payloads](067-parameterized-requirements-and-event-payloads.md) | Framework | ⬜ Open |
 | 068 | [Generalize Actions & Events](068-generalize-actions-and-events.md) | Migration | ⬜ Open |
 | 069 | [Contextual placement tags — objects, buildings & businesses](069-object-placement-tags.md) | Framework | ⬜ Open |
@@ -151,7 +151,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
 - **Jobs:** [064](064-job-ranks-and-training-grants_DONE.md) (ranks + the explicit temporary College-shortcut
   entry grants — closes the "nobody can ever be hired skilled" loop) →
   [065](065-job-skill-progression-and-promotion_DONE.md) (per-work-day gains, deterministic promotion) →
-  [066](066-jobs-ranks-data-backfill.md) (rank ladders for all 33 jobs, 18-year-old reachability rule in CI).
+  [066](066-jobs-ranks-data-backfill_DONE.md) (rank ladders for all 33 jobs, 18-year-old reachability rule in CI).
 - **Generalization:** [067](067-parameterized-requirements-and-event-payloads.md) (param-aware
   requirements/queries + event payloads — the expressiveness the sweep needs; added during planning) →
   [068](068-generalize-actions-and-events.md) (generic object verbs, parameterized events, the 698-event

@@ -41,7 +41,7 @@ and to run identically off-map (bootstrap / 055 asset) it must not live on the m
   with dependencies, and — via a curated field-of-study denylist (`engineering`, `medicine`, `finance`, …) —
   non-basic skills named after broad fields. Also: dependency chains whose thresholds are unsatisfiable
   (a dependency `minProficiency` above any declared grant/progression path is flagged; the full
-  reachability rule tightens in [066](066-jobs-ranks-data-backfill.md)). Invalid fixtures in
+  reachability rule tightens in [066](066-jobs-ranks-data-backfill_DONE.md)). Invalid fixtures in
   `test/dataValidation.test.ts`; wired into `npm run validate-data`/CI/boot assert.
 - **No transitional entries** (056 decision c): the bundle ships the new manifest already populated by
   060/061 — legacy skill IDs never appear in the new schema. The naming rules are unconditional from the
