@@ -17,7 +17,7 @@ import {
 import { ObjectContainerRef, ObjectInstanceId, ObjectOwner, locationKey } from 'types/Objects';
 import { TickResult } from 'types/LifeEvent';
 import { PersonId } from 'types/Genealogy';
-import { Value } from 'types/Simulation';
+import { ObjectQuery, Value } from 'types/Simulation';
 
 export interface CommitContext {
     personId: PersonId;
@@ -66,6 +66,20 @@ function resolveContainer(container: 'possessions' | 'location' | undefined, ctx
     return world ? { kind: 'location', key: locationKey(world.locationOf(ctx.personId)) } : null;
 }
 
+// Resolve an ObjectQuery's archetypeParam (067/068) against the committing action's params.
+function resolveQueryParams(query: ObjectQuery, ctx: CommitContext): ObjectQuery | null {
+    if (query.archetypeParam === undefined) {
+        return query;
+    }
+    const value = ctx.params[query.archetypeParam];
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const { archetypeParam, ...rest } = query;
+    void archetypeParam;
+    return { ...rest, archetype: value };
+}
+
 // Resolves an ObjectRef to a concrete instance id against pre-state (or a planned output name).
 function resolveObjectRef(ref: ObjectRef, ctx: CommitContext, plannedOutputs: Set<string>): ObjectInstanceId | { planned: string } | null {
     const inventory = inventoryOf(ctx);
@@ -83,14 +97,22 @@ function resolveObjectRef(ref: ObjectRef, ctx: CommitContext, plannedOutputs: Se
         return null;
     }
     if ('carried' in ref) {
-        const match = inventory.carriedInstances(ctx.personId).find(instance => inventory.instanceMatches(instance.id, ref.carried));
+        const query = resolveQueryParams(ref.carried, ctx);
+        if (!query) {
+            return null;
+        }
+        const match = inventory.carriedInstances(ctx.personId).find(instance => inventory.instanceMatches(instance.id, query));
         return match?.id ?? null;
     }
     const world = ctx.deps.ctx.world;
     if (!world) {
         return null;
     }
-    const match = world.objectsAt(world.locationOf(ctx.personId)).find(id => inventory.instanceMatches(id, ref.atLocation));
+    const query = resolveQueryParams(ref.atLocation, ctx);
+    if (!query) {
+        return null;
+    }
+    const match = world.objectsAt(world.locationOf(ctx.personId)).find(id => inventory.instanceMatches(id, query));
     return match ?? null;
 }
 

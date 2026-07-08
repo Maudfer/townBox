@@ -201,36 +201,6 @@
             }
         ]
     },
-    "grab_pencil": {
-        "label": "Grabbed a pencil",
-        "type": "discrete",
-        "category": "maintenance",
-        "requirements": {
-            "objectAtLocation": {
-                "archetype": "pencil"
-            }
-        },
-        "consequences": [
-            {
-                "op": "moveObject",
-                "object": {
-                    "atLocation": {
-                        "archetype": "pencil"
-                    }
-                },
-                "container": "possessions"
-            },
-            {
-                "op": "transferObject",
-                "object": {
-                    "atLocation": {
-                        "archetype": "pencil"
-                    }
-                },
-                "owner": "person"
-            }
-        ]
-    },
     "mix_dough": {
         "label": "Mixed the dough",
         "type": "discrete",
@@ -3972,6 +3942,147 @@
         "events": {
             "onStart": "school_day_started",
             "onComplete": "completed_school_day"
+        }
+    },
+    "grab": {
+        "label": "Grabbed an object",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "object": {
+                "type": "objectArchetype",
+                "required": true
+            }
+        },
+        "requirements": {
+            "all": [
+                {
+                    "objectAtLocation": {
+                        "archetypeParam": "object"
+                    }
+                },
+                {
+                    "objectAtLocation": {
+                        "archetypeParam": "object",
+                        "flag": "carryable"
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "archetypeParam": "object"
+                    }
+                },
+                "container": "possessions"
+            },
+            {
+                "op": "transferObject",
+                "object": {
+                    "atLocation": {
+                        "archetypeParam": "object"
+                    }
+                },
+                "owner": "person"
+            }
+        ],
+        "events": {
+            "onComplete": {
+                "event": "object_acquired",
+                "params": {
+                    "object": "$params.object"
+                }
+            }
+        }
+    },
+    "put_down": {
+        "label": "Put an object down",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "object": {
+                "type": "objectArchetype",
+                "required": true
+            }
+        },
+        "requirements": {
+            "carries": {
+                "archetypeParam": "object"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "carried": {
+                        "archetypeParam": "object"
+                    }
+                },
+                "container": "location"
+            }
+        ]
+    },
+    "discard_object": {
+        "label": "Threw an object away",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "object": {
+                "type": "objectArchetype",
+                "required": true
+            }
+        },
+        "requirements": {
+            "carries": {
+                "archetypeParam": "object"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "carried": {
+                        "archetypeParam": "object"
+                    }
+                },
+                "container": "location"
+            },
+            {
+                "op": "transferObject",
+                "object": {
+                    "carried": {
+                        "archetypeParam": "object"
+                    }
+                },
+                "owner": "world"
+            }
+        ],
+        "events": {
+            "onComplete": {
+                "event": "object_lost",
+                "params": {
+                    "object": "$params.object"
+                }
+            }
+        }
+    },
+    "use_object": {
+        "label": "Used an object",
+        "type": "discrete",
+        "category": "maintenance",
+        "parameters": {
+            "object": {
+                "type": "objectArchetype",
+                "required": true
+            }
+        },
+        "requirements": {
+            "carries": {
+                "archetypeParam": "object"
+            }
         }
     }
 }

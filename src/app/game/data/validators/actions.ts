@@ -96,8 +96,27 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
             const events = action['events'] as Record<string, unknown>;
             checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt']);
             for (const hook of ['onStart', 'onComplete', 'onInterrupt']) {
-                if (hook in events) {
-                    checkString(issues, `${id}.events.${hook}`, events[hook]);
+                if (!(hook in events)) {
+                    continue;
+                }
+                const link = events[hook];
+                if (typeof link === 'string') {
+                    checkString(issues, `${id}.events.${hook}`, link);
+                    continue;
+                }
+                // The object form (task 067): { event, params? } — payload values are '$params.<name>'
+                // mappings or literal scalars.
+                if (!checkRecord(issues, `${id}.events.${hook}`, link)) {
+                    continue;
+                }
+                checkUnknownKeys(issues, `${id}.events.${hook}`, link, ['event', 'params']);
+                checkString(issues, `${id}.events.${hook}.event`, link['event']);
+                if ('params' in link && checkRecord(issues, `${id}.events.${hook}.params`, link['params'])) {
+                    for (const [key, value] of Object.entries(link['params'] as Record<string, unknown>)) {
+                        if (!isScalar(value)) {
+                            issues.add(`${id}.events.${hook}.params.${key}`, 'payload mappings must be scalars or $params refs');
+                        }
+                    }
                 }
             }
         }
