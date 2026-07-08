@@ -2,7 +2,7 @@
 
 - **Type:** Content / Data
 - **Labels:** `jobs`, `skills`, `content`, `progression-arc`
-- **Depends on:** [064](064-job-ranks-and-training-grants.md) (schema), [065](065-job-skill-progression-and-promotion.md) (consumption), [061](061-specific-skills-backfill-and-migration_DONE.md) (the skill vocabulary)
+- **Depends on:** [064](064-job-ranks-and-training-grants_DONE.md) (schema), [065](065-job-skill-progression-and-promotion.md) (consumption), [061](061-specific-skills-backfill-and-migration_DONE.md) (the skill vocabulary)
 
 ## Goal
 

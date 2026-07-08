@@ -8,8 +8,8 @@ const REAL_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const REAL_JOBS = jobsConfig as unknown as JobTable;
 
 const jobs: JobTable = {
-    clerk: { title: 'Clerk', salary: 1300, requiredSkills: ['RetailSkill'], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
-    janitor: { title: 'Janitor', salary: 1100, requiredSkills: ['CleaningSkill'], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
+    clerk: { title: 'Clerk', salary: 1300, requiredSkills: ['RetailSkill'], ranks: [{ rankId: 'entry', label: 'Trainee', entry: true, requires: ['RetailSkill'].map(skill => ({ skill, minProficiency: 10 })), progresses: ['RetailSkill'].map(skill => ({ skill, multiplier: 1 })) }], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
+    janitor: { title: 'Janitor', salary: 1100, requiredSkills: ['CleaningSkill'], ranks: [{ rankId: 'entry', label: 'Trainee', entry: true, requires: ['CleaningSkill'].map(skill => ({ skill, minProficiency: 10 })), progresses: ['CleaningSkill'].map(skill => ({ skill, multiplier: 1 })) }], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
 };
 
 const blueprint: BusinessBlueprint = {

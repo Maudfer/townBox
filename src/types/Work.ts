@@ -21,6 +21,11 @@ export type JobPosition = {
     shiftStart: number; // minutes since midnight
     shiftEnd: number; // minutes since midnight; < shiftStart means the shift crosses midnight
     daysOfWeek?: Weekday[]; // absent (legacy saves) = every day
+    // The person's current rank on the job's ladder (task 064). Absent on legacy saves (defaults to the
+    // entry rank on migration). Counters drive skill progression + promotion cadence (065).
+    rankId?: string;
+    workDaysInRank?: number;
+    totalWorkDays?: number;
 };
 
 export type WorkInfo = {

@@ -6,6 +6,45 @@
             "operate_cash_register",
             "assist_customers"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Checkout Clerk",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "operate_cash_register",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_cash_register",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "assist_customers",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "operate_cash_register",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.2,
@@ -86,6 +125,45 @@
             "stock_shelves",
             "pack_boxes_efficiently"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Restocker",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "stock_shelves",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "pack_boxes_efficiently",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "stock_shelves",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "pack_boxes_efficiently",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "pack_boxes_efficiently",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "stock_shelves",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.2,
         "socialAdmiration": 0.1,
@@ -164,6 +242,45 @@
         "requiredSkills": [
             "mop_and_sweep_floors",
             "sanitize_surfaces"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Janitor",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "mop_and_sweep_floors",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "sanitize_surfaces",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.1,
@@ -245,6 +362,45 @@
         "requiredSkills": [
             "coordinate_staff_schedules",
             "delegate_tasks"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Manager",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "coordinate_staff_schedules",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "delegate_tasks",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "coordinate_staff_schedules",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "delegate_tasks",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "coordinate_staff_schedules",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "delegate_tasks",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.7,
@@ -334,6 +490,61 @@
             "take_patient_history",
             "suture_wounds"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Doctor",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "perform_basic_examination",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_patient_history",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "suture_wounds",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "perform_basic_examination",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "suture_wounds",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "take_patient_history",
+                            "toProficiency": 15
+                        },
+                        {
+                            "skill": "use_sterile_equipment",
+                            "toProficiency": 15
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.9,
         "socialAdmiration": 0.9,
@@ -417,6 +628,45 @@
         "requiredSkills": [
             "measure_vital_signs",
             "administer_medication"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Nurse",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "measure_vital_signs",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "administer_medication",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "administer_medication",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "measure_vital_signs",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.7,
@@ -503,6 +753,57 @@
             "explain_concepts_clearly",
             "manage_a_classroom"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Teacher",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "plan_lessons",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "plan_lessons",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_concepts_clearly",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_a_classroom",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "explain_concepts_clearly",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "manage_a_classroom",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "plan_lessons",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.6,
         "socialAdmiration": 0.6,
@@ -580,6 +881,45 @@
         "requiredSkills": [
             "chop_and_prep_ingredients",
             "saute_and_grill"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Cook",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "chop_and_prep_ingredients",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "saute_and_grill",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "chop_and_prep_ingredients",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "saute_and_grill",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "chop_and_prep_ingredients",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "saute_and_grill",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.4,
@@ -665,6 +1005,45 @@
             "serve_tables",
             "take_food_orders"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Waiter",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "serve_tables",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "take_food_orders",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "serve_tables",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "take_food_orders",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "serve_tables",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "take_food_orders",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.5,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.2,
@@ -743,6 +1122,45 @@
         "requiredSkills": [
             "carry_building_materials",
             "mix_and_pour_concrete"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Laborer",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "carry_building_materials",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "mix_and_pour_concrete",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "carry_building_materials",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "mix_and_pour_concrete",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "carry_building_materials",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "mix_and_pour_concrete",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.8,
         "mentalStrain": 0.2,
@@ -827,6 +1245,45 @@
         "requiredSkills": [
             "knead_and_proof_dough",
             "bake_breads_and_pastries"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Baker",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "knead_and_proof_dough",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "bake_breads_and_pastries",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "knead_and_proof_dough",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "bake_breads_and_pastries",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "bake_breads_and_pastries",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "knead_and_proof_dough",
+                            "toProficiency": 20
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.3,
@@ -913,6 +1370,45 @@
             "brew_espresso_drinks",
             "serve_counter_customers"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Barista",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "brew_espresso_drinks",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "serve_counter_customers",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "brew_espresso_drinks",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "serve_counter_customers",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "brew_espresso_drinks",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "serve_counter_customers",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.3,
@@ -998,6 +1494,45 @@
             "assist_customers",
             "arrange_product_displays"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Sales Associate",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "arrange_product_displays",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "arrange_product_displays",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "arrange_product_displays",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "assist_customers",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.3,
@@ -1078,6 +1613,45 @@
             "troubleshoot_electrical_circuit",
             "solder_components"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Electronics Technician",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "solder_components",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "troubleshoot_electrical_circuit",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "solder_components",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "solder_components",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "troubleshoot_electrical_circuit",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.6,
         "socialAdmiration": 0.5,
@@ -1155,6 +1729,45 @@
         "requiredSkills": [
             "assist_customers",
             "explain_product_features"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Hardware Clerk",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "explain_product_features",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "assist_customers",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "explain_product_features",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
@@ -1235,6 +1848,45 @@
         "requiredSkills": [
             "count_cash_accurately",
             "process_transactions"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Bank Teller",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "count_cash_accurately",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "process_transactions",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "count_cash_accurately",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "process_transactions",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "count_cash_accurately",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "process_transactions",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.5,
@@ -1317,6 +1969,45 @@
         "requiredSkills": [
             "balance_ledgers",
             "prepare_financial_statements"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Accountant",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "balance_ledgers",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "balance_ledgers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "prepare_financial_statements",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "balance_ledgers",
+                            "toProficiency": 20
+                        },
+                        {
+                            "skill": "prepare_financial_statements",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.1,
         "mentalStrain": 0.7,
@@ -1401,6 +2092,45 @@
             "patrol_premises",
             "monitor_security_cameras"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Security Guard",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "monitor_security_cameras",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "monitor_security_cameras",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "monitor_security_cameras",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "patrol_premises",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.5,
         "mentalStrain": 0.4,
         "socialAdmiration": 0.3,
@@ -1476,6 +2206,45 @@
         "requiredSkills": [
             "cut_and_style_hair",
             "blow_dry_and_set"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Hairdresser",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "cut_and_style_hair",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "blow_dry_and_set",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "cut_and_style_hair",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "blow_dry_and_set",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "blow_dry_and_set",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "cut_and_style_hair",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
@@ -1555,6 +2324,45 @@
             "apply_skin_treatments",
             "do_manicures_and_pedicures"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Beautician",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "apply_skin_treatments",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "do_manicures_and_pedicures",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "apply_skin_treatments",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "do_manicures_and_pedicures",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "apply_skin_treatments",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "do_manicures_and_pedicures",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.5,
@@ -1632,6 +2440,45 @@
         "requiredSkills": [
             "diagnose_mechanical_failure",
             "replace_worn_parts"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Mechanic",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "diagnose_mechanical_failure",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "replace_worn_parts",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "diagnose_mechanical_failure",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "replace_worn_parts",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "diagnose_mechanical_failure",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "replace_worn_parts",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.4,
@@ -1711,6 +2558,45 @@
             "assist_customers",
             "estimate_repair_costs"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Service Advisor",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "assist_customers",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "estimate_repair_costs",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "assist_customers",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "estimate_repair_costs",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "assist_customers",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "estimate_repair_costs",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.4,
         "socialAdmiration": 0.4,
@@ -1789,6 +2675,45 @@
             "design_workout_plans",
             "demonstrate_exercises"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Fitness Trainer",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "design_workout_plans",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "demonstrate_exercises",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "design_workout_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "demonstrate_exercises",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "demonstrate_exercises",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "design_workout_plans",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.6,
@@ -1863,6 +2788,45 @@
         "requiredSkills": [
             "greet_and_check_in_guests",
             "manage_bookings"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Receptionist",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "manage_bookings",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "manage_bookings",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "greet_and_check_in_guests",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "manage_bookings",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.3,
@@ -1950,6 +2914,45 @@
             "operate_av_equipment",
             "calibrate_equipment"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Projectionist",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "operate_av_equipment",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "calibrate_equipment",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_av_equipment",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "calibrate_equipment",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "calibrate_equipment",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "operate_av_equipment",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.4,
         "socialAdmiration": 0.3,
@@ -2026,6 +3029,45 @@
         "requiredSkills": [
             "guide_guests",
             "check_tickets"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Usher",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "guide_guests",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "guide_guests",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "check_tickets",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "guide_guests",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.2,
@@ -2107,6 +3149,45 @@
             "operate_cash_register",
             "check_tickets"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Ticket Clerk",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "operate_cash_register",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "operate_cash_register",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_tickets",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "check_tickets",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "operate_cash_register",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.2,
@@ -2183,6 +3264,45 @@
         "requiredSkills": [
             "change_bed_linens",
             "sanitize_surfaces"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Housekeeper",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "change_bed_linens",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "change_bed_linens",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "change_bed_linens",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "sanitize_surfaces",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.2,
@@ -2265,6 +3385,45 @@
             "arrange_guest_services",
             "greet_and_check_in_guests"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Concierge",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "arrange_guest_services",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "arrange_guest_services",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "greet_and_check_in_guests",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "arrange_guest_services",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "greet_and_check_in_guests",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.4,
         "socialAdmiration": 0.5,
@@ -2344,6 +3503,45 @@
         "requiredSkills": [
             "dispense_medication",
             "check_drug_interactions"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Pharmacist",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "dispense_medication",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "dispense_medication",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "check_drug_interactions",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "check_drug_interactions",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "dispense_medication",
+                            "toProficiency": 15
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.7,
@@ -2429,6 +3627,45 @@
             "drive_delivery_van",
             "plan_delivery_routes"
         ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Delivery Driver",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "drive_delivery_van",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "plan_delivery_routes",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "drive_delivery_van",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "plan_delivery_routes",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "drive_delivery_van",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "plan_delivery_routes",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
+        ],
         "physicalStrain": 0.5,
         "mentalStrain": 0.3,
         "socialAdmiration": 0.2,
@@ -2503,6 +3740,45 @@
         "requiredSkills": [
             "read_technical_drawings",
             "draft_technical_plans"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Engineer",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "read_technical_drawings",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "draft_technical_plans",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "read_technical_drawings",
+                            "toProficiency": 20
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.8,
@@ -2582,6 +3858,49 @@
         "requiredSkills": [
             "draft_technical_plans",
             "use_cad_software"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Architect",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "draft_technical_plans",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "use_cad_software",
+                        "multiplier": 1
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "draft_technical_plans",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "read_technical_drawings",
+                            "toProficiency": 20
+                        },
+                        {
+                            "skill": "use_cad_software",
+                            "toProficiency": 10
+                        }
+                    ]
+                }
+            }
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.8,

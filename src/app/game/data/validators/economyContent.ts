@@ -10,7 +10,8 @@ import { BusinessBlueprintTable, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';
 import { MINUTES_PER_DAY } from 'util/time';
 
-const JOB_KEYS = ['title', 'salary', 'requiredSkills', 'shiftStart', 'shiftEnd', 'daysOfWeek', 'workActions', 'physicalStrain', 'mentalStrain', 'socialAdmiration'];
+const JOB_KEYS = ['title', 'salary', 'requiredSkills', 'ranks', 'shiftStart', 'shiftEnd', 'daysOfWeek', 'workActions', 'physicalStrain', 'mentalStrain', 'socialAdmiration'];
+const RANK_KEYS = ['rankId', 'label', 'entry', 'requires', 'progresses', 'entryTrainingGrant', 'promotion', 'workActions'];
 const WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 export function validateJobsStructure(data: unknown, issues: IssueCollector): void {
@@ -26,6 +27,83 @@ export function validateJobsStructure(data: unknown, issues: IssueCollector): vo
         checkNumber(issues, `${id}.salary`, job['salary'], { min: 1 });
         if (checkArray(issues, `${id}.requiredSkills`, job['requiredSkills'])) {
             (job['requiredSkills'] as unknown[]).forEach((skill, index) => checkString(issues, `${id}.requiredSkills[${index}]`, skill));
+        }
+        if (checkArray(issues, `${id}.ranks`, job['ranks'])) {
+            const ranks = job['ranks'] as unknown[];
+            if (ranks.length === 0) {
+                issues.add(`${id}.ranks`, 'a job needs at least one rank (task 064)');
+            }
+            const rankIds = new Set<string>();
+            let entryCount = 0;
+            ranks.forEach((rank, index) => {
+                const path = `${id}.ranks[${index}]`;
+                if (!checkRecord(issues, path, rank)) {
+                    return;
+                }
+                checkUnknownKeys(issues, path, rank, RANK_KEYS);
+                if (checkString(issues, `${path}.rankId`, rank['rankId'])) {
+                    if (rankIds.has(rank['rankId'] as string)) {
+                        issues.add(`${path}.rankId`, `duplicate rank id '${String(rank['rankId'])}'`);
+                    }
+                    rankIds.add(rank['rankId'] as string);
+                }
+                checkString(issues, `${path}.label`, rank['label']);
+                if (rank['entry'] === true) {
+                    entryCount++;
+                }
+                if ('entryTrainingGrant' in rank && rank['entry'] !== true) {
+                    issues.add(`${path}.entryTrainingGrant`, 'training grants are allowed on the ENTRY rank only (task 064)');
+                }
+                if (checkArray(issues, `${path}.requires`, rank['requires'])) {
+                    (rank['requires'] as unknown[]).forEach((requirement, reqIndex) => {
+                        const reqPath = `${path}.requires[${reqIndex}]`;
+                        if (!checkRecord(issues, reqPath, requirement)) {
+                            return;
+                        }
+                        checkUnknownKeys(issues, reqPath, requirement, ['skill', 'minProficiency']);
+                        checkString(issues, `${reqPath}.skill`, requirement['skill']);
+                        checkNumber(issues, `${reqPath}.minProficiency`, requirement['minProficiency'], { min: 0.000001, max: 100 });
+                    });
+                }
+                if (checkArray(issues, `${path}.progresses`, rank['progresses'])) {
+                    (rank['progresses'] as unknown[]).forEach((progress, progIndex) => {
+                        const progPath = `${path}.progresses[${progIndex}]`;
+                        if (!checkRecord(issues, progPath, progress)) {
+                            return;
+                        }
+                        checkUnknownKeys(issues, progPath, progress, ['skill', 'multiplier']);
+                        checkString(issues, `${progPath}.skill`, progress['skill']);
+                        checkNumber(issues, `${progPath}.multiplier`, progress['multiplier'], { min: 0.000001, max: 1 });
+                    });
+                }
+                if ('entryTrainingGrant' in rank && checkRecord(issues, `${path}.entryTrainingGrant`, rank['entryTrainingGrant'])) {
+                    const grantSpec = rank['entryTrainingGrant'] as Record<string, unknown>;
+                    checkUnknownKeys(issues, `${path}.entryTrainingGrant`, grantSpec, ['grants']);
+                    if (checkArray(issues, `${path}.entryTrainingGrant.grants`, grantSpec['grants'])) {
+                        (grantSpec['grants'] as unknown[]).forEach((grant, grantIndex) => {
+                            const grantPath = `${path}.entryTrainingGrant.grants[${grantIndex}]`;
+                            if (!checkRecord(issues, grantPath, grant)) {
+                                return;
+                            }
+                            checkUnknownKeys(issues, grantPath, grant, ['skill', 'toProficiency']);
+                            checkString(issues, `${grantPath}.skill`, grant['skill']);
+                            checkNumber(issues, `${grantPath}.toProficiency`, grant['toProficiency'], { min: 0.000001, max: 100 });
+                        });
+                    }
+                }
+                if ('promotion' in rank && checkRecord(issues, `${path}.promotion`, rank['promotion'])) {
+                    const promotion = rank['promotion'] as Record<string, unknown>;
+                    checkUnknownKeys(issues, `${path}.promotion`, promotion, ['evaluateEveryWorkDays', 'minWorkDaysInRank']);
+                    for (const bound of ['evaluateEveryWorkDays', 'minWorkDaysInRank']) {
+                        if (bound in promotion) {
+                            checkNumber(issues, `${path}.promotion.${bound}`, promotion[bound], { min: 1, integer: true });
+                        }
+                    }
+                }
+            });
+            if (entryCount !== 1) {
+                issues.add(`${id}.ranks`, `exactly one rank must carry entry: true (found ${entryCount})`);
+            }
         }
         // Shift schedules are authored explicitly since task 045 (no more silent 09:00–17:00 defaults).
         // shiftEnd < shiftStart is legal: the shift crosses midnight and belongs to its start day.
@@ -108,6 +186,60 @@ export function validateJobsSemantics(data: unknown, peers: Record<string, unkno
         });
         if (job.requiredSkills.length === 0) {
             issues.add(`${id}.requiredSkills`, 'a job needs at least one required skill');
+        }
+
+        // Rank semantics (task 064): skill refs exist; requiredSkills mirrors the entry rank; the training
+        // grant's dependency closure is complete; and the KEYSTONE reachability rule - the entry rank must
+        // be satisfiable by a fresh 18-year-old (every basic at the school baseline 60) plus its own grant.
+        const entry = (job.ranks ?? []).find(rank => rank.entry);
+        for (const [rankIndex, rank] of (job.ranks ?? []).entries()) {
+            const rankPath = `${id}.ranks[${rankIndex}]`;
+            for (const requirement of rank.requires) {
+                if (!(requirement.skill in skills)) {
+                    issues.add(`${rankPath}.requires`, `unknown skill "${requirement.skill}"`);
+                }
+            }
+            for (const progress of rank.progresses) {
+                if (!(progress.skill in skills)) {
+                    issues.add(`${rankPath}.progresses`, `unknown skill "${progress.skill}"`);
+                }
+            }
+            for (const grant of rank.entryTrainingGrant?.grants ?? []) {
+                if (!(grant.skill in skills)) {
+                    issues.add(`${rankPath}.entryTrainingGrant`, `unknown skill "${grant.skill}"`);
+                }
+            }
+        }
+        if (entry) {
+            const entrySkills = new Set(entry.requires.map(requirement => requirement.skill));
+            const declared = new Set(job.requiredSkills);
+            if (entrySkills.size !== declared.size || ![...entrySkills].every(skill => declared.has(skill))) {
+                issues.add(`${id}.requiredSkills`, "must equal the entry rank's required skills (one source of truth)");
+            }
+            const grantFloor = new Map((entry.entryTrainingGrant?.grants ?? []).map(grant => [grant.skill, grant.toProficiency]));
+            const skillDef = (skillId: string): { basic?: boolean; dependencies?: { skill: string; minProficiency: number }[] } | undefined =>
+                (skills as Record<string, { basic?: boolean; dependencies?: { skill: string; minProficiency: number }[] }>)[skillId];
+            // Reachability: each entry requirement is grant-covered, or a basic within the school baseline.
+            for (const requirement of entry.requires) {
+                const definition = skillDef(requirement.skill);
+                const grantCovers = (grantFloor.get(requirement.skill) ?? 0) >= requirement.minProficiency;
+                const basicCovers = definition?.basic === true && requirement.minProficiency <= 60;
+                if (definition && !grantCovers && !basicCovers) {
+                    issues.add(`${id}.ranks`, `entry requirement "${requirement.skill}" is unreachable for a fresh graduate: not covered by the training grant and not a basic within the school baseline (task 064)`);
+                }
+            }
+            // Grant closure completeness: every dependency of a granted skill is a basic within the school
+            // baseline or itself granted at/above the threshold.
+            for (const grant of entry.entryTrainingGrant?.grants ?? []) {
+                for (const dependency of skillDef(grant.skill)?.dependencies ?? []) {
+                    const depDef = skillDef(dependency.skill);
+                    const grantCovers = (grantFloor.get(dependency.skill) ?? 0) >= dependency.minProficiency;
+                    const basicCovers = depDef?.basic === true && dependency.minProficiency <= 60;
+                    if (!grantCovers && !basicCovers) {
+                        issues.add(`${id}.ranks`, `training grant for "${grant.skill}" has an unsatisfied dependency "${dependency.skill}" (not granted, not a school basic) - the closure must be complete (task 064)`);
+                    }
+                }
+            }
         }
     }
 }

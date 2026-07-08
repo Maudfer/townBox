@@ -18,10 +18,35 @@ export interface WorkActionSpec {
     cooldownTicks?: number;
 }
 
+// A rung on a job's career ladder (task 064). Declaration order = progression order; exactly one rank per
+// job carries `entry: true` (validator-enforced). Requirements are PROFICIENCY thresholds against the
+// SkillBook; `progresses` declares which skills working this rank develops and how fast (065 consumes).
+// `entryTrainingGrant` is the EXPLICIT, TEMPORARY College/licensing shortcut (056/064): on a successful
+// entry-level hire — and only then — the declared skills are granted atomically (dependency closure
+// validated first); it exists so professions with non-basic requirements stay reachable for fresh
+// 18-year-olds until a real education/certification/apprenticeship system replaces it. Never fold this
+// into generic matching.
+export interface JobRank {
+    rankId: string;
+    label: string;
+    entry?: boolean;
+    requires: { skill: string; minProficiency: number }[];
+    progresses: { skill: string; multiplier: number }[]; // per completed work day, x WORK_DAILY_GAIN (065)
+    entryTrainingGrant?: { grants: { skill: string; toProficiency: number }[] }; // entry rank only
+    promotion?: { evaluateEveryWorkDays?: number; minWorkDaysInRank?: number }; // 065 consumes
+    // Optional rank-specific work-action overrides (066 authors them; the Job Orchestrator consults them).
+    workActions?: {
+        continuous?: WorkActionSpec[];
+        discrete?: WorkActionSpec[];
+    };
+}
+
 export interface JobDefinition {
     title: string;
     salary: number;
-    requiredSkills: string[]; // skill ids; align with the JobRequirements enum (types/Work.ts)
+    requiredSkills: string[]; // skill ids; must equal the entry rank's required skills (validator-enforced)
+    // The career ladder (task 064). Non-empty; exactly one entry rank; declaration order = progression order.
+    ranks: JobRank[];
     shiftStart: number; // minutes since midnight (task 045: authored explicitly, validator-required)
     shiftEnd: number; // minutes since midnight; < shiftStart crosses midnight
     daysOfWeek: string[]; // Weekday names ('mon'..'sun'), non-empty (task 045)

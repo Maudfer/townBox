@@ -29,7 +29,9 @@ import { SkillBookState } from 'types/Skill';
 //          proficiency records; `PersonSnapshot.skills` became a read-only legacy field. Loading an older
 //          save re-initializes each person deterministically and grants the mapped legacy skills on top
 //          (game/save/legacySkills.ts).
-export const SAVE_VERSION = 10;
+// v10 → v11: job ranks (task 064). Serialized JobPositions gain rankId + work-day counters; the migration
+//          defaults existing employees to their job's entry rank with zeroed counters.
+export const SAVE_VERSION = 11;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';

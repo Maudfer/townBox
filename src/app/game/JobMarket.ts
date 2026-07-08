@@ -5,31 +5,58 @@ import SkillBook from 'game/SkillBook';
 
 import { PersonId } from 'types/Genealogy';
 import { JobMarket as IJobMarket } from 'types/LifeEvent';
+import { JobDefinition, JobRank, JobTable } from 'types/Business';
+import { JobPosition } from 'types/Work';
+import { SkillGrant } from 'types/Skill';
 
-// Concrete employment adapter (task 015): the bridge between the pure event engine and the materialized
-// Workplace/Field layer. The engine consults it to derive `employed`/`canBeHired` and to perform
-// hiring/firing via the `acquireSlot`/`releaseSlot` effects, so the engine never imports the scene-side
-// classes. Built fresh each tick by City.handleTick over the current materialized people; skills read from the central SkillBook (task 059).
+import jobsConfig from 'json/jobs.json';
+
+// Concrete employment adapter (task 015; rank-aware since 064): the bridge between the pure event engine
+// and the materialized Workplace/Field layer. The engine consults it to derive `employed`/`canBeHired` and
+// to perform hiring/firing via the `acquireSlot`/`releaseSlot` effects. Built fresh each tick by
+// City.handleTick; skills read from the central SkillBook (059).
 //
-// Hiring is deterministic: among workplaces with an open position the candidate's skills can fill, it picks
-// the highest score = SKILL_WEIGHT * (skills the role requires) − DISTANCE_WEIGHT * (home↔workplace Manhattan
-// tile distance), ties broken by the workplace's anchor key. No RNG, so reloads reproduce the same hires.
+// Hiring evaluates a position's job LADDER in two paths, in order (task 064):
+//  1. STRICT — the highest rank whose proficiency requirements the candidate already meets.
+//  2. TRAINING SHORTCUT — failing that, the ENTRY rank via its explicit `entryTrainingGrant` (the temporary
+//     College stand-in): allowed only when the grant covers every unmet requirement and its dependency
+//     closure is satisfiable from the candidate's current skills. The grant is applied ONLY inside a
+//     successful hire (atomically, with revalidation) — never on evaluation — so repeated failed matching
+//     attempts can farm nothing.
+// Positions whose title has no jobs.json ladder (test fixtures, legacy saves) fall back to boolean
+// possession of `position.requirements`.
+//
+// Deterministic: score = SKILL_WEIGHT × fit − DISTANCE_WEIGHT × (home↔workplace Manhattan distance), fit =
+// matched-rank index × RANK_FIT_WEIGHT + requirement count; ties break by workplace anchor key. No RNG.
 
-// A strong skill fit can outweigh several tiles of distance; tune as the economy/data matures (033/034).
 const SKILL_WEIGHT = 8;
 const DISTANCE_WEIGHT = 1;
 const NO_HOME_DISTANCE = 9999;
+const RANK_FIT_WEIGHT = 10;
+
+const JOBS = jobsConfig as unknown as JobTable;
+
+interface RankMatch {
+    defKey: string | null;
+    rank: JobRank | null; // null = legacy boolean fallback matched
+    viaGrant: boolean;
+    fit: number;
+}
 
 interface Match {
     person: Person;
     workplace: Workplace;
+    position: JobPosition;
+    rankMatch: RankMatch;
 }
 
 export default class JobMarket implements IJobMarket {
     private workplaces: Workplace[];
+    private defByTitle: Map<string, { key: string; def: JobDefinition }>;
 
-    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook) {
+    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0) {
         this.workplaces = field.getStructures().filter((tile): tile is Workplace => tile instanceof Workplace);
+        this.defByTitle = new Map(Object.entries(JOBS).map(([key, def]) => [def.title, { key, def }]));
     }
 
     isEmployed(personId: PersonId): boolean {
@@ -46,12 +73,38 @@ export default class JobMarket implements IJobMarket {
         if (!match) {
             return false;
         }
-        const job = match.workplace.hire(match.person, requirements => requirements.every(requirement => this.skillBook.has(match.person.social.getPersonId() ?? personId, requirement)));
+        const { person, workplace, rankMatch } = match;
+
+        // Training shortcut (064): the grant applies only now — inside the successful hire — atomically and
+        // with revalidation. A closure failure aborts the hire with zero mutations (the event's acquireSlot
+        // then aborts the whole get_job commit, as with any failed acquisition).
+        if (rankMatch.viaGrant && rankMatch.rank?.entryTrainingGrant) {
+            const grants: SkillGrant[] = rankMatch.rank.entryTrainingGrant.grants.map(grant => ({
+                skill: grant.skill,
+                amount: { toAtLeast: grant.toProficiency },
+            }));
+            const granted = this.skillBook.grantClosure(personId, grants, this.tick, `trainingGrant:${rankMatch.defKey}`);
+            if (!granted.ok) {
+                return false;
+            }
+            // Revalidate the full requirement set post-grant (the task 064 contract).
+            if (rankMatch.rank && !this.skillBook.meets(personId, rankMatch.rank.requires)) {
+                return false;
+            }
+        }
+
+        const job = workplace.hire(person, requirements => this.positionFillable(personId, requirements, rankMatch));
         if (!job) {
             return false;
         }
-        match.person.work.setJob(job);
-        match.person.work.setWorkplace(match.workplace); // employer reference for the commute (task 006)
+        // The assignment records the rank (entry via the shortcut; the matched rank via the strict path).
+        if (rankMatch.rank) {
+            job.rankId = rankMatch.rank.rankId;
+            job.workDaysInRank = 0;
+            job.totalWorkDays = 0;
+        }
+        person.work.setJob(job);
+        person.work.setWorkplace(workplace); // employer reference for the commute (task 006)
         return true;
     }
 
@@ -62,7 +115,69 @@ export default class JobMarket implements IJobMarket {
         }
         const employer = this.workplaces.find(workplace => workplace.getEmployees().includes(person));
         employer?.layoff(person);
+        // Rank is not retained across employers (064): skills persist, the title does not — a re-hire
+        // re-qualifies through the normal paths (a seasoned worker typically strict-qualifies higher).
         person.work.clearJob();
+    }
+
+    // --- Rank matching (task 064) ---------------------------------------------------------------------------
+
+    // How the candidate can fill a position, or null. Strict path first (highest rank wins), then the
+    // entry training shortcut.
+    private matchPosition(personId: PersonId, position: JobPosition): RankMatch | null {
+        const entry = this.defByTitle.get(position.title);
+        if (!entry || entry.def.ranks.length === 0) {
+            // Legacy/fixture fallback: boolean possession of the position's own requirement list.
+            if (position.requirements.every(requirement => this.skillBook.has(personId, requirement))) {
+                return { defKey: null, rank: null, viaGrant: false, fit: position.requirements.length };
+            }
+            return null;
+        }
+        const ranks = entry.def.ranks;
+        // Strict: the highest rung the candidate already meets (declaration order = progression order).
+        for (let index = ranks.length - 1; index >= 0; index--) {
+            const rank = ranks[index]!;
+            if (this.skillBook.meets(personId, rank.requires)) {
+                return { defKey: entry.key, rank, viaGrant: false, fit: index * RANK_FIT_WEIGHT + rank.requires.length };
+            }
+        }
+        // Shortcut: the entry rank via its explicit grant, only.
+        const entryRank = ranks.find(rank => rank.entry);
+        if (entryRank?.entryTrainingGrant && this.shortcutFeasible(personId, entryRank)) {
+            return { defKey: entry.key, rank: entryRank, viaGrant: true, fit: entryRank.requires.length };
+        }
+        return null;
+    }
+
+    // The grant covers every unmet requirement AND its dependency closure is satisfiable from the
+    // candidate's current skills — checked WITHOUT mutating anything (evaluation must be farm-proof).
+    private shortcutFeasible(personId: PersonId, rank: JobRank): boolean {
+        const grant = rank.entryTrainingGrant!;
+        const floorOf = new Map(grant.grants.map(entry => [entry.skill, entry.toProficiency]));
+        for (const requirement of rank.requires) {
+            const covered = this.skillBook.proficiency(personId, requirement.skill) >= requirement.minProficiency
+                || (floorOf.get(requirement.skill) ?? 0) >= requirement.minProficiency;
+            if (!covered) {
+                return false;
+            }
+        }
+        const manifest = this.skillBook.getManifest();
+        for (const entry of grant.grants) {
+            for (const dependency of manifest[entry.skill]?.dependencies ?? []) {
+                const reachable = Math.max(this.skillBook.proficiency(personId, dependency.skill), floorOf.get(dependency.skill) ?? 0);
+                if (reachable < dependency.minProficiency) {
+                    return false; // e.g. weak basics from poor attendance — this profession stays out of reach
+                }
+            }
+        }
+        return true;
+    }
+
+    private positionFillable(personId: PersonId, requirements: string[], rankMatch: RankMatch): boolean {
+        if (rankMatch.rank) {
+            return this.skillBook.meets(personId, rankMatch.rank.requires);
+        }
+        return requirements.every(requirement => this.skillBook.has(personId, requirement));
     }
 
     // The best (highest-scoring) workplace the person can be hired into right now, or null if none is fillable.
@@ -83,36 +198,29 @@ export default class JobMarket implements IJobMarket {
         let bestKey = '';
 
         for (const workplace of this.workplaces) {
-            const fit = this.bestFit(workplace, personId);
-            if (fit < 0) {
+            let workplaceBest: { position: JobPosition; rankMatch: RankMatch } | null = null;
+            for (const position of workplace.getOpenPositions()) {
+                const rankMatch = this.matchPosition(personId, position);
+                if (rankMatch && (!workplaceBest || rankMatch.fit > workplaceBest.rankMatch.fit)) {
+                    workplaceBest = { position, rankMatch };
+                }
+            }
+            if (!workplaceBest) {
                 continue;
             }
             const position = workplace.getPosition();
             const distance = homePos && position
                 ? Math.abs(homePos.row - position.row) + Math.abs(homePos.col - position.col)
                 : NO_HOME_DISTANCE;
-            const score = SKILL_WEIGHT * fit - DISTANCE_WEIGHT * distance;
+            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance;
             const key = workplace.getIdentifier();
             if (score > bestScore || (score === bestScore && key < bestKey)) {
                 bestScore = score;
                 bestKey = key;
-                best = { person, workplace };
+                best = { person, workplace, position: workplaceBest.position, rankMatch: workplaceBest.rankMatch };
             }
         }
 
-        return best;
-    }
-
-    // The strongest fit among a workplace's open positions the person can fill (the number of required skills,
-    // so specialist roles outrank generic ones), or -1 if none are fillable. Possession is any positive
-    // proficiency in the SkillBook (task 059); per-rank proficiency THRESHOLDS arrive with task 064.
-    private bestFit(workplace: Workplace, personId: PersonId): number {
-        let best = -1;
-        for (const position of workplace.getOpenPositions()) {
-            if (position.requirements.every(requirement => this.skillBook.has(personId, requirement))) {
-                best = Math.max(best, position.requirements.length);
-            }
-        }
         return best;
     }
 }
