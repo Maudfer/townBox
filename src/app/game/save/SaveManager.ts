@@ -142,6 +142,7 @@ export default class SaveManager {
             economy: this.game.economy?.getState(),
             objects: this.game.inventory?.getState(),
             actions: this.game.actionEngine?.getState(),
+            schools: this.game.schools?.getState(),
         };
     }
 
@@ -307,6 +308,11 @@ export default class SaveManager {
         // Action instances + history (v8+, task 043). Older saves carry none; the engine starts idle.
         if (snapshot.actions) {
             this.game.actionEngine?.loadState(snapshot.actions);
+        }
+
+        // School assignments (v9+, task 058). Older saves carry none; the daily sweep enrolls.
+        if (snapshot.schools) {
+            this.game.schools?.loadState(snapshot.schools);
         }
 
         // Structures first, so houses/workplaces exist to be referenced by people and families.

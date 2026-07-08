@@ -15,9 +15,11 @@ import { validateObjectsStructure } from '../src/app/game/data/validators/object
 import { validateActionsSemantics, validateActionsStructure } from '../src/app/game/data/validators/actions';
 import { validateOarSemantics, validateOarStructure } from '../src/app/game/data/validators/oar';
 import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from '../src/app/game/data/validators/ui';
+import { validateSchoolsSemantics, validateSchoolsStructure } from '../src/app/game/data/validators/school';
 import { allRegistrations, validateAllData } from '../src/app/game/data/schemas';
 
 import businessesConfig from '../src/json/businesses.json';
+import schoolsConfig from '../src/json/schools.json';
 import objectsConfig from '../src/json/objects.json';
 import demandConfig from '../src/json/demand.json';
 import jobsConfig from '../src/json/jobs.json';
@@ -71,7 +73,7 @@ describe('data validation (task 039)', () => {
         expect(names).toEqual([
             'actions', 'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy',
             'events', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
-            'objectActionRelationships', 'objects', 'population', 'skills', 'toolAssets',
+            'objectActionRelationships', 'objects', 'population', 'schools', 'skills', 'toolAssets',
         ]);
     });
 
@@ -515,5 +517,72 @@ describe('ui manifest validation', () => {
         expect(messagesOf(structure(validateToolAssetsStructure, { paint: 'grass' }))).toMatch(/unknown tool/);
         const output = messagesOf(semantics(validateToolAssetsSemantics, { soil: 'ghost_sprite' }, { assets: { assets: [{ key: 'grass' }] } }));
         expect(output).toMatch(/sprite key "ghost_sprite" is not in assets\.json/);
+    });
+});
+
+describe('schools validation (task 058)', () => {
+    const valid = () => JSON.parse(JSON.stringify(schoolsConfig)) as Record<string, unknown>;
+    // Minimal peers satisfying the semantic contract, so each fixture flips exactly one thing.
+    const peers = () => ({
+        actions: {
+            attend_school: {
+                type: 'continuous', category: 'obligation',
+                completeWhen: { attr: 'hourOfDay', op: '>=', value: 14 },
+                events: { onStart: 'school_day_started', onComplete: 'completed_school_day' },
+            },
+        },
+        events: {
+            school_day_started: { triggers: { manual: {} }, limit: { once: 'perDay' } },
+            completed_school_day: {
+                triggers: { manual: {}, automated: { rules: [{ afterEvent: 'school_day_started', delayTicks: 8 }] } },
+                limit: { once: 'perDay' },
+            },
+        },
+    });
+
+    test('the shipped schools.json passes both validators', () => {
+        expect(structure(validateSchoolsStructure, schoolsConfig)).toEqual([]);
+        expect(semantics(validateSchoolsSemantics, schoolsConfig, peers())).toEqual([]);
+    });
+
+    test('weekend school days are rejected (v1 weekday-only contract)', () => {
+        const data = valid();
+        data['daysOfWeek'] = ['mon', 'sat'];
+        expect(messagesOf(structure(validateSchoolsStructure, data))).toContain('weekend');
+    });
+
+    test('a school day must end after it starts, on an hour boundary', () => {
+        const inverted = valid();
+        inverted['dayStartMinutes'] = 900;
+        expect(structure(validateSchoolsStructure, inverted).length).toBeGreaterThan(0);
+        const ragged = valid();
+        ragged['dayEndMinutes'] = 850;
+        expect(messagesOf(structure(validateSchoolsStructure, ragged))).toContain('hour boundary');
+    });
+
+    test('a broken capacity curve or inverted age band is rejected', () => {
+        const badCurve = valid();
+        badCurve['capacity'] = { mode: 'nope' };
+        expect(structure(validateSchoolsStructure, badCurve).length).toBeGreaterThan(0);
+        const badAges = valid();
+        badAges['minAgeYears'] = 12;
+        badAges['maxAgeYears'] = 7;
+        expect(messagesOf(structure(validateSchoolsStructure, badAges))).toContain('minAgeYears');
+    });
+
+    test('semantics: a drifted attend_school completeWhen is caught', () => {
+        const drifted = peers();
+        (drifted.actions.attend_school.completeWhen as { value: number }).value = 15;
+        expect(messagesOf(semantics(validateSchoolsSemantics, schoolsConfig, drifted))).toContain('completeWhen');
+    });
+
+    test('semantics: missing school-day events or a missing automated fallback are caught', () => {
+        const missing = peers();
+        delete (missing.events as Record<string, unknown>)['completed_school_day'];
+        expect(messagesOf(semantics(validateSchoolsSemantics, schoolsConfig, missing))).toContain('completed_school_day');
+
+        const noFallback = peers();
+        (noFallback.events.completed_school_day.triggers as Record<string, unknown>)['automated'] = { rules: [] };
+        expect(messagesOf(semantics(validateSchoolsSemantics, schoolsConfig, noFallback))).toContain('fallback');
     });
 });

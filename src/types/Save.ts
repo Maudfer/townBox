@@ -8,6 +8,7 @@ import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent
 import { EconomyState } from 'types/Economy';
 import { InventoryState } from 'types/Objects';
 import { ActionEngineState } from 'types/Action';
+import { SchoolRegistryState } from 'types/School';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool (v1 saves load with an empty pool); families → households.
@@ -21,7 +22,9 @@ import { ActionEngineState } from 'types/Action';
 //          (game/save/migrations.ts). The clock's elapsedMs is scale-independent and needs no migration.
 //          v8 also carries the append-only event log (040) and object instances/Possessions (041); both are
 //          additive optional fields (older saves load with a synthesized log and no objects).
-export const SAVE_VERSION = 8;
+// v8 → v9: added school assignments (task 058). Additive optional field; older saves load with no
+//          assignments and the daily sweep enrolls eligible children on the next simulated day.
+export const SAVE_VERSION = 9;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -118,4 +121,6 @@ export interface WorldSnapshot {
     objects?: InventoryState;
     // Action instances + aggregate action history (v8, task 043). Optional so older saves load with none.
     actions?: ActionEngineState;
+    // School assignments (v9, task 058). Optional so older saves load with none (the daily sweep enrolls).
+    schools?: SchoolRegistryState;
 }

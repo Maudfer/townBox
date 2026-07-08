@@ -283,8 +283,16 @@ export default class Person {
                     if (vehicleTile) {
                         this.setDestinationTile(currentTile, vehicleTile, pathFinder);
                     }
+                    this.travelStep = TravelStep.WalkingToCar;
+                } else {
+                    // Walking commute (task 058): no car — path straight to the destination on foot over the
+                    // pedestrian network (curbs/crosswalks). Minors commute this way (children don't drive).
+                    const destTile = this.destinationBuilding.getPosition();
+                    if (destTile) {
+                        this.setDestinationTile(currentTile, destTile, pathFinder);
+                    }
+                    this.travelStep = TravelStep.WalkingToDestination;
                 }
-                this.travelStep = TravelStep.WalkingToCar;
                 break;
             case TravelStep.WalkingToCar:
                 this.walk(currentTile, timeDelta);

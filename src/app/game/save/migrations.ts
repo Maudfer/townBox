@@ -13,6 +13,11 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         synthesizeEventLog(snapshot);
         snapshot.version = 8;
     }
+    if (snapshot.version < 9) {
+        // v8 → v9 (task 058): school assignments are a new, additive optional section. Nothing to
+        // transform — older saves load with no assignments and the daily sweep enrolls eligible children.
+        snapshot.version = 9;
+    }
     return snapshot;
 }
 

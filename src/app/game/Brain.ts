@@ -14,6 +14,7 @@
 import ActionEngine, { ActionDeps } from 'game/ActionEngine';
 
 import { jobOrchestratorHook } from 'game/JobOrchestrator';
+import { schoolObligationHook } from 'game/SchoolOrchestrator';
 
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
@@ -21,6 +22,7 @@ import { isOnShiftAtTick } from 'util/shifts';
 
 import { TickResult } from 'types/LifeEvent';
 import { PersonId } from 'types/Genealogy';
+import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
 
 // The person's broad simulation state — a small, stable enum, never an arbitrary action name (038 §8). The
@@ -55,6 +57,9 @@ export interface JobFacts {
 
 export interface BrainDeps extends ActionDeps {
     jobOf?: (personId: PersonId) => JobFacts | null;
+    // A person's VALID school assignment facts (task 058), resolved by the host (live: SchoolRegistry +
+    // City validity checks; bootstrap: the logical world when 055 builds it). Null = no school obligation.
+    schoolOf?: (personId: PersonId) => SchoolFacts | null;
 }
 
 export type HookKind = 'onTick' | 'onEventCommitted' | 'onActionStarted' | 'onActionCompleted' | 'onActionInterrupted' | 'onLocationArrived' | 'onShiftStarted' | 'onShiftEnded';
@@ -86,6 +91,7 @@ export default class Brain {
         // (need-driven stats etc.) without touching the resolution machinery.
         this.hooks = [
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
+            schoolObligationHook, // school attendance for enrolled children (task 058)
             wokeUpHook,
             actionCompletedHook,
             inventoryOpportunityHook,
@@ -247,6 +253,10 @@ const wokeUpHook: BrainHook = {
         const job = deps.jobOf?.(personId) ?? null;
         if (job && isOnShiftAtTick(job, deps.tick)) {
             return []; // the obligation hook owns the work intent — don't duplicate it
+        }
+        const school = deps.schoolOf?.(personId) ?? null;
+        if (school && isOnShiftAtTick(school, deps.tick)) {
+            return []; // likewise, the school-obligation hook owns the attendance intent (task 058)
         }
         const pick = brain.selectFreeTimeAction(personId, deps);
         return pick ? [{
