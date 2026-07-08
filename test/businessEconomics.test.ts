@@ -298,3 +298,29 @@ describe('B2B supply-chain closure (task 076/M5)', () => {
         expect(unsupplied).toEqual([]);
     });
 });
+
+// Business shrink-via-layoffs (task 076/M6): a solvent but sustainedly loss-making, over-min business
+// downsizes instead of only ever growing or bankrupting.
+describe('City business shrink-via-layoffs (task 076/M6)', () => {
+    test('a solvent, sustainedly unprofitable, over-min business sheds a size step and lays off surplus', () => {
+        const { city, field, economy, game } = makeWorld();
+        const emit = jest.fn((..._args: unknown[]) => Promise.resolve([]));
+        (game as unknown as { emit: typeof emit }).emit = emit;
+
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        // Size 2 (above supermarket's min of 1); no consumers → guaranteed monthly losses; solvent balance so
+        // it never bankrupts (stays above the debt floor) — the shrink path, not the bankruptcy path.
+        workplace.setBusiness({ blueprintKey: 'supermarket', name: 'Mart', lineOfWork: 'Super Market', size: 2, positions: [] });
+        const key = workplace.getIdentifier();
+        economy.setBusinessBalance(key, 5_000_000);
+
+        for (let month = 0; month <= 4; month++) {
+            city.processMonthlyEconomy(month * TICKS_PER_MONTH);
+        }
+
+        expect(workplace.getBusiness()).not.toBeNull();          // solvent — did NOT bankrupt
+        expect(workplace.getBusiness()!.size).toBe(1);           // shrank one step
+        expect(economy.getBusinessBalance(key)).toBeGreaterThan(0);
+        expect(emit.mock.calls.some(call => call[0] === 'cityEvent' && (call[1] as { kind: string }).kind === 'businessShrank')).toBe(true);
+    });
+});

@@ -18,6 +18,7 @@ export interface EconomyParams {
     housingCost: number; // monthly housing cost per household
     perCapitaCost: number; // monthly food/upkeep per resident
     growthMonths: number; // consecutive profitable months before a fully-staffed business grows (task 020)
+    shrinkMonths: number; // consecutive loss-making months before a solvent, over-min business sheds a position (task 076/M6)
     bankruptcyDebtFloor: number; // a business whose balance stays below this is insolvent (task 021)
     bankruptcyMonths: number; // consecutive insolvent months before a business goes bankrupt and closes (task 021)
     reoccupancyMonths: number; // months a work building stays vacant before it can attract a new business (task 037)

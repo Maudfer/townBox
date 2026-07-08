@@ -876,6 +876,22 @@ export default class City {
                 workplace.expandPositions(business.size + 1, grown.positions, positionDelta(business.positions, grown.positions));
                 business.profitStreak = 0;
                 this.announce('businessGrew', tick, `${business.name} is expanding`, null);
+            } else if ((business.profitStreak ?? 0) <= -DEFAULT_ECONOMY_PARAMS.shrinkMonths
+                && business.size > blueprint.size.min) {
+                // Shrink-via-layoffs (task 076/M6): a solvent-but-sustainedly-unprofitable business downsizes
+                // instead of only ever growing or bankrupting — it sheds a size step (cutting payroll to match
+                // fallen demand). Laid-off staff re-enter the job market. Symmetric with growth.
+                const shrunk = generateBusiness(business.blueprintKey, blueprint, JOBS, business.name, business.size - 1);
+                const laidOff = workplace.shrinkPositions(business.size - 1, shrunk.positions);
+                for (const person of laidOff) {
+                    person.work.clearJob();
+                }
+                business.profitStreak = 0;
+                this.announce('businessShrank', tick, `${business.name} is downsizing`, null);
+                if (laidOff.length > 0) {
+                    const subject = laidOff.length === 1 ? '1 person was' : `${laidOff.length} people were`;
+                    this.announce('massLayoff', tick, `${subject} laid off from ${business.name}`, null);
+                }
             }
         }
     }
