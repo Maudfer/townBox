@@ -22,7 +22,7 @@ import { SeededRandom } from 'util/random';
 import { PopulationState, PersonId, GenPerson } from 'types/Genealogy';
 import { EventHistoryTable, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
 import { Genders } from 'types/Social';
-import { SkillBookState, PersonSkills } from 'types/Skill';
+import { SkillBookState, PersonSkills, SkillSnapshot } from 'types/Skill';
 import { InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
 
 import { HistoryAsset, HISTORY_ASSET_FORMAT_VERSION } from 'game/HistoryAsset';
@@ -142,27 +142,26 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
 
     const result: Omit<SelectedWorld, 'window'> = { population, eventHistory, eventLog, eventLogSeq: maxSeq + 1 };
 
-    // Lived skills + carried possessions (task 077): keep only the retained cohort and rebase timestamps by −w.
-    // NOTE: skills/possessions are an end-of-generation SNAPSHOT, so the living cohort carries proficiency
-    // reflecting their whole simulated life (basics cap at 60 by 18 so they're age-correct; job skills may read
-    // as more experienced than the windowed age — an accepted over-fidelity, documented as a §9 follow-up:
-    // per-window skill snapshotting). Because the loaded SkillBook marks these people `initialized`,
-    // City.setupHousehold's initialize() no-ops for them, preserving these skills.
-    if (asset.skillBook) {
+    // Lived skills (task 077 per-window snapshotting): for each retained person, install the snapshot taken AS
+    // OF the window — the latest with tick <= w — so a windowed person's proficiency matches their windowed age
+    // rather than an end-of-life snapshot. A person with NO snapshot <= w (born after the last snapshot before
+    // w, e.g. a young child) is simply left out, so City.setupHousehold's age-appropriate initialize() runs for
+    // them. Installing the SkillBook marks the rest `initialized`, so initialize() no-ops and their real skills
+    // survive. Ticks rebased by −w. Possessions kept only for the retained cohort, ticks rebased.
+    if (asset.skillTimeline) {
         const records: Record<PersonId, PersonSkills> = {};
         const initialized: Record<PersonId, true> = {};
         for (const id of Object.keys(people)) {
-            const personSkills = asset.skillBook.records[id];
-            if (personSkills) {
-                const rebasedSkills: PersonSkills = {};
-                for (const [skillId, record] of Object.entries(personSkills)) {
-                    rebasedSkills[skillId] = { ...record, firstAcquiredTick: record.firstAcquiredTick - w, lastProgressedTick: record.lastProgressedTick - w };
-                }
-                records[id] = rebasedSkills;
+            const snapshot = latestSnapshotAt(asset.skillTimeline[id], w);
+            if (!snapshot) {
+                continue; // no snapshot as of w → live init handles this person (age-appropriate)
             }
-            if (asset.skillBook.initialized[id]) {
-                initialized[id] = true;
+            const rebasedSkills: PersonSkills = {};
+            for (const [skillId, record] of Object.entries(snapshot.skills)) {
+                rebasedSkills[skillId] = { ...record, firstAcquiredTick: record.firstAcquiredTick - w, lastProgressedTick: record.lastProgressedTick - w };
             }
+            records[id] = rebasedSkills;
+            initialized[id] = true;
         }
         result.skillBook = { records, initialized };
     }
@@ -171,6 +170,22 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
     }
 
     return result;
+}
+
+// The latest snapshot with tick <= w (timeline is ascending by tick), or null if none.
+function latestSnapshotAt(timeline: SkillSnapshot[] | undefined, w: number): SkillSnapshot | null {
+    if (!timeline || timeline.length === 0) {
+        return null;
+    }
+    let chosen: SkillSnapshot | null = null;
+    for (const snapshot of timeline) {
+        if (snapshot.tick <= w) {
+            chosen = snapshot;
+        } else {
+            break;
+        }
+    }
+    return chosen;
 }
 
 // Keeps only object instances (transitively) carried by a retained person, rebasing createdAtTick by −w.

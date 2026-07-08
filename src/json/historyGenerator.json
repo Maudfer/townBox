@@ -4,10 +4,11 @@
     "recordThreshold": 1000,
     "recordYears": 500,
     "ticksPerYear": 8640,
-    "daysPerStep": 30,
+    "daysPerStep": 1,
     "warmMarginYears": 40,
     "maxWarmupYears": 400,
-    "keepActionLog": false,
+    "keepActionLog": true,
+    "skillSnapshotYears": 1,
     "carryingCapacity": {
         "enabled": true,
         "soft": 3000,

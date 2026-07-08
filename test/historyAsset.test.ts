@@ -25,6 +25,7 @@ const TINY: HistoryGeneratorParams = {
     recordThreshold: 20, // ≤ founderCount ⇒ epoch is reached immediately (exercises the recording + prune path)
     recordYears: 1,
     daysPerStep: 30, // monthly cadence keeps the test fast
+    keepActionLog: false, // these invariants assert the event-only slimmed log
     carryingCapacity: { enabled: true, soft: 40, steepness: 4 },
     // The generator invariants below are the 055 pool-intrinsic spine; the logical-economy world (077) is
     // exercised in its own describe block.

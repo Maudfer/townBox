@@ -34,7 +34,7 @@ import { ageAt } from 'util/kinship';
 import { PopulationState, PersonId } from 'types/Genealogy';
 import { EventHistoryTable, EventLogTable, EventManifest, ScheduleState, TickResult } from 'types/LifeEvent';
 import { WorldAdapter } from 'types/Execution';
-import { SkillBookState } from 'types/Skill';
+import { SkillTimeline } from 'types/Skill';
 import { InventoryState } from 'types/Objects';
 
 import eventsConfig from 'json/events.json';
@@ -46,7 +46,8 @@ const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
 export const HISTORY_ASSET_FORMAT_VERSION = 1;
 // The generator version — bump when the sim/events change materially, so re-runs are distinguishable.
 // 077.1: the logical-economy world (off-map schools/jobs/objects → the asset carries lived skills/possessions).
-export const HISTORY_GENERATOR_VERSION = '077.1';
+// 077.2: per-window skill snapshotting (a per-person skill timeline instead of an end-of-generation snapshot).
+export const HISTORY_GENERATOR_VERSION = '077.2';
 
 // The event whose hazard the carrying capacity throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -74,9 +75,12 @@ export interface HistoryGeneratorParams {
     carryingCapacity: CarryingCapacityConfig;
     safety: GeneratorSafety;
     // The offline logical-economy world (task 077): when enabled, the generator runs logical schools/jobs/
-    // objects off-map so the asset carries lived skills/careers-as-history/possessions (SkillBook + carried
-    // Inventory). When disabled, the generator is the 055 pool-intrinsic spine (skills materialize at draw).
+    // objects off-map so the asset carries lived skills/careers-as-history/possessions (a skill timeline +
+    // carried Inventory). When disabled, the generator is the 055 pool-intrinsic spine (skills at draw).
     logicalWorld: { enabled: boolean } & LogicalWorldConfig;
+    // How often (in years) to snapshot each living person's skills, so selection can install skills AS OF the
+    // window (task 077 per-window snapshotting). Finer = richer/heavier. Only used when logicalWorld.enabled.
+    skillSnapshotYears: number;
     // Whether the asset retains the low-level ACTION log entries (grab/use/discrete work flavor) in addition
     // to life EVENTS. Default false: the action engine + Brain still run every tick (so action-CAUSED events
     // still fire into the event history), but the per-tick action texture — which explodes the asset to GBs
@@ -122,8 +126,9 @@ export interface HistoryAsset {
     eventLogSeq: number;
     eventSchedule: ScheduleState;
     // Lived skills + carried possessions (task 077). Present only when logicalWorld.enabled; Part B installs
-    // them so drawn people arrive with real proficiency/possessions instead of synthesized-at-draw ones.
-    skillBook?: SkillBookState;
+    // them so drawn people arrive with real proficiency/possessions instead of synthesized-at-draw ones. The
+    // skill timeline (per-window snapshotting) lets selection pick each person's skills as of the window.
+    skillTimeline?: SkillTimeline;
     objects?: InventoryState;
 }
 
@@ -233,6 +238,8 @@ export async function generateHistoryAsset(
     let livingCount = living.size;
     engine.setProbabilityScale(id => (id === PREGNANCY_EVENT ? fertilityFactor(livingCount, params.carryingCapacity) : 1));
 
+    const snapshotIntervalTicks = Math.max(1, Math.round(params.skillSnapshotYears * tpy));
+    let lastSnapshotBucket = -1;
     let births = 0;
     let deaths = 0;
     let epochTick: number | null = null;
@@ -295,6 +302,12 @@ export async function generateHistoryAsset(
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
             logical.runDaily(state, tick, tick + step, tpy, skillBook, engine);
+            // Per-window skill snapshot at the configured cadence (task 077 fix).
+            const bucket = Math.floor(tick / snapshotIntervalTicks);
+            if (bucket !== lastSnapshotBucket) {
+                lastSnapshotBucket = bucket;
+                logical.snapshotSkills(skillBook, tick, living);
+            }
         }
 
         // Per-decade trajectory sample + per-year progress.
@@ -393,21 +406,11 @@ export async function generateHistoryAsset(
         eventSchedule: engine.getScheduleState(),
     };
 
-    // Carry lived skills + carried possessions (task 077), filtered to retained people (warm-up dead are gone).
+    // Carry lived skills (per-window timeline) + carried possessions (task 077), filtered to retained people.
     if (logical && skillBook) {
         const retainedSet = new Set(retainedIds);
-        const fullSkills = skillBook.getState();
-        const records: SkillBookState['records'] = {};
-        const initialized: SkillBookState['initialized'] = {};
-        for (const id of retainedIds) {
-            if (fullSkills.records[id]) {
-                records[id] = fullSkills.records[id]!;
-            }
-            if (fullSkills.initialized[id]) {
-                initialized[id] = true;
-            }
-        }
-        asset.skillBook = { records, initialized };
+        logical.snapshotSkills(skillBook, endTick, living); // final snapshot so the latest state is captured
+        asset.skillTimeline = logical.skillTimelineState(retainedSet);
         asset.objects = logical.carriedInventoryState(retainedSet);
     }
 

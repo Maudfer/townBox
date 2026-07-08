@@ -34,6 +34,7 @@ import { locationKey, InventoryState, ObjectInstance, ObjectContainerRef } from 
 import { SchoolConfig } from 'types/School';
 import { JobPosition } from 'types/Work';
 import { JobTable, JobDefinition, JobRank, BusinessBlueprintTable } from 'types/Business';
+import { SkillTimeline, SkillSnapshot, PersonSkills } from 'types/Skill';
 
 import jobsConfig from 'json/jobs.json';
 import businessesConfig from 'json/businesses.json';
@@ -93,6 +94,11 @@ export default class LogicalWorld implements WorldAdapter {
     readonly schoolRegistry: SchoolRegistry;
     private schoolSeats: SchoolSeat[] = [];
     private jobMarket: LogicalJobMarket | null = null;
+
+    // Per-window skill snapshotting (task 077 fix): a per-person timeline of skill states, so selection can
+    // install each drawn person's skills AS OF the chosen window instead of an end-of-generation snapshot.
+    private skillTimeline = new Map<PersonId, SkillSnapshot[]>();
+    private lastSkillSig = new Map<PersonId, string>();
 
     constructor(worldSeed: number, config: LogicalWorldConfig = DEFAULT_LOGICAL_WORLD_CONFIG) {
         this.worldSeed = worldSeed;
@@ -399,6 +405,42 @@ export default class LogicalWorld implements WorldAdapter {
             ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry } },
             inventory: this.inventory,
         };
+    }
+
+    // Records a skill snapshot for every currently-living person whose skills CHANGED since their last
+    // snapshot (dedup by a proficiency signature keeps static-skill people to a single entry). Called by the
+    // generator at the snapshot cadence + once at the end. Deterministic, RNG-free.
+    snapshotSkills(skillBook: SkillBook, tick: number, livingIds: Iterable<PersonId>): void {
+        for (const personId of [...livingIds].sort()) {
+            const skills = skillBook.skillsOf(personId);
+            const keys = Object.keys(skills);
+            if (keys.length === 0) {
+                continue;
+            }
+            let sig = '';
+            for (const key of keys.sort()) {
+                sig += `${key}:${skills[key]!.proficiency.toFixed(3)};`;
+            }
+            if (this.lastSkillSig.get(personId) === sig) {
+                continue; // unchanged since the last snapshot — no new entry
+            }
+            this.lastSkillSig.set(personId, sig);
+            const copy = JSON.parse(JSON.stringify(skills)) as PersonSkills;
+            const timeline = this.skillTimeline.get(personId) ?? [];
+            timeline.push({ tick, skills: copy });
+            this.skillTimeline.set(personId, timeline);
+        }
+    }
+
+    // The per-person skill timeline, filtered to retained people (warm-up dead are pruned from the asset).
+    skillTimelineState(retainedIds: Set<PersonId>): SkillTimeline {
+        const out: SkillTimeline = {};
+        for (const [personId, timeline] of this.skillTimeline) {
+            if (retainedIds.has(personId) && timeline.length > 0) {
+                out[personId] = timeline;
+            }
+        }
+        return out;
     }
 
     // Person-carried instances only (task 077 §4): building fixtures regenerate on the live map, so only loose

@@ -87,22 +87,22 @@ describe('LogicalWorld — carried inventory filtering', () => {
     });
 });
 
-describe('Part B — consuming asset skills + possessions (sliceAndRebase)', () => {
-    function assetWithSkills(): HistoryAsset {
+describe('Part B — per-window skill snapshotting (sliceAndRebase)', () => {
+    function assetWithTimeline(): HistoryAsset {
         const people: PopulationState['people'] = {
             p1: { id: 'p1', firstName: 'A', familyName: 'X', gender: Genders.Male, birthTick: 0, deathTick: null, fatherId: null, motherId: null, partnerships: [] },
             p2: { id: 'p2', firstName: 'B', familyName: 'X', gender: Genders.Female, birthTick: 50000, deathTick: null, fatherId: null, motherId: null, partnerships: [] }, // future
         };
+        const rec = (prof: number, tick: number) => ({ suture_wounds: { proficiency: prof, firstAcquiredTick: 8000, lastProgressedTick: tick, provenance: ['job:doctor'] } });
         return {
             meta: { formatVersion: 1, generatorVersion: 't', seed: 1, params: { ...DEFAULT_GENERATOR_PARAMS, warmMarginYears: 0 }, createdAt: '', gitCommit: null, epochTick: 0, endTick: 100000, ticksPerYear: 8640, stats: { retainedPeople: 2, livingAtEnd: 2, births: 0, deaths: 0, medianHistoryLen: 0, trajectory: [], runtimeMs: 0, rawBytes: 0, compressedBytes: 0 } },
             population: { worldSeed: 1, people, drawSeed: 0, placedIds: [], nextSeq: 3, lastSimulatedYear: 0 },
             eventHistory: {}, eventLog: {}, eventLogSeq: 1, eventSchedule: { queue: [], nextScheduleSeq: 0 },
-            skillBook: {
-                records: {
-                    p1: { math: { proficiency: 60, firstAcquiredTick: 5000, lastProgressedTick: 25000, provenance: ['school'] } },
-                    p2: { math: { proficiency: 60, firstAcquiredTick: 55000, lastProgressedTick: 60000, provenance: ['school'] } },
-                },
-                initialized: { p1: true, p2: true },
+            skillTimeline: {
+                // p1's job skill grows over time — a window at 30000 must pick the tick-10000 snapshot (20), NOT
+                // the end-of-life 90 that the old flat snapshot would have installed.
+                p1: [{ tick: 10000, skills: rec(20, 10000) }, { tick: 40000, skills: rec(60, 40000) }, { tick: 90000, skills: rec(90, 90000) }],
+                p2: [{ tick: 60000, skills: rec(30, 60000) }],
             },
             objects: {
                 instances: {
@@ -114,14 +114,22 @@ describe('Part B — consuming asset skills + possessions (sliceAndRebase)', () 
         };
     }
 
-    test('keeps retained people, drops future ones, and rebases skill/object ticks', () => {
-        const sliced = sliceAndRebase(assetWithSkills(), 30000);
+    test('installs each person\'s skills AS OF the window (not the end-of-life snapshot)', () => {
+        const sliced = sliceAndRebase(assetWithTimeline(), 30000);
         expect(Object.keys(sliced.population.people)).toEqual(['p1']); // p2 (birthTick 50000 > w) dropped
-        expect(sliced.skillBook!.records.p1!.math!.firstAcquiredTick).toBe(5000 - 30000);
+        // The tick-10000 snapshot wins (<= w=30000), so job proficiency reads 20 — matching the windowed age.
+        expect(sliced.skillBook!.records.p1!.suture_wounds!.proficiency).toBe(20);
+        expect(sliced.skillBook!.records.p1!.suture_wounds!.lastProgressedTick).toBe(10000 - 30000); // rebased
         expect(sliced.skillBook!.records.p2).toBeUndefined();
         expect(sliced.skillBook!.initialized).toEqual({ p1: true }); // so setupHousehold.initialize no-ops for p1
         expect(Object.keys(sliced.objects!.instances)).toEqual(['o1']); // p2's possession dropped
-        expect(sliced.objects!.instances.o1!.createdAtTick).toBe(10000 - 30000);
+    });
+
+    test('a person with no snapshot as of the window is left for live age-appropriate init', () => {
+        // Window before p1's first snapshot (tick 10000): no records installed → not initialized.
+        const sliced = sliceAndRebase(assetWithTimeline(), 5000);
+        expect(sliced.skillBook!.records.p1).toBeUndefined();
+        expect(sliced.skillBook!.initialized.p1).toBeUndefined();
     });
 });
 
@@ -129,33 +137,36 @@ describe('generator with the logical-economy world (task 077, integration)', () 
     jest.setTimeout(180000);
     const params: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
-        seed: 7, founderCount: 40, recordThreshold: 30, recordYears: 6, daysPerStep: 30,
+        seed: 7, founderCount: 40, recordThreshold: 30, recordYears: 6, daysPerStep: 30, skillSnapshotYears: 1,
         carryingCapacity: { enabled: true, soft: 55, steepness: 4 },
         logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
     };
 
-    test('carries a SkillBook + carried possessions, and careers progress', async () => {
+    test('carries a per-person skill timeline + possessions, and careers progress', async () => {
         const asset = await generateHistoryAsset(params);
-        expect(asset.skillBook).toBeDefined();
+        expect(asset.skillTimeline).toBeDefined();
         expect(asset.objects).toBeDefined();
-        // Adults arrive with real proficiency (basics seeded at the educated baseline of 60) and possessions.
-        expect(Object.keys(asset.skillBook!.records).length).toBeGreaterThan(0);
+        expect(Object.keys(asset.skillTimeline!).length).toBeGreaterThan(0);
         expect(Object.keys(asset.objects!.instances).length).toBeGreaterThan(0);
-        const anAdult = Object.values(asset.skillBook!.records).find(r => (r['math']?.proficiency ?? 0) >= 60);
-        expect(anAdult).toBeDefined();
+        // A person whose skills changed over the run has multiple snapshots (the timeline captures growth).
+        expect(Object.values(asset.skillTimeline!).some(timeline => timeline.length > 1)).toBe(true);
+        // An adult reached the educated baseline (basics at 60) in some snapshot.
+        const anAdult = Object.values(asset.skillTimeline!).some(timeline =>
+            timeline.some(snap => (snap.skills['math']?.proficiency ?? 0) >= 60));
+        expect(anAdult).toBe(true);
         // Employment + promotion happened off-map (a real career, not synthesized).
         const has = (defId: string) => Object.values(asset.eventLog).some(entries => entries.some(e => e.defId === defId));
         expect(has('get_job') || has('got_promoted')).toBe(true);
-        // Some person accrued a job-progressed skill (provenance job:*).
-        const anyJobSkill = Object.values(asset.skillBook!.records).some(record =>
-            Object.values(record).some(rec => rec.provenance.some(p => p.startsWith('job:'))));
+        // Some snapshot carries a job-progressed skill (provenance job:*).
+        const anyJobSkill = Object.values(asset.skillTimeline!).some(timeline =>
+            timeline.some(snap => Object.values(snap.skills).some(rec => rec.provenance.some(p => p.startsWith('job:')))));
         expect(anyJobSkill).toBe(true);
     });
 
-    test('is deterministic — same (seed, params) → identical skills + possessions', async () => {
+    test('is deterministic — same (seed, params) → identical timeline + possessions', async () => {
         const a = await generateHistoryAsset(params);
         const b = await generateHistoryAsset(params);
-        expect(b.skillBook).toEqual(a.skillBook);
+        expect(b.skillTimeline).toEqual(a.skillTimeline);
         expect(b.objects).toEqual(a.objects);
     });
 });

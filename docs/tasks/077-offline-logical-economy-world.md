@@ -20,15 +20,20 @@
 >   makes `City.setupHousehold.initialize()` a no-op for asset people, preserving their real proficiency) + the
 >   carried `Inventory`. People arrive **unemployed but skilled with real careers-as-history**; the live
 >   `JobMarket` re-hires them (§2 — logical employers are map-less).
+> - **Per-window skill snapshotting (the follow-up, now folded in).** Skills are no longer an end-of-generation
+>   snapshot: the generator records a per-person **skill timeline** (`SkillTimeline`, snapshotted every
+>   `skillSnapshotYears`, dedup'd by a proficiency signature so static-skill people keep one entry), and
+>   `HistoryAssetSelection` installs each drawn person's snapshot **as of the window `w`** — so their job skills
+>   match their windowed age instead of their end-of-life proficiency. A person with no snapshot ≤ `w` (a young
+>   child born after the last snapshot) falls back to `City.setupHousehold`'s age-appropriate `initialize()`.
 > - Tests: `test/logicalWorld.test.ts` (homes, adapter, direct school accrual, carried-inventory filtering,
->   Part B slice/rebase, end-to-end generator determinism + career progression).
+>   per-window snapshot selection, end-to-end generator determinism + career progression).
 >
-> **Known limitation → the one remaining follow-up.** Skills/possessions are an **end-of-generation snapshot**,
-> so the living cohort at window `w` carries proficiency reflecting their *whole* simulated life. Basics are
-> age-correct (they cap at 60 by 18), but **job skills can read as more experienced than the windowed age**.
-> Accepted for now (drawn adults read as "established"); the fix is **per-window skill snapshotting** (or
-> reconstructing proficiency-at-`w` from the career event history). **Runtime:** the logical world roughly
-> doubles per-step cost vs. 055; monthly (`daysPerStep: 30`) stays the practical default.
+> **Defaults are the richest, most expensive simulation** (`json/historyGenerator.json`): daily stepping
+> (`daysPerStep: 1`), the full action log kept (`keepActionLog: true`), yearly skill snapshots
+> (`skillSnapshotYears: 1`), and the logical-economy world fully on. This is intentionally slow AND produces a
+> large asset — dial back for a feasible run with `--step-days N`, `--no-action-log`, `--snapshot-years N`,
+> `--capacity N` (measured ~3.8 ms/agent/step at daily cadence with the full logical world).
 >
 > Everything below is the original ticket.
 
