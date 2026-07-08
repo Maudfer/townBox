@@ -1,5 +1,46 @@
 # [Feature] Offline history-asset pipeline + asset-fed new game
 
+> ## ✅ Delivered (this PR) — pipeline landed; off-map logical economy is the next increment
+>
+> **Landed & tested (`npm test` green, `npm run typecheck` clean):**
+> - **Part A — the offline generator.** `game/HistoryAsset.ts` `generateHistoryAsset(params)`: the phased
+>   algorithm (Phase 0 founders via the extracted `Population.createFounders` → Phase 1 warm-up to
+>   `recordThreshold`, pruning warm-up-only dead → Phase 2 record `recordYears`), running the **same shared
+>   `TickRunner` under the `bootstrap` execution context** live play uses (full EventEngine + ActionEngine +
+>   Brain). The **incremental living index** (a `Set` updated from each tick's births/deaths, replacing the
+>   O(pool) filter) and the **soft carrying capacity** (a fertility throttle scaling the `pregnancy` hazard via
+>   the new determinism-safe `EventEngine.setProbabilityScale` — the one-draw-per-event invariant is preserved,
+>   confirmed by the still-green `eventEligibility` bit-identical test) are both built here.
+> - **Asset format + CLI.** `json/historyGenerator.json` (registered with a validator), the compressed/versioned
+>   asset (`meta` + population + event history/log; the persisted log is **slimmed to loggable events** —
+>   effect-bearing ∪ requirement-referenced — so the texture flood doesn't balloon the asset to GBs), the
+>   `npm run generate-history` one-liner (`scripts/generateHistoryAsset.ts`, tsx) with CLI flags + printed
+>   measurements (final living, retained, births/deaths, raw/compressed bytes, runtime, per-decade trajectory).
+> - **Part B — asset-fed new game.** `game/HistoryAssetSelection.ts` (window select → rebase to tick 0 →
+>   lineage-coherent identity re-roll) + `game/HistoryAssetSource.ts` (committed-asset decode + cold-start
+>   fallback), wired into `GameManager.startNewGameWorld`. The **live 036 bootstrap is retired** (`HistoryBootstrap`,
+>   `bootstrap.worker`, `bootstrapWorkerFactory`, `BootstrapLoader`, `json/bootstrap.json`, the `bootstrap*`
+>   events all removed; `main.tsx` reverted). New-game load is fast.
+> - Tests: `test/historyAsset.test.ts` (generator determinism, warm-up pruning, retained histories, index/prune
+>   consistency, carrying-capacity throttle; slice/rebase/re-identify; decode round-trip).
+>
+> **Fidelity delivered = pool-intrinsic** (birth/death/marriage/pregnancy/illness/education-as-record/social),
+> which the engine supports off-map without markets — a genuinely deep centuries-long genealogy with real life
+> histories. **Skills still materialize richly at draw** via `SkillBook.initialize` (age-appropriate: school
+> proficiency 7–17, adults basics@60 + assortment), exactly as live play does today.
+>
+> **NOT yet delivered — the off-map logical-economy world (the immediate follow-up).** Running employment/
+> ranks/schools/object-generation *during* generation (so the asset carries real career histories,
+> `SkillBook`/`Inventory`/job assignments, consumed by `City.setupHousehold` instead of re-initialized) needs
+> logical reimplementations of the Field-coupled `JobMarket`/`HousingMarket`, logical businesses/schools/homes,
+> and surgery on the live materialization path. That is a multi-task arc; the `ExecutionContext` seam is ready
+> for it. The `generatorVersion` bumps when it lands. Sub-decisions still open: carrying-capacity target-band
+> calibration (the generator prints the trajectory), bounded vs. exact marriage search.
+>
+> **Runtime note:** with the enriched 698-event spine the practical default is `daysPerStep: 30` (monthly);
+> a full 3,000-living / 500-year run is ~15 h (measured ~2.9 ms/agent/step). Daily (`--step-days 1`) is ~30×
+> and impractical. No default asset is committed — run `npm run generate-history` and commit the output.
+
 > **Renumbered from 038 → 055.** This task now runs **after** the simulation-enrichment arc
 > ([038 — architecture](038-simulation-enrichment-architecture_DONE.md), tasks 039–054), which was deliberately
 > placed ahead of it: the whole point of offline generation is a **no-compromise** asset, so the generator must

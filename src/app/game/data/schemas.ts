@@ -7,7 +7,7 @@
 
 import actionsConfig from 'json/actions.json';
 import assetsConfig from 'json/assets.json';
-import bootstrapConfig from 'json/bootstrap.json';
+import historyGeneratorConfig from 'json/historyGenerator.json';
 import businessesConfig from 'json/businesses.json';
 import config from 'json/config.json';
 import demandConfig from 'json/demand.json';
@@ -47,7 +47,7 @@ import {
     validateSkillsStructure,
 } from 'game/data/validators/skills';
 import {
-    validateBootstrapStructure,
+    validateHistoryGeneratorStructure,
     validateEconomyStructure,
     validateHouseholdDrawStructure,
     validateLifeSimulationStructure,
@@ -85,7 +85,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'population', version: 1, data: populationConfig, validateStructure: validatePopulationStructure },
         { name: 'lifeSimulation', version: 1, data: lifeSimulationConfig, validateStructure: validateLifeSimulationStructure },
         { name: 'householdDraw', version: 1, data: householdDrawConfig, validateStructure: validateHouseholdDrawStructure },
-        { name: 'bootstrap', version: 1, data: bootstrapConfig, validateStructure: validateBootstrapStructure },
+        { name: 'historyGenerator', version: 1, data: historyGeneratorConfig, validateStructure: validateHistoryGeneratorStructure },
         { name: 'schools', version: 1, data: schoolsConfig, validateStructure: validateSchoolsStructure, validateSemantics: validateSchoolsSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
         { name: 'config', version: 1, data: config, validateStructure: validateConfigStructure },

@@ -16,11 +16,8 @@ import SchoolRegistry from 'game/SchoolRegistry';
 import SkillBook from 'game/SkillBook';
 import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
-import { bootstrapHistory, DEFAULT_BOOTSTRAP_PARAMS, BootstrapParams } from 'game/HistoryBootstrap';
-import type { BootstrapMessage } from 'game/bootstrap.worker';
-
-import { PopulationState } from 'types/Genealogy';
-import { EventHistoryTable, EventLogTable } from 'types/LifeEvent';
+import { loadCommittedAsset } from 'game/HistoryAssetSource';
+import { selectStartingWorld } from 'game/HistoryAssetSelection';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';
@@ -180,13 +177,10 @@ export default class GameManager {
             this.field = new Field(this, fieldParams.rows, fieldParams.cols);
             this.city = new City(this);
 
-            // Genealogy pool: a fresh game generates a new pool from a random world seed; a load leaves it
-            // empty here and restores the saved pool into this instance during deserialize.
+            // Genealogy pool: a fresh game selects a slice of the offline history asset (task 055); a load
+            // leaves it empty here and restores the saved pool into this instance during deserialize. The
+            // asset install below (startNewGameWorld) needs the engines, so they are constructed first.
             this.population = new Population();
-            if (this.pendingLoad === null) {
-                const worldSeed = (Math.random() * 0x100000000) >>> 0;
-                this.population.generate(worldSeed);
-            }
 
             // Engine B (life events): owns the compiled event graph + per-person history. Runs over
             // materialized people each day via City.handleNewDay; a load restores its history during deserialize.
@@ -216,10 +210,12 @@ export default class GameManager {
             // through school/work/education.
             this.skillBook = new SkillBook();
 
-            // Pre-game history bootstrap (task 036): on a fresh game, fast-forward the detailed event engine
-            // over the pool's recent past (off the main thread) so drawn households arrive with real histories.
-            // Skipped on load (the saved pool + history already carry it). Gameplay waits for it to finish.
-            await this.runBootstrap();
+            // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
+            // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.
+            // Skipped on load (the saved pool + history already carry it).
+            if (this.pendingLoad === null) {
+                this.startNewGameWorld();
+            }
 
             this.emit("gameInitialized", this);
         }
@@ -232,60 +228,33 @@ export default class GameManager {
         this.on("update", { callback: this.advanceTime, context: this });
     }
 
-    // Runs the pre-game history bootstrap (task 036) on a fresh game: the detailed event engine grinds through
-    // the pool's recent past in a Web Worker (off the frame loop), and the result (mutated pool + event history)
-    // is installed so drawn households have real histories. Resolves immediately when disabled or on a load.
-    // Falls back to a synchronous main-thread run if a Worker can't be constructed. Emits progress for the
-    // loading overlay (main.tsx).
-    private runBootstrap(): Promise<void> {
+    // Sets up a fresh game's world (task 055 Part B). Picks a random per-game seed and, if a committed history
+    // asset is present, SELECTS a window from it (rebased to tick 0, identities re-randomized) and installs the
+    // sliced pool + event history/log. If no compatible asset is committed, cold-starts a plain generated pool
+    // with empty histories (§3.7). Fast either way — the retired 036 loading-screen bootstrap is gone.
+    private startNewGameWorld(): void {
         const population = this.population;
-        const params: BootstrapParams = DEFAULT_BOOTSTRAP_PARAMS;
-        if (!population || this.pendingLoad !== null || !params.enabled || params.years <= 0) {
-            return Promise.resolve();
+        if (!population) {
+            return;
+        }
+        const worldSeed = (Math.random() * 0x100000000) >>> 0;
+
+        const asset = loadCommittedAsset();
+        const selected = asset ? selectStartingWorld(asset, worldSeed) : null;
+        if (selected) {
+            population.loadState(selected.population);
+            this.eventEngine?.loadHistory(selected.eventHistory);
+            this.eventEngine?.loadLog(selected.eventLog, selected.eventLogSeq);
+            return;
         }
 
-        this.emit("bootstrapStarted");
-
-        const install = (state: PopulationState, history: EventHistoryTable, log?: EventLogTable, logSeq?: number): void => {
-            population.loadState(state);
-            this.eventEngine?.loadHistory(history);
-            if (log) {
-                this.eventEngine?.loadLog(log, logSeq);
-            }
-            this.emit("bootstrapFinished");
-        };
-
-        const runSync = async (): Promise<void> => {
-            const result = await bootstrapHistory(population.getState(), params, progress => this.emit("bootstrapProgress", progress));
-            install(result.state, result.history, result.log, result.logSeq);
-        };
-
-        return new Promise<void>(resolve => {
-            // The worker constructor uses import.meta (browser-only), so it's dynamically imported here — kept
-            // out of the CommonJS/ts-jest path. Any failure falls back to a synchronous main-thread run.
-            import('./bootstrapWorkerFactory')
-                .then(({ createBootstrapWorker }) => {
-                    const worker = createBootstrapWorker();
-                    worker.onmessage = (event: MessageEvent<BootstrapMessage>) => {
-                        const message = event.data;
-                        if (message.type === 'progress') {
-                            this.emit("bootstrapProgress", message.progress);
-                            return;
-                        }
-                        worker.terminate();
-                        install(message.state, message.history, message.log, message.logSeq);
-                        resolve();
-                    };
-                    worker.onerror = () => {
-                        worker.terminate();
-                        void runSync().then(resolve); // worker failed to load/run — fall back to the main thread
-                    };
-                    worker.postMessage({ state: population.getState(), params });
-                })
-                .catch(() => {
-                    void runSync().then(resolve);
-                });
-        });
+        // Fallback: no committed asset (or an incompatible one) — cold-start (the pre-036 behaviour).
+        if (!asset) {
+            console.info("[GameManager] No committed history asset; starting from a cold-start pool.");
+        } else {
+            console.warn("[GameManager] History asset incompatible; starting from a cold-start pool.");
+        }
+        population.generate(worldSeed);
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:

@@ -1,4 +1,4 @@
-// Validators for the tunable-parameter files: economy, population, lifeSimulation, householdDraw, bootstrap.
+// Validators for the tunable-parameter files: economy, population, lifeSimulation, householdDraw, historyGenerator.
 // Mostly structural numeric sanity; the load-bearing cross-check is that every `ticksPerYear` mirrors the
 // clock's tick constant — the genealogy tick contract (CLAUDE.md §4.12; hour ticks since task 040).
 
@@ -109,15 +109,37 @@ export function validateHouseholdDrawStructure(data: unknown, issues: IssueColle
     }
 }
 
-export function validateBootstrapStructure(data: unknown, issues: IssueCollector): void {
+// The offline history-asset generator config (task 055, json/historyGenerator.json). Dev-tooling config
+// consumed by the CLI (scripts/generateHistoryAsset.ts); registered here so it fails loudly like every other
+// data file (CLAUDE.md §5.5).
+export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    checkUnknownKeys(issues, '', data, ['enabled', 'years', 'ticksPerYear', 'stepDays']);
-    checkBoolean(issues, 'enabled', data['enabled']);
-    checkNumber(issues, 'years', data['years'], { min: 0 });
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'carryingCapacity', 'safety'];
+    checkUnknownKeys(issues, '', data, fields);
+    checkNumber(issues, 'seed', data['seed'], { integer: true });
+    checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
+    checkNumber(issues, 'recordThreshold', data['recordThreshold'], { min: 1, integer: true });
+    checkNumber(issues, 'recordYears', data['recordYears'], { min: 1 });
     if (checkNumber(issues, 'ticksPerYear', data['ticksPerYear'], { min: 1, integer: true }) && data['ticksPerYear'] !== TICKS_PER_YEAR) {
         issues.add('ticksPerYear', `must equal the clock's TICKS_PER_YEAR (${TICKS_PER_YEAR}), got ${data['ticksPerYear']}`);
     }
-    checkNumber(issues, 'stepDays', data['stepDays'], { min: 1, integer: true });
+    checkNumber(issues, 'daysPerStep', data['daysPerStep'], { min: 1, integer: true });
+    checkNumber(issues, 'warmMarginYears', data['warmMarginYears'], { min: 0 });
+    checkNumber(issues, 'maxWarmupYears', data['maxWarmupYears'], { min: 1 });
+    checkBoolean(issues, 'keepActionLog', data['keepActionLog']);
+    if (checkRecord(issues, 'carryingCapacity', data['carryingCapacity'])) {
+        const capacity = data['carryingCapacity'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'carryingCapacity', capacity, ['enabled', 'soft', 'steepness']);
+        checkBoolean(issues, 'carryingCapacity.enabled', capacity['enabled']);
+        checkNumber(issues, 'carryingCapacity.soft', capacity['soft'], { min: 1, integer: true });
+        checkNumber(issues, 'carryingCapacity.steepness', capacity['steepness'], { min: 0 });
+    }
+    if (checkRecord(issues, 'safety', data['safety'])) {
+        const safety = data['safety'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'safety', safety, ['maxRuntimeMs', 'maxPeople']);
+        checkNumber(issues, 'safety.maxRuntimeMs', safety['maxRuntimeMs'], { min: 0, integer: true });
+        checkNumber(issues, 'safety.maxPeople', safety['maxPeople'], { min: 0, integer: true });
+    }
 }

@@ -8,7 +8,6 @@ import Vehicle from 'game/Vehicle';
 import { TilePosition, PixelPosition } from "types/Position";
 import { Tool } from "types/Cursor";
 import { TimeChangedEvent, NewTickEvent, NewDayEvent } from "types/Time";
-import { BootstrapProgress } from "game/HistoryBootstrap";
 import GameManager from 'game/GameManager';
 
 export type UpdateEvent = {
@@ -59,8 +58,4 @@ export interface EventPayloads {
     "newTick": NewTickEvent;
     "newDay": NewDayEvent;
     "cityEvent": CityEvent;
-    // Pre-game history bootstrap (task 036): a loading overlay listens for these while the worker runs.
-    "bootstrapStarted": void;
-    "bootstrapProgress": BootstrapProgress;
-    "bootstrapFinished": void;
 };

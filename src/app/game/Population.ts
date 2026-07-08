@@ -122,6 +122,74 @@ function simulateYear(
 // at tick 0 so ancestors have negative birthTicks and the living cohort straddles it.
 const PRESENT_TICK = 0;
 
+// --- Founder primitive (task 055 Phase 0) ---------------------------------------------------------------
+// The offline history generator (game/HistoryAsset.ts) needs ONLY founder creation — the detailed engine does
+// the breeding forward from tick 0, so the coarse descendant generation above is never run on the asset path.
+// createFounders is a pure function of (seed, count): `count` founders (count/2 couples) born at negative
+// ticks so they are already adults at tick 0, paired and married just before it, ready to reproduce as the
+// engine ticks forward. Deterministic and RNG-explicit, mirroring generatePopulation's conventions.
+
+export interface FounderParams {
+    ticksPerYear: number;
+    minFounderAgeYears: number;
+    maxFounderAgeYears: number;
+    spouseMaxAgeGapYears: number;
+}
+
+export const DEFAULT_FOUNDER_PARAMS: FounderParams = {
+    ticksPerYear: DEFAULT_POPULATION_PARAMS.ticksPerYear,
+    minFounderAgeYears: 20,
+    maxFounderAgeYears: 35,
+    spouseMaxAgeGapYears: DEFAULT_POPULATION_PARAMS.spouseMaxAgeGapYears,
+};
+
+export function createFounders(seed: number, count: number, params: FounderParams = DEFAULT_FOUNDER_PARAMS): PopulationState {
+    const rng = new SeededRandom(seed);
+    fakerPT_BR.seed(seed >>> 0);
+
+    const people: PersonTable = {};
+    let counter = 0;
+    const yearsToTicks = (years: number): number => Math.round(years * params.ticksPerYear);
+
+    const createFounder = (gender: Gender, birthTick: number): GenPerson => {
+        const id = `p${counter++}`;
+        const person: GenPerson = {
+            id,
+            firstName: fakerPT_BR.person.firstName(gender),
+            familyName: fakerPT_BR.person.lastName(),
+            gender,
+            birthTick,
+            deathTick: null,
+            fatherId: null,
+            motherId: null,
+            partnerships: [],
+        };
+        people[id] = person;
+        return person;
+    };
+
+    const coupleCount = Math.floor(Math.max(0, count) / 2);
+    for (let i = 0; i < coupleCount; i++) {
+        const husbandAge = rng.nextInt(params.minFounderAgeYears, params.maxFounderAgeYears);
+        const husband = createFounder(Genders.Male, -yearsToTicks(husbandAge));
+        const gapYears = rng.nextInt(-params.spouseMaxAgeGapYears, params.spouseMaxAgeGapYears);
+        const wife = createFounder(Genders.Female, husband.birthTick + yearsToTicks(gapYears));
+        // Married just before the present so they can reproduce as the engine ticks forward from 0.
+        const startTick = Math.max(husband.birthTick, wife.birthTick) + yearsToTicks(params.minFounderAgeYears);
+        husband.partnerships.push({ partnerId: wife.id, startTick, endTick: null });
+        wife.partnerships.push({ partnerId: husband.id, startTick, endTick: null });
+    }
+
+    return {
+        worldSeed: seed,
+        people,
+        drawSeed: rng.getState(),
+        placedIds: [],
+        nextSeq: counter,
+        lastSimulatedYear: 0,
+    };
+}
+
 interface Couple {
     maleId: PersonId;
     femaleId: PersonId;

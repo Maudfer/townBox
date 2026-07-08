@@ -1,0 +1,20 @@
+{
+    "seed": 1337,
+    "founderCount": 100,
+    "recordThreshold": 1000,
+    "recordYears": 500,
+    "ticksPerYear": 8640,
+    "daysPerStep": 30,
+    "warmMarginYears": 40,
+    "maxWarmupYears": 400,
+    "keepActionLog": false,
+    "carryingCapacity": {
+        "enabled": true,
+        "soft": 3000,
+        "steepness": 4.0
+    },
+    "safety": {
+        "maxRuntimeMs": 0,
+        "maxPeople": 0
+    }
+}

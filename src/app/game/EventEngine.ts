@@ -128,6 +128,12 @@ export default class EventEngine {
     private ledger: MoneyLedger | null; // money (task 017)
     private housing: HousingMarket | null; // move-out eligibility (task 024)
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
+    // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
+    // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
+    // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
+    // one-draw-per-event determinism invariant is preserved. null (default) = identity, so live play is
+    // untouched — never set in live mode.
+    private probabilityScale: ((eventId: string) => number) | null = null;
 
     constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST, lifeLog: LifeLog = new LifeLog(), options: { eligibilityIndex?: boolean } = {}) {
         this.manifest = manifest;
@@ -666,11 +672,12 @@ export default class EventEngine {
         // cache holds the per-step probability for tick-constant entries; -1 marks entries that need
         // per-agent factor evaluation.
         const plan = this.probPlan;
+        const scale = this.probabilityScale;
         const hazardCache = new Float64Array(plan.length);
         for (let i = 0; i < plan.length; i++) {
             const entry = plan[i]!;
             hazardCache[i] = this.eligibilityIndex && entry.tickConstant
-                ? EventEngine.tickConstantHazard(entry, tick, ticksPerYear, ticksPerStep)
+                ? EventEngine.tickConstantHazard(entry, tick, ticksPerYear, ticksPerStep) * (scale ? scale(entry.id) : 1)
                 : -1;
         }
 
@@ -719,7 +726,8 @@ export default class EventEngine {
                     if (this.eligibilityIndex && !EventEngine.gatesPass(entry.gates, snapshot)) {
                         continue;
                     }
-                    const pTick = this.perTickProbability(entry.prob, roleMap, state, tick, ticksPerYear, ticksPerStep, entry.factors);
+                    const pTick = this.perTickProbability(entry.prob, roleMap, state, tick, ticksPerYear, ticksPerStep, entry.factors)
+                        * (scale ? scale(entry.id) : 1);
                     if (draw >= pTick) {
                         continue;
                     }
@@ -766,6 +774,12 @@ export default class EventEngine {
         this.ledger = markets.ledger ?? null;
         this.housing = markets.housing ?? null;
         this.skills = markets.skills ?? null;
+    }
+
+    // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
+    // generator calls this; it must never be set in live play.
+    setProbabilityScale(scale: ((eventId: string) => number) | null): void {
+        this.probabilityScale = scale;
     }
 
     unbindMarkets(): void {
