@@ -59,7 +59,7 @@ values. Generic must never mean vague: every generic action stays strongly param
   `job_applied_for` is explicitly **not** needed (no application flow exists — hiring is `get_job`);
   `job_started`/`stopped` exist (`started_working`/`stopped_working`); promotion is 065's `got_promoted`
   (+ rank payload now); school events exist (058 wires them). `action_failed`/`action_declined` land in
-  [073](073-consent-and-action-failure.md) — reserve the ids here.
+  [073](073-consent-and-action-failure_DONE.md) — reserve the ids here.
 - Texture preservation: the point of 052's texture layer is log richness — when generalizing, keep the *label
   variety* via payloads (the feed/log can render "bought a new couch" from `object_acquired(couch)` with a
   `bought` flavor param) or keep a curated subset of hardcoded texture events where the flavor is irreplaceable
