@@ -119,8 +119,8 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {
             const events = action['events'] as Record<string, unknown>;
-            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt']);
-            for (const hook of ['onStart', 'onComplete', 'onInterrupt']) {
+            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt', 'onDecline']);
+            for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline']) {
                 if (!(hook in events)) {
                     continue;
                 }
@@ -293,9 +293,14 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
             }
         }
 
+        // An onDecline event link only makes sense on an action that actually asks (task 074).
+        if (action.events?.onDecline && action.interaction?.askFirst !== true) {
+            issues.add(`${id}.events.onDecline`, 'declares a decline event but the action is not askFirst — nothing can ever decline it');
+        }
+
         // Lifecycle event links: the event must exist AND be manually triggerable (both directions of the
         // action↔event coupling are managed data — 038 §7).
-        for (const hook of ['onStart', 'onComplete', 'onInterrupt'] as const) {
+        for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline'] as const) {
             const link = action.events?.[hook];
             if (!link) {
                 continue;

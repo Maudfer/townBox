@@ -112,17 +112,19 @@ describe('the decline path (zero mutations, full trace)', () => {
         expect(inventory.getInstance(gift.id)!.owner).toEqual({ kind: 'person', personId: 'a' });
         expect(inventory.getInstance(gift.id)!.container).toEqual({ kind: 'possessions', personId: 'a' });
 
-        // The trace: one 'failed' action entry with the typed reason and the params snapshot.
+        // The trace: a 'failed' action entry with the typed reason and the params snapshot, plus the
+        // CURATED decline event (074 wires action_declined on object transfers), chained by causation.
         const log = engine.getPersonLog('a');
-        expect(log).toHaveLength(1);
+        expect(log).toHaveLength(2);
         const entry = log[0] as ActionLogEntry;
         expect(entry.kind).toBe('action');
         expect(entry.lifecycle).toBe('failed');
         expect(entry.failureReason).toBe('consent_declined');
         expect(entry.params['target']).toBe('b');
+        expect(log[1]).toMatchObject({ kind: 'event', defId: 'action_declined', causationId: entry.seq, params: { action: 'gave_object_to_person', reason: 'consent_declined' } });
 
-        // No success lifecycle event (gave_gift) committed anywhere.
-        expect(res.committed).toHaveLength(0);
+        // No success lifecycle event (gave_gift) committed anywhere — only the decline record.
+        expect(res.committed.map(commit => commit.eventId)).toEqual(['action_declined']);
         expect(engine.getPersonLog('b')).toHaveLength(0);
 
         // The attempt counts toward recency, so cooldowns gate immediate re-tries.
@@ -316,11 +318,12 @@ describe('typed completion failure (inputs_unavailable)', () => {
             expect(events[id]!.triggers['probabilistic']).toBeUndefined();
             expect(events[id]!.parameters!['action']!.required).toBe(true);
         }
-        // Restraint (documented in 073): the engine fires neither on a decline — the log entry is the record.
-        const { inventory, actions, engine, deps } = harness();
-        inventory.createInstance({ archetypeId: 'wristwatch', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
-        const tick = findTick('gave_object_to_person', false);
-        actions.startAction('a', 'gave_object_to_person', { target: 'b' }, cause, { ...deps, tick }, result());
+        // Restraint (073/074): only actions that CURATE events.onDecline fire one — a declined casual
+        // askFirst social leaves nothing but the failed log entry.
+        const { actions, engine, deps } = harness();
+        const tick = findTick('taught_person_something', false);
+        actions.startAction('a', 'taught_person_something', { target: 'b' }, cause, { ...deps, tick }, result());
         expect(engine.getPersonLog('a').filter(entry => entry.kind === 'event')).toHaveLength(0);
+        expect(engine.getPersonLog('a').filter(entry => entry.kind === 'action' && entry.lifecycle === 'failed')).toHaveLength(1);
     });
 });

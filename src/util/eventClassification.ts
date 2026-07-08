@@ -35,7 +35,7 @@ function linkEvent(link: EventLink | undefined): string | null {
 export function actionInvokers(actions: ActionManifest): Map<string, string[]> {
     const invokers = new Map<string, string[]>();
     for (const [actionId, def] of Object.entries(actions)) {
-        for (const hook of ['onStart', 'onComplete', 'onInterrupt'] as const) {
+        for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline'] as const) {
             const eventId = linkEvent(def.events?.[hook]);
             if (eventId) {
                 const list = invokers.get(eventId) ?? [];

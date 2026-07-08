@@ -66,6 +66,9 @@ export interface ActionEventLinks {
     onStart?: EventLink;
     onComplete?: EventLink;
     onInterrupt?: EventLink;
+    // Fired when an askFirst consent is DECLINED (task 074) — wired only where a downstream consumer exists
+    // (curated: object transfers); everything else lets the failed log entry be the record.
+    onDecline?: EventLink;
 }
 
 // The interaction contract every Person-targeted action must declare (task 072): which parameter names the
