@@ -22,7 +22,7 @@ import { SeededRandom } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
 import { isAliveAt } from 'util/kinship';
 
-import {
+import { EventLink,
     ActionCause,
     ActionDefinition,
     ActionEngineState,
@@ -147,7 +147,22 @@ export default class ActionEngine {
     // The requirement-evaluation context (shared predicate grammar v2): the event engine's attribute/history
     // view, extended with the action log (hasAction), Possessions (carries), objects-at-location, and the
     // 'locationKey' attribute answered by the world adapter.
-    contextFor(personId: PersonId, deps: ActionDeps): SimulationContext {
+    // Resolve an ObjectQuery's archetypeParam (067) against the evaluating action's params. A missing or
+    // non-string param yields an unmatchable query (start-time validation catches required params first).
+    private static resolveQuery(query: ObjectQuery, params?: Record<string, Value>): ObjectQuery | null {
+        if (query.archetypeParam === undefined) {
+            return query;
+        }
+        const value = params?.[query.archetypeParam];
+        if (typeof value !== 'string') {
+            return null;
+        }
+        const { archetypeParam, ...rest } = query;
+        void archetypeParam;
+        return { ...rest, archetype: value };
+    }
+
+    contextFor(personId: PersonId, deps: ActionDeps, params?: Record<string, Value>): SimulationContext {
         const base = deps.eventEngine.contextFor(deps.state, personId, deps.tick, deps.ticksPerYear);
         const world = deps.ctx.world ?? null;
         const inventory = deps.inventory ?? null;
@@ -181,8 +196,9 @@ export default class ActionEngine {
             hasEvent: (eventId, query) => base.hasEvent(eventId, query),
             role: name => base.role(name),
             hasAction: (actionId, query) => this.hasAction(personId, actionId, deps.tick, query),
-            carries: query => {
-                if (!inventory) {
+            carries: rawQuery => {
+                const query = ActionEngine.resolveQuery(rawQuery, params);
+                if (!inventory || !query) {
                     return false;
                 }
                 if (query.archetype !== undefined && !query.tag && !query.flag) {
@@ -190,8 +206,9 @@ export default class ActionEngine {
                 }
                 return inventory.carriedInstances(personId).some(instance => matches(instance.id, query));
             },
-            objectAtLocation: query => {
-                if (!world || !inventory) {
+            objectAtLocation: rawQuery => {
+                const query = ActionEngine.resolveQuery(rawQuery, params);
+                if (!world || !inventory || !query) {
                     return false;
                 }
                 return world.objectsAt(world.locationOf(personId)).some(id => matches(id, query));
@@ -208,11 +225,34 @@ export default class ActionEngine {
 
     // Fires a lifecycle-linked manual Event (triggerSource 'action', causation = the lifecycle log entry).
     // The event's own eligibility applies; a rejection is fine (e.g. the person died this tick).
-    private fireEvent(eventId: string | undefined, personId: PersonId, causationSeq: number, deps: ActionDeps, result: TickResult): void {
-        if (!eventId) {
+    // Resolve a lifecycle EventLink (067): the object form maps an event payload from the action's params
+    // ('$params.<name>') or literal scalars; the string shorthand fires with no payload.
+    private fireEvent(link: EventLink | undefined, personId: PersonId, causationSeq: number, deps: ActionDeps, result: TickResult, actionParams?: Record<string, Value>): void {
+        if (!link) {
             return;
         }
-        const { result: eventResult } = deps.eventEngine.invoke(deps.state, eventId, personId, deps.tick, deps.ticksPerYear, { source: 'action', causationId: causationSeq }, {}, deps.ctx);
+        const eventId = typeof link === 'string' ? link : link.event;
+        let payload: Record<string, string | number | boolean> | undefined;
+        if (typeof link !== 'string' && link.params) {
+            payload = {};
+            for (const [name, mapping] of Object.entries(link.params)) {
+                if (typeof mapping === 'string' && mapping.startsWith('$params.')) {
+                    const value = actionParams?.[mapping.slice('$params.'.length)];
+                    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+                        payload[name] = value;
+                    }
+                } else {
+                    payload[name] = mapping;
+                }
+            }
+        }
+        const { result: eventResult } = deps.eventEngine.invoke(
+            deps.state, eventId, personId, deps.tick, deps.ticksPerYear,
+            { source: 'action', causationId: causationSeq },  // triggerSource 'action', causation = lifecycle log seq
+            {},                                                // role bindings (person params arrive with 072)
+            deps.ctx,
+            payload                                            // the mapped event payload (067)
+        );
         result.died.push(...eventResult.died);
         result.born.push(...eventResult.born);
         result.signals.push(...eventResult.signals);
@@ -240,7 +280,7 @@ export default class ActionEngine {
         if (!record || !isAliveAt(record, deps.tick)) {
             return { ok: false, reason: 'requirementsUnmet' };
         }
-        if (def.requirements && !evaluatePredicate(def.requirements, this.contextFor(personId, deps))) {
+        if (def.requirements && !evaluatePredicate(def.requirements, this.contextFor(personId, deps, params))) {
             return { ok: false, reason: 'requirementsUnmet' };
         }
 
@@ -273,8 +313,8 @@ export default class ActionEngine {
             applyPlan(opsPlan);
             onOutputs?.(commitCtx.outputs);
             this.recordAction(personId, actionId, deps.tick);
-            this.fireEvent(def.events?.onStart, personId, seq, deps, result);
-            this.fireEvent(def.events?.onComplete, personId, seq, deps, result);
+            this.fireEvent(def.events?.onStart, personId, seq, deps, result, params);
+            this.fireEvent(def.events?.onComplete, personId, seq, deps, result, params);
             return { ok: true, instanceId: null, logSeq: seq };
         }
 
@@ -355,7 +395,7 @@ export default class ActionEngine {
             params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
         });
         this.recordAction(instance.personId, instance.defId, deps.tick);
-        this.fireEvent(def.events?.onStart, instance.personId, instance.startLogSeq, deps, result);
+        this.fireEvent(def.events?.onStart, instance.personId, instance.startLogSeq, deps, result, instance.params);
     }
 
     // --- Advancing (lifecycle phases 1–2) --------------------------------------
@@ -402,7 +442,7 @@ export default class ActionEngine {
                 this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
                 continue;
             }
-            if (def.completeWhen && evaluatePredicate(def.completeWhen, this.contextFor(instance.personId, deps))) {
+            if (def.completeWhen && evaluatePredicate(def.completeWhen, this.contextFor(instance.personId, deps, instance.params))) {
                 this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
             }
         }
@@ -448,9 +488,9 @@ export default class ActionEngine {
                 completionCtx.causationId = seq;
                 applyPlan(completionPlan);
             }
-            this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result);
+            this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
         } else if (outcome === 'interrupted') {
-            this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result);
+            this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
         }
     }
 
@@ -469,7 +509,7 @@ export default class ActionEngine {
             if (entry.cooldownTicks !== undefined && deps.tick - bookkeeping.lastTick < entry.cooldownTicks) {
                 continue;
             }
-            if (entry.requirements && !evaluatePredicate(entry.requirements, this.contextFor(instance.personId, deps))) {
+            if (entry.requirements && !evaluatePredicate(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
                 continue;
             }
             const slots = Math.max(1, entry.maxPerTick ?? 1);

@@ -663,7 +663,7 @@ export default class City {
             if (!signal.personId) {
                 continue;
             }
-            const notification = notificationForSignal(signal.signal, nameOf(signal.personId));
+            const notification = notificationForSignal(signal.signal, nameOf(signal.personId), signal.params);
             if (notification) {
                 this.announce(notification.kind, tick, notification.message, personByGenId.get(signal.personId) ?? null);
             }

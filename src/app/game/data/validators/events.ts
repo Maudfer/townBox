@@ -5,13 +5,13 @@
 // against their owning vocabularies.
 
 import { IssueCollector } from 'game/data/registry';
-import { checkArray, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
+import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
 import { validateCurve, validatePredicate } from 'game/data/substrate';
 import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/EventCompiler';
 import { EventManifest } from 'types/LifeEvent';
 import { KNOWN_SIGNALS } from 'util/notifications';
 
-const EVENT_KEYS = ['roles', 'triggers', 'effects', 'limit', 'label', 'category'];
+const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category'];
 const ROLE_KEYS = ['where', 'bind'];
 const BIND_RELATIONS = ['partnerOf']; // EventEngine.resolveBind's vocabulary
 
@@ -41,6 +41,22 @@ export function validateEventsStructure(data: unknown, issues: IssueCollector): 
         checkUnknownKeys(issues, id, event, EVENT_KEYS);
         const roleNames = validateRoles(issues, id, event['roles']);
         validateTriggers(issues, id, event['triggers'], roleNames, eventIds);
+        if ('parameters' in event && checkRecord(issues, `${id}.parameters`, event['parameters'])) {
+            // The typed payload spec (067). REQUIRED params are incompatible with probabilistic triggers
+            // (probabilistic commits have no caller to supply a payload).
+            const triggers = event['triggers'] as Record<string, unknown> | undefined;
+            for (const [paramName, spec] of Object.entries(event['parameters'] as Record<string, unknown>)) {
+                const specPath = `${id}.parameters.${paramName}`;
+                if (!checkRecord(issues, specPath, spec)) {
+                    continue;
+                }
+                checkUnknownKeys(issues, specPath, spec, ['type', 'required']);
+                checkEnum(issues, `${specPath}.type`, spec['type'], ['string', 'number', 'boolean']);
+                if (spec['required'] === true && triggers && 'probabilistic' in triggers) {
+                    issues.add(specPath, 'a REQUIRED parameter cannot coexist with a probabilistic trigger (no caller supplies it)');
+                }
+            }
+        }
         if ('limit' in event) {
             validateLimit(issues, id, event['limit']);
         }

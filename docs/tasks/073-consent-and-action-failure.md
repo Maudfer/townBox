@@ -2,7 +2,7 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `actions`, `brain`, `social`, `progression-arc`
-- **Depends on:** [072](072-person-targeted-action-contracts.md) (`askFirst` contract), [067](067-parameterized-requirements-and-event-payloads.md) (failure-reason payloads)
+- **Depends on:** [072](072-person-targeted-action-contracts.md) (`askFirst` contract), [067](067-parameterized-requirements-and-event-payloads_DONE.md) (failure-reason payloads)
 - **Blocks:** [074](074-person-targeted-actions-backfill.md)
 
 ## Goal

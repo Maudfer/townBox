@@ -85,7 +85,7 @@ export interface ScheduleState {
 // Typed result of a manual invocation — failures are explicit, never silent skips.
 export type InvokeOutcome =
     | { ok: true; seq: number }
-    | { ok: false; reason: 'unknownEvent' | 'notManual' | 'missingBinding' | 'ineligible' | 'rolesUnresolved' | 'limited' | 'aborted' };
+    | { ok: false; reason: 'unknownEvent' | 'notManual' | 'missingBinding' | 'invalidParams' | 'ineligible' | 'rolesUnresolved' | 'limited' | 'aborted' };
 
 // The closed, typed effect vocabulary. The set is fixed in code (adding a new primitive is a code change);
 // manifests compose these freely (pure data). Fields are effect-specific and consumed by the runtime in 013d.
@@ -117,12 +117,24 @@ export interface Effect {
     proficiency?: number;
 }
 
+// A typed, scalar event-payload parameter (task 067).
+export interface EventParameterSpec {
+    type: 'string' | 'number' | 'boolean';
+    required?: boolean;
+}
+
 export interface EventDefinition {
     roles: Record<string, RoleSpec>;
     // How the event can happen (task 042): probabilistic rolls, manual invocation, and/or automated schedule
     // rules. At least one type is required (validator-enforced).
     triggers: TriggerSpec;
     effects: Effect[];
+    // Optional typed, scalar payload spec (task 067): what a caller may/must supply when invoking the
+    // event. Payloads land verbatim in the log entry and ride the event's signals — parameterized generic
+    // events ("object_acquired(object)") instead of one hardcoded id per object. Only manual/automated
+    // paths carry payloads (probabilistic commits have no caller); the validator rejects REQUIRED params on
+    // probabilistic-triggered events.
+    parameters?: Record<string, EventParameterSpec>;
     // Occurrence limit across ALL trigger paths (optional).
     limit?: OccurrenceLimit;
     // Presentation-only (task 032), ignored by the compiler and runtime: a human label for the person event-log
@@ -160,6 +172,9 @@ export interface EventLogEntry {
     roles: Record<string, string>; // role name -> PersonId as bound at commit time
     triggerSource: TriggerSource;
     causationId: number | null; // seq of the causing record; null for spontaneous (probability) commits
+    // The invocation payload (task 067), validated against the event's `parameters` spec. Additive and
+    // optional: pre-067 entries simply lack it.
+    params?: Record<string, string | number | boolean>;
 }
 
 // An action lifecycle transition in the same append-only log (task 043). One entry per transition
@@ -190,7 +205,7 @@ export type EventLogTable = Record<string, PersonLogEntry[]>;
 export interface TickResult {
     died: string[];
     born: { id: string; motherId: string; fatherId: string }[];
-    signals: { signal: string; personId: string | null; tick: number; eventId: string; causationId: number }[];
+    signals: { signal: string; personId: string | null; tick: number; eventId: string; causationId: number; params?: Record<string, string | number | boolean> }[];
     // Every event commit this tick (task 046): Brain's onEventCommitted hooks consume these.
     committed: { personId: string; eventId: string; seq: number }[];
 }

@@ -160,9 +160,19 @@ function matchInputs(entry: OAREntry, ctx: CommitContext): { matches: InputMatch
 }
 
 function contextSatisfied(entry: OAREntry, ctx: CommitContext): boolean {
-    const query = entry.context?.objectAtLocation;
+    let query = entry.context?.objectAtLocation;
     if (!query) {
         return true;
+    }
+    if (query.archetypeParam !== undefined) {
+        // Resolve the archetype from the committing action's params (067).
+        const value = ctx.params[query.archetypeParam];
+        if (typeof value !== 'string') {
+            return false;
+        }
+        const { archetypeParam, ...rest } = query;
+        void archetypeParam;
+        query = { ...rest, archetype: value };
     }
     const inventory = inventoryOf(ctx);
     const world = ctx.deps.ctx.world;

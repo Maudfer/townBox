@@ -181,12 +181,45 @@ function validateChildren(issues: IssueCollector, id: string, children: unknown,
     issues.add(`${path}.mode`, `expected one of [pool, sequence], got ${JSON.stringify(mode)}`);
 }
 
+// Walk a predicate JSON for object queries carrying archetypeParam refs (task 067).
+function collectArchetypeParamRefs(node: unknown, refs: string[]): void {
+    if (Array.isArray(node)) {
+        node.forEach(child => collectArchetypeParamRefs(child, refs));
+        return;
+    }
+    if (typeof node !== 'object' || node === null) {
+        return;
+    }
+    const record = node as Record<string, unknown>;
+    for (const key of ['carries', 'objectAtLocation']) {
+        const query = record[key];
+        if (typeof query === 'object' && query !== null && typeof (query as Record<string, unknown>)['archetypeParam'] === 'string') {
+            refs.push((query as Record<string, unknown>)['archetypeParam'] as string);
+        }
+    }
+    Object.values(record).forEach(child => collectArchetypeParamRefs(child, refs));
+}
+
 export function validateActionsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const manifest = data as ActionManifest;
     const events = (peers['events'] ?? {}) as EventManifest;
     const archetypes = new Set(Object.keys((peers['objects'] ?? {}) as Record<string, unknown>));
 
     for (const [id, action] of Object.entries(manifest)) {
+        // archetypeParam requirement refs (067) must name a declared objectArchetype parameter.
+        {
+            const refs: string[] = [];
+            collectArchetypeParamRefs(action.requirements, refs);
+            for (const ref of refs) {
+                const spec = action.parameters?.[ref];
+                if (!spec) {
+                    issues.add(`${id}.requirements`, `archetypeParam "${ref}" references an undeclared parameter`);
+                } else if (spec.type !== 'objectArchetype') {
+                    issues.add(`${id}.requirements`, `archetypeParam "${ref}" must reference an objectArchetype parameter (got ${spec.type})`);
+                }
+            }
+        }
+
         if (action.consequences) {
             validateConsequenceOpsSemantics(issues, `${id}.consequences`, action.consequences as { op: string; archetype?: string; event?: string; owner?: string; target?: string }[], archetypes, events, new Set(Object.keys(action.parameters ?? {})));
         }
@@ -219,15 +252,34 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
         // Lifecycle event links: the event must exist AND be manually triggerable (both directions of the
         // action↔event coupling are managed data — 038 §7).
         for (const hook of ['onStart', 'onComplete', 'onInterrupt'] as const) {
-            const eventId = action.events?.[hook];
-            if (!eventId) {
+            const link = action.events?.[hook];
+            if (!link) {
                 continue;
             }
+            const eventId = typeof link === 'string' ? link : link.event;
             const event = events[eventId];
             if (!event) {
                 issues.add(`${id}.events.${hook}`, `references unknown event "${eventId}"`);
-            } else if (!event.triggers?.manual) {
+                continue;
+            }
+            if (!event.triggers?.manual) {
                 issues.add(`${id}.events.${hook}`, `event "${eventId}" does not declare a manual trigger (actions fire events through EventEngine.invoke)`);
+            }
+            // Payload mapping (067): '$params.<name>' refs must exist on the action; every mapped key must
+            // be declared by the event's parameters spec.
+            if (typeof link !== 'string' && link.params) {
+                const eventSpec = (event as { parameters?: Record<string, unknown> }).parameters ?? {};
+                for (const [key, mapping] of Object.entries(link.params)) {
+                    if (!(key in eventSpec)) {
+                        issues.add(`${id}.events.${hook}.params.${key}`, `event "${eventId}" declares no parameter "${key}"`);
+                    }
+                    if (typeof mapping === 'string' && mapping.startsWith('$params.')) {
+                        const paramName = mapping.slice('$params.'.length);
+                        if (!(paramName in (action.parameters ?? {}))) {
+                            issues.add(`${id}.events.${hook}.params.${key}`, `mapping references undeclared action parameter "${paramName}"`);
+                        }
+                    }
+                }
             }
         }
     }

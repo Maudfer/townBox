@@ -40,7 +40,7 @@ this beside the constant.
   the same job's progression, `meets(next.requires)`, and `minWorkDaysInRank`/optional event requirements
   satisfied. On success: set `rankId` to the next rank, reset `workDaysInRank`, and fire a **manual promotion
   event** through the EventEngine (wire the existing `got_promoted`, today a no-op texture event, as the
-  vehicle — with a rank param once [067](067-parameterized-requirements-and-event-payloads.md) lands; plain
+  vehicle — with a rank param once [067](067-parameterized-requirements-and-event-payloads_DONE.md) lands; plain
   until then) with causation = the evaluation, plus a city-feed notification (`util/notifications.ts` — a new
   `promoted` signal or the event's feed mapping). Evaluation is RNG-free (pure predicate over counters/skills);
   if any randomness is ever added it forks `worldSeed → tick → personId → salt` per house rules.

@@ -58,10 +58,14 @@ export type ChildrenSpec =
 
 // Manual Events fired by the action lifecycle (through EventEngine.invoke, triggerSource 'action', causation
 // = the lifecycle log entry). "Started working" fires when the Work Action STARTS — not when commuting begins.
+// A lifecycle -> event link (067): the string shorthand fires the event with no payload; the object form
+// forwards a payload mapped from the action's own params ('$params.<name>') or literal scalars.
+export type EventLink = string | { event: string; params?: Record<string, string | number | boolean> };
+
 export interface ActionEventLinks {
-    onStart?: string;
-    onComplete?: string;
-    onInterrupt?: string;
+    onStart?: EventLink;
+    onComplete?: EventLink;
+    onInterrupt?: EventLink;
 }
 
 export interface ActionDefinition {
@@ -211,7 +215,7 @@ export interface OAREntry {
     inputs: OARInput[];
     outputs: OAROutput[];
     // Contextual requirement: a matching instance must be present at the person's location (e.g. an oven).
-    context?: { objectAtLocation?: { archetype?: string; tag?: string; flag?: string } };
+    context?: { objectAtLocation?: { archetype?: string; tag?: string; flag?: string; archetypeParam?: string } };
 }
 
 export type OARTable = Record<string, OAREntry>;

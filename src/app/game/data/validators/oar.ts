@@ -17,9 +17,12 @@ function validateObjectQuery(issues: IssueCollector, path: string, query: unknow
     if (!checkRecord(issues, path, query)) {
         return;
     }
-    checkUnknownKeys(issues, path, query, ['archetype', 'tag', 'flag']);
-    if (!('archetype' in query) && !('tag' in query) && !('flag' in query)) {
-        issues.add(path, 'an object query needs at least one of archetype/tag/flag');
+    checkUnknownKeys(issues, path, query, ['archetype', 'tag', 'flag', 'archetypeParam']);
+    if (!('archetype' in query) && !('tag' in query) && !('flag' in query) && !('archetypeParam' in query)) {
+        issues.add(path, 'an object query needs at least one of archetype/tag/flag/archetypeParam');
+    }
+    if ('archetype' in query && 'archetypeParam' in query) {
+        issues.add(path, 'archetype and archetypeParam are mutually exclusive');
     }
 }
 

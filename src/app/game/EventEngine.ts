@@ -279,8 +279,8 @@ export default class EventEngine {
 
     // Commits an event to the person's append-only log (assigning the global seq) and updates the derived
     // aggregate index. Returns the seq so signals/downstream records can chain causation to this commit.
-    private recordEvent(personId: PersonId, eventId: string, tick: number, roles: Record<string, PersonId>, triggerSource: TriggerSource, causationId: number | null): number {
-        const seq = this.lifeLog.append(personId, { tick, kind: 'event', defId: eventId, roles: { ...roles }, triggerSource, causationId });
+    private recordEvent(personId: PersonId, eventId: string, tick: number, roles: Record<string, PersonId>, triggerSource: TriggerSource, causationId: number | null, params?: Record<string, string | number | boolean>): number {
+        const seq = this.lifeLog.append(personId, { tick, kind: 'event', defId: eventId, roles: { ...roles }, triggerSource, causationId, ...(params ? { params } : {}) });
 
         const personHistory = this.history[personId] ?? {};
         const existing = personHistory[eventId];
@@ -796,7 +796,8 @@ export default class EventEngine {
         rng: SeededRandom,
         source: TriggerSource,
         causationId: number | null,
-        bindings: Record<string, PersonId>
+        bindings: Record<string, PersonId>,
+        params?: Record<string, string | number | boolean>
     ): InvokeOutcome {
         const event = this.manifest[eventId];
         if (!event) {
@@ -818,7 +819,7 @@ export default class EventEngine {
         if (!roleMap) {
             return { ok: false, reason: 'rolesUnresolved' };
         }
-        const seq = this.commit(state, eventId, event, subjectId, roleMap, tick, result, rng, source, causationId);
+        const seq = this.commit(state, eventId, event, subjectId, roleMap, tick, result, rng, source, causationId, params);
         if (seq === null) {
             return { ok: false, reason: 'aborted' };
         }
@@ -838,16 +839,18 @@ export default class EventEngine {
         result: TickResult,
         rng: SeededRandom,
         source: TriggerSource,
-        causationId: number | null
+        causationId: number | null,
+        params?: Record<string, string | number | boolean>
     ): number | null {
         const pendingSignals: PendingSignal[] = [];
         if (!this.applyEffects(event, roleMap, state, tick, result, rng, pendingSignals)) {
             return null;
         }
-        const seq = this.recordEvent(subjectId, eventId, tick, roleMap, source, causationId);
+        const seq = this.recordEvent(subjectId, eventId, tick, roleMap, source, causationId, params);
         result.committed.push({ personId: subjectId, eventId, seq });
         for (const pending of pendingSignals) {
-            result.signals.push({ ...pending, eventId, causationId: seq });
+            // The payload rides the signal (067) so feed builders can interpolate it.
+            result.signals.push({ ...pending, eventId, causationId: seq, ...(params ? { params } : {}) });
         }
         // Automated afterEvent rules (task 042): each commit of a source event schedules its dependents for
         // the same subject, causation chaining to this commit.
@@ -869,7 +872,8 @@ export default class EventEngine {
         ticksPerYear: number,
         cause: { source: TriggerSource; causationId: number | null },
         bindings: Record<string, PersonId> = {},
-        ctx: Partial<ExecutionContext> = {}
+        ctx: Partial<ExecutionContext> = {},
+        params?: Record<string, string | number | boolean>
     ): { outcome: InvokeOutcome; result: TickResult } {
         const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const event = this.manifest[eventId];
@@ -885,6 +889,20 @@ export default class EventEngine {
                 return { outcome: { ok: false, reason: 'missingBinding' }, result };
             }
         }
+        // Payload validation (067): unknown keys, wrong scalar types, and missing REQUIRED params are typed
+        // rejections - an invalid payload never commits.
+        const spec = event.parameters ?? {};
+        for (const [name, value] of Object.entries(params ?? {})) {
+            const paramSpec = spec[name];
+            if (!paramSpec || typeof value !== paramSpec.type) {
+                return { outcome: { ok: false, reason: 'invalidParams' }, result };
+            }
+        }
+        for (const [name, paramSpec] of Object.entries(spec)) {
+            if (paramSpec.required && (params?.[name] === undefined)) {
+                return { outcome: { ok: false, reason: 'invalidParams' }, result };
+            }
+        }
 
         // Preserve any markets the caller already holds bound (e.g. invocations from inside the Action
         // engine's TickRunner window) and restore them afterwards.
@@ -896,7 +914,7 @@ export default class EventEngine {
         fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1) ^ 0x51ed) >>> 0);
 
         const agents = Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort();
-        const outcome = this.attemptCommit(state, eventId, subjectId, agents, tick, ticksPerYear, result, rng, cause.source, cause.causationId, bindings);
+        const outcome = this.attemptCommit(state, eventId, subjectId, agents, tick, ticksPerYear, result, rng, cause.source, cause.causationId, bindings, params);
 
         this.jobMarket = previous.jobMarket;
         this.ledger = previous.ledger;

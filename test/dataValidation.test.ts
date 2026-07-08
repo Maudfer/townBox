@@ -397,6 +397,33 @@ describe('actions validation (task 043)', () => {
 
 // ---------- object-action relationships ----------
 
+describe('param-aware queries & event payloads validation (task 067)', () => {
+    test('archetypeParam requirement refs must name a declared objectArchetype parameter', () => {
+        const undeclared = { grab: { label: 'G', type: 'discrete', category: 'maintenance', requirements: { objectAtLocation: { archetypeParam: 'object' } } } };
+        expect(messagesOf(semantics(validateActionsSemantics, undeclared, { events: {}, objects: {} }))).toMatch(/undeclared parameter/);
+        const wrongType = { grab: { label: 'G', type: 'discrete', category: 'maintenance', parameters: { object: { type: 'person', required: true } }, requirements: { carries: { archetypeParam: 'object' } } } };
+        expect(messagesOf(semantics(validateActionsSemantics, wrongType, { events: {}, objects: {} }))).toMatch(/must reference an objectArchetype parameter/);
+    });
+
+    test('archetype and archetypeParam are mutually exclusive in a query', () => {
+        const both = { grab: { label: 'G', type: 'discrete', category: 'maintenance', parameters: { object: { type: 'objectArchetype' } }, requirements: { carries: { archetype: 'pencil', archetypeParam: 'object' } } } };
+        expect(messagesOf(structure(validateActionsStructure, both))).toMatch(/mutually exclusive/);
+    });
+
+    test('a REQUIRED event parameter cannot coexist with a probabilistic trigger', () => {
+        const fixture = manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 }, manual: {} }, parameters: { object: { type: 'string', required: true } }, effects: [] } });
+        expect(messagesOf(structure(validateEventsStructure, fixture))).toMatch(/REQUIRED parameter cannot coexist/);
+    });
+
+    test('lifecycle payload mappings validate against both sides', () => {
+        const fixture = { act: { label: 'A', type: 'discrete', category: 'maintenance', parameters: { object: { type: 'objectArchetype' } }, events: { onComplete: { event: 'evt', params: { object: '$params.ghost', rogue: 1 } } } } };
+        const peers = { events: { evt: { triggers: { manual: {} }, parameters: { object: { type: 'string' } } } }, objects: {} };
+        const output = messagesOf(semantics(validateActionsSemantics, fixture, peers));
+        expect(output).toMatch(/undeclared action parameter "ghost"/);
+        expect(output).toMatch(/declares no parameter "rogue"/);
+    });
+});
+
 describe('object-action-relationships validation (task 044)', () => {
     const entry = {
         action: 'mix',
