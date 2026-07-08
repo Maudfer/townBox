@@ -20,7 +20,9 @@ import lifeSimulationConfig from 'json/lifeSimulation.json';
 import materialsConfig from 'json/materials.json';
 import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
+import placementConfig from 'json/placement.json';
 import populationConfig from 'json/population.json';
+import residencesConfig from 'json/residences.json';
 import schoolsConfig from 'json/schools.json';
 import skillInitConfig from 'json/skillInit.json';
 import skillsConfig from 'json/skills.json';
@@ -53,7 +55,8 @@ import {
 import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
-import { validateObjectsStructure } from 'game/data/validators/objects';
+import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
+import { validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
 import {
     validateAssetsStructure,
     validateConfigStructure,
@@ -70,7 +73,9 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'jobs', version: 1, data: jobsConfig, validateStructure: validateJobsStructure, validateSemantics: validateJobsSemantics },
         { name: 'businesses', version: 1, data: businessesConfig, validateStructure: validateBusinessesStructure, validateSemantics: validateBusinessesSemantics },
         { name: 'materials', version: 1, data: materialsConfig, validateStructure: validateMaterialsStructure },
-        { name: 'objects', version: 1, data: objectsConfig, validateStructure: validateObjectsStructure },
+        { name: 'objects', version: 2, data: objectsConfig, validateStructure: validateObjectsStructure, validateSemantics: validateObjectsSemantics },
+        { name: 'placement', version: 1, data: placementConfig, validateStructure: validatePlacementStructure, validateSemantics: validatePlacementSemantics },
+        { name: 'residences', version: 1, data: residencesConfig, validateStructure: validateResidencesStructure },
         { name: 'skills', version: 2, data: skillsConfig, validateStructure: validateSkillsStructure, validateSemantics: validateSkillsSemantics },
         { name: 'skillInit', version: 1, data: skillInitConfig, validateStructure: validateSkillInitStructure, validateSemantics: validateSkillInitSemantics },
         { name: 'demand', version: 1, data: demandConfig, validateStructure: validateDemandStructure, validateSemantics: validateDemandSemantics },

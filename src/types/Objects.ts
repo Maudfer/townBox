@@ -33,6 +33,19 @@ export interface ContainerBehavior {
     maxItems?: number;
 }
 
+// How the contextual object generator (task 070) treats an archetype. `ownershipDefault: 'building'`
+// resolves to business ownership inside a business and building ownership inside a house (the generator's
+// rule); 'none' marks free-to-take loose items.
+export interface ObjectGenerationSpec {
+    kind: 'fixture' | 'consumable' | 'reusable' | 'loose';
+    weight?: number;
+    minPerBuilding?: number;
+    maxPerBuilding?: number;
+    uniquePerBuilding?: boolean;
+    ownershipDefault?: 'building' | 'none';
+    accessibility?: 'public' | 'staff' | 'private';
+}
+
 export interface ObjectArchetype {
     id: ObjectArchetypeId;
     label: string;
@@ -41,7 +54,13 @@ export interface ObjectArchetype {
     weightGrams: number;
     flags: ObjectFlags;
     container?: ContainerBehavior;
-    tags?: string[]; // free-form selection hooks for Actions/Brain (041+: "giftable", "toy", …)
+    tags?: string[];
+    // Placement/context tags (task 069): WHERE this object plausibly occurs — a many-to-many link into the
+    // controlled vocabulary (json/placement.json). A separate axis from the activity `tags` above; tags
+    // represent environmental context inside a building (rooms are never simulated).
+    placement?: string[];
+    // Generation metadata (069; consumed by the deterministic building fill, 070).
+    generation?: ObjectGenerationSpec; // free-form selection hooks for Actions/Brain (041+: "giftable", "toy", …)
 }
 
 export type ObjectArchetypeTable = Record<ObjectArchetypeId, ObjectArchetype>;

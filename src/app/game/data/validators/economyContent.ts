@@ -301,7 +301,7 @@ export function validateJobsSemantics(data: unknown, peers: Record<string, unkno
     }
 }
 
-const BLUEPRINT_KEYS = ['friendlyName', 'category', 'size', 'jobs', 'materialsPerUnit', 'products', 'economics'];
+const BLUEPRINT_KEYS = ['friendlyName', 'category', 'tags', 'size', 'jobs', 'materialsPerUnit', 'products', 'economics'];
 
 export function validateBusinessesStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
@@ -314,6 +314,9 @@ export function validateBusinessesStructure(data: unknown, issues: IssueCollecto
         checkUnknownKeys(issues, id, blueprint, BLUEPRINT_KEYS);
         checkString(issues, `${id}.friendlyName`, blueprint['friendlyName']);
         checkString(issues, `${id}.category`, blueprint['category']);
+        if ('tags' in blueprint && checkArray(issues, `${id}.tags`, blueprint['tags'])) {
+            (blueprint['tags'] as unknown[]).forEach((tag, index) => checkString(issues, `${id}.tags[${index}]`, tag));
+        }
         if (checkRecord(issues, `${id}.size`, blueprint['size'])) {
             const size = blueprint['size'] as Record<string, unknown>;
             checkUnknownKeys(issues, `${id}.size`, size, ['min', 'max']);

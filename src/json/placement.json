@@ -1,0 +1,220 @@
+{
+    "tags": {
+        "art-studio": {
+            "label": "Art Studio",
+            "scope": "deferred"
+        },
+        "attic-basement": {
+            "label": "Attic Basement",
+            "scope": "building"
+        },
+        "auto-repair-shop": {
+            "label": "Auto Repair Shop",
+            "scope": "building"
+        },
+        "backyard-garden": {
+            "label": "Backyard Garden",
+            "scope": "building"
+        },
+        "bakery": {
+            "label": "Bakery",
+            "scope": "building"
+        },
+        "bank": {
+            "label": "Bank",
+            "scope": "building"
+        },
+        "bar": {
+            "label": "Bar",
+            "scope": "deferred"
+        },
+        "bathroom": {
+            "label": "Bathroom",
+            "scope": "building"
+        },
+        "beach": {
+            "label": "Beach",
+            "scope": "deferred"
+        },
+        "bedroom": {
+            "label": "Bedroom",
+            "scope": "building"
+        },
+        "bookstore": {
+            "label": "Bookstore",
+            "scope": "deferred"
+        },
+        "bus-stop": {
+            "label": "Bus Stop",
+            "scope": "deferred"
+        },
+        "cafe": {
+            "label": "Cafe",
+            "scope": "building"
+        },
+        "campsite": {
+            "label": "Campsite",
+            "scope": "deferred"
+        },
+        "cemetery": {
+            "label": "Cemetery",
+            "scope": "deferred"
+        },
+        "church": {
+            "label": "Church",
+            "scope": "deferred"
+        },
+        "cinema": {
+            "label": "Cinema",
+            "scope": "building"
+        },
+        "classroom": {
+            "label": "Classroom",
+            "scope": "building"
+        },
+        "clothing-store": {
+            "label": "Clothing Store",
+            "scope": "building"
+        },
+        "construction-site": {
+            "label": "Construction Site",
+            "scope": "building"
+        },
+        "dentist-office": {
+            "label": "Dentist Office",
+            "scope": "deferred"
+        },
+        "electronics-store": {
+            "label": "Electronics Store",
+            "scope": "building"
+        },
+        "factory": {
+            "label": "Factory",
+            "scope": "building"
+        },
+        "farm": {
+            "label": "Farm",
+            "scope": "building"
+        },
+        "fire-station": {
+            "label": "Fire Station",
+            "scope": "deferred"
+        },
+        "fishing-pier": {
+            "label": "Fishing Pier",
+            "scope": "deferred"
+        },
+        "garage": {
+            "label": "Garage",
+            "scope": "building"
+        },
+        "gym": {
+            "label": "Gym",
+            "scope": "building"
+        },
+        "hair-salon": {
+            "label": "Hair Salon",
+            "scope": "building"
+        },
+        "hardware-store": {
+            "label": "Hardware Store",
+            "scope": "building"
+        },
+        "hospital": {
+            "label": "Hospital",
+            "scope": "building"
+        },
+        "hotel-room": {
+            "label": "Hotel Room",
+            "scope": "building"
+        },
+        "kitchen": {
+            "label": "Kitchen",
+            "scope": "building"
+        },
+        "laundromat": {
+            "label": "Laundromat",
+            "scope": "deferred"
+        },
+        "library": {
+            "label": "Library",
+            "scope": "deferred"
+        },
+        "living-room": {
+            "label": "Living Room",
+            "scope": "building"
+        },
+        "music-studio": {
+            "label": "Music Studio",
+            "scope": "deferred"
+        },
+        "office": {
+            "label": "Office",
+            "scope": "building"
+        },
+        "park": {
+            "label": "Park",
+            "scope": "deferred"
+        },
+        "pet-shop": {
+            "label": "Pet Shop",
+            "scope": "deferred"
+        },
+        "pharmacy": {
+            "label": "Pharmacy",
+            "scope": "building"
+        },
+        "playground": {
+            "label": "Playground",
+            "scope": "building"
+        },
+        "police-station": {
+            "label": "Police Station",
+            "scope": "deferred"
+        },
+        "post-office": {
+            "label": "Post Office",
+            "scope": "deferred"
+        },
+        "restaurant": {
+            "label": "Restaurant",
+            "scope": "building"
+        },
+        "school-cafeteria": {
+            "label": "School Cafeteria",
+            "scope": "building"
+        },
+        "sports-field": {
+            "label": "Sports Field",
+            "scope": "deferred"
+        },
+        "street-sidewalk": {
+            "label": "Street Sidewalk",
+            "scope": "deferred"
+        },
+        "supermarket": {
+            "label": "Supermarket",
+            "scope": "building"
+        },
+        "swimming-pool": {
+            "label": "Swimming Pool",
+            "scope": "deferred"
+        },
+        "toy-store": {
+            "label": "Toy Store",
+            "scope": "deferred"
+        },
+        "veterinary-clinic": {
+            "label": "Veterinary Clinic",
+            "scope": "deferred"
+        },
+        "warehouse": {
+            "label": "Warehouse",
+            "scope": "building"
+        },
+        "workshop": {
+            "label": "Workshop",
+            "scope": "building"
+        }
+    }
+}

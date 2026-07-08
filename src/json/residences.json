@@ -1,0 +1,13 @@
+{
+    "house": {
+        "tags": [
+            "bedroom",
+            "bathroom",
+            "kitchen",
+            "living-room",
+            "garage",
+            "backyard-garden",
+            "attic-basement"
+        ]
+    }
+}

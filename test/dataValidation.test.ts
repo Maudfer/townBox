@@ -14,7 +14,8 @@ import {
     validateSkillsStructure,
 } from '../src/app/game/data/validators/skills';
 import { validateBootstrapStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
-import { validateObjectsStructure } from '../src/app/game/data/validators/objects';
+import { validateObjectsSemantics, validateObjectsStructure } from '../src/app/game/data/validators/objects';
+import { validatePlacementSemantics } from '../src/app/game/data/validators/placement';
 import { validateActionsSemantics, validateActionsStructure } from '../src/app/game/data/validators/actions';
 import { validateOarSemantics, validateOarStructure } from '../src/app/game/data/validators/oar';
 import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from '../src/app/game/data/validators/ui';
@@ -23,6 +24,7 @@ import { allRegistrations, validateAllData } from '../src/app/game/data/schemas'
 
 import businessesConfig from '../src/json/businesses.json';
 import schoolsConfig from '../src/json/schools.json';
+import residencesConfig from '../src/json/residences.json';
 import objectsConfig from '../src/json/objects.json';
 import demandConfig from '../src/json/demand.json';
 import jobsConfig from '../src/json/jobs.json';
@@ -77,7 +79,7 @@ describe('data validation (task 039)', () => {
         expect(names).toEqual([
             'actions', 'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy',
             'events', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
-            'objectActionRelationships', 'objects', 'population', 'schools', 'skillInit', 'skills', 'toolAssets',
+            'objectActionRelationships', 'objects', 'placement', 'population', 'residences', 'schools', 'skillInit', 'skills', 'toolAssets',
         ]);
     });
 
@@ -545,6 +547,53 @@ describe('objects validation (task 041)', () => {
 });
 
 // ---------- ui manifests ----------
+
+describe('placement tags validation (task 069)', () => {
+    test('dead tags and misplaced scopes are rejected', () => {
+        const vocab = { tags: { kitchen: { label: 'Kitchen', scope: 'building' }, beach: { label: 'Beach', scope: 'deferred' } } };
+        // kitchen carried by an object + a residence: clean. beach carried by an object only: clean (deferred).
+        const objectsPeer = { pan: { placement: ['kitchen'], generation: { kind: 'reusable' } }, towel: { placement: ['beach'], generation: { kind: 'loose' } } };
+        const clean = semantics(validatePlacementSemantics, vocab, { objects: objectsPeer, businesses: {}, residences: { house: { tags: ['kitchen'] } } });
+        expect(clean).toEqual([]);
+
+        // A tag no object carries is dead.
+        const dead = semantics(validatePlacementSemantics, { tags: { attic: { label: 'A', scope: 'building' } } }, { objects: {}, businesses: {}, residences: { house: { tags: ['attic'] } } });
+        expect(messagesOf(dead)).toMatch(/dead tag/);
+
+        // A building carrying a deferred tag is rejected; a building-scoped tag on no building is rejected.
+        const misplaced = semantics(validatePlacementSemantics, vocab, { objects: objectsPeer, businesses: { shack: { tags: ['beach'] } }, residences: {} });
+        expect(messagesOf(misplaced)).toMatch(/deferred \(no building may carry it yet\)/);
+        expect(messagesOf(misplaced)).toMatch(/appears on no blueprint\/residence/);
+    });
+
+    test('shipped coverage floors: nearly every archetype is placed, every blueprint and the house are tagged', () => {
+        const objects = objectsConfig as Record<string, { placement?: string[] }>;
+        const placed = Object.values(objects).filter(archetype => (archetype.placement?.length ?? 0) > 0).length;
+        expect(placed / Object.keys(objects).length).toBeGreaterThan(0.9);
+        const businesses = businessesConfig as Record<string, { tags?: string[] }>;
+        for (const blueprint of Object.values(businesses)) {
+            expect(blueprint.tags?.length ?? 0).toBeGreaterThan(0);
+        }
+        expect((residencesConfig as { house: { tags: string[] } }).house.tags.length).toBeGreaterThan(3);
+    });
+
+    test('objects semantics rejects unknown placement tags and placement/generation mismatches', () => {
+        const vocabPeer = { placement: { tags: { kitchen: { label: 'K', scope: 'building' } } } };
+        const unknown = { pan: { placement: ['ghost-room'], generation: { kind: 'reusable' } } };
+        expect(messagesOf(semantics(validateObjectsSemantics, unknown, vocabPeer))).toMatch(/unknown placement tag/);
+        const mismatch = { pan: { placement: ['kitchen'] } };
+        expect(messagesOf(semantics(validateObjectsSemantics, mismatch, vocabPeer))).toMatch(/must come together/);
+    });
+
+    test('generation metadata bounds are enforced', () => {
+        const bad = { pan: { label: 'Pan', category: 'kitchenware', size: { w: 10, d: 10, h: 5 }, weightGrams: 500,
+            flags: { carryable: true, pocketable: false, stackable: false, consumable: false, equippable: false, placeable: true },
+            placement: ['kitchen'], generation: { kind: 'reusable', minPerBuilding: 3, maxPerBuilding: 1 } } };
+        expect(messagesOf(structure(validateObjectsStructure, bad))).toMatch(/must be >= minPerBuilding/);
+        const uniqueBad = { pan: { ...bad.pan, generation: { kind: 'fixture', uniquePerBuilding: true, maxPerBuilding: 3 } } };
+        expect(messagesOf(structure(validateObjectsStructure, uniqueBad))).toMatch(/uniquePerBuilding implies/);
+    });
+});
 
 describe('ui manifest validation', () => {
     test('input rejects unknown tools and double-bound keys', () => {

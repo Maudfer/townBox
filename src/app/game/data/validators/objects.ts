@@ -2,7 +2,7 @@
 // instances are engine state, validated by the Inventory's invariants, not here.
 
 import { IssueCollector } from 'game/data/registry';
-import { checkArray, checkBoolean, checkNumber, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
+import { checkArray, checkBoolean, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
 
 // The category vocabulary, aligned with the content-planning master list (docs/planning/objects-master-list.md)
 // so the 050 backfill drops in without a remap. Extending it is a deliberate one-line change here.
@@ -12,7 +12,7 @@ export const OBJECT_CATEGORIES = [
     'vehicle/vehicle-part', 'decoration', 'document', 'container', 'instrument', 'misc',
 ];
 
-const ARCHETYPE_KEYS = ['label', 'category', 'size', 'weightGrams', 'flags', 'container', 'tags'];
+const ARCHETYPE_KEYS = ['label', 'category', 'size', 'weightGrams', 'flags', 'container', 'tags', 'placement', 'generation'];
 const FLAG_KEYS = ['carryable', 'pocketable', 'stackable', 'consumable', 'equippable', 'placeable'];
 
 // Physical sanity rails (grams / cm). Deliberately generous — they exist to catch data-entry mistakes
@@ -86,6 +86,49 @@ export function validateObjectsStructure(data: unknown, issues: IssueCollector):
 
         if ('tags' in archetype && checkArray(issues, `${id}.tags`, archetype['tags'])) {
             (archetype['tags'] as unknown[]).forEach((tag, index) => checkString(issues, `${id}.tags[${index}]`, tag));
+        }
+        if ('placement' in archetype && checkArray(issues, `${id}.placement`, archetype['placement'])) {
+            (archetype['placement'] as unknown[]).forEach((tag, index) => checkString(issues, `${id}.placement[${index}]`, tag));
+        }
+        if ('generation' in archetype && checkRecord(issues, `${id}.generation`, archetype['generation'])) {
+            const generation = archetype['generation'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.generation`, generation, ['kind', 'weight', 'minPerBuilding', 'maxPerBuilding', 'uniquePerBuilding', 'ownershipDefault', 'accessibility']);
+            checkEnum(issues, `${id}.generation.kind`, generation['kind'], ['fixture', 'consumable', 'reusable', 'loose']);
+            if ('weight' in generation) {
+                checkNumber(issues, `${id}.generation.weight`, generation['weight'], { min: 0.000001 });
+            }
+            const minOk = !('minPerBuilding' in generation) || checkNumber(issues, `${id}.generation.minPerBuilding`, generation['minPerBuilding'], { min: 0, integer: true });
+            const maxOk = !('maxPerBuilding' in generation) || checkNumber(issues, `${id}.generation.maxPerBuilding`, generation['maxPerBuilding'], { min: 1, integer: true });
+            if (minOk && maxOk && 'minPerBuilding' in generation && 'maxPerBuilding' in generation
+                && (generation['maxPerBuilding'] as number) < (generation['minPerBuilding'] as number)) {
+                issues.add(`${id}.generation.maxPerBuilding`, 'must be >= minPerBuilding');
+            }
+            if (generation['uniquePerBuilding'] === true && 'maxPerBuilding' in generation && (generation['maxPerBuilding'] as number) > 1) {
+                issues.add(`${id}.generation.maxPerBuilding`, 'uniquePerBuilding implies maxPerBuilding 1');
+            }
+            if ('ownershipDefault' in generation) {
+                checkEnum(issues, `${id}.generation.ownershipDefault`, generation['ownershipDefault'], ['building', 'none']);
+            }
+            if ('accessibility' in generation) {
+                checkEnum(issues, `${id}.generation.accessibility`, generation['accessibility'], ['public', 'staff', 'private']);
+            }
+        }
+    }
+}
+
+
+// Semantic pass (task 069): placement tags must exist in the vocabulary; placement and generation come
+// together (a placed object without generation metadata can never be generated — and vice versa is noise).
+export function validateObjectsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
+    const vocab = ((peers['placement'] ?? {}) as { tags?: Record<string, unknown> }).tags ?? {};
+    for (const [id, archetype] of Object.entries((data ?? {}) as Record<string, { placement?: string[]; generation?: unknown }>)) {
+        for (const tag of archetype.placement ?? []) {
+            if (!(tag in vocab)) {
+                issues.add(`${id}.placement`, `unknown placement tag "${tag}" (not in placement.json)`);
+            }
+        }
+        if ((archetype.placement?.length ?? 0) > 0 !== (archetype.generation !== undefined)) {
+            issues.add(`${id}`, 'placement and generation metadata must come together (task 069)');
         }
     }
 }
