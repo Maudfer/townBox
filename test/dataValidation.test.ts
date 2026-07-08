@@ -356,7 +356,9 @@ describe('params validation', () => {
         const fixture = {
             seed: 1, founderCount: 100, recordThreshold: 1000, recordYears: 500, ticksPerYear: 100,
             daysPerStep: 1, warmMarginYears: 40, maxWarmupYears: 400, keepActionLog: false,
-            carryingCapacity: { enabled: true, soft: 3000, steepness: 4 }, safety: { maxRuntimeMs: 0, maxPeople: 0 },
+            carryingCapacity: { enabled: true, soft: 3000, steepness: 4 },
+            logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
+            safety: { maxRuntimeMs: 0, maxPeople: 0 },
         };
         expect(messagesOf(structure(validateHistoryGeneratorStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
     });

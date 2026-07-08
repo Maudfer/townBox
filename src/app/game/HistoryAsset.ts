@@ -22,14 +22,20 @@ import EventEngine from 'game/EventEngine';
 import ActionEngine from 'game/ActionEngine';
 import Brain from 'game/Brain';
 import BootstrapWorld from 'game/BootstrapWorld';
+import SkillBook from 'game/SkillBook';
+import LogicalWorld, { LogicalWorldConfig } from 'game/LogicalWorld';
 import { runTick } from 'game/TickRunner';
 import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/Population';
 
 import { TICKS_PER_DAY } from 'util/time';
 import { Predicate } from 'util/predicate';
+import { ageAt } from 'util/kinship';
 
 import { PopulationState, PersonId } from 'types/Genealogy';
 import { EventHistoryTable, EventLogTable, EventManifest, ScheduleState, TickResult } from 'types/LifeEvent';
+import { WorldAdapter } from 'types/Execution';
+import { SkillBookState } from 'types/Skill';
+import { InventoryState } from 'types/Objects';
 
 import eventsConfig from 'json/events.json';
 import generatorConfig from 'json/historyGenerator.json';
@@ -39,7 +45,8 @@ const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
 // The asset schema version — bump on shape changes (drives the load-time compatibility check, Part B).
 export const HISTORY_ASSET_FORMAT_VERSION = 1;
 // The generator version — bump when the sim/events change materially, so re-runs are distinguishable.
-export const HISTORY_GENERATOR_VERSION = '055.1';
+// 077.1: the logical-economy world (off-map schools/jobs/objects → the asset carries lived skills/possessions).
+export const HISTORY_GENERATOR_VERSION = '077.1';
 
 // The event whose hazard the carrying capacity throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -66,6 +73,10 @@ export interface HistoryGeneratorParams {
     maxWarmupYears: number;  // safety: abort warm-up if the threshold is never reached
     carryingCapacity: CarryingCapacityConfig;
     safety: GeneratorSafety;
+    // The offline logical-economy world (task 077): when enabled, the generator runs logical schools/jobs/
+    // objects off-map so the asset carries lived skills/careers-as-history/possessions (SkillBook + carried
+    // Inventory). When disabled, the generator is the 055 pool-intrinsic spine (skills materialize at draw).
+    logicalWorld: { enabled: boolean } & LogicalWorldConfig;
     // Whether the asset retains the low-level ACTION log entries (grab/use/discrete work flavor) in addition
     // to life EVENTS. Default false: the action engine + Brain still run every tick (so action-CAUSED events
     // still fire into the event history), but the per-tick action texture — which explodes the asset to GBs
@@ -110,6 +121,10 @@ export interface HistoryAsset {
     eventLog: EventLogTable;
     eventLogSeq: number;
     eventSchedule: ScheduleState;
+    // Lived skills + carried possessions (task 077). Present only when logicalWorld.enabled; Part B installs
+    // them so drawn people arrive with real proficiency/possessions instead of synthesized-at-draw ones.
+    skillBook?: SkillBookState;
+    objects?: InventoryState;
 }
 
 export type GenerationPhase = 'warmup' | 'recording';
@@ -183,13 +198,34 @@ export async function generateHistoryAsset(
     const engine = new EventEngine();
     const actionEngine = new ActionEngine(undefined, engine.getLifeLog());
     const brain = new Brain(actionEngine);
-    const world = new BootstrapWorld();
+
+    // The logical-economy world (task 077) or the plain 055 spine. When enabled it owns homes/schools/jobs/
+    // objects + a SkillBook, and drives DIRECT per-step skill accrual (runDaily); when disabled, skills
+    // materialize at draw as in 055.
+    const useLogical = params.logicalWorld.enabled;
+    const skillBook = useLogical ? new SkillBook() : null;
+    const logical = useLogical ? new LogicalWorld(params.seed, params.logicalWorld) : null;
+    const bootstrap = logical ? null : new BootstrapWorld();
+    const world: WorldAdapter = logical ?? bootstrap!;
+    if (logical && skillBook) {
+        logical.buildSchools(params.recordThreshold);
+        logical.buildJobs(skillBook, params.recordThreshold);
+    }
 
     // Incremental living index — updated from each tick's births/deaths, never re-filtered over the pool.
     const living = new Set<PersonId>();
+    const enter = (personId: PersonId, tick: number): void => {
+        if (logical && skillBook) {
+            const person = state.people[personId];
+            const age = person ? ageAt(person, tick, tpy) : 0;
+            logical.onEnter(personId, age, person?.birthTick ?? 0, tick, skillBook, state.people);
+        } else {
+            bootstrap!.register(personId);
+        }
+    };
     for (const person of Object.values(state.people)) {
         living.add(person.id);
-        world.register(person.id);
+        enter(person.id, 0);
     }
 
     // Carrying capacity: the engine scales the pregnancy hazard by a factor that reflects the CURRENT living
@@ -204,14 +240,15 @@ export async function generateHistoryAsset(
     let lastDecadeSampled = -1;
     let lastReportedYear = -1;
 
-    const applyResult = (result: TickResult): void => {
+    const applyResult = (result: TickResult, tick: number): void => {
         for (const birth of result.born) {
             living.add(birth.id);
-            world.register(birth.id);
+            enter(birth.id, tick);
             births++;
         }
         for (const id of result.died) {
             living.delete(id);
+            logical?.onDeath(id);
             deaths++;
         }
     };
@@ -240,6 +277,7 @@ export async function generateHistoryAsset(
 
         livingCount = living.size;
         const agentIds = [...living].sort();
+        const facts = logical && skillBook ? logical.tickFacts(skillBook, tick) : null;
         const result = await runTick({
             engine,
             actionEngine,
@@ -248,10 +286,16 @@ export async function generateHistoryAsset(
             agentIds,
             tick,
             ticksPerYear: tpy,
-            ctx: { mode: 'bootstrap', world },
+            ctx: facts ? facts.ctx : { mode: 'bootstrap', world },
+            ...(facts ? { inventory: facts.inventory } : {}),
             ticksPerStep: step,
         });
-        applyResult(result);
+        applyResult(result, tick);
+        // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
+        // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
+        if (logical && skillBook) {
+            logical.runDaily(state, tick, tick + step, tpy, skillBook, engine);
+        }
 
         // Per-decade trajectory sample + per-year progress.
         const phase: GenerationPhase = inRecording ? 'recording' : 'warmup';
@@ -340,7 +384,7 @@ export async function generateHistoryAsset(
         },
     };
 
-    return {
+    const asset: HistoryAsset = {
         meta,
         population: state,
         eventHistory: history,
@@ -348,6 +392,26 @@ export async function generateHistoryAsset(
         eventLogSeq: engine.getNextLogSeq(),
         eventSchedule: engine.getScheduleState(),
     };
+
+    // Carry lived skills + carried possessions (task 077), filtered to retained people (warm-up dead are gone).
+    if (logical && skillBook) {
+        const retainedSet = new Set(retainedIds);
+        const fullSkills = skillBook.getState();
+        const records: SkillBookState['records'] = {};
+        const initialized: SkillBookState['initialized'] = {};
+        for (const id of retainedIds) {
+            if (fullSkills.records[id]) {
+                records[id] = fullSkills.records[id]!;
+            }
+            if (fullSkills.initialized[id]) {
+                initialized[id] = true;
+            }
+        }
+        asset.skillBook = { records, initialized };
+        asset.objects = logical.carriedInventoryState(retainedSet);
+    }
+
+    return asset;
 }
 
 function medianLogLength(log: EventLogTable, ids: string[]): number {

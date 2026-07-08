@@ -26,6 +26,9 @@ const TINY: HistoryGeneratorParams = {
     recordYears: 1,
     daysPerStep: 30, // monthly cadence keeps the test fast
     carryingCapacity: { enabled: true, soft: 40, steepness: 4 },
+    // The generator invariants below are the 055 pool-intrinsic spine; the logical-economy world (077) is
+    // exercised in its own describe block.
+    logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
 };
 
 describe('carrying-capacity throttle (fertilityFactor)', () => {

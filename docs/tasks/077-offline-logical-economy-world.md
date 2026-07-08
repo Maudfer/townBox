@@ -1,5 +1,37 @@
 # [Feature] Offline logical-economy world — off-map jobs/schools/objects during history generation
 
+> ## ✅ Delivered (this PR)
+>
+> **Landed & tested (`npm test` 620 green, `npm run typecheck` clean):**
+> - **`game/LogicalWorld.ts`** — the headless analogue of `City.handleTick`'s tick assembly: a `WorldAdapter`
+>   with per-person **logical homes** (a partner joins their partner, a child joins a parent — per-home object
+>   pools + co-location), reusing `Inventory`/`SkillBook`/`SchoolRegistry.sweep`/`generateBuildingObjects`, plus
+>   a scene-free **`LogicalJobMarket`** (ports `game/JobMarket.ts`'s rank-match + atomic grant-on-hire, no-farm).
+> - **Direct per-step progression accrual (§3 crux).** The generator steps coarsely (monthly) for runtime, but
+>   school/work progression is normally intra-day shift-driven (`isOnShiftAtTick`) which coarse stepping can't
+>   hit. So `LogicalWorld.runDaily` drives **direct accrual** — `schoolDailyGain`/`WORK_DAILY_GAIN` × days
+>   elapsed in the step — reproducing the same per-day numbers, stepping-tolerant. Hiring stays event-driven
+>   (`get_job`, probabilistic → stepping-tolerant); promotions fire `got_promoted` through the engine.
+> - **The asset carries lived skills + carried possessions** (`HistoryAsset.skillBook`/`objects`), wired behind
+>   `historyGenerator.json` `logicalWorld.{enabled,homes,schools,jobs,objects}` (default on; disabled = the 055
+>   pool-intrinsic spine). Deterministic per `(seed, params)`.
+> - **Part B consumes them** — `HistoryAssetSelection.sliceAndRebase` filters skills/possessions to the retained
+>   cohort and rebases ticks; `GameManager.startNewGameWorld` installs the `SkillBook` (its `initialized` set
+>   makes `City.setupHousehold.initialize()` a no-op for asset people, preserving their real proficiency) + the
+>   carried `Inventory`. People arrive **unemployed but skilled with real careers-as-history**; the live
+>   `JobMarket` re-hires them (§2 — logical employers are map-less).
+> - Tests: `test/logicalWorld.test.ts` (homes, adapter, direct school accrual, carried-inventory filtering,
+>   Part B slice/rebase, end-to-end generator determinism + career progression).
+>
+> **Known limitation → the one remaining follow-up.** Skills/possessions are an **end-of-generation snapshot**,
+> so the living cohort at window `w` carries proficiency reflecting their *whole* simulated life. Basics are
+> age-correct (they cap at 60 by 18), but **job skills can read as more experienced than the windowed age**.
+> Accepted for now (drawn adults read as "established"); the fix is **per-window skill snapshotting** (or
+> reconstructing proficiency-at-`w` from the career event history). **Runtime:** the logical world roughly
+> doubles per-step cost vs. 055; monthly (`daysPerStep: 30`) stays the practical default.
+>
+> Everything below is the original ticket.
+
 - **Type:** Feature / Simulation + Architecture
 - **Labels:** `feature`, `simulation`, `framework`, `asset`, `055-followup`
 - **Depends on:** [055](055-history-asset-pipeline.md) (the offline generator + asset-fed new game — landed, PR #84),

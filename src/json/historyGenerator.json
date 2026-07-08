@@ -13,6 +13,13 @@
         "soft": 3000,
         "steepness": 4.0
     },
+    "logicalWorld": {
+        "enabled": true,
+        "homes": true,
+        "schools": true,
+        "jobs": true,
+        "objects": true
+    },
     "safety": {
         "maxRuntimeMs": 0,
         "maxPeople": 0

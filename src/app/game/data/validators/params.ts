@@ -116,7 +116,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'carryingCapacity', 'safety'];
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'carryingCapacity', 'logicalWorld', 'safety'];
     checkUnknownKeys(issues, '', data, fields);
     checkNumber(issues, 'seed', data['seed'], { integer: true });
     checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
@@ -141,5 +141,12 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
         checkUnknownKeys(issues, 'safety', safety, ['maxRuntimeMs', 'maxPeople']);
         checkNumber(issues, 'safety.maxRuntimeMs', safety['maxRuntimeMs'], { min: 0, integer: true });
         checkNumber(issues, 'safety.maxPeople', safety['maxPeople'], { min: 0, integer: true });
+    }
+    if (checkRecord(issues, 'logicalWorld', data['logicalWorld'])) {
+        const logical = data['logicalWorld'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'logicalWorld', logical, ['enabled', 'homes', 'schools', 'jobs', 'objects']);
+        for (const flag of ['enabled', 'homes', 'schools', 'jobs', 'objects']) {
+            checkBoolean(issues, `logicalWorld.${flag}`, logical[flag]);
+        }
     }
 }

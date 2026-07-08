@@ -22,6 +22,8 @@ import { SeededRandom } from 'util/random';
 import { PopulationState, PersonId, GenPerson } from 'types/Genealogy';
 import { EventHistoryTable, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
 import { Genders } from 'types/Social';
+import { SkillBookState, PersonSkills } from 'types/Skill';
+import { InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
 
 import { HistoryAsset, HISTORY_ASSET_FORMAT_VERSION } from 'game/HistoryAsset';
 
@@ -30,6 +32,10 @@ export interface SelectedWorld {
     eventHistory: EventHistoryTable;
     eventLog: EventLogTable;
     eventLogSeq: number;
+    // Lived skills + carried possessions (task 077), filtered to the retained cohort with ticks rebased.
+    // Present only when the asset carries them (logicalWorld runs). Consumed by GameManager.startNewGameWorld.
+    skillBook?: SkillBookState;
+    objects?: InventoryState;
     window: number; // the asset-relative present tick w that was selected (for logging/tests)
 }
 
@@ -134,7 +140,69 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
         lastSimulatedYear: 0,
     };
 
-    return { population, eventHistory, eventLog, eventLogSeq: maxSeq + 1 };
+    const result: Omit<SelectedWorld, 'window'> = { population, eventHistory, eventLog, eventLogSeq: maxSeq + 1 };
+
+    // Lived skills + carried possessions (task 077): keep only the retained cohort and rebase timestamps by −w.
+    // NOTE: skills/possessions are an end-of-generation SNAPSHOT, so the living cohort carries proficiency
+    // reflecting their whole simulated life (basics cap at 60 by 18 so they're age-correct; job skills may read
+    // as more experienced than the windowed age — an accepted over-fidelity, documented as a §9 follow-up:
+    // per-window skill snapshotting). Because the loaded SkillBook marks these people `initialized`,
+    // City.setupHousehold's initialize() no-ops for them, preserving these skills.
+    if (asset.skillBook) {
+        const records: Record<PersonId, PersonSkills> = {};
+        const initialized: Record<PersonId, true> = {};
+        for (const id of Object.keys(people)) {
+            const personSkills = asset.skillBook.records[id];
+            if (personSkills) {
+                const rebasedSkills: PersonSkills = {};
+                for (const [skillId, record] of Object.entries(personSkills)) {
+                    rebasedSkills[skillId] = { ...record, firstAcquiredTick: record.firstAcquiredTick - w, lastProgressedTick: record.lastProgressedTick - w };
+                }
+                records[id] = rebasedSkills;
+            }
+            if (asset.skillBook.initialized[id]) {
+                initialized[id] = true;
+            }
+        }
+        result.skillBook = { records, initialized };
+    }
+    if (asset.objects) {
+        result.objects = sliceObjects(asset.objects, new Set(Object.keys(people)), w);
+    }
+
+    return result;
+}
+
+// Keeps only object instances (transitively) carried by a retained person, rebasing createdAtTick by −w.
+function sliceObjects(objects: InventoryState, keptPeople: Set<PersonId>, w: number): InventoryState {
+    const instances = objects.instances;
+    const rootsAtKept = (start: ObjectInstance): boolean => {
+        const seen = new Set<string>();
+        let current: ObjectInstance | undefined = start;
+        while (current) {
+            const container: ObjectContainerRef = current.container;
+            if (container.kind === 'possessions') {
+                return keptPeople.has(container.personId);
+            }
+            if (container.kind === 'object') {
+                if (seen.has(container.instanceId)) {
+                    return false;
+                }
+                seen.add(container.instanceId);
+                current = instances[container.instanceId];
+                continue;
+            }
+            return false;
+        }
+        return false;
+    };
+    const kept: InventoryState['instances'] = {};
+    for (const [id, instance] of Object.entries(instances)) {
+        if (rootsAtKept(instance)) {
+            kept[id] = { ...instance, createdAtTick: instance.createdAtTick - w };
+        }
+    }
+    return { instances: kept, nextInstanceSeq: objects.nextInstanceSeq };
 }
 
 // Re-rolls names only (mutates the given population in place). Surnames are lineage-coherent: a person
