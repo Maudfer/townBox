@@ -6,14 +6,15 @@ import Workplace from '../src/app/game/Workplace';
 import GameManager from '../src/app/game/GameManager';
 import City from '../src/app/game/City';
 import Population from '../src/app/game/Population';
+import SkillBook from '../src/app/game/SkillBook';
 import Clock from '../src/app/game/Clock';
 
 import { HouseholdArrangements } from '../src/types/Household';
 
 import { SaveProvider } from '../src/app/game/save/SaveProvider';
 import { encodeBase64, decodeBase64 } from '../src/util/base64';
+import { compress, decompress } from '../src/util/compress';
 import { Genders, Relationships } from '../src/types/Social';
-import { JobRequirements } from '../src/types/Work';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
 // A provider backed by an in-memory map. Using it in tests proves the SaveProvider abstraction is the only
@@ -50,11 +51,13 @@ function makeWorld(rows: number, cols: number): { game: GameManager; field: Fiel
     const city = makeCity();
     const population = new Population();
     const clock = new Clock();
+    const skillBook = new SkillBook();
     const game = {
         field: null,
         city,
         population,
         clock,
+        skillBook,
         gridParams: {
             rows,
             cols,
@@ -131,8 +134,8 @@ describe('SaveManager round-trip', () => {
             lineOfWork: 'Super Market',
             size: 4,
             positions: [
-                { title: 'Checkout Clerk', salary: 1300, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 },
-                { title: 'Janitor', salary: 1100, requirements: [JobRequirements.CleaningSkill], shiftStart: 540, shiftEnd: 1020 },
+                { title: 'Checkout Clerk', salary: 1300, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 },
+                { title: 'Janitor', salary: 1100, requirements: ['sanitize_surfaces'], shiftStart: 540, shiftEnd: 1020 },
             ],
         });
         // Re-occupancy bookkeeping (task 037) should round-trip.
@@ -145,8 +148,7 @@ describe('SaveManager round-trip', () => {
         parent.social.setAge(40);
         parent.social.setGender(Genders.Male);
         parent.social.setHome(house);
-        parent.work.setSkills([JobRequirements.ConstructionSkill]);
-        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: [JobRequirements.ConstructionSkill], shiftStart: 540, shiftEnd: 1020 });
+        parent.work.setJob({ title: 'Constructor', salary: 1400, requirements: ['carry_building_materials'], shiftStart: 540, shiftEnd: 1020 });
 
         const child = source.field.loadPerson(72, 60);
         child.social.setFirstName('Cleo');
@@ -219,7 +221,6 @@ describe('SaveManager round-trip', () => {
 
         // Work
         expect(restoredParent.work.getJob()?.title).toBe('Constructor');
-        expect(restoredParent.work.getSkills()).toContain(JobRequirements.ConstructionSkill);
 
         // Relationship graph (cyclic) reconstructed by reference
         const restoredChildren = restoredParent.social.getInfo().relationships[Relationships.Child];
@@ -252,5 +253,40 @@ describe('SaveManager round-trip', () => {
         const manager = new SaveManager(world.game, provider);
 
         expect(await manager.load('missing')).toBe(false);
+    });
+});
+
+describe('legacy skill migration (v<10, tasks 059-062)', () => {
+    test('a pre-v10 snapshot re-initializes people deterministically and maps legacy skills on top', () => {
+        const source = makeWorld(15, 15);
+        source.population.generate(4242);
+        const pool = source.population.getPeople();
+        const anyAdultId = Object.keys(pool).sort().find(id => {
+            const person = pool[id]!;
+            return person.deathTick === null && person.birthTick <= -30 * 8640;
+        })!;
+        const genPerson = pool[anyAdultId]!;
+
+        source.field.loadStructure('house', 4, 4, 'h');
+        const person = source.field.loadPerson(72, 72);
+        person.social.setPersonId(anyAdultId);
+        person.social.setBirthTick(genPerson.birthTick);
+
+        const manager = new SaveManager(source.game, new MemoryProvider());
+        const snapshot = JSON.parse(decompress(manager.serialize())) as Record<string, unknown>;
+        // Regress the snapshot to the pre-skillBook era: legacy boolean skills on the person instead.
+        snapshot['version'] = 9;
+        delete snapshot['skillBook'];
+        (snapshot['people'] as { skills?: string[] }[])[0]!.skills = ['MedicalSkill'];
+
+        const target = makeWorld(15, 15);
+        const targetManager = new SaveManager(target.game, new MemoryProvider());
+        targetManager.deserialize(compress(JSON.stringify(snapshot)));
+
+        const skillBook = (target.game as unknown as { skillBook: SkillBook }).skillBook;
+        // Re-initialized (adult: basics at 60) AND legacy-mapped (MedicalSkill -> vitals/history at 35).
+        expect(skillBook.proficiency(anyAdultId, 'math')).toBe(60);
+        expect(skillBook.proficiency(anyAdultId, 'measure_vital_signs')).toBeGreaterThanOrEqual(35);
+        expect(skillBook.proficiency(anyAdultId, 'take_patient_history')).toBeGreaterThanOrEqual(35);
     });
 });

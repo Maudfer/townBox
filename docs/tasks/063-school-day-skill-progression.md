@@ -2,8 +2,8 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `skills`, `school`, `progression-arc`
-- **Depends on:** [058](058-school-assignments-and-scheduling_DONE.md) (`completed_school_day`), [059](059-skill-proficiency-schema-and-store.md) (store), [060](060-basic-skills-backfill.md) (the basic set)
-- **Blocks:** [062](062-skill-initialization-and-early-childhood.md) reuses this task's gain math for synthesized histories (land the math as a pure util both can import)
+- **Depends on:** [058](058-school-assignments-and-scheduling_DONE.md) (`completed_school_day`), [059](059-skill-proficiency-schema-and-store_DONE.md) (store), [060](060-basic-skills-backfill_DONE.md) (the basic set)
+- **Blocks:** [062](062-skill-initialization-and-early-childhood_DONE.md) reuses this task's gain math for synthesized histories (land the math as a pure util both can import)
 
 ## Goal
 

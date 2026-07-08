@@ -3,7 +3,8 @@
         "title": "Checkout Clerk",
         "salary": 1300,
         "requiredSkills": [
-            "RetailSkill"
+            "operate_cash_register",
+            "assist_customers"
         ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.3,
@@ -82,7 +83,8 @@
         "title": "Restocker",
         "salary": 1200,
         "requiredSkills": [
-            "LogisticsSkill"
+            "stock_shelves",
+            "pack_boxes_efficiently"
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.2,
@@ -160,7 +162,8 @@
         "title": "Janitor",
         "salary": 1100,
         "requiredSkills": [
-            "CleaningSkill"
+            "mop_and_sweep_floors",
+            "sanitize_surfaces"
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.1,
@@ -240,7 +243,8 @@
         "title": "Manager",
         "salary": 3200,
         "requiredSkills": [
-            "ManagementSkill"
+            "coordinate_staff_schedules",
+            "delegate_tasks"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.7,
@@ -326,7 +330,9 @@
         "title": "Doctor",
         "salary": 6000,
         "requiredSkills": [
-            "MedicalSkill"
+            "perform_basic_examination",
+            "take_patient_history",
+            "suture_wounds"
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.9,
@@ -409,7 +415,8 @@
         "title": "Nurse",
         "salary": 2800,
         "requiredSkills": [
-            "MedicalSkill"
+            "measure_vital_signs",
+            "administer_medication"
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.7,
@@ -492,7 +499,9 @@
         "title": "Teacher",
         "salary": 2400,
         "requiredSkills": [
-            "TeachingSkill"
+            "plan_lessons",
+            "explain_concepts_clearly",
+            "manage_a_classroom"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.6,
@@ -569,7 +578,8 @@
         "title": "Cook",
         "salary": 1800,
         "requiredSkills": [
-            "CookingSkill"
+            "chop_and_prep_ingredients",
+            "saute_and_grill"
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.4,
@@ -652,7 +662,8 @@
         "title": "Waiter",
         "salary": 1300,
         "requiredSkills": [
-            "RetailSkill"
+            "serve_tables",
+            "take_food_orders"
         ],
         "physicalStrain": 0.5,
         "mentalStrain": 0.3,
@@ -730,7 +741,8 @@
         "title": "Laborer",
         "salary": 1400,
         "requiredSkills": [
-            "ConstructionSkill"
+            "carry_building_materials",
+            "mix_and_pour_concrete"
         ],
         "physicalStrain": 0.8,
         "mentalStrain": 0.2,
@@ -813,7 +825,8 @@
         "title": "Baker",
         "salary": 1700,
         "requiredSkills": [
-            "CookingSkill"
+            "knead_and_proof_dough",
+            "bake_breads_and_pastries"
         ],
         "physicalStrain": 0.6,
         "mentalStrain": 0.3,
@@ -897,7 +910,8 @@
         "title": "Barista",
         "salary": 1450,
         "requiredSkills": [
-            "HospitalitySkill"
+            "brew_espresso_drinks",
+            "serve_counter_customers"
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
@@ -981,7 +995,8 @@
         "title": "Sales Associate",
         "salary": 1500,
         "requiredSkills": [
-            "RetailSkill"
+            "assist_customers",
+            "arrange_product_displays"
         ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.3,
@@ -1060,7 +1075,8 @@
         "title": "Electronics Technician",
         "salary": 2600,
         "requiredSkills": [
-            "EngineeringSkill"
+            "troubleshoot_electrical_circuit",
+            "solder_components"
         ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.6,
@@ -1137,7 +1153,8 @@
         "title": "Hardware Clerk",
         "salary": 1300,
         "requiredSkills": [
-            "RetailSkill"
+            "assist_customers",
+            "explain_product_features"
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
@@ -1216,7 +1233,8 @@
         "title": "Bank Teller",
         "salary": 2000,
         "requiredSkills": [
-            "FinanceSkill"
+            "count_cash_accurately",
+            "process_transactions"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.5,
@@ -1297,7 +1315,8 @@
         "title": "Accountant",
         "salary": 3200,
         "requiredSkills": [
-            "FinanceSkill"
+            "balance_ledgers",
+            "prepare_financial_statements"
         ],
         "physicalStrain": 0.1,
         "mentalStrain": 0.7,
@@ -1379,7 +1398,8 @@
         "title": "Security Guard",
         "salary": 1500,
         "requiredSkills": [
-            "SecuritySkill"
+            "patrol_premises",
+            "monitor_security_cameras"
         ],
         "physicalStrain": 0.5,
         "mentalStrain": 0.4,
@@ -1454,7 +1474,8 @@
         "title": "Hairdresser",
         "salary": 1900,
         "requiredSkills": [
-            "BeautySkill"
+            "cut_and_style_hair",
+            "blow_dry_and_set"
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
@@ -1531,7 +1552,8 @@
         "title": "Beautician",
         "salary": 1700,
         "requiredSkills": [
-            "BeautySkill"
+            "apply_skin_treatments",
+            "do_manicures_and_pedicures"
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.3,
@@ -1608,7 +1630,8 @@
         "title": "Mechanic",
         "salary": 2200,
         "requiredSkills": [
-            "MechanicalSkill"
+            "diagnose_mechanical_failure",
+            "replace_worn_parts"
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.4,
@@ -1685,7 +1708,8 @@
         "title": "Service Advisor",
         "salary": 1900,
         "requiredSkills": [
-            "RetailSkill"
+            "assist_customers",
+            "estimate_repair_costs"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.4,
@@ -1762,7 +1786,8 @@
         "title": "Fitness Trainer",
         "salary": 1900,
         "requiredSkills": [
-            "FitnessSkill"
+            "design_workout_plans",
+            "demonstrate_exercises"
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.3,
@@ -1836,7 +1861,8 @@
         "title": "Receptionist",
         "salary": 1600,
         "requiredSkills": [
-            "HospitalitySkill"
+            "greet_and_check_in_guests",
+            "manage_bookings"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.3,
@@ -1921,7 +1947,8 @@
         "title": "Projectionist",
         "salary": 1800,
         "requiredSkills": [
-            "EngineeringSkill"
+            "operate_av_equipment",
+            "calibrate_equipment"
         ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.4,
@@ -1997,7 +2024,8 @@
         "title": "Usher",
         "salary": 1150,
         "requiredSkills": [
-            "RetailSkill"
+            "guide_guests",
+            "check_tickets"
         ],
         "physicalStrain": 0.4,
         "mentalStrain": 0.2,
@@ -2076,7 +2104,8 @@
         "title": "Ticket Clerk",
         "salary": 1200,
         "requiredSkills": [
-            "RetailSkill"
+            "operate_cash_register",
+            "check_tickets"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.3,
@@ -2152,7 +2181,8 @@
         "title": "Housekeeper",
         "salary": 1150,
         "requiredSkills": [
-            "CleaningSkill"
+            "change_bed_linens",
+            "sanitize_surfaces"
         ],
         "physicalStrain": 0.7,
         "mentalStrain": 0.2,
@@ -2232,7 +2262,8 @@
         "title": "Concierge",
         "salary": 1700,
         "requiredSkills": [
-            "HospitalitySkill"
+            "arrange_guest_services",
+            "greet_and_check_in_guests"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.4,
@@ -2311,7 +2342,8 @@
         "title": "Pharmacist",
         "salary": 4000,
         "requiredSkills": [
-            "MedicalSkill"
+            "dispense_medication",
+            "check_drug_interactions"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.7,
@@ -2394,7 +2426,8 @@
         "title": "Delivery Driver",
         "salary": 1500,
         "requiredSkills": [
-            "DrivingSkill"
+            "drive_delivery_van",
+            "plan_delivery_routes"
         ],
         "physicalStrain": 0.5,
         "mentalStrain": 0.3,
@@ -2468,7 +2501,8 @@
         "title": "Engineer",
         "salary": 4200,
         "requiredSkills": [
-            "EngineeringSkill"
+            "read_technical_drawings",
+            "draft_technical_plans"
         ],
         "physicalStrain": 0.3,
         "mentalStrain": 0.8,
@@ -2546,7 +2580,8 @@
         "title": "Architect",
         "salary": 4500,
         "requiredSkills": [
-            "EngineeringSkill"
+            "draft_technical_plans",
+            "use_cad_software"
         ],
         "physicalStrain": 0.2,
         "mentalStrain": 0.8,

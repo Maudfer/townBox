@@ -7,7 +7,6 @@ import GameManager from '../src/app/game/GameManager';
 
 import { PixelPosition, TilePosition } from '../src/types/Position';
 import { TimeChangedEvent } from '../src/types/Time';
-import { JobRequirements } from '../src/types/Work';
 
 function makeWorld(): { city: City; field: Field } {
     const rows = 40;
@@ -50,7 +49,7 @@ function employ(field: Field): { person: Person; home: House; workplace: Workpla
     const person = field.loadPerson(72, 72);
     person.social.setHome(home);
     person.social.setAge(30); // adults drive; minors walk (task 058)
-    person.work.setJob({ title: 'Clerk', salary: 1000, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 });
+    person.work.setJob({ title: 'Clerk', salary: 1000, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 });
     person.work.setWorkplace(workplace);
     return { person, home, workplace };
 }

@@ -71,10 +71,10 @@ Always run `npm test` before opening the PR.**
 | 056 | [Progression arc — discovery & migration baseline](056-progression-arc-discovery-baseline_DONE.md) | Planning | ✅ Done |
 | 057 | [Calendar weekday & weekend support](057-calendar-weekdays-and-weekends_DONE.md) | Framework | ✅ Done |
 | 058 | [School assignments, scheduling & weekend behavior](058-school-assignments-and-scheduling_DONE.md) | Feature | ✅ Done |
-| 059 | [Skill rework — proficiency schema, dependency graph & store](059-skill-proficiency-schema-and-store.md) | Framework | ⬜ Open |
-| 060 | [Basic skills — definition & backfill](060-basic-skills-backfill.md) | Content | ⬜ Open |
-| 061 | [Specific skills — replace generic families & migrate references](061-specific-skills-backfill-and-migration.md) | Content | ⬜ Open |
-| 062 | [Person skill initialization & early-childhood seeding](062-skill-initialization-and-early-childhood.md) | Feature | ⬜ Open |
+| 059 | [Skill rework — proficiency schema, dependency graph & store](059-skill-proficiency-schema-and-store_DONE.md) | Framework | ✅ Done |
+| 060 | [Basic skills — definition & backfill](060-basic-skills-backfill_DONE.md) | Content | ✅ Done |
+| 061 | [Specific skills — replace generic families & migrate references](061-specific-skills-backfill-and-migration_DONE.md) | Content | ✅ Done |
+| 062 | [Person skill initialization & early-childhood seeding](062-skill-initialization-and-early-childhood_DONE.md) | Feature | ✅ Done |
 | 063 | [School-day skill progression](063-school-day-skill-progression.md) | Feature | ⬜ Open |
 | 064 | [Job ranks & entry-level training grants](064-job-ranks-and-training-grants.md) | Framework | ⬜ Open |
 | 065 | [Job skill progression & rank promotion](065-job-skill-progression-and-promotion.md) | Feature | ⬜ Open |
@@ -142,10 +142,10 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   [058](058-school-assignments-and-scheduling_DONE.md) (school assignments, the Brain school obligation,
   walking commutes for minors).
 - **Skills** (**059–062 = one bundled branch/PR**, ratified 056 decision c):
-  [059](059-skill-proficiency-schema-and-store.md) (proficiency records, dependency DAG, central
-  personId-keyed store, save migration) + [060](060-basic-skills-backfill.md) (≥15 basics) +
-  [061](061-specific-skills-backfill-and-migration.md) (≥20 specifics per legacy family, full reference
-  migration) + [062](062-skill-initialization-and-early-childhood.md) (age-appropriate seeding: milestones
+  [059](059-skill-proficiency-schema-and-store_DONE.md) (proficiency records, dependency DAG, central
+  personId-keyed store, save migration) + [060](060-basic-skills-backfill_DONE.md) (≥15 basics) +
+  [061](061-specific-skills-backfill-and-migration_DONE.md) (≥20 specifics per legacy family, full reference
+  migration) + [062](062-skill-initialization-and-early-childhood_DONE.md) (age-appropriate seeding: milestones
   1–6, school-derived 7–17, adults basics@60 + assortment) → then
   [063](063-school-day-skill-progression.md) (calendar-exact 60.0-at-18 school progression).
 - **Jobs:** [064](064-job-ranks-and-training-grants.md) (ranks + the explicit temporary College-shortcut

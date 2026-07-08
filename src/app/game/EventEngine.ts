@@ -546,7 +546,7 @@ export default class EventEngine {
             // Grant a real skill to the subject via the skill registry (task 032 education events). No-op
             // (still commits) without a registry, or when the skill is unknown/already held.
             case 'acquireSkill':
-                this.skills?.acquireSkill(subjectId, String(effect.value ?? ''));
+                this.skills?.acquireSkill(subjectId, String(effect.value ?? ''), effect.proficiency);
                 return true;
             // Credit/debit the target's balance via the economy ledger (task 017). The amount Curve is a
             // constant for now (no driver); economy events refine this later.

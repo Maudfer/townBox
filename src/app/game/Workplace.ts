@@ -92,22 +92,17 @@ export default class Workplace extends Building {
         return [...this.avaiableJobs];
     }
 
-    public hire(person: Person): PotentialJob {
+    // `canFill` answers whether the person meets a position's skill requirements — supplied by the caller
+    // (JobMarket reads the central SkillBook, task 059) so the scene class stays decoupled from the store.
+    public hire(person: Person, canFill: (requirements: string[]) => boolean = () => true): PotentialJob {
         if(!person){
             console.error(person);
             throw new Error('Person is not valid for hire');
         }
 
-        const skills = person.work.getSkills();
-        if (skills.length === 0) {
-            return null;
-        }
-
         // Take the first open position whose requirements the person meets, removing it from the open pool so
         // filled/open counts stay correct.
-        const index = this.avaiableJobs.findIndex(job => {
-            return job.requirements.every(requirement => skills.includes(requirement));
-        });
+        const index = this.avaiableJobs.findIndex(job => canFill(job.requirements));
 
         if (index === -1) {
             return null;

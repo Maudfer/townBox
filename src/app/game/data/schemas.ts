@@ -22,6 +22,7 @@ import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
 import populationConfig from 'json/population.json';
 import schoolsConfig from 'json/schools.json';
+import skillInitConfig from 'json/skillInit.json';
 import skillsConfig from 'json/skills.json';
 import toolAssetsConfig from 'json/toolAssets.json';
 
@@ -35,9 +36,13 @@ import {
     validateJobsSemantics,
     validateJobsStructure,
     validateMaterialsStructure,
+} from 'game/data/validators/economyContent';
+import {
+    validateSkillInitSemantics,
+    validateSkillInitStructure,
     validateSkillsSemantics,
     validateSkillsStructure,
-} from 'game/data/validators/economyContent';
+} from 'game/data/validators/skills';
 import {
     validateBootstrapStructure,
     validateEconomyStructure,
@@ -66,7 +71,8 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'businesses', version: 1, data: businessesConfig, validateStructure: validateBusinessesStructure, validateSemantics: validateBusinessesSemantics },
         { name: 'materials', version: 1, data: materialsConfig, validateStructure: validateMaterialsStructure },
         { name: 'objects', version: 1, data: objectsConfig, validateStructure: validateObjectsStructure },
-        { name: 'skills', version: 1, data: skillsConfig, validateStructure: validateSkillsStructure, validateSemantics: validateSkillsSemantics },
+        { name: 'skills', version: 2, data: skillsConfig, validateStructure: validateSkillsStructure, validateSemantics: validateSkillsSemantics },
+        { name: 'skillInit', version: 1, data: skillInitConfig, validateStructure: validateSkillInitStructure, validateSemantics: validateSkillInitSemantics },
         { name: 'demand', version: 1, data: demandConfig, validateStructure: validateDemandStructure, validateSemantics: validateDemandSemantics },
         { name: 'economy', version: 1, data: economyConfig, validateStructure: validateEconomyStructure },
         { name: 'population', version: 1, data: populationConfig, validateStructure: validatePopulationStructure },

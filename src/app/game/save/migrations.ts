@@ -18,6 +18,12 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         // transform — older saves load with no assignments and the daily sweep enrolls eligible children.
         snapshot.version = 9;
     }
+    if (snapshot.version < 10) {
+        // v9 → v10 (tasks 059-062): skills moved to the central SkillBook. The transform is intentionally
+        // NOT here (migrations stay dumb): SaveManager.deserialize re-initializes each loaded person
+        // deterministically and applies the legacy mapping (save/legacySkills.ts) when `skillBook` is absent.
+        snapshot.version = 10;
+    }
     return snapshot;
 }
 

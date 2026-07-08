@@ -2,8 +2,8 @@
 
 - **Type:** Content / Data
 - **Labels:** `skills`, `content`, `progression-arc`
-- **Depends on:** [059](059-skill-proficiency-schema-and-store.md) (schema)
-- **Blocks:** [061](061-specific-skills-backfill-and-migration.md) (specific skills depend on basics), [063](063-school-day-skill-progression.md) (school awards basics)
+- **Depends on:** [059](059-skill-proficiency-schema-and-store_DONE.md) (schema)
+- **Blocks:** [061](061-specific-skills-backfill-and-migration_DONE.md) (specific skills depend on basics), [063](063-school-day-skill-progression.md) (school awards basics)
 - **Bundling (ratified 056 decision c):** lands in the single **059+060+061+062** branch/PR.
 
 ## Goal

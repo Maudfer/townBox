@@ -1,15 +1,15 @@
 import Field from 'game/Field';
 import Person from 'game/Person';
 import Workplace from 'game/Workplace';
+import SkillBook from 'game/SkillBook';
 
 import { PersonId } from 'types/Genealogy';
-import { JobRequirements } from 'types/Work';
 import { JobMarket as IJobMarket } from 'types/LifeEvent';
 
 // Concrete employment adapter (task 015): the bridge between the pure event engine and the materialized
 // Workplace/Field layer. The engine consults it to derive `employed`/`canBeHired` and to perform
 // hiring/firing via the `acquireSlot`/`releaseSlot` effects, so the engine never imports the scene-side
-// classes. Built fresh each day by City.handleNewDay over the current materialized people.
+// classes. Built fresh each tick by City.handleTick over the current materialized people; skills read from the central SkillBook (task 059).
 //
 // Hiring is deterministic: among workplaces with an open position the candidate's skills can fill, it picks
 // the highest score = SKILL_WEIGHT * (skills the role requires) − DISTANCE_WEIGHT * (home↔workplace Manhattan
@@ -28,7 +28,7 @@ interface Match {
 export default class JobMarket implements IJobMarket {
     private workplaces: Workplace[];
 
-    constructor(private byGenId: Map<PersonId, Person>, field: Field) {
+    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook) {
         this.workplaces = field.getStructures().filter((tile): tile is Workplace => tile instanceof Workplace);
     }
 
@@ -46,7 +46,7 @@ export default class JobMarket implements IJobMarket {
         if (!match) {
             return false;
         }
-        const job = match.workplace.hire(match.person);
+        const job = match.workplace.hire(match.person, requirements => requirements.every(requirement => this.skillBook.has(match.person.social.getPersonId() ?? personId, requirement)));
         if (!job) {
             return false;
         }
@@ -71,9 +71,8 @@ export default class JobMarket implements IJobMarket {
         if (!person || person.work.getJob() !== null) {
             return null;
         }
-        const skills = new Set(person.work.getSkills());
-        if (skills.size === 0) {
-            return null;
+        if (!this.skillBook.hasAny(personId)) {
+            return null; // skill-less people (newborns) are not hireable
         }
 
         const home = person.social.getHome();
@@ -84,7 +83,7 @@ export default class JobMarket implements IJobMarket {
         let bestKey = '';
 
         for (const workplace of this.workplaces) {
-            const fit = this.bestFit(workplace, skills);
+            const fit = this.bestFit(workplace, personId);
             if (fit < 0) {
                 continue;
             }
@@ -105,11 +104,12 @@ export default class JobMarket implements IJobMarket {
     }
 
     // The strongest fit among a workplace's open positions the person can fill (the number of required skills,
-    // so specialist roles outrank generic ones), or -1 if none are fillable.
-    private bestFit(workplace: Workplace, skills: Set<JobRequirements>): number {
+    // so specialist roles outrank generic ones), or -1 if none are fillable. Possession is any positive
+    // proficiency in the SkillBook (task 059); per-rank proficiency THRESHOLDS arrive with task 064.
+    private bestFit(workplace: Workplace, personId: PersonId): number {
         let best = -1;
         for (const position of workplace.getOpenPositions()) {
-            if (position.requirements.every(requirement => skills.has(requirement))) {
+            if (position.requirements.every(requirement => this.skillBook.has(personId, requirement))) {
                 best = Math.max(best, position.requirements.length);
             }
         }

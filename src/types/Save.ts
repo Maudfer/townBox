@@ -1,6 +1,6 @@
 import { Direction } from 'types/Movement';
 import { Gender, Relationships } from 'types/Social';
-import { JobPosition, JobRequirements } from 'types/Work';
+import { JobPosition } from 'types/Work';
 import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { BusinessInstance } from 'types/Business';
@@ -9,6 +9,7 @@ import { EconomyState } from 'types/Economy';
 import { InventoryState } from 'types/Objects';
 import { ActionEngineState } from 'types/Action';
 import { SchoolRegistryState } from 'types/School';
+import { SkillBookState } from 'types/Skill';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool (v1 saves load with an empty pool); families → households.
@@ -24,7 +25,11 @@ import { SchoolRegistryState } from 'types/School';
 //          additive optional fields (older saves load with a synthesized log and no objects).
 // v8 → v9: added school assignments (task 058). Additive optional field; older saves load with no
 //          assignments and the daily sweep enrolls eligible children on the next simulated day.
-export const SAVE_VERSION = 9;
+// v9 → v10: skills moved off WorkLife into the central SkillBook (tasks 059–062): `skillBook` carries the
+//          proficiency records; `PersonSnapshot.skills` became a read-only legacy field. Loading an older
+//          save re-initializes each person deterministically and grants the mapped legacy skills on top
+//          (game/save/legacySkills.ts).
+export const SAVE_VERSION = 10;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -70,7 +75,9 @@ export interface PersonSnapshot {
     relationships: RelationshipSnapshot;
     // WorkLife
     job: JobPosition | null;
-    skills: JobRequirements[];
+    // LEGACY (pre-v10): the boolean skill list. v10 moved skills to the central skillBook section; this
+    // field is only read by the legacy reconciliation on load (save/legacySkills.ts) and never written.
+    skills?: string[];
     // Links
     vehicleId: string | null;
 }
@@ -123,4 +130,7 @@ export interface WorldSnapshot {
     actions?: ActionEngineState;
     // School assignments (v9, task 058). Optional so older saves load with none (the daily sweep enrolls).
     schools?: SchoolRegistryState;
+    // Skill proficiency records (v10, tasks 059–062). Optional: older saves reconstruct via deterministic
+    // re-initialization + the legacy mapping (save/legacySkills.ts).
+    skillBook?: SkillBookState;
 }

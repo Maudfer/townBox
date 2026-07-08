@@ -1,10 +1,9 @@
 import EventEngine from '../src/app/game/EventEngine';
 import SkillRegistry from '../src/app/game/SkillRegistry';
-import Person from '../src/app/game/Person';
+import SkillBook from '../src/app/game/SkillBook';
 
 import { Genders, Gender } from '../src/types/Social';
-import { JobRequirements } from '../src/types/Work';
-import { GenPerson, PersonId, PersonTable, PopulationState } from '../src/types/Genealogy';
+import { GenPerson, PersonTable, PopulationState } from '../src/types/Genealogy';
 import { EventManifest, JobMarket } from '../src/types/LifeEvent';
 
 const TPY = 360;
@@ -68,15 +67,16 @@ describe('Life events — health attribute (task 032)', () => {
 });
 
 describe('Life events — acquireSkill effect (task 032)', () => {
-    test('SkillRegistry grants a valid, not-yet-held skill once', () => {
-        const person = new Person(0, 0);
-        const registry = new SkillRegistry(new Map<PersonId, Person>([['a', person]]));
+    test('SkillRegistry grants a valid, not-yet-held skill (with prerequisites) once', () => {
+        const skillBook = new SkillBook();
+        const registry = new SkillRegistry(skillBook, 0);
 
-        expect(registry.acquireSkill('a', 'MedicalSkill')).toBe(true);
-        expect(person.work.getSkills()).toContain(JobRequirements.MedicalSkill);
-        expect(registry.acquireSkill('a', 'MedicalSkill')).toBe(false); // already held
-        expect(registry.acquireSkill('a', 'NotASkill')).toBe(false); // unknown skill
-        expect(registry.acquireSkill('missing', 'MedicalSkill')).toBe(false); // unknown person
+        expect(registry.acquireSkill('a', 'measure_vital_signs')).toBe(true);
+        expect(skillBook.proficiency('a', 'measure_vital_signs')).toBeGreaterThan(0);
+        // Education teaches the prerequisites too (grantWithPrerequisites): biology got topped up.
+        expect(skillBook.proficiency('a', 'biology')).toBeGreaterThanOrEqual(20);
+        expect(registry.acquireSkill('a', 'measure_vital_signs')).toBe(false); // already at the floor
+        expect(registry.acquireSkill('a', 'not_a_skill')).toBe(false); // unknown skill
     });
 
     test('an education event grants the skill through the engine adapter', () => {
@@ -84,18 +84,18 @@ describe('Life events — acquireSkill effect (task 032)', () => {
             nursing_school: {
                 roles: { subject: { where: { attr: 'alive', op: '==', value: true } } },
                 triggers: { probabilistic: { perYear: 200000 } },
-                effects: [{ type: 'acquireSkill', value: 'MedicalSkill', target: 'subject' }, { type: 'emit', signal: 'graduated', target: 'subject' }],
+                effects: [{ type: 'acquireSkill', value: 'measure_vital_signs', proficiency: 30, target: 'subject' }, { type: 'emit', signal: 'graduated', target: 'subject' }],
             },
         };
         const engine = new EventEngine(manifest);
-        const person = new Person(0, 0);
-        const registry = new SkillRegistry(new Map<PersonId, Person>([['a', person]]));
+        const skillBook = new SkillBook();
+        const registry = new SkillRegistry(skillBook, 0);
         const state = makeState([gen('a', Genders.Female, 24)]);
 
         const result = engine.simulateTick(state, ['a'], 0, TPY, { markets: { skills: registry } });
 
         expect(result.signals.map(s => s.signal)).toContain('graduated');
-        expect(person.work.getSkills()).toContain(JobRequirements.MedicalSkill);
+        expect(skillBook.proficiency('a', 'measure_vital_signs')).toBeGreaterThan(0);
     });
 });
 

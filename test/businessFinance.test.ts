@@ -1,9 +1,9 @@
 import { computeBusinessPnl, unitMaterialCost, resolveDemand, aggregateMaterialDemand, positionDelta, DemandBusiness } from '../src/util/businessFinance';
 import { BusinessBlueprint } from '../src/types/Business';
-import { JobPosition, JobRequirements } from '../src/types/Work';
+import {JobPosition} from '../src/types/Work';
 
 function pos(title: string): JobPosition {
-    return { title, salary: 0, requirements: [JobRequirements.RetailSkill], shiftStart: 0, shiftEnd: 0 };
+    return { title, salary: 0, requirements: ['assist_customers'], shiftStart: 0, shiftEnd: 0 };
 }
 
 describe('unitMaterialCost (task 033)', () => {

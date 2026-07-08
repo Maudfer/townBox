@@ -1,23 +1,4870 @@
 {
-    "workingAgeYears": 16,
-    "adult": { "minSkills": 1, "maxSkills": 3 },
-    "minor": { "minSkills": 0, "maxSkills": 1 },
-    "weights": {
-        "RetailSkill": 1.4,
-        "CleaningSkill": 1.1,
-        "ConstructionSkill": 1.0,
-        "LogisticsSkill": 1.0,
-        "HospitalitySkill": 1.0,
-        "CookingSkill": 0.9,
-        "DrivingSkill": 0.9,
-        "MechanicalSkill": 0.8,
-        "SecuritySkill": 0.7,
-        "BeautySkill": 0.7,
-        "ManagementSkill": 0.6,
-        "TeachingSkill": 0.6,
-        "FinanceSkill": 0.6,
-        "EngineeringSkill": 0.6,
-        "FitnessSkill": 0.6,
-        "MedicalSkill": 0.45
+    "math": {
+        "label": "Math",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "reading": {
+        "label": "Reading",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "writing": {
+        "label": "Writing",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "speaking": {
+        "label": "Speaking",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "biology": {
+        "label": "Biology",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "geography": {
+        "label": "Geography",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "history": {
+        "label": "History",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "physics": {
+        "label": "Physics",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "chemistry": {
+        "label": "Chemistry",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "digital_literacy": {
+        "label": "Digital Literacy",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "problem_solving": {
+        "label": "Problem Solving",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "physical_coordination": {
+        "label": "Physical Coordination",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "music": {
+        "label": "Music",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "art": {
+        "label": "Art",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "civics": {
+        "label": "Civics",
+        "basic": true,
+        "tags": [
+            "school"
+        ]
+    },
+    "operate_cash_register": {
+        "label": "Operate Cash Register",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail"
+        ]
+    },
+    "assist_customers": {
+        "label": "Assist Customers",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "retail"
+        ]
+    },
+    "handle_complaints": {
+        "label": "Handle Complaints",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 30
+            },
+            {
+                "skill": "assist_customers",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "arrange_product_displays": {
+        "label": "Arrange Product Displays",
+        "dependencies": [
+            {
+                "skill": "art",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail"
+        ]
+    },
+    "explain_product_features": {
+        "label": "Explain Product Features",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "reading",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail"
+        ]
+    },
+    "process_returns": {
+        "label": "Process Returns",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 10
+            },
+            {
+                "skill": "operate_cash_register",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "wrap_gifts": {
+        "label": "Wrap Gifts",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "bag_groceries": {
+        "label": "Bag Groceries",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "check_tickets": {
+        "label": "Check Tickets",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail"
+        ]
+    },
+    "guide_guests": {
+        "label": "Guide Guests",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail"
+        ]
+    },
+    "upsell_products": {
+        "label": "Upsell Products",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            },
+            {
+                "skill": "explain_product_features",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "manage_fitting_rooms": {
+        "label": "Manage Fitting Rooms",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "price_merchandise": {
+        "label": "Price Merchandise",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "operate_barcode_scanner": {
+        "label": "Operate Barcode Scanner",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "balance_a_register_drawer": {
+        "label": "Balance a Register Drawer",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "operate_cash_register",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "demonstrate_products": {
+        "label": "Demonstrate Products",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "explain_product_features",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "take_special_orders": {
+        "label": "Take Special Orders",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "handle_layaway_plans": {
+        "label": "Handle Layaway Plans",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "spot_shoplifting": {
+        "label": "Spot Shoplifting",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "open_and_close_a_shop": {
+        "label": "Open and Close a Shop",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            },
+            {
+                "skill": "operate_cash_register",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "retail",
+            "flavor"
+        ]
+    },
+    "mop_and_sweep_floors": {
+        "label": "Mop and Sweep Floors",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning"
+        ]
+    },
+    "sanitize_surfaces": {
+        "label": "Sanitize Surfaces",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning"
+        ]
+    },
+    "change_bed_linens": {
+        "label": "Change Bed Linens",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning"
+        ]
+    },
+    "polish_furniture": {
+        "label": "Polish Furniture",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "wash_windows": {
+        "label": "Wash Windows",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "operate_floor_buffer": {
+        "label": "Operate Floor Buffer",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "sort_laundry": {
+        "label": "Sort Laundry",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "iron_garments": {
+        "label": "Iron Garments",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "remove_stains": {
+        "label": "Remove Stains",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "empty_and_sort_waste": {
+        "label": "Empty and Sort Waste",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "deep_clean_kitchens": {
+        "label": "Deep Clean Kitchens",
+        "dependencies": [
+            {
+                "skill": "sanitize_surfaces",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "clean_restrooms": {
+        "label": "Clean Restrooms",
+        "dependencies": [
+            {
+                "skill": "sanitize_surfaces",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "dust_high_surfaces": {
+        "label": "Dust High Surfaces",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "shampoo_carpets": {
+        "label": "Shampoo Carpets",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "restock_cleaning_supplies": {
+        "label": "Restock Cleaning Supplies",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "mix_cleaning_solutions": {
+        "label": "Mix Cleaning Solutions",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "organize_storage_closets": {
+        "label": "Organize Storage Closets",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "disinfect_medical_areas": {
+        "label": "Disinfect Medical Areas",
+        "dependencies": [
+            {
+                "skill": "sanitize_surfaces",
+                "minProficiency": 25
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "power_wash_exteriors": {
+        "label": "Power Wash Exteriors",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "schedule_cleaning_rounds": {
+        "label": "Schedule Cleaning Rounds",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cleaning",
+            "flavor"
+        ]
+    },
+    "mix_and_pour_concrete": {
+        "label": "Mix and Pour Concrete",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction"
+        ]
+    },
+    "carry_building_materials": {
+        "label": "Carry Building Materials",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction"
+        ]
+    },
+    "read_blueprints": {
+        "label": "Read Blueprints",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "frame_walls": {
+        "label": "Frame Walls",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "install_drywall": {
+        "label": "Install Drywall",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "operate_power_tools": {
+        "label": "Operate Power Tools",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "lay_bricks": {
+        "label": "Lay Bricks",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "measure_and_cut_lumber": {
+        "label": "Measure and Cut Lumber",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "erect_scaffolding": {
+        "label": "Erect Scaffolding",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "apply_roofing": {
+        "label": "Apply Roofing",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "install_insulation": {
+        "label": "Install Insulation",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "paint_surfaces": {
+        "label": "Paint Surfaces",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "dig_foundations": {
+        "label": "Dig Foundations",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "pour_and_level_floors": {
+        "label": "Pour and Level Floors",
+        "dependencies": [
+            {
+                "skill": "mix_and_pour_concrete",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "install_windows_and_doors": {
+        "label": "Install Windows and Doors",
+        "dependencies": [
+            {
+                "skill": "measure_and_cut_lumber",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "follow_site_safety_rules": {
+        "label": "Follow Site Safety Rules",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "operate_a_jackhammer": {
+        "label": "Operate a Jackhammer",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "tile_floors_and_walls": {
+        "label": "Tile Floors and Walls",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "seal_and_waterproof": {
+        "label": "Seal and Waterproof",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "clear_demolition_debris": {
+        "label": "Clear Demolition Debris",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "construction",
+            "flavor"
+        ]
+    },
+    "stock_shelves": {
+        "label": "Stock Shelves",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics"
+        ]
+    },
+    "track_inventory": {
+        "label": "Track Inventory",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "pack_boxes_efficiently": {
+        "label": "Pack Boxes Efficiently",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics"
+        ]
+    },
+    "load_and_unload_trucks": {
+        "label": "Load and Unload Trucks",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "operate_a_pallet_jack": {
+        "label": "Operate a Pallet Jack",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "label_and_sort_packages": {
+        "label": "Label and Sort Packages",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "pick_warehouse_orders": {
+        "label": "Pick Warehouse Orders",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 15
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "count_stock_accurately": {
+        "label": "Count Stock Accurately",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "rotate_perishable_stock": {
+        "label": "Rotate Perishable Stock",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 10
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "schedule_deliveries": {
+        "label": "Schedule Deliveries",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "operate_a_forklift": {
+        "label": "Operate a Forklift",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            },
+            {
+                "skill": "operate_a_pallet_jack",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "inspect_incoming_goods": {
+        "label": "Inspect Incoming Goods",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "manage_storage_space": {
+        "label": "Manage Storage Space",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "seal_and_palletize_freight": {
+        "label": "Seal and Palletize Freight",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "keep_shipping_manifests": {
+        "label": "Keep Shipping Manifests",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "handle_fragile_goods": {
+        "label": "Handle Fragile Goods",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "track_shipments_digitally": {
+        "label": "Track Shipments Digitally",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "organize_a_stockroom": {
+        "label": "Organize a Stockroom",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "weigh_and_measure_freight": {
+        "label": "Weigh and Measure Freight",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "dispatch_couriers": {
+        "label": "Dispatch Couriers",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "logistics",
+            "flavor"
+        ]
+    },
+    "greet_and_check_in_guests": {
+        "label": "Greet and Check in Guests",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "manage_bookings": {
+        "label": "Manage Bookings",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 15
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "serve_tables": {
+        "label": "Serve Tables",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "take_food_orders": {
+        "label": "Take Food Orders",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "brew_espresso_drinks": {
+        "label": "Brew Espresso Drinks",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "carry_loaded_trays": {
+        "label": "Carry Loaded Trays",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "set_formal_tables": {
+        "label": "Set Formal Tables",
+        "dependencies": [
+            {
+                "skill": "art",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "recommend_menu_items": {
+        "label": "Recommend Menu Items",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "reading",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "handle_guest_complaints": {
+        "label": "Handle Guest Complaints",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 30
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "arrange_guest_services": {
+        "label": "Arrange Guest Services",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "serve_counter_customers": {
+        "label": "Serve Counter Customers",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "hospitality"
+        ]
+    },
+    "pour_and_serve_drinks": {
+        "label": "Pour and Serve Drinks",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "manage_waitlists": {
+        "label": "Manage Waitlists",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "turn_over_hotel_rooms": {
+        "label": "Turn Over Hotel Rooms",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "answer_switchboard_calls": {
+        "label": "Answer Switchboard Calls",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "coordinate_room_service": {
+        "label": "Coordinate Room Service",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "host_private_events": {
+        "label": "Host Private Events",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "polish_glassware_and_silver": {
+        "label": "Polish Glassware and Silver",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "prepare_continental_breakfast": {
+        "label": "Prepare Continental Breakfast",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "remember_regulars_preferences": {
+        "label": "Remember Regulars Preferences",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "hospitality",
+            "flavor"
+        ]
+    },
+    "chop_and_prep_ingredients": {
+        "label": "Chop and Prep Ingredients",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking"
+        ]
+    },
+    "saute_and_grill": {
+        "label": "Saute and Grill",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "chop_and_prep_ingredients",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking"
+        ]
+    },
+    "knead_and_proof_dough": {
+        "label": "Knead and Proof Dough",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking"
+        ]
+    },
+    "bake_breads_and_pastries": {
+        "label": "Bake Breads and Pastries",
+        "dependencies": [
+            {
+                "skill": "knead_and_proof_dough",
+                "minProficiency": 20
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking"
+        ]
+    },
+    "plate_dishes": {
+        "label": "Plate Dishes",
+        "dependencies": [
+            {
+                "skill": "art",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "follow_recipes": {
+        "label": "Follow Recipes",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "season_and_taste": {
+        "label": "Season and Taste",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "work_a_flat_top": {
+        "label": "Work a Flat Top",
+        "dependencies": [
+            {
+                "skill": "saute_and_grill",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "make_stocks_and_sauces": {
+        "label": "Make Stocks and Sauces",
+        "dependencies": [
+            {
+                "skill": "follow_recipes",
+                "minProficiency": 15
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "butcher_and_portion_meat": {
+        "label": "Butcher and Portion Meat",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "cook_rice_and_grains": {
+        "label": "Cook Rice and Grains",
+        "dependencies": [
+            {
+                "skill": "follow_recipes",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "fry_safely": {
+        "label": "Fry Safely",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "decorate_cakes": {
+        "label": "Decorate Cakes",
+        "dependencies": [
+            {
+                "skill": "art",
+                "minProficiency": 20
+            },
+            {
+                "skill": "bake_breads_and_pastries",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "manage_a_prep_list": {
+        "label": "Manage a Prep List",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "keep_a_clean_station": {
+        "label": "Keep a Clean Station",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "control_food_temperatures": {
+        "label": "Control Food Temperatures",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 10
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "scale_recipes_up": {
+        "label": "Scale Recipes up",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            },
+            {
+                "skill": "follow_recipes",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "make_fresh_pasta": {
+        "label": "Make Fresh Pasta",
+        "dependencies": [
+            {
+                "skill": "knead_and_proof_dough",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "preserve_and_pickle": {
+        "label": "Preserve and Pickle",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "time_multiple_dishes": {
+        "label": "Time Multiple Dishes",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 25
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "cooking",
+            "flavor"
+        ]
+    },
+    "drive_delivery_van": {
+        "label": "Drive Delivery Van",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "driving"
+        ]
+    },
+    "plan_delivery_routes": {
+        "label": "Plan Delivery Routes",
+        "dependencies": [
+            {
+                "skill": "geography",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "driving"
+        ]
+    },
+    "parallel_park": {
+        "label": "Parallel Park",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "read_road_maps": {
+        "label": "Read Road Maps",
+        "dependencies": [
+            {
+                "skill": "geography",
+                "minProficiency": 15
+            },
+            {
+                "skill": "reading",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "drive_defensively": {
+        "label": "Drive Defensively",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "secure_cargo_loads": {
+        "label": "Secure Cargo Loads",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "drive_at_night": {
+        "label": "Drive At Night",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "navigate_by_gps": {
+        "label": "Navigate by GPS",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 15
+            },
+            {
+                "skill": "geography",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "keep_vehicle_logs": {
+        "label": "Keep Vehicle Logs",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "perform_pre_trip_inspections": {
+        "label": "Perform Pre Trip Inspections",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "drive_in_bad_weather": {
+        "label": "Drive in Bad Weather",
+        "dependencies": [
+            {
+                "skill": "drive_defensively",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "back_up_with_mirrors": {
+        "label": "Back up with Mirrors",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "deliver_on_schedule": {
+        "label": "Deliver on Schedule",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "drive_a_box_truck": {
+        "label": "Drive a Box Truck",
+        "dependencies": [
+            {
+                "skill": "drive_delivery_van",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "handle_road_emergencies": {
+        "label": "Handle Road Emergencies",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "economize_fuel": {
+        "label": "Economize Fuel",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "courier_documents_securely": {
+        "label": "Courier Documents Securely",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "chauffeur_passengers": {
+        "label": "Chauffeur Passengers",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            },
+            {
+                "skill": "drive_defensively",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "maintain_tire_pressure": {
+        "label": "Maintain Tire Pressure",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "load_a_roof_rack": {
+        "label": "Load a Roof Rack",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "driving",
+            "flavor"
+        ]
+    },
+    "diagnose_mechanical_failure": {
+        "label": "Diagnose Mechanical Failure",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 25
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical"
+        ]
+    },
+    "replace_worn_parts": {
+        "label": "Replace Worn Parts",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "mechanical"
+        ]
+    },
+    "change_oil_and_fluids": {
+        "label": "Change Oil and Fluids",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "use_a_torque_wrench": {
+        "label": "Use a Torque Wrench",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "read_repair_manuals": {
+        "label": "Read Repair Manuals",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "test_batteries_and_alternators": {
+        "label": "Test Batteries and Alternators",
+        "dependencies": [
+            {
+                "skill": "physics",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "balance_and_rotate_tires": {
+        "label": "Balance and Rotate Tires",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "adjust_brakes": {
+        "label": "Adjust Brakes",
+        "dependencies": [
+            {
+                "skill": "replace_worn_parts",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "tune_engines": {
+        "label": "Tune Engines",
+        "dependencies": [
+            {
+                "skill": "diagnose_mechanical_failure",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "weld_metal": {
+        "label": "Weld Metal",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "operate_a_car_lift": {
+        "label": "Operate a Car Lift",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "flush_cooling_systems": {
+        "label": "Flush Cooling Systems",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "repair_exhaust_systems": {
+        "label": "Repair Exhaust Systems",
+        "dependencies": [
+            {
+                "skill": "weld_metal",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "align_wheels": {
+        "label": "Align Wheels",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "rebuild_carburetors": {
+        "label": "Rebuild Carburetors",
+        "dependencies": [
+            {
+                "skill": "diagnose_mechanical_failure",
+                "minProficiency": 25
+            },
+            {
+                "skill": "replace_worn_parts",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "fabricate_small_parts": {
+        "label": "Fabricate Small Parts",
+        "dependencies": [
+            {
+                "skill": "weld_metal",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "troubleshoot_by_sound": {
+        "label": "Troubleshoot by Sound",
+        "dependencies": [
+            {
+                "skill": "diagnose_mechanical_failure",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "service_air_conditioning": {
+        "label": "Service Air Conditioning",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 15
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "estimate_repair_costs": {
+        "label": "Estimate Repair Costs",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "mechanical"
+        ]
+    },
+    "keep_service_records": {
+        "label": "Keep Service Records",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "mechanical",
+            "flavor"
+        ]
+    },
+    "patrol_premises": {
+        "label": "Patrol Premises",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security"
+        ]
+    },
+    "monitor_security_cameras": {
+        "label": "Monitor Security Cameras",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security"
+        ]
+    },
+    "check_credentials": {
+        "label": "Check Credentials",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "write_incident_reports": {
+        "label": "Write Incident Reports",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "de_escalate_conflicts": {
+        "label": "De Escalate Conflicts",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "control_crowd_flow": {
+        "label": "Control Crowd Flow",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "inspect_bags_and_deliveries": {
+        "label": "Inspect Bags and Deliveries",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "respond_to_alarms": {
+        "label": "Respond to Alarms",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "guard_valuables_in_transit": {
+        "label": "Guard Valuables in Transit",
+        "dependencies": [
+            {
+                "skill": "patrol_premises",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "operate_metal_detectors": {
+        "label": "Operate Metal Detectors",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "secure_a_perimeter": {
+        "label": "Secure a Perimeter",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            },
+            {
+                "skill": "geography",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "perform_first_aid": {
+        "label": "Perform First Aid",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "escort_visitors": {
+        "label": "Escort Visitors",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "watch_for_suspicious_behavior": {
+        "label": "Watch for Suspicious Behavior",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "lock_up_and_alarm_buildings": {
+        "label": "Lock up and Alarm Buildings",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "radio_clear_reports": {
+        "label": "Radio Clear Reports",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "manage_lost_and_found": {
+        "label": "Manage Lost and Found",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "enforce_house_rules": {
+        "label": "Enforce House Rules",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            },
+            {
+                "skill": "civics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "stay_alert_on_night_shifts": {
+        "label": "Stay Alert on Night Shifts",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "document_cctv_footage": {
+        "label": "Document CCTV Footage",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 15
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "security",
+            "flavor"
+        ]
+    },
+    "cut_and_style_hair": {
+        "label": "Cut and Style Hair",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            },
+            {
+                "skill": "art",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty"
+        ]
+    },
+    "color_and_highlight_hair": {
+        "label": "Color and Highlight Hair",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 20
+            },
+            {
+                "skill": "cut_and_style_hair",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "apply_skin_treatments": {
+        "label": "Apply Skin Treatments",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 15
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty"
+        ]
+    },
+    "do_manicures_and_pedicures": {
+        "label": "Do Manicures and Pedicures",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "beauty"
+        ]
+    },
+    "apply_makeup": {
+        "label": "Apply Makeup",
+        "dependencies": [
+            {
+                "skill": "art",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "give_scalp_massages": {
+        "label": "Give Scalp Massages",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 5
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "shave_and_trim_beards": {
+        "label": "Shave and Trim Beards",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "blow_dry_and_set": {
+        "label": "Blow Dry and Set",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "cut_and_style_hair",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty"
+        ]
+    },
+    "advise_on_skin_care": {
+        "label": "Advise on Skin Care",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 15
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "wax_and_thread": {
+        "label": "Wax and Thread",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "braid_and_updo": {
+        "label": "Braid and Updo",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "art",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "sanitize_salon_tools": {
+        "label": "Sanitize Salon Tools",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "match_styles_to_faces": {
+        "label": "Match Styles to Faces",
+        "dependencies": [
+            {
+                "skill": "art",
+                "minProficiency": 20
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "apply_nail_extensions": {
+        "label": "Apply Nail Extensions",
+        "dependencies": [
+            {
+                "skill": "do_manicures_and_pedicures",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "recommend_beauty_products": {
+        "label": "Recommend Beauty Products",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "perm_and_relax_hair": {
+        "label": "Perm and Relax Hair",
+        "dependencies": [
+            {
+                "skill": "chemistry",
+                "minProficiency": 25
+            },
+            {
+                "skill": "color_and_highlight_hair",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "tint_brows_and_lashes": {
+        "label": "Tint Brows and Lashes",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "schedule_salon_appointments": {
+        "label": "Schedule Salon Appointments",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "keep_client_style_cards": {
+        "label": "Keep Client Style Cards",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "demonstrate_home_hair_care": {
+        "label": "Demonstrate Home Hair Care",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "beauty",
+            "flavor"
+        ]
+    },
+    "coordinate_staff_schedules": {
+        "label": "Coordinate Staff Schedules",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management"
+        ]
+    },
+    "delegate_tasks": {
+        "label": "Delegate Tasks",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management"
+        ]
+    },
+    "run_team_meetings": {
+        "label": "Run Team Meetings",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "interview_candidates": {
+        "label": "Interview Candidates",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "resolve_staff_disputes": {
+        "label": "Resolve Staff Disputes",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 30
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "set_sales_targets": {
+        "label": "Set Sales Targets",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "review_performance": {
+        "label": "Review Performance",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "order_supplies_on_budget": {
+        "label": "Order Supplies on Budget",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "train_new_hires": {
+        "label": "Train New Hires",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "plan_shift_coverage": {
+        "label": "Plan Shift Coverage",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "write_staff_rotas": {
+        "label": "Write Staff Rotas",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "manage_petty_cash": {
+        "label": "Manage Petty Cash",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "enforce_procedures": {
+        "label": "Enforce Procedures",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 15
+            },
+            {
+                "skill": "civics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "motivate_a_team": {
+        "label": "Motivate a Team",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "handle_escalated_complaints": {
+        "label": "Handle Escalated Complaints",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 30
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "forecast_busy_periods": {
+        "label": "Forecast Busy Periods",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "run_stock_takes": {
+        "label": "Run Stock Takes",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "open_and_close_procedures": {
+        "label": "Open and Close Procedures",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "liaise_with_head_office": {
+        "label": "Liaise with Head Office",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "mentor_junior_staff": {
+        "label": "Mentor Junior Staff",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "management",
+            "flavor"
+        ]
+    },
+    "plan_lessons": {
+        "label": "Plan Lessons",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching"
+        ]
+    },
+    "explain_concepts_clearly": {
+        "label": "Explain Concepts Clearly",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 30
+            }
+        ],
+        "tags": [
+            "teaching"
+        ]
+    },
+    "grade_assignments": {
+        "label": "Grade Assignments",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "manage_a_classroom": {
+        "label": "Manage a Classroom",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching"
+        ]
+    },
+    "design_quizzes_and_tests": {
+        "label": "Design Quizzes and Tests",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "tutor_one_on_one": {
+        "label": "Tutor One on One",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "explain_concepts_clearly",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "teach_reading_groups": {
+        "label": "Teach Reading Groups",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 30
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "run_science_demonstrations": {
+        "label": "Run Science Demonstrations",
+        "dependencies": [
+            {
+                "skill": "physics",
+                "minProficiency": 15
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 15
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "coach_public_speaking": {
+        "label": "Coach Public Speaking",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 30
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "adapt_lessons_for_ages": {
+        "label": "Adapt Lessons for Ages",
+        "dependencies": [
+            {
+                "skill": "plan_lessons",
+                "minProficiency": 15
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "keep_attendance_records": {
+        "label": "Keep Attendance Records",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "communicate_with_parents": {
+        "label": "Communicate with Parents",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "organize_field_trips": {
+        "label": "Organize Field Trips",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "teach_arithmetic_drills": {
+        "label": "Teach Arithmetic Drills",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 30
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "lead_music_classes": {
+        "label": "Lead Music Classes",
+        "dependencies": [
+            {
+                "skill": "music",
+                "minProficiency": 25
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "supervise_recess": {
+        "label": "Supervise Recess",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "set_homework": {
+        "label": "Set Homework",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "mark_report_cards": {
+        "label": "Mark Report Cards",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "build_a_curriculum": {
+        "label": "Build a Curriculum",
+        "dependencies": [
+            {
+                "skill": "plan_lessons",
+                "minProficiency": 25
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "encourage_struggling_students": {
+        "label": "Encourage Struggling Students",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "teaching",
+            "flavor"
+        ]
+    },
+    "count_cash_accurately": {
+        "label": "Count Cash Accurately",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "finance"
+        ]
+    },
+    "process_transactions": {
+        "label": "Process Transactions",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "finance"
+        ]
+    },
+    "balance_ledgers": {
+        "label": "Balance Ledgers",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 30
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "finance"
+        ]
+    },
+    "prepare_financial_statements": {
+        "label": "Prepare Financial Statements",
+        "dependencies": [
+            {
+                "skill": "balance_ledgers",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance"
+        ]
+    },
+    "reconcile_accounts": {
+        "label": "Reconcile Accounts",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "calculate_interest": {
+        "label": "Calculate Interest",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "detect_counterfeit_bills": {
+        "label": "Detect Counterfeit Bills",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "file_tax_paperwork": {
+        "label": "File Tax Paperwork",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "audit_expense_reports": {
+        "label": "Audit Expense Reports",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "open_customer_accounts": {
+        "label": "Open Customer Accounts",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "process_loan_applications": {
+        "label": "Process Loan Applications",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "budget_departments": {
+        "label": "Budget Departments",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "track_invoices": {
+        "label": "Track Invoices",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "forecast_cash_flow": {
+        "label": "Forecast Cash Flow",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 30
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "explain_financial_products": {
+        "label": "Explain Financial Products",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "reading",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "keep_double_entry_books": {
+        "label": "Keep Double Entry Books",
+        "dependencies": [
+            {
+                "skill": "balance_ledgers",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "run_payroll": {
+        "label": "Run Payroll",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "value_collateral": {
+        "label": "Value Collateral",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "spot_transaction_fraud": {
+        "label": "Spot Transaction Fraud",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "write_financial_summaries": {
+        "label": "Write Financial Summaries",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "finance",
+            "flavor"
+        ]
+    },
+    "read_technical_drawings": {
+        "label": "Read Technical Drawings",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "draft_technical_plans": {
+        "label": "Draft Technical Plans",
+        "dependencies": [
+            {
+                "skill": "read_technical_drawings",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "use_measuring_tools": {
+        "label": "Use Measuring Tools",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "use_cad_software": {
+        "label": "Use CAD Software",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 25
+            },
+            {
+                "skill": "read_technical_drawings",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "troubleshoot_electrical_circuit": {
+        "label": "Troubleshoot Electrical Circuit",
+        "dependencies": [
+            {
+                "skill": "physics",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "solder_components": {
+        "label": "Solder Components",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "calibrate_equipment": {
+        "label": "Calibrate Equipment",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "perform_structural_inspection": {
+        "label": "Perform Structural Inspection",
+        "dependencies": [
+            {
+                "skill": "read_technical_drawings",
+                "minProficiency": 15
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "estimate_material_requirements": {
+        "label": "Estimate Material Requirements",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "wire_control_panels": {
+        "label": "Wire Control Panels",
+        "dependencies": [
+            {
+                "skill": "troubleshoot_electrical_circuit",
+                "minProficiency": 15
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "test_mechanical_systems": {
+        "label": "Test Mechanical Systems",
+        "dependencies": [
+            {
+                "skill": "physics",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "operate_av_equipment": {
+        "label": "Operate AV Equipment",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 15
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "engineering"
+        ]
+    },
+    "document_technical_work": {
+        "label": "Document Technical Work",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "analyze_load_requirements": {
+        "label": "Analyze Load Requirements",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 30
+            },
+            {
+                "skill": "physics",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "design_simple_circuits": {
+        "label": "Design Simple Circuits",
+        "dependencies": [
+            {
+                "skill": "troubleshoot_electrical_circuit",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "survey_a_site": {
+        "label": "Survey a Site",
+        "dependencies": [
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "geography",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "program_simple_controllers": {
+        "label": "Program Simple Controllers",
+        "dependencies": [
+            {
+                "skill": "digital_literacy",
+                "minProficiency": 25
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "inspect_safety_standards": {
+        "label": "Inspect Safety Standards",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 20
+            },
+            {
+                "skill": "civics",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "prototype_with_hand_tools": {
+        "label": "Prototype with Hand Tools",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "review_engineering_specs": {
+        "label": "Review Engineering Specs",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "engineering",
+            "flavor"
+        ]
+    },
+    "design_workout_plans": {
+        "label": "Design Workout Plans",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness"
+        ]
+    },
+    "demonstrate_exercises": {
+        "label": "Demonstrate Exercises",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 30
+            }
+        ],
+        "tags": [
+            "fitness"
+        ]
+    },
+    "spot_weightlifting": {
+        "label": "Spot Weightlifting",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "coach_running_form": {
+        "label": "Coach Running Form",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "lead_group_classes": {
+        "label": "Lead Group Classes",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "music",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "assess_client_fitness": {
+        "label": "Assess Client Fitness",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "teach_stretching_routines": {
+        "label": "Teach Stretching Routines",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "plan_meal_guidance": {
+        "label": "Plan Meal Guidance",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "correct_exercise_posture": {
+        "label": "Correct Exercise Posture",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "run_circuit_training": {
+        "label": "Run Circuit Training",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "motivate_clients": {
+        "label": "Motivate Clients",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "track_client_progress": {
+        "label": "Track Client Progress",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "teach_swimming_strokes": {
+        "label": "Teach Swimming Strokes",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 30
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "referee_pickup_games": {
+        "label": "Referee Pickup Games",
+        "dependencies": [
+            {
+                "skill": "civics",
+                "minProficiency": 10
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "maintain_gym_equipment": {
+        "label": "Maintain Gym Equipment",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 10
+            },
+            {
+                "skill": "problem_solving",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "adapt_workouts_for_seniors": {
+        "label": "Adapt Workouts for Seniors",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            },
+            {
+                "skill": "speaking",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "warm_up_and_cool_down": {
+        "label": "Warm up and Cool Down",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "coach_youth_sports": {
+        "label": "Coach Youth Sports",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "demonstrate_yoga_poses": {
+        "label": "Demonstrate Yoga Poses",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "administer_gym_first_aid": {
+        "label": "Administer Gym First Aid",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "fitness",
+            "flavor"
+        ]
+    },
+    "take_patient_history": {
+        "label": "Take Patient History",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "writing",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "measure_vital_signs": {
+        "label": "Measure Vital Signs",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "perform_basic_examination": {
+        "label": "Perform Basic Examination",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 25
+            },
+            {
+                "skill": "take_patient_history",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "administer_medication": {
+        "label": "Administer Medication",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            },
+            {
+                "skill": "reading",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "use_sterile_equipment": {
+        "label": "Use Sterile Equipment",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 15
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "suture_wounds": {
+        "label": "Suture Wounds",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 25
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            },
+            {
+                "skill": "use_sterile_equipment",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "apply_bandages_and_splints": {
+        "label": "Apply Bandages and Splints",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 15
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "draw_blood_samples": {
+        "label": "Draw Blood Samples",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "give_injections": {
+        "label": "Give Injections",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "read_lab_results": {
+        "label": "Read Lab Results",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "dispense_medication": {
+        "label": "Dispense Medication",
+        "dependencies": [
+            {
+                "skill": "reading",
+                "minProficiency": 25
+            },
+            {
+                "skill": "math",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "check_drug_interactions": {
+        "label": "Check Drug Interactions",
+        "dependencies": [
+            {
+                "skill": "dispense_medication",
+                "minProficiency": 15
+            },
+            {
+                "skill": "chemistry",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical"
+        ]
+    },
+    "triage_patients": {
+        "label": "Triage Patients",
+        "dependencies": [
+            {
+                "skill": "problem_solving",
+                "minProficiency": 25
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "chart_patient_notes": {
+        "label": "Chart Patient Notes",
+        "dependencies": [
+            {
+                "skill": "writing",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "counsel_patients_gently": {
+        "label": "Counsel Patients Gently",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 25
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "monitor_iv_lines": {
+        "label": "Monitor IV Lines",
+        "dependencies": [
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            },
+            {
+                "skill": "math",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "perform_cpr": {
+        "label": "Perform CPR",
+        "dependencies": [
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "screen_blood_pressure": {
+        "label": "Screen Blood Pressure",
+        "dependencies": [
+            {
+                "skill": "measure_vital_signs",
+                "minProficiency": 10
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "educate_on_medication_use": {
+        "label": "Educate on Medication Use",
+        "dependencies": [
+            {
+                "skill": "speaking",
+                "minProficiency": 20
+            },
+            {
+                "skill": "biology",
+                "minProficiency": 15
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
+    },
+    "assist_in_minor_procedures": {
+        "label": "Assist in Minor Procedures",
+        "dependencies": [
+            {
+                "skill": "use_sterile_equipment",
+                "minProficiency": 20
+            },
+            {
+                "skill": "physical_coordination",
+                "minProficiency": 20
+            }
+        ],
+        "tags": [
+            "medical",
+            "flavor"
+        ]
     }
 }

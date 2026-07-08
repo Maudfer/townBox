@@ -7,9 +7,12 @@ import {
     validateDemandSemantics,
     validateJobsSemantics,
     validateJobsStructure,
+} from '../src/app/game/data/validators/economyContent';
+import {
+    validateSkillInitStructure,
     validateSkillsSemantics,
     validateSkillsStructure,
-} from '../src/app/game/data/validators/economyContent';
+} from '../src/app/game/data/validators/skills';
 import { validateBootstrapStructure, validateHouseholdDrawStructure, validatePopulationStructure } from '../src/app/game/data/validators/params';
 import { validateObjectsStructure } from '../src/app/game/data/validators/objects';
 import { validateActionsSemantics, validateActionsStructure } from '../src/app/game/data/validators/actions';
@@ -25,6 +28,7 @@ import demandConfig from '../src/json/demand.json';
 import jobsConfig from '../src/json/jobs.json';
 import populationConfig from '../src/json/population.json';
 import skillsConfig from '../src/json/skills.json';
+import skillInitConfig from '../src/json/skillInit.json';
 
 // ---------- harness ----------
 
@@ -73,7 +77,7 @@ describe('data validation (task 039)', () => {
         expect(names).toEqual([
             'actions', 'assets', 'bootstrap', 'businesses', 'config', 'demand', 'economy',
             'events', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
-            'objectActionRelationships', 'objects', 'population', 'schools', 'skills', 'toolAssets',
+            'objectActionRelationships', 'objects', 'population', 'schools', 'skillInit', 'skills', 'toolAssets',
         ]);
     });
 
@@ -227,10 +231,9 @@ describe('events validation', () => {
         expect(runSemantics(fixture)).toMatch(pattern);
     });
 
-    test('an unweighted (unassignable) skill is rejected even when the enum value exists', () => {
-        const fixture = manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'acquireSkill', value: 'MedicalSkill' }] } });
-        const zeroWeightPeer = { skills: { weights: { MedicalSkill: 0 } } };
-        expect(messagesOf(semantics(validateEventsSemantics, fixture, zeroWeightPeer))).toMatch(/no positive weight/);
+    test('an acquireSkill effect referencing a skill missing from the manifest is rejected', () => {
+        const fixture = manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'acquireSkill', value: 'ghost_skillname' }] } });
+        expect(messagesOf(semantics(validateEventsSemantics, fixture, { skills: {} }))).toMatch(/unknown skill "ghost_skillname"/);
     });
 });
 
@@ -254,14 +257,13 @@ describe('jobs validation', () => {
         expect(messagesOf(structure(validateJobsStructure, fixture))).toMatch(pattern);
     });
 
-    test('semantics rejects unknown and unweighted skills, and dangling/mismatched work actions', () => {
+    test('semantics rejects unknown skills and dangling/mismatched work actions', () => {
         const fixture = {
             a: { ...jobBase, requiredSkills: ['NinjaSkill'] },
-            b: { ...jobBase, requiredSkills: ['MedicalSkill'], workActions: { continuous: [{ action: 'ghost' }], discrete: [{ action: 'a_cont' }] } },
+            b: { ...jobBase, requiredSkills: ['suture_wounds'], workActions: { continuous: [{ action: 'ghost' }], discrete: [{ action: 'a_cont' }] } },
         };
-        const output = messagesOf(semantics(validateJobsSemantics, fixture, { skills: { weights: {} }, actions: { c: { type: 'continuous' }, d: { type: 'discrete' }, a_cont: { type: 'continuous' } } }));
+        const output = messagesOf(semantics(validateJobsSemantics, fixture, { skills: { suture_wounds: { label: 'Suture Wounds' } }, actions: { c: { type: 'continuous' }, d: { type: 'discrete' }, a_cont: { type: 'continuous' } } }));
         expect(output).toMatch(/unknown skill "NinjaSkill"/);
-        expect(output).toMatch(/no positive weight.*unfillable/);
         expect(output).toMatch(/references unknown action "ghost"/);
         expect(output).toMatch(/"a_cont" is not a discrete action/);
     });
@@ -295,14 +297,31 @@ describe('businesses validation', () => {
 });
 
 describe('skills & demand validation', () => {
-    test('skills structure rejects an inverted band range', () => {
-        const fixture = { workingAgeYears: 16, adult: { minSkills: 3, maxSkills: 1 }, minor: { minSkills: 0, maxSkills: 1 }, weights: {} };
-        expect(messagesOf(structure(validateSkillsStructure, fixture))).toMatch(/minSkills \(3\) must be <= maxSkills \(1\)/);
+    test('skills structure rejects legacy Skill-suffix names and field-of-study non-basics', () => {
+        const legacy = { MedicalSkill: { label: 'Medical' } };
+        expect(messagesOf(structure(validateSkillsStructure, legacy))).toMatch(/must not end in "Skill"/);
+        const broad = { medicine: { label: 'Medicine' } };
+        expect(messagesOf(structure(validateSkillsStructure, broad))).toMatch(/specific abilities/);
+        const basicWithDeps = { biology: { label: 'Biology', basic: true, dependencies: [{ skill: 'math', minProficiency: 10 }] } };
+        expect(messagesOf(structure(validateSkillsStructure, basicWithDeps))).toMatch(/no dependencies/);
     });
 
-    test('skills semantics rejects stale weight keys', () => {
-        const fixture = { workingAgeYears: 16, adult: { minSkills: 1, maxSkills: 3 }, minor: { minSkills: 0, maxSkills: 1 }, weights: { AlchemySkill: 1 } };
-        expect(messagesOf(semantics(validateSkillsSemantics, fixture, {}))).toMatch(/stale weight/);
+    test('skills semantics rejects cycles, missing dependencies, and orphan skills', () => {
+        const cyclic = {
+            weld_metal: { label: 'Weld Metal', dependencies: [{ skill: 'braze_joints', minProficiency: 10 }], tags: ['flavor'] },
+            braze_joints: { label: 'Braze Joints', dependencies: [{ skill: 'weld_metal', minProficiency: 10 }], tags: ['flavor'] },
+        };
+        expect(messagesOf(semantics(validateSkillsSemantics, cyclic, {}))).toMatch(/cycle/);
+        const missing = { weld_metal: { label: 'Weld Metal', dependencies: [{ skill: 'nonexistent', minProficiency: 10 }], tags: ['flavor'] } };
+        expect(messagesOf(semantics(validateSkillsSemantics, missing, {}))).toMatch(/unknown dependency/);
+        const orphan = { polish_doorknobs: { label: 'Polish Doorknobs' } };
+        expect(messagesOf(semantics(validateSkillsSemantics, orphan, { jobs: {}, events: {} }))).toMatch(/orphan skill/);
+    });
+
+    test('skillInit structure and semantics reject bad milestones', () => {
+        const badBand = JSON.parse(JSON.stringify(skillInitConfig)) as Record<string, unknown>;
+        (badBand['assortment'] as { bands: { minSkills: number; maxSkills: number }[] }).bands[0]!.maxSkills = -1;
+        expect(structure(validateSkillInitStructure, badBand).length).toBeGreaterThan(0);
     });
 
     test('demand semantics rejects a category no blueprint serves', () => {

@@ -1,0 +1,110 @@
+{
+    "adultBasicProficiency": 60,
+    "milestones": [
+        {
+            "ageYears": 1,
+            "grants": [
+                {
+                    "skill": "speaking",
+                    "toAtLeast": 5
+                }
+            ]
+        },
+        {
+            "ageYears": 2,
+            "grants": [
+                {
+                    "skill": "physical_coordination",
+                    "toAtLeast": 8
+                },
+                {
+                    "skill": "speaking",
+                    "toAtLeast": 12
+                }
+            ]
+        },
+        {
+            "ageYears": 3,
+            "grants": [
+                {
+                    "skill": "speaking",
+                    "toAtLeast": 20
+                },
+                {
+                    "skill": "music",
+                    "toAtLeast": 3
+                }
+            ]
+        },
+        {
+            "ageYears": 4,
+            "grants": [
+                {
+                    "skill": "reading",
+                    "toAtLeast": 5
+                },
+                {
+                    "skill": "physical_coordination",
+                    "toAtLeast": 15
+                }
+            ]
+        },
+        {
+            "ageYears": 5,
+            "grants": [
+                {
+                    "skill": "reading",
+                    "toAtLeast": 10
+                },
+                {
+                    "skill": "writing",
+                    "toAtLeast": 5
+                },
+                {
+                    "skill": "math",
+                    "toAtLeast": 3
+                }
+            ]
+        },
+        {
+            "ageYears": 6,
+            "grants": [
+                {
+                    "skill": "math",
+                    "toAtLeast": 8
+                },
+                {
+                    "skill": "writing",
+                    "toAtLeast": 10
+                },
+                {
+                    "skill": "speaking",
+                    "toAtLeast": 30
+                }
+            ]
+        }
+    ],
+    "assortment": {
+        "bands": [
+            {
+                "minAgeYears": 18,
+                "minSkills": 2,
+                "maxSkills": 4
+            },
+            {
+                "minAgeYears": 30,
+                "minSkills": 3,
+                "maxSkills": 5
+            },
+            {
+                "minAgeYears": 45,
+                "minSkills": 4,
+                "maxSkills": 6
+            }
+        ],
+        "minProficiency": 20,
+        "maxProficiency": 70,
+        "jobCoreWeight": 3,
+        "flavorWeight": 1
+    }
+}

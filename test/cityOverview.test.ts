@@ -11,7 +11,6 @@ import Person from '../src/app/game/Person';
 import { GenPerson, PersonTable } from '../src/types/Genealogy';
 import { HouseholdArrangements } from '../src/types/Household';
 import { Genders, Gender } from '../src/types/Social';
-import { JobRequirements } from '../src/types/Work';
 import { PixelPosition, TilePosition } from '../src/types/Position';
 
 function gen(id: string, gender: Gender): GenPerson {
@@ -56,7 +55,7 @@ describe('City.getCityStats (task 031)', () => {
         // House 1: adult A (employed) + minor C. House 2: adult B (unemployed, household in arrears).
         const house1 = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
         const personA = materialize(field, house1, 'a', 30, 72, 72);
-        personA.work.setJob({ title: 'Clerk', salary: 1000, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 });
+        personA.work.setJob({ title: 'Clerk', salary: 1000, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 });
         materialize(field, house1, 'c', 8, 76, 72);
         house1.setHousehold({ id: 'hh-1', houseKey: house1.getIdentifier(), headId: 'a', memberIds: ['a', 'c'], arrangement: HouseholdArrangements.Nuclear });
 
@@ -66,7 +65,7 @@ describe('City.getCityStats (task 031)', () => {
 
         // One operating business with an open position, and one vacant work building.
         const workplace = field.loadStructure('work', 10, 10, 'building_1x1x2_2') as Workplace;
-        workplace.setBusiness({ blueprintKey: 'supermarket', name: 'Mart', lineOfWork: 'Super Market', size: 1, positions: [{ title: 'Clerk', salary: 1000, requirements: [JobRequirements.RetailSkill], shiftStart: 540, shiftEnd: 1020 }] });
+        workplace.setBusiness({ blueprintKey: 'supermarket', name: 'Mart', lineOfWork: 'Super Market', size: 1, positions: [{ title: 'Clerk', salary: 1000, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 }] });
         field.loadStructure('work', 22, 22, 'building_1x1x2_2'); // vacant
 
         economy.setPersonBalance('a', 1000);

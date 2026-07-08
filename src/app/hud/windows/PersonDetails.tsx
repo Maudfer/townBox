@@ -3,6 +3,7 @@ import { FC, useEffect, useState } from 'react';
 import Window from 'hud/Window';
 import Person from 'game/Person';
 import Workplace from 'game/Workplace';
+import { sortedSkillEntries } from 'game/SkillBook';
 
 import { formatTick } from 'util/time';
 import { DetailsWindowProps } from 'types/HUD';
@@ -43,7 +44,6 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     const age = person.social.getAge();
     const home = person.social.getHome();
     const job = person.work.getJob();
-    const skills = person.work.getSkills();
     const overview = person.getOverview();
 
     const personId = person.social.getPersonId();
@@ -51,6 +51,9 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     // The append-only life log (task 040): every committed occurrence, newest first, capped for rendering.
     const fullLog = personId ? game.eventEngine?.getPersonLog(personId) ?? [] : [];
     const logEntries = fullLog.slice(-MAX_LOG_ENTRIES).reverse();
+    // Proficiency-bearing skill records (task 059), highest first.
+    const skillEntries = personId && game.skillBook ? sortedSkillEntries(game.skillBook.skillsOf(personId)) : [];
+    const skillLabel = (skillId: string): string => game.skillBook?.getManifest()[skillId]?.label ?? skillId;
     // Carried Possessions (task 041): top-level items; containers note their contents count.
     const possessions = personId ? game.inventory?.possessionsOf(personId) ?? [] : [];
 
@@ -76,7 +79,17 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     ) : (
                         <p><em>Unemployed</em></p>
                     )}
-                    <p><strong>Skills:</strong> {skills.length ? skills.join(', ') : '—'}</p>
+                    {skillEntries.length ? (
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                            {skillEntries.map(([skillId, record]) => (
+                                <li key={skillId} title={`since ${record.firstAcquiredTick}; ${record.provenance.join(', ')}`}>
+                                    {skillLabel(skillId)} — {record.proficiency.toFixed(1)}
+                                </li>
+                            ))}
+                        </ul>
+                    ) : (
+                        <p><strong>Skills:</strong> —</p>
+                    )}
                 </section>
 
                 <section>

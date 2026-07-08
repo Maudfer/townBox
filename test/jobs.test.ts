@@ -2,10 +2,10 @@ import Workplace from '../src/app/game/Workplace';
 import Person from '../src/app/game/Person';
 import { generateBusiness } from '../src/app/game/BusinessGen';
 import { BusinessBlueprint, JobTable } from '../src/types/Business';
-import { DEFAULT_SHIFT_START, DEFAULT_SHIFT_END, JobRequirements } from '../src/types/Work';
+import {DEFAULT_SHIFT_START, DEFAULT_SHIFT_END} from '../src/types/Work';
 
 const jobs: JobTable = {
-    laborer: { title: 'Laborer', salary: 1400, requiredSkills: ['ConstructionSkill'], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
+    laborer: { title: 'Laborer', salary: 1400, requiredSkills: ['carry_building_materials'], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon','tue','wed','thu','fri'], workActions: { continuous: [{ action: 'doing_paperwork' }], discrete: [{ action: 'jotted_a_note', chancePerTick: 0.2 }] } },
 };
 
 const blueprint: BusinessBlueprint = {
@@ -19,8 +19,8 @@ describe('workplace hiring against a generated business', () => {
     test('a workplace with no business has no jobs to offer', () => {
         const workplace = new Workplace(0, 0, null);
         const person = new Person(0, 0);
-        person.work.setSkills([JobRequirements.ConstructionSkill]); // skilled, but there are no jobs to fill
-        expect(workplace.hire(person)).toBeNull();
+        // Skilled (per the canFill predicate), but there are no jobs to fill.
+        expect(workplace.hire(person, requirements => requirements.every(r => r === 'carry_building_materials'))).toBeNull();
     });
 
     test('after a business is assigned, a skill-matched person is hired with default shift times', () => {
@@ -28,8 +28,8 @@ describe('workplace hiring against a generated business', () => {
         workplace.setBusiness(generateBusiness('construction_site', blueprint, jobs, 'Acme Build', 2));
 
         const person = new Person(0, 0);
-        person.work.setSkills([JobRequirements.ConstructionSkill]); // matches the laborer requirement
-        const job = workplace.hire(person);
+        // The canFill predicate stands in for the SkillBook read JobMarket performs (task 059).
+        const job = workplace.hire(person, requirements => requirements.every(r => r === 'carry_building_materials'));
 
         expect(job).not.toBeNull();
         expect(job!.title).toBe('Laborer');
