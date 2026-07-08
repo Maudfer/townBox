@@ -370,6 +370,9 @@ external sector.
   timeline**, so new-game selection installs each drawn person's proficiency *as of the chosen window*.
   Generation **streams to sharded files** (RAM-bounded) and the asset is a **directory** of chunks the game
   loads on demand (only the shards up to the window), so large assets stay git-friendly without LFS.
+  Population is kept **stable, not exponential**: each person has an innate **max children** they'll have, and
+  the offline generator runs a **thermostat** (hysteresis pivots) on a global fertility multiplier to hold a
+  target headcount.
 - **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).

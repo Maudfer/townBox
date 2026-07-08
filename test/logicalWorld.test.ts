@@ -141,7 +141,7 @@ describe('generator with the logical-economy world (task 077, integration)', () 
     const params: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
         seed: 7, founderCount: 40, recordThreshold: 30, recordYears: 6, daysPerStep: 30, skillSnapshotYears: 1,
-        carryingCapacity: { enabled: true, soft: 55, steepness: 4 },
+        populationControl: { enabled: true, target: 55, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
         logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
     };
 
@@ -181,7 +181,7 @@ describe('streaming to shards + chunked loading (task 077)', () => {
         ...DEFAULT_GENERATOR_PARAMS,
         seed: 11, founderCount: 40, recordThreshold: 30, recordYears: 12, daysPerStep: 30,
         skillSnapshotYears: 1, flushIntervalYears: 3, keepActionLog: false,
-        carryingCapacity: { enabled: true, soft: 55, steepness: 4 },
+        populationControl: { enabled: true, target: 55, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
         logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
     };
 

@@ -12,8 +12,8 @@
 // local ultra-rich asset (streaming keeps it RAM-safe).
 //
 // CLI flags override json/historyGenerator.json:
-//   --seed N  --years N  --threshold N  --founders N  --capacity N  --steepness N  --step-days N
-//   --snapshot-years N  --flush-years N  --keep-action-log  --no-action-log  --no-capacity
+//   --seed N  --years N  --threshold N  --founders N  --capacity N (thermostat target)  --band F  --step-days N
+//   --suppress-level F  --snapshot-years N  --flush-years N  --keep-action-log  --no-action-log  --no-capacity
 //   --max-hours N  --max-people N  --out DIR
 
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
@@ -91,10 +91,12 @@ async function main(): Promise<void> {
         keepActionLog: flags['no-action-log'] ? false : (flags['keep-action-log'] ? true : base.keepActionLog),
         skillSnapshotYears: num(flags['snapshot-years'], base.skillSnapshotYears),
         flushIntervalYears: num(flags['flush-years'], base.flushIntervalYears),
-        carryingCapacity: {
-            enabled: flags['no-capacity'] ? false : base.carryingCapacity.enabled,
-            soft: num(flags.capacity, base.carryingCapacity.soft),
-            steepness: num(flags.steepness, base.carryingCapacity.steepness),
+        populationControl: {
+            ...base.populationControl,
+            enabled: flags['no-capacity'] ? false : base.populationControl.enabled,
+            target: num(flags.capacity, base.populationControl.target),
+            band: num(flags.band, base.populationControl.band),
+            suppressLevel: num(flags['suppress-level'], base.populationControl.suppressLevel),
         },
         safety: {
             maxRuntimeMs: num(flags['max-hours'], 0) > 0 ? num(flags['max-hours'], 0) * 3600_000 : base.safety.maxRuntimeMs,
@@ -114,7 +116,7 @@ async function main(): Promise<void> {
 
     console.log(`[generate-history] generator v${HISTORY_GENERATOR_VERSION}, seed ${params.seed} → ${outDir}`);
     console.log(`[generate-history] founders ${params.founderCount} → threshold ${params.recordThreshold} → +${params.recordYears}y`
-        + `, ${params.daysPerStep}d/step, capacity ${params.carryingCapacity.enabled ? params.carryingCapacity.soft : 'off'}`
+        + `, ${params.daysPerStep}d/step, target ${params.populationControl.enabled ? params.populationControl.target : 'off'}`
         + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`);
 
     // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk.

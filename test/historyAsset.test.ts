@@ -5,7 +5,7 @@
 
 import {
     generateHistoryAsset,
-    fertilityFactor,
+    PopulationThermostat,
     loggableEventIds,
     HistoryGeneratorParams,
     DEFAULT_GENERATOR_PARAMS,
@@ -26,21 +26,24 @@ const TINY: HistoryGeneratorParams = {
     recordYears: 1,
     daysPerStep: 30, // monthly cadence keeps the test fast
     keepActionLog: false, // these invariants assert the event-only slimmed log
-    carryingCapacity: { enabled: true, soft: 40, steepness: 4 },
+    populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
     // The generator invariants below are the 055 pool-intrinsic spine; the logical-economy world (077) is
     // exercised in its own describe block.
     logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
 };
 
-describe('carrying-capacity throttle (fertilityFactor)', () => {
-    const cfg = { enabled: true, soft: 1000, steepness: 4 };
-    test('is ~1 well below the band and falls toward 0 as the count approaches/exceeds it', () => {
-        expect(fertilityFactor(0, cfg)).toBeGreaterThan(0.98);
-        expect(fertilityFactor(1000, cfg)).toBeCloseTo(0.5, 5);
-        expect(fertilityFactor(2000, cfg)).toBeLessThan(0.02);
+describe('population thermostat (hysteresis pivots)', () => {
+    const cfg = { enabled: true, target: 1000, band: 0.05, suppressLevel: 0.1, allowLevel: 1 };
+    test('allows below the low pivot, suppresses above the high pivot, and HOLDS between (no chatter)', () => {
+        const t = new PopulationThermostat(cfg);
+        expect(t.multiplier(500)).toBe(1);    // well below → allow
+        expect(t.multiplier(1020)).toBe(1);   // inside the band, still in allow mode → hold
+        expect(t.multiplier(1060)).toBe(0.1); // above high pivot (1050) → suppress
+        expect(t.multiplier(1020)).toBe(0.1); // back inside the band, still suppress mode → hold (hysteresis)
+        expect(t.multiplier(940)).toBe(1);    // below low pivot (950) → allow again
     });
     test('disabled is identity', () => {
-        expect(fertilityFactor(9999, { enabled: false, soft: 10, steepness: 4 })).toBe(1);
+        expect(new PopulationThermostat({ ...cfg, enabled: false }).multiplier(99999)).toBe(1);
     });
 });
 

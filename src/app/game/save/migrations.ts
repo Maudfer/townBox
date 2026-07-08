@@ -7,6 +7,7 @@ import { WorldSnapshot } from 'types/Save';
 import { EventLogTable } from 'types/LifeEvent';
 import { JobTable } from 'types/Business';
 import { TICKS_PER_DAY } from 'util/time';
+import { maxChildrenForPerson } from 'util/fertility';
 
 import jobsConfig from 'json/jobs.json';
 
@@ -38,7 +39,26 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         // load sweep runs the contextual fill once per building. Nothing to transform here.
         snapshot.version = 12;
     }
+    if (snapshot.version < 13) {
+        backfillMaxChildren(snapshot);
+        snapshot.version = 13;
+    }
     return snapshot;
+}
+
+// v12 → v13 (bounded fertility): every pool person gains an innate `maxChildren`. Older saves predate the
+// field — backfill it deterministically from (worldSeed, personId) so the same person always gets the same
+// value, and so a save reloads identically.
+function backfillMaxChildren(snapshot: WorldSnapshot): void {
+    const pool = snapshot.population;
+    if (!pool) {
+        return;
+    }
+    for (const person of Object.values(pool.people)) {
+        if (typeof person.maxChildren !== 'number') {
+            person.maxChildren = maxChildrenForPerson(pool.worldSeed, person.id);
+        }
+    }
 }
 
 // v7 → v8: the canonical simulation tick changed from the in-game day to the in-game hour (task 040).

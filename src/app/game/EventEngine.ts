@@ -4,7 +4,8 @@ import { SeededRandom } from 'util/random';
 import { dayOfTick, hourOfTick } from 'util/time';
 import { evaluateCurve, Curve } from 'util/curve';
 import { evaluatePredicate, compareValues } from 'util/predicate';
-import { isAliveAt, ageAt, spouseAt } from 'util/kinship';
+import { isAliveAt, ageAt, spouseAt, childrenOf } from 'util/kinship';
+import { sampleMaxChildren } from 'util/fertility';
 
 import { SimulationContext, Value, HasEventQuery } from 'types/Simulation';
 import { Genders, Gender } from 'types/Social';
@@ -348,6 +349,11 @@ export default class EventEngine {
                 // True when the person could leave home now (adult non-head with a vacant home available). Gates
                 // move_out eligibility (task 024). Without a housing adapter (pure/test runs), nobody can.
                 return this.housing ? this.housing.canMoveOut(id) : false;
+            case 'wantsMoreChildren':
+                // Innate bounded fertility: false once the person has as many children as they are willing to
+                // have (record.maxChildren). Gates the pregnancy event so growth isn't unbounded. Legacy pool
+                // records without maxChildren (defensive) read as willing.
+                return childrenOf(state.people, id).length < (record.maxChildren ?? Number.POSITIVE_INFINITY);
             default:
                 return this.overlay[id]?.[attr];
         }
@@ -620,6 +626,7 @@ export default class EventEngine {
             fatherId,
             motherId,
             partnerships: [],
+            maxChildren: sampleMaxChildren(rng),
         };
         return id;
     }

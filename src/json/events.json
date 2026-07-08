@@ -145,6 +145,11 @@
                         {
                             "hasEvent": "had_sex",
                             "withinTicks": 6720
+                        },
+                        {
+                            "attr": "wantsMoreChildren",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }

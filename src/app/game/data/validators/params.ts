@@ -116,7 +116,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'skillSnapshotYears', 'flushIntervalYears', 'carryingCapacity', 'logicalWorld', 'safety'];
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
     checkUnknownKeys(issues, '', data, fields);
     checkNumber(issues, 'seed', data['seed'], { integer: true });
     checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
@@ -131,12 +131,14 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     checkBoolean(issues, 'keepActionLog', data['keepActionLog']);
     checkNumber(issues, 'skillSnapshotYears', data['skillSnapshotYears'], { min: 1, integer: true });
     checkNumber(issues, 'flushIntervalYears', data['flushIntervalYears'], { min: 1, integer: true });
-    if (checkRecord(issues, 'carryingCapacity', data['carryingCapacity'])) {
-        const capacity = data['carryingCapacity'] as Record<string, unknown>;
-        checkUnknownKeys(issues, 'carryingCapacity', capacity, ['enabled', 'soft', 'steepness']);
-        checkBoolean(issues, 'carryingCapacity.enabled', capacity['enabled']);
-        checkNumber(issues, 'carryingCapacity.soft', capacity['soft'], { min: 1, integer: true });
-        checkNumber(issues, 'carryingCapacity.steepness', capacity['steepness'], { min: 0 });
+    if (checkRecord(issues, 'populationControl', data['populationControl'])) {
+        const control = data['populationControl'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'populationControl', control, ['enabled', 'target', 'band', 'suppressLevel', 'allowLevel']);
+        checkBoolean(issues, 'populationControl.enabled', control['enabled']);
+        checkNumber(issues, 'populationControl.target', control['target'], { min: 1, integer: true });
+        checkNumber(issues, 'populationControl.band', control['band'], { min: 0, max: 1 });
+        checkNumber(issues, 'populationControl.suppressLevel', control['suppressLevel'], { min: 0, max: 1 });
+        checkNumber(issues, 'populationControl.allowLevel', control['allowLevel'], { min: 0, max: 1 });
     }
     if (checkRecord(issues, 'safety', data['safety'])) {
         const safety = data['safety'] as Record<string, unknown>;

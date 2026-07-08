@@ -48,15 +48,24 @@ export const HISTORY_ASSET_FORMAT_VERSION = 1;
 // 077.1: the logical-economy world (off-map schools/jobs/objects → the asset carries lived skills/possessions).
 // 077.2: per-window skill snapshotting (a per-person skill timeline instead of an end-of-generation snapshot).
 // 077.3: streaming to sharded files (RAM-bounded generation; chunked, load-only-≤w asset directory).
-export const HISTORY_GENERATOR_VERSION = '077.3';
+// 077.4: bounded fertility (per-person maxChildren + wantsMoreChildren gate) + population thermostat
+//        (hysteresis pivots replace the logistic carrying capacity) → stable, non-exponential population.
+export const HISTORY_GENERATOR_VERSION = '077.4';
 
-// The event whose hazard the carrying capacity throttles (its birth effect is the only fertility source).
+// The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
 
-export interface CarryingCapacityConfig {
+// The offline generator's population thermostat: instead of a single setpoint (which would oscillate rapidly
+// like an AC that switches at 24.1°/23.9° around 24°), it uses a deadband with two PIVOTS. Above the high
+// pivot it suppresses the global "need for children" multiplier (the pregnancy-hazard scale); below the low
+// pivot it allows it; between the pivots it holds the current mode (hysteresis). This is what keeps the living
+// count near `target` over centuries without runaway growth. Live play never uses this (multiplier stays 1).
+export interface PopulationControlConfig {
     enabled: boolean;
-    soft: number;      // the target living band; fertility → replacement as the count approaches it
-    steepness: number; // logistic steepness of the throttle
+    target: number;        // desired living population
+    band: number;          // deadband fraction: pivots at target*(1±band)
+    suppressLevel: number; // childrenNeed multiplier while suppressing (0 = no births, 1 = no influence)
+    allowLevel: number;    // childrenNeed multiplier while allowing (typically 1)
 }
 
 export interface GeneratorSafety {
@@ -73,7 +82,7 @@ export interface HistoryGeneratorParams {
     daysPerStep: number;     // engine cadence in days (1 = daily; larger = faster, coarser)
     warmMarginYears: number; // Part B: window selection skips this shallow-ancestry span after t0
     maxWarmupYears: number;  // safety: abort warm-up if the threshold is never reached
-    carryingCapacity: CarryingCapacityConfig;
+    populationControl: PopulationControlConfig;
     safety: GeneratorSafety;
     // The offline logical-economy world (task 077): when enabled, the generator runs logical schools/jobs/
     // objects off-map so the asset carries lived skills/careers-as-history/possessions (a skill timeline +
@@ -202,13 +211,28 @@ export function loggableEventIds(manifest: EventManifest = EVENT_MANIFEST): Set<
     return loggable;
 }
 
-// The soft carrying-capacity throttle: a logistic over living/soft that → 1 well below the band and → 0 as the
-// count approaches/exceeds it. Pure (deterministic given the living count). Deaths are never throttled.
-export function fertilityFactor(living: number, config: CarryingCapacityConfig): number {
-    if (!config.enabled || config.soft <= 0) {
-        return 1;
+// The population thermostat (AC-style hysteresis). `multiplier(living)` returns the global childrenNeed
+// multiplier for the pregnancy hazard, flipping between allow/suppress at the two pivots and HOLDING between
+// them — so it never chatters around a single setpoint. Stateful (the mode persists across ticks) but
+// deterministic, since `living` is deterministic. Deaths are never throttled — only births.
+export class PopulationThermostat {
+    private mode: 'allow' | 'suppress' = 'allow'; // start allowing so warm-up grows toward the target
+
+    constructor(private config: PopulationControlConfig) {}
+
+    multiplier(living: number): number {
+        if (!this.config.enabled || this.config.target <= 0) {
+            return 1;
+        }
+        const low = this.config.target * (1 - this.config.band);
+        const high = this.config.target * (1 + this.config.band);
+        if (living >= high) {
+            this.mode = 'suppress';
+        } else if (living <= low) {
+            this.mode = 'allow';
+        }
+        return this.mode === 'suppress' ? this.config.suppressLevel : this.config.allowLevel;
     }
-    return 1 / (1 + Math.exp(config.steepness * (living - config.soft) / config.soft));
 }
 
 // Runs the full phased generation. Pure function of (params) apart from the wall-clock in `meta.createdAt` and
@@ -263,7 +287,8 @@ export async function generateHistoryAsset(
     // Carrying capacity: the engine scales the pregnancy hazard by a factor that reflects the CURRENT living
     // count each step (the closure reads `livingCount`, updated below). Identity for every other event.
     let livingCount = living.size;
-    engine.setProbabilityScale(id => (id === PREGNANCY_EVENT ? fertilityFactor(livingCount, params.carryingCapacity) : 1));
+    const thermostat = new PopulationThermostat(params.populationControl);
+    engine.setProbabilityScale(id => (id === PREGNANCY_EVENT ? thermostat.multiplier(livingCount) : 1));
 
     const snapshotIntervalTicks = Math.max(1, Math.round(params.skillSnapshotYears * tpy));
     let lastSnapshotBucket = -1;

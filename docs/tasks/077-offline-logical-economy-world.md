@@ -39,26 +39,37 @@
 > fetched), so both generation and browser loading stay memory-bounded, and a multi-GB asset splits into
 > git-friendly chunks (no LFS). Streamed↔in-memory selection equivalence is pinned by `test/logicalWorld.test.ts`.
 >
-> **Defaults** (`json/historyGenerator.json`): the richest *simulation* — daily stepping, the logical economy
-> fully on, yearly skill snapshots — over **1,000 living × 200 years** (soft cap 1,000). The full ACTION log is
-> **off** by default: it can't fit a sane asset budget and the game regenerates action texture live, so it is a
-> persistence choice, not a simulation compromise (`--keep-action-log` turns it on for a local ultra-asset —
-> streaming keeps it RAM-safe). Measured ~5 ms/agent/step (stepping-independent per agent).
+> **Bounded, non-exponential population.** Two mechanisms replace the old logistic carrying capacity so
+> population is *stable*, not exponential:
+> - **Per-person `maxChildren`** (`types/Genealogy.GenPerson`, sampled at creation from `util/fertility` — a
+>   distribution mounding on 2–4 (~70%), 0–6 tails). Gates pregnancy via the new `wantsMoreChildren` Context
+>   attribute (and the coarse off-map sim mirrors it), so a couple stops at their innate willingness regardless
+>   of probability. Applies in live play too. Save v13 backfills legacy people deterministically.
+> - **A global fertility multiplier** on the pregnancy hazard (`EventEngine.setProbabilityScale`; 0 = nobody
+>   has children, 1 = no influence). Live play leaves it at 1; the offline generator drives it with a
+>   **population thermostat** — AC-style **hysteresis** (`PopulationThermostat`): suppress above the high pivot
+>   `target·(1+band)`, allow below the low pivot `target·(1−band)`, HOLD between (no chatter around a single
+>   setpoint). Verified to grow to `target` and hold within the band instead of ballooning.
 >
-> ### Measured size + runtime estimates for a full 1,000/200 run (compressed on disk; ±~40%)
+> **Defaults** (`json/historyGenerator.json`): the richest *simulation* — daily stepping, logical economy fully
+> on, yearly skill snapshots — over **2,000 living × 500 years** (thermostat `target` 2,000, ±5% band); begins
+> and holds ~2,000 living. The full ACTION log is **off** by default (persistence choice, regenerated live;
+> `--keep-action-log` for a local ultra-asset — streaming keeps it RAM-safe). ~5 ms/agent/step.
+>
+> ### Measured size + runtime estimates for a full 2,000/500 run (compressed on disk; ±~40%)
 >
 > | Scenario | Flags | Asset size | Est. runtime |
 > |---|---|---|---|
-> | **Default** (daily · events-only · yearly snaps) | *(none)* | **~250 MB** | **~4–6 days** |
-> | + full action log | `--keep-action-log` | **~4.9 GB** ⚠️ (>2 GB) | ~4–6 days |
-> | Coarser snapshots | `--snapshot-years 5` | **~180 MB** | ~4–6 days |
-> | Feasible / fast | `--step-days 30` | **~130 MB** | **~4–5 h** |
+> | **Default** (daily · events-only · yearly snaps) | *(none)* | **~1.0 GB** | **~3 weeks** ⚠️ |
+> | + full action log | `--keep-action-log` | **~19.5 GB** ⚠️ (>2 GB) | ~3 weeks |
+> | Coarser snapshots | `--snapshot-years 5` | **~700 MB** | ~3 weeks |
+> | **Feasible / fast** | `--step-days 30` | **~520 MB** | **~18 h** |
 >
-> (~270k living-person-years, ~3,600 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with
-> actions · ~145 B/py monthly; skill timeline ~330 B/py yearly; objects ~231 B/person — all compressed.) The
-> daily runtime is dominated by ~1,000-agent steps and may run longer due to O(agents) co-location; **`--step-days
-> 30` is the practical overnight run.** RAM stays bounded (~one flush interval) in every scenario, so even the
-> 4.9 GB action-log run completes instead of OOMing.
+> (~1.08M living-person-years, ~15k retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions
+> · ~145 B/py monthly; skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed.) The daily
+> runtime is dominated by ~2,000-agent steps and is likely worse due to **O(agents) co-location** in the social
+> hook (a candidate perf follow-up); **`--step-days 30` (~18 h, ~520 MB) is the practical run.** RAM stays
+> bounded (~one flush interval) in every scenario — even the 19.5 GB action-log run completes instead of OOMing.
 >
 > Everything below is the original ticket.
 

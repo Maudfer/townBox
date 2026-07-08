@@ -1,8 +1,8 @@
 {
     "seed": 1337,
     "founderCount": 100,
-    "recordThreshold": 1000,
-    "recordYears": 200,
+    "recordThreshold": 2000,
+    "recordYears": 500,
     "ticksPerYear": 8640,
     "daysPerStep": 1,
     "warmMarginYears": 40,
@@ -10,10 +10,12 @@
     "keepActionLog": false,
     "skillSnapshotYears": 1,
     "flushIntervalYears": 5,
-    "carryingCapacity": {
+    "populationControl": {
         "enabled": true,
-        "soft": 1000,
-        "steepness": 4.0
+        "target": 2000,
+        "band": 0.05,
+        "suppressLevel": 0.1,
+        "allowLevel": 1.0
     },
     "logicalWorld": {
         "enabled": true,

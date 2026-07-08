@@ -29,6 +29,11 @@ export interface GenPerson {
     fatherId: PersonId | null;
     motherId: PersonId | null;
     partnerships: Partnership[];
+    // Innate max children this person is WILLING to have (task: bounded fertility). Sampled at creation from
+    // util/fertility; gates pregnancy (the `wantsMoreChildren` Context attribute) so growth isn't unbounded.
+    // Optional: legacy saves are backfilled deterministically on load (save migration v13), and absent reads as
+    // unbounded (test fixtures that don't exercise fertility need not set it).
+    maxChildren?: number;
 }
 
 // The population keyed by id, for O(1) lookup and JSON serialization.
