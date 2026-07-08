@@ -230,3 +230,29 @@ reconcile a materialized partner's marital state against the pool.
 
 H1 → M4 → M5 → M3 → M1 → M2 → M6 → M7 → H3 → L1–L4 → H2 (seams). Commit per strand. Update the tasks README and
 CLAUDE.md as strands land.
+
+## Progress (implemented on `task/076-audit-remediation`)
+
+All strands landed, each with tests; `npm test` (598), `npm run typecheck`, `npm run validate-data`,
+`npm run docs:sim`, `npm run docs:events` all green.
+
+- **H1 ✅** objects generate at placement (`City.setupHousehold`/`openBusiness`), regression test.
+- **M4 ✅** 10 birth/death/eviction/move-out/recovery milestone events wired (19→29 wired, 152→142 reserved).
+- **M5 ✅** `medical_supplies`/`school_supplies`/`auto_parts` produced; CI guard (every consumed material produced).
+- **M3 ✅** `grab`/`use_object`/`put_down`/`discard_object` proposed by the inventory hook; `shelving_returns`
+  in the Sales Associate repertoire; CI action-reachability guard.
+- **M1 ✅** all 199 orphaned skills wired into job-rank `progresses`; CI skill-consumption guard.
+- **M2 ✅** 18 venue blueprints + 23 deferred tags promoted + 11 seed objects wired → 0 ungeneratable objects;
+  CI object-reachability guard.
+- **M6 ✅** business shrink-via-layoffs (`shrinkMonths`, `Workplace.shrinkPositions`), test.
+- **M7 ✅** coarse sim advances the cursor only to years actually simulated; equivalence test.
+- **H3 ✅** money conserved via an external sector; unit + City-span invariant tests.
+- **L1 ✅** removed the dead `actionCompletedHook`; accurate HookKind dispatch docs.
+- **L2 ✅** shared `DEFAULT_SELECTION_WEIGHT` (free-time and social agree).
+- **L3 ✅** homeless recovery falls back to spare-capacity homes (escapable in a full city), test.
+- **L4 ✅** off-map (coarse) deaths fire relative milestones on materialized survivors.
+- **H2 (seams) ✅** off-map co-location seam proven (`register`/`peopleAt`); the full 055 TickPlan contract
+  documented in `docs/simulation-flows.md` (the logical economy/jobs/school world remains 055's Part A).
+
+No content pruned; every skill, object, action, and computable milestone event is consumed, each guarded by a
+CI reachability test so it can't regress.
