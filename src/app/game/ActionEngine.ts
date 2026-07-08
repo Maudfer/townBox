@@ -280,6 +280,26 @@ export default class ActionEngine {
         if (!record || !isAliveAt(record, deps.tick)) {
             return { ok: false, reason: 'requirementsUnmet' };
         }
+
+        // The Person-target interaction contract (task 072): the target must be a live, currently simulated
+        // person, distinct from the actor unless allowSelf, and — this iteration, always — in the SAME
+        // building (no remote interaction). Violations are typed, zero-mutation failures.
+        if (def.interaction) {
+            const targetId = params[def.interaction.targetParam];
+            const target = typeof targetId === 'string' ? deps.state.people[targetId] : undefined;
+            if (typeof targetId !== 'string' || !target || !isAliveAt(target, deps.tick)) {
+                return { ok: false, reason: 'targetNotPresent' };
+            }
+            if (targetId === personId && def.interaction.allowSelf !== true) {
+                return { ok: false, reason: 'targetNotPresent' };
+            }
+            if (def.interaction.requiresSameBuilding) {
+                const world = deps.ctx.world;
+                if (!world || locationKey(world.locationOf(personId)) !== locationKey(world.locationOf(targetId))) {
+                    return { ok: false, reason: 'targetNotPresent' };
+                }
+            }
+        }
         if (def.requirements && !evaluatePredicate(def.requirements, this.contextFor(personId, deps, params))) {
             return { ok: false, reason: 'requirementsUnmet' };
         }

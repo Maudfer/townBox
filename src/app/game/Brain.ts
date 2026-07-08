@@ -15,6 +15,7 @@ import ActionEngine, { ActionDeps } from 'game/ActionEngine';
 
 import { jobOrchestratorHook } from 'game/JobOrchestrator';
 import { schoolObligationHook } from 'game/SchoolOrchestrator';
+import { socialOpportunityHook } from 'game/SocialOpportunity';
 
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
@@ -97,6 +98,7 @@ export default class Brain {
             schoolObligationHook, // school attendance for enrolled children (task 058)
             wokeUpHook,
             actionCompletedHook,
+            socialOpportunityHook, // person-targeted intents with bound targets (task 072)
             inventoryOpportunityHook,
             idleFallbackHook,
         ];
