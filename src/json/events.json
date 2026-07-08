@@ -24967,5 +24967,57 @@
             }
         },
         "effects": []
+    },
+    "action_declined": {
+        "label": "Was turned down",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "action": {
+                "type": "string",
+                "required": true
+            },
+            "reason": {
+                "type": "string"
+            }
+        },
+        "effects": []
+    },
+    "action_failed": {
+        "label": "Failed at something",
+        "category": "mishap",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "action": {
+                "type": "string",
+                "required": true
+            },
+            "reason": {
+                "type": "string"
+            }
+        },
+        "effects": []
     }
 }

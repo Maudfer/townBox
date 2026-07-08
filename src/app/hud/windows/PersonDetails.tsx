@@ -143,8 +143,10 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     {logEntries.length ? (
                         <ul style={{ margin: 0, paddingLeft: 16 }}>
                             {logEntries.map(entry => {
+                                // Failed actions carry a typed reason (task 073) — render it, humanized.
+                                const failureSuffix = entry.kind === 'action' && entry.failureReason ? `: ${entry.failureReason.replace(/_/g, ' ')}` : '';
                                 const label = entry.kind === 'action'
-                                    ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle})` : ''}`
+                                    ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle}${failureSuffix})` : ''}`
                                     : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
                                 // Event payloads (task 067): show the invocation params inline.
                                 const paramEntries = entry.kind === 'event' && entry.params ? Object.entries(entry.params) : [];

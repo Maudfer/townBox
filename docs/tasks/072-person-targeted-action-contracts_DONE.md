@@ -3,7 +3,7 @@
 - **Type:** Framework / Simulation
 - **Labels:** `actions`, `brain`, `social`, `progression-arc`
 - **Depends on:** [067](067-parameterized-requirements-and-event-payloads_DONE.md) (param plumbing), [056](056-progression-arc-discovery-baseline_DONE.md)
-- **Blocks:** [073](073-consent-and-action-failure.md) (consent rides the contract), [074](074-person-targeted-actions-backfill.md)
+- **Blocks:** [073](073-consent-and-action-failure_DONE.md) (consent rides the contract), [074](074-person-targeted-actions-backfill.md)
 
 ## Goal
 
@@ -31,7 +31,7 @@ person-proximity node (deliberate — the contract is action-level capability, n
   - `targetParam` names the `person`-typed parameter that identifies the target.
   - `requiresSameBuilding` — **must be `true` for every person-targeted action this iteration** (no phone
     calls / remote interaction yet; the field exists so relaxing later is data, not schema).
-  - `askFirst` — consent required ([073](073-consent-and-action-failure.md) implements the flow; this task
+  - `askFirst` — consent required ([073](073-consent-and-action-failure_DONE.md) implements the flow; this task
     lands the field + validation).
   - `allowSelf` — default false; engine rejects self-targeting unless set.
   - `onDecline` — how a declined/failed instance behaves **as a sequence child**, reusing the existing
