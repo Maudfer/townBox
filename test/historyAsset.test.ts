@@ -199,8 +199,8 @@ describe('selection — reidentify', () => {
 describe('selection — pickWindow + full pipeline', () => {
     test('pickWindow stays within [epoch+margin, endTick] and is deterministic', () => {
         const asset = fixtureAsset();
-        const w1 = pickWindow(asset, 12345);
-        const w2 = pickWindow(asset, 12345);
+        const w1 = pickWindow(asset.meta, 12345);
+        const w2 = pickWindow(asset.meta, 12345);
         expect(w1).toBe(w2);
         expect(w1).toBeGreaterThanOrEqual(asset.meta.epochTick);
         expect(w1).toBeLessThanOrEqual(asset.meta.endTick);

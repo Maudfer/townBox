@@ -368,6 +368,8 @@ external sector.
   world** (homes, schools, jobs, object generation) during generation, so the asset carries **lived skills,
   real careers-as-history, and possessions** — not just pool-intrinsic demographics. Skills are a **per-person
   timeline**, so new-game selection installs each drawn person's proficiency *as of the chosen window*.
+  Generation **streams to sharded files** (RAM-bounded) and the asset is a **directory** of chunks the game
+  loads on demand (only the shards up to the window), so large assets stay git-friendly without LFS.
 - **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).

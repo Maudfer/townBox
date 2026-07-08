@@ -443,6 +443,20 @@ export default class LogicalWorld implements WorldAdapter {
         return out;
     }
 
+    // Hands back + clears the accumulated skill-timeline snapshots (task 077 streaming), keeping the per-person
+    // dedup signatures so future snapshots still skip unchanged people. Warm-up-dead entries are filtered at
+    // selection (by retained-pool membership), so no filtering is needed here.
+    drainSkillTimeline(): SkillTimeline {
+        const out: SkillTimeline = {};
+        for (const [personId, timeline] of this.skillTimeline) {
+            if (timeline.length > 0) {
+                out[personId] = timeline;
+            }
+        }
+        this.skillTimeline = new Map();
+        return out;
+    }
+
     // Person-carried instances only (task 077 §4): building fixtures regenerate on the live map, so only loose
     // Possessions travel into the asset. An instance is carried if its container chain roots at a retained
     // person's `possessions` (directly, or nested in a carried container — pencil-in-backpack).

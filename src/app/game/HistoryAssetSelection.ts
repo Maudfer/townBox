@@ -25,7 +25,10 @@ import { Genders } from 'types/Social';
 import { SkillBookState, PersonSkills, SkillSnapshot } from 'types/Skill';
 import { InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
 
-import { HistoryAsset, HISTORY_ASSET_FORMAT_VERSION } from 'game/HistoryAsset';
+import { decompress } from 'util/compress';
+
+import { HistoryAsset, HistoryAssetMeta, ShardRef, HISTORY_ASSET_FORMAT_VERSION } from 'game/HistoryAsset';
+import { SkillTimeline } from 'types/Skill';
 
 export interface SelectedWorld {
     population: PopulationState;
@@ -42,7 +45,7 @@ export interface SelectedWorld {
 export type AssetValidation = { ok: true } | { ok: false; reason: 'formatVersion' };
 
 // Cheap compatibility gate: the game only consumes assets of its own format version.
-export function validateAsset(asset: HistoryAsset): AssetValidation {
+export function validateAsset(asset: { meta: HistoryAssetMeta } | HistoryAsset): AssetValidation {
     if (!asset.meta || asset.meta.formatVersion !== HISTORY_ASSET_FORMAT_VERSION) {
         return { ok: false, reason: 'formatVersion' };
     }
@@ -51,8 +54,8 @@ export function validateAsset(asset: HistoryAsset): AssetValidation {
 
 // Picks the present tick w. Deterministic per gameSeed. Clamps to endTick when the asset is too short to
 // afford the warm-margin (tiny fixtures/draft runs), so selection always yields a valid window.
-export function pickWindow(asset: HistoryAsset, gameSeed: number): number {
-    const { epochTick, endTick, ticksPerYear, params } = asset.meta;
+export function pickWindow(meta: HistoryAssetMeta, gameSeed: number): number {
+    const { epochTick, endTick, ticksPerYear, params } = meta;
     const low = Math.min(endTick, epochTick + Math.round(params.warmMarginYears * ticksPerYear));
     if (endTick <= low) {
         return endTick;
@@ -260,8 +263,73 @@ export function selectStartingWorld(asset: HistoryAsset, gameSeed: number): Sele
     if (!validateAsset(asset).ok) {
         return null;
     }
-    const window = pickWindow(asset, gameSeed);
+    const window = pickWindow(asset.meta, gameSeed);
     const sliced = sliceAndRebase(asset, window);
     reidentify(sliced.population, gameSeed);
     return { ...sliced, window };
+}
+
+// --- Sharded / chunked loading (task 077 streaming) -------------------------------------------------------
+//
+// A streamed asset is a directory: a small header (below) + compressed section files (population/objects/
+// eventHistory) + `log-*`/`skills-*` shards. Selection at window `w` reads only the shards whose range starts
+// at/before `w` — future shards are never fetched — so both the generator (writing) and the game (loading)
+// stay memory-bounded regardless of how long the history is. `read` maps a shard/section file name to its
+// compressed payload (Node fs in tests; a bundled fetch in the browser).
+
+export interface AssetHeader {
+    meta: HistoryAssetMeta;
+    eventLogSeq: number;
+    sections: { population: string; objects: string; eventHistory: string };
+    logShards: ShardRef[];
+    skillShards: ShardRef[];
+}
+
+function decodeSection<T>(payload: string): T {
+    return JSON.parse(decompress(payload)) as T;
+}
+
+// The full sharded Part B pipeline: pick w, read only the ≤ w shards, assemble, slice/rebase/re-identify.
+export function selectStartingWorldFromShards(header: AssetHeader, read: (file: string) => string, gameSeed: number): SelectedWorld | null {
+    if (!validateAsset({ meta: header.meta }).ok) {
+        return null;
+    }
+    const w = pickWindow(header.meta, gameSeed);
+
+    // Merge only the log shards that can hold entries at/before w (minTick <= w). Entries after w are
+    // truncated by sliceAndRebase; shards entirely after w are never read.
+    const eventLog: EventLogTable = {};
+    for (const shard of header.logShards) {
+        if (shard.minTick > w) {
+            continue;
+        }
+        const table = decodeSection<EventLogTable>(read(shard.file));
+        for (const [id, entries] of Object.entries(table)) {
+            (eventLog[id] ??= []).push(...entries);
+        }
+    }
+    const skillTimeline: SkillTimeline = {};
+    for (const shard of header.skillShards) {
+        if (shard.minTick > w) {
+            continue;
+        }
+        const timeline = decodeSection<SkillTimeline>(read(shard.file));
+        for (const [id, snapshots] of Object.entries(timeline)) {
+            (skillTimeline[id] ??= []).push(...snapshots);
+        }
+    }
+
+    const asset: HistoryAsset = {
+        meta: header.meta,
+        population: decodeSection<PopulationState>(read(header.sections.population)),
+        objects: decodeSection<InventoryState>(read(header.sections.objects)),
+        eventHistory: {}, // rebuilt from the windowed log by sliceAndRebase
+        eventLog,
+        eventLogSeq: header.eventLogSeq,
+        eventSchedule: { queue: [], nextScheduleSeq: 0 },
+        skillTimeline,
+    };
+    const sliced = sliceAndRebase(asset, w);
+    reidentify(sliced.population, gameSeed);
+    return { ...sliced, window: w };
 }

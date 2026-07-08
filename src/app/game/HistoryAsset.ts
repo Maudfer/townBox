@@ -47,7 +47,8 @@ export const HISTORY_ASSET_FORMAT_VERSION = 1;
 // The generator version — bump when the sim/events change materially, so re-runs are distinguishable.
 // 077.1: the logical-economy world (off-map schools/jobs/objects → the asset carries lived skills/possessions).
 // 077.2: per-window skill snapshotting (a per-person skill timeline instead of an end-of-generation snapshot).
-export const HISTORY_GENERATOR_VERSION = '077.2';
+// 077.3: streaming to sharded files (RAM-bounded generation; chunked, load-only-≤w asset directory).
+export const HISTORY_GENERATOR_VERSION = '077.3';
 
 // The event whose hazard the carrying capacity throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -81,6 +82,9 @@ export interface HistoryGeneratorParams {
     // How often (in years) to snapshot each living person's skills, so selection can install skills AS OF the
     // window (task 077 per-window snapshotting). Finer = richer/heavier. Only used when logicalWorld.enabled.
     skillSnapshotYears: number;
+    // How often (in years) to flush the event log + skill timeline to disk shards when generating to a sink
+    // (task 077 streaming), so RAM stays bounded regardless of run length. Ignored for in-memory generation.
+    flushIntervalYears: number;
     // Whether the asset retains the low-level ACTION log entries (grab/use/discrete work flavor) in addition
     // to life EVENTS. Default false: the action engine + Brain still run every tick (so action-CAUSED events
     // still fire into the event history), but the per-tick action texture — which explodes the asset to GBs
@@ -130,6 +134,27 @@ export interface HistoryAsset {
     // skill timeline (per-window snapshotting) lets selection pick each person's skills as of the window.
     skillTimeline?: SkillTimeline;
     objects?: InventoryState;
+    // When STREAMED to a sink (task 077), the event log + skill timeline live in these sharded files instead
+    // of inline; `eventLog`/`skillTimeline` are then empty and chunked loading reads only the shards it needs.
+    logShards?: ShardRef[];
+    skillShards?: ShardRef[];
+}
+
+// A written shard's descriptor (task 077 streaming): the file it went to + the tick range it covers, so
+// chunked loading can skip shards entirely past the selected window.
+export interface ShardRef {
+    file: string;
+    minTick: number;
+    maxTick: number;
+}
+
+// The disk sink the CLI provides so the generator can stream the two big, ever-growing sections (event log +
+// skill timeline) to sharded files as it goes, instead of holding the whole centuries-long history in RAM.
+// Each call writes one compressed shard and returns its descriptor. Implemented in scripts/ (Node/fs); the
+// generator core stays browser-safe (no fs import). Absent = in-memory generation (small runs + tests).
+export interface HistoryAssetSink {
+    logShard(table: EventLogTable): ShardRef;
+    skillShard(timeline: SkillTimeline): ShardRef;
 }
 
 export type GenerationPhase = 'warmup' | 'recording';
@@ -191,11 +216,13 @@ export function fertilityFactor(living: number, config: CarryingCapacityConfig):
 export async function generateHistoryAsset(
     params: HistoryGeneratorParams = DEFAULT_GENERATOR_PARAMS,
     onProgress?: (progress: GenerationProgress) => void,
-    gitCommit: string | null = null
+    gitCommit: string | null = null,
+    sink?: HistoryAssetSink
 ): Promise<HistoryAsset> {
     const startedAt = Date.now();
     const tpy = params.ticksPerYear;
     const step = Math.max(1, Math.floor(params.daysPerStep)) * TICKS_PER_DAY;
+    const flushIntervalTicks = Math.max(1, Math.round(params.flushIntervalYears * tpy));
 
     // Phase 0 — founders.
     const state = createFounders(params.seed, params.founderCount, { ...DEFAULT_FOUNDER_PARAMS, ticksPerYear: tpy });
@@ -243,6 +270,42 @@ export async function generateHistoryAsset(
     let births = 0;
     let deaths = 0;
     let epochTick: number | null = null;
+
+    // Streaming state (task 077): when a sink is provided, periodically flush the log + skill timeline to disk
+    // shards so RAM never holds the whole centuries-long history. `logCounts` tracks per-person log lengths for
+    // the median stat (the in-RAM log is drained away). The loggable filter is applied at flush time.
+    const loggable = loggableEventIds();
+    const logShards: ShardRef[] = [];
+    const skillShards: ShardRef[] = [];
+    const logCounts = new Map<PersonId, number>();
+    let lastFlushBucket = 0;
+    const slimLog = (table: EventLogTable): EventLogTable => {
+        const slim: EventLogTable = {};
+        for (const [id, entries] of Object.entries(table)) {
+            const kept = entries.filter(entry =>
+                (entry.kind === 'event' && loggable.has(entry.defId)) || (params.keepActionLog && entry.kind === 'action'));
+            if (kept.length > 0) {
+                slim[id] = kept;
+                logCounts.set(id, (logCounts.get(id) ?? 0) + kept.length);
+            }
+        }
+        return slim;
+    };
+    const flushToSink = (): void => {
+        if (!sink) {
+            return;
+        }
+        const logTable = slimLog(engine.drainLog());
+        if (Object.keys(logTable).length > 0) {
+            logShards.push(sink.logShard(logTable));
+        }
+        if (logical) {
+            const timeline = logical.drainSkillTimeline();
+            if (Object.keys(timeline).length > 0) {
+                skillShards.push(sink.skillShard(timeline));
+            }
+        }
+    };
     const trajectory: { year: number; living: number }[] = [];
     let lastDecadeSampled = -1;
     let lastReportedYear = -1;
@@ -310,6 +373,16 @@ export async function generateHistoryAsset(
             }
         }
 
+        // Streaming flush: drain the log + skill timeline to disk shards at the flush cadence, keeping RAM
+        // bounded regardless of run length (task 077). No-op for in-memory generation (no sink).
+        if (sink) {
+            const flushBucket = Math.floor(tick / flushIntervalTicks);
+            if (flushBucket !== lastFlushBucket) {
+                lastFlushBucket = flushBucket;
+                flushToSink();
+            }
+        }
+
         // Per-decade trajectory sample + per-year progress.
         const phase: GenerationPhase = inRecording ? 'recording' : 'warmup';
         const phaseStartTick = inRecording ? epochTick! : 0;
@@ -331,46 +404,63 @@ export async function generateHistoryAsset(
     const endTick = tick;
     const epoch = epochTick ?? endTick; // no threshold reached: nothing is "warm-up dead" to prune
 
-    // Prune warm-up-only dead: keep everyone alive at the end OR who died at/after the epoch; drop the rest
-    // (the shallow-history early generations). Their pool records, history, and logs all go.
+    // Final skill snapshot so the latest state is captured (before the final streaming flush).
+    if (logical && skillBook) {
+        logical.snapshotSkills(skillBook, endTick, living);
+    }
+
+    // Prune warm-up-only dead from the pool + aggregate history: keep everyone alive at the end OR who died
+    // at/after the epoch; drop the shallow-history early generations. Their LOG entries are handled per mode
+    // below (in-memory: deleted; streaming: already in shards, filtered at load by retained-pool membership).
     const history = engine.getHistory();
-    let log = engine.getLog();
     for (const [id, person] of Object.entries(state.people)) {
         if (person.deathTick === null || person.deathTick >= epoch) {
             continue;
         }
         delete state.people[id];
         delete history[id];
-        delete log[id];
     }
-    // Slim the serialized log to the loggable events (effect-bearing ∪ requirement-referenced), which keeps
-    // the demographic/health/queried history correct and windowable while dropping the effect-free texture
-    // flood. keepActionLog additionally retains the low-level action entries (small diagnostic runs only).
-    const loggable = loggableEventIds();
-    const slim: EventLogTable = {};
-    for (const [id, entries] of Object.entries(log)) {
-        const kept = entries.filter(entry =>
-            (entry.kind === 'event' && loggable.has(entry.defId)) || (params.keepActionLog && entry.kind === 'action'));
-        if (kept.length > 0) {
-            slim[id] = kept;
-        }
-    }
-    log = slim;
-    // Filter the aggregate history to the same loggable set so it stays bounded (Part B rebuilds the
-    // authoritative history from the windowed log; this is retained for stats/inspection).
     for (const record of Object.values(history)) {
         for (const eventId of Object.keys(record)) {
             if (!loggable.has(eventId)) {
-                delete record[eventId];
+                delete record[eventId]; // keep the aggregate bounded to loggable events
             }
         }
     }
 
     const retainedIds = Object.keys(state.people);
+    const retainedSet = new Set(retainedIds);
     let livingAtEnd = 0;
     for (const id of retainedIds) {
         if (living.has(id)) {
             livingAtEnd++;
+        }
+    }
+
+    // Build the log + skill sections: streamed to disk shards, or held inline for in-memory generation.
+    let eventLog: EventLogTable = {};
+    let skillTimeline: SkillTimeline | undefined;
+    let medianHistoryLen: number;
+    if (sink) {
+        flushToSink(); // final flush of the remaining log + skill timeline
+        medianHistoryLen = medianOfCounts(retainedIds.map(id => logCounts.get(id) ?? 0));
+    } else {
+        const full = engine.getLog();
+        const slim: EventLogTable = {};
+        for (const [id, entries] of Object.entries(full)) {
+            if (!retainedSet.has(id)) {
+                continue; // warm-up dead
+            }
+            const kept = entries.filter(entry =>
+                (entry.kind === 'event' && loggable.has(entry.defId)) || (params.keepActionLog && entry.kind === 'action'));
+            if (kept.length > 0) {
+                slim[id] = kept;
+            }
+        }
+        eventLog = slim;
+        medianHistoryLen = medianLogLength(eventLog, retainedIds);
+        if (logical && skillBook) {
+            skillTimeline = logical.skillTimelineState(retainedSet);
         }
     }
 
@@ -389,7 +479,7 @@ export async function generateHistoryAsset(
             livingAtEnd,
             births,
             deaths,
-            medianHistoryLen: medianLogLength(log, retainedIds),
+            medianHistoryLen,
             trajectory,
             runtimeMs: Date.now() - startedAt,
             rawBytes: 0,
@@ -401,24 +491,29 @@ export async function generateHistoryAsset(
         meta,
         population: state,
         eventHistory: history,
-        eventLog: log,
+        eventLog,
         eventLogSeq: engine.getNextLogSeq(),
         eventSchedule: engine.getScheduleState(),
     };
-
-    // Carry lived skills (per-window timeline) + carried possessions (task 077), filtered to retained people.
     if (logical && skillBook) {
-        const retainedSet = new Set(retainedIds);
-        logical.snapshotSkills(skillBook, endTick, living); // final snapshot so the latest state is captured
-        asset.skillTimeline = logical.skillTimelineState(retainedSet);
         asset.objects = logical.carriedInventoryState(retainedSet);
+    }
+    if (sink) {
+        asset.logShards = logShards;
+        asset.skillShards = skillShards;
+    } else if (skillTimeline) {
+        asset.skillTimeline = skillTimeline;
     }
 
     return asset;
 }
 
 function medianLogLength(log: EventLogTable, ids: string[]): number {
-    const lengths = ids.map(id => (log[id]?.length ?? 0)).sort((a, b) => a - b);
+    return medianOfCounts(ids.map(id => log[id]?.length ?? 0));
+}
+
+function medianOfCounts(counts: number[]): number {
+    const lengths = [...counts].sort((a, b) => a - b);
     if (lengths.length === 0) {
         return 0;
     }

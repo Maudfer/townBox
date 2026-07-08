@@ -5,8 +5,11 @@
 import LogicalWorld from '../src/app/game/LogicalWorld';
 import SkillBook from '../src/app/game/SkillBook';
 import EventEngine from '../src/app/game/EventEngine';
-import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAsset } from '../src/app/game/HistoryAsset';
-import { sliceAndRebase } from '../src/app/game/HistoryAssetSelection';
+import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAsset, HistoryAssetSink, ShardRef } from '../src/app/game/HistoryAsset';
+import { sliceAndRebase, selectStartingWorld, selectStartingWorldFromShards, AssetHeader } from '../src/app/game/HistoryAssetSelection';
+import { compress } from '../src/util/compress';
+import { EventLogTable } from '../src/types/LifeEvent';
+import { SkillTimeline } from '../src/types/Skill';
 import { TICKS_PER_YEAR } from '../src/util/time';
 import { Genders } from '../src/types/Social';
 import { PopulationState } from '../src/types/Genealogy';
@@ -168,5 +171,94 @@ describe('generator with the logical-economy world (task 077, integration)', () 
         const b = await generateHistoryAsset(params);
         expect(b.skillTimeline).toEqual(a.skillTimeline);
         expect(b.objects).toEqual(a.objects);
+    });
+});
+
+describe('streaming to shards + chunked loading (task 077)', () => {
+    jest.setTimeout(180000);
+    // A few flush intervals over the run so multiple shards are produced.
+    const params: HistoryGeneratorParams = {
+        ...DEFAULT_GENERATOR_PARAMS,
+        seed: 11, founderCount: 40, recordThreshold: 30, recordYears: 12, daysPerStep: 30,
+        skillSnapshotYears: 1, flushIntervalYears: 3, keepActionLog: false,
+        carryingCapacity: { enabled: true, soft: 55, steepness: 4 },
+        logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
+    };
+
+    // An in-memory sink standing in for the CLI's disk sink: shard payloads land in a map keyed by file name.
+    function memorySink(store: Map<string, string>): { sink: HistoryAssetSink } {
+        let li = 0;
+        let si = 0;
+        const range = (ticks: number[]) => ({ minTick: ticks.length ? Math.min(...ticks) : 0, maxTick: ticks.length ? Math.max(...ticks) : 0 });
+        const sink: HistoryAssetSink = {
+            logShard(table: EventLogTable): ShardRef {
+                const ticks = Object.values(table).flatMap(entries => entries.map(e => e.tick));
+                const file = `log-${li++}.tbz`;
+                store.set(file, compress(JSON.stringify(table)));
+                return { file, ...range(ticks) };
+            },
+            skillShard(timeline: SkillTimeline): ShardRef {
+                const ticks = Object.values(timeline).flatMap(snaps => snaps.map(s => s.tick));
+                const file = `skills-${si++}.tbz`;
+                store.set(file, compress(JSON.stringify(timeline)));
+                return { file, ...range(ticks) };
+            },
+        };
+        return { sink };
+    }
+
+    test('streamed + chunk-loaded selection equals in-memory selection (multiple shards)', async () => {
+        const inMem = await generateHistoryAsset(params);
+
+        const store = new Map<string, string>();
+        const { sink } = memorySink(store);
+        const streamed = await generateHistoryAsset(params, undefined, null, sink);
+        // The log + timeline were streamed to shards, not held inline.
+        expect(streamed.eventLog).toEqual({});
+        expect(streamed.skillTimeline).toBeUndefined();
+        expect(streamed.logShards!.length).toBeGreaterThan(1); // actually sharded across flush intervals
+
+        store.set('population.tbz', compress(JSON.stringify(streamed.population)));
+        store.set('objects.tbz', compress(JSON.stringify(streamed.objects)));
+        store.set('eventHistory.tbz', compress(JSON.stringify(streamed.eventHistory)));
+        const header: AssetHeader = {
+            meta: streamed.meta, eventLogSeq: streamed.eventLogSeq,
+            sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
+            logShards: streamed.logShards!, skillShards: streamed.skillShards!,
+        };
+        const read = (file: string) => store.get(file)!;
+
+        for (const seed of [1, 42, 7777]) {
+            const fromShards = selectStartingWorldFromShards(header, read, seed)!;
+            const fromMemory = selectStartingWorld(inMem, seed)!;
+            expect(fromShards.window).toBe(fromMemory.window);
+            expect(fromShards.population.people).toEqual(fromMemory.population.people);
+            expect(fromShards.skillBook).toEqual(fromMemory.skillBook);
+            expect(fromShards.objects).toEqual(fromMemory.objects);
+            expect(fromShards.eventLog).toEqual(fromMemory.eventLog);
+        }
+    });
+
+    test('chunked loading only reads shards up to the window', async () => {
+        const store = new Map<string, string>();
+        const { sink } = memorySink(store);
+        const streamed = await generateHistoryAsset(params, undefined, null, sink);
+        store.set('population.tbz', compress(JSON.stringify(streamed.population)));
+        store.set('objects.tbz', compress(JSON.stringify(streamed.objects)));
+        store.set('eventHistory.tbz', compress(JSON.stringify(streamed.eventHistory)));
+        const header: AssetHeader = {
+            meta: streamed.meta, eventLogSeq: streamed.eventLogSeq,
+            sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
+            logShards: streamed.logShards!, skillShards: streamed.skillShards!,
+        };
+        const readFiles: string[] = [];
+        const read = (file: string) => { readFiles.push(file); return store.get(file)!; };
+        const selected = selectStartingWorldFromShards(header, read, 3)!;
+        // No shard whose window starts after the selected present tick should have been fetched.
+        for (const shard of [...header.logShards, ...header.skillShards]) {
+            if (shard.minTick > selected.window) {
+                expect(readFiles).not.toContain(shard.file);
+            }
+        }
     });
 });

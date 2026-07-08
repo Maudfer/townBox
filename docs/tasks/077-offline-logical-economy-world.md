@@ -29,11 +29,36 @@
 > - Tests: `test/logicalWorld.test.ts` (homes, adapter, direct school accrual, carried-inventory filtering,
 >   per-window snapshot selection, end-to-end generator determinism + career progression).
 >
-> **Defaults are the richest, most expensive simulation** (`json/historyGenerator.json`): daily stepping
-> (`daysPerStep: 1`), the full action log kept (`keepActionLog: true`), yearly skill snapshots
-> (`skillSnapshotYears: 1`), and the logical-economy world fully on. This is intentionally slow AND produces a
-> large asset — dial back for a feasible run with `--step-days N`, `--no-action-log`, `--snapshot-years N`,
-> `--capacity N` (measured ~3.8 ms/agent/step at daily cadence with the full logical world).
+> **Streaming to sharded files (RAM-bounded generation + chunked loading).** The generator no longer holds the
+> whole centuries-long history in RAM: the two big, ever-growing sections (event log + skill timeline) are
+> DRAINED to compressed disk **shards** every `flushIntervalYears` via a `HistoryAssetSink` (`LifeLog.drain` /
+> `LogicalWorld.drainSkillTimeline`; the aggregate history the sim reads is untouched, so `hasEvent` keeps
+> working). The asset is now a **directory** — a small `meta.json` header + `population`/`objects`/
+> `eventHistory` sections + `log-*`/`skills-*` shards, each shard carrying its tick range. New-game selection
+> (`selectStartingWorldFromShards`) reads **only the shards up to the chosen window `w`** (future shards never
+> fetched), so both generation and browser loading stay memory-bounded, and a multi-GB asset splits into
+> git-friendly chunks (no LFS). Streamed↔in-memory selection equivalence is pinned by `test/logicalWorld.test.ts`.
+>
+> **Defaults** (`json/historyGenerator.json`): the richest *simulation* — daily stepping, the logical economy
+> fully on, yearly skill snapshots — over **1,000 living × 200 years** (soft cap 1,000). The full ACTION log is
+> **off** by default: it can't fit a sane asset budget and the game regenerates action texture live, so it is a
+> persistence choice, not a simulation compromise (`--keep-action-log` turns it on for a local ultra-asset —
+> streaming keeps it RAM-safe). Measured ~5 ms/agent/step (stepping-independent per agent).
+>
+> ### Measured size + runtime estimates for a full 1,000/200 run (compressed on disk; ±~40%)
+>
+> | Scenario | Flags | Asset size | Est. runtime |
+> |---|---|---|---|
+> | **Default** (daily · events-only · yearly snaps) | *(none)* | **~250 MB** | **~4–6 days** |
+> | + full action log | `--keep-action-log` | **~4.9 GB** ⚠️ (>2 GB) | ~4–6 days |
+> | Coarser snapshots | `--snapshot-years 5` | **~180 MB** | ~4–6 days |
+> | Feasible / fast | `--step-days 30` | **~130 MB** | **~4–5 h** |
+>
+> (~270k living-person-years, ~3,600 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with
+> actions · ~145 B/py monthly; skill timeline ~330 B/py yearly; objects ~231 B/person — all compressed.) The
+> daily runtime is dominated by ~1,000-agent steps and may run longer due to O(agents) co-location; **`--step-days
+> 30` is the practical overnight run.** RAM stays bounded (~one flush interval) in every scenario, so even the
+> 4.9 GB action-log run completes instead of OOMing.
 >
 > Everything below is the original ticket.
 

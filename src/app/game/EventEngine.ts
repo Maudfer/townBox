@@ -235,6 +235,12 @@ export default class EventEngine {
         this.lifeLog.load(log, nextSeq);
     }
 
+    // Hands back + clears the accumulated log entries, keeping the commit seq (task 077 streaming). The
+    // aggregate history is untouched, so hasEvent queries keep working.
+    drainLog(): EventLogTable {
+        return this.lifeLog.drain();
+    }
+
     getScheduleState(): ScheduleState {
         return this.schedule;
     }

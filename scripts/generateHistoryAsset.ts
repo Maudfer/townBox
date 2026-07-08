@@ -1,21 +1,23 @@
-// The offline history-asset generator CLI (task 055 §2.6). Run with `npm run generate-history` (tsx resolves
-// the game/* tsconfig path aliases). It reuses the pure generator core (game/HistoryAsset.generateHistoryAsset)
-// — NOT the retired browser worker — runs the full-fidelity phased simulation, prints the measurements the
-// maintainer needs (final living population, retained people, births/deaths, raw vs compressed size, runtime,
-// and the per-decade population trajectory), and writes the compressed, versioned asset under
-// src/assets/history/.
+// The offline history-asset generator CLI (task 055 §2.6; sharded streaming since 077). Run with
+// `npm run generate-history` (tsx resolves the game/* tsconfig path aliases). It reuses the pure generator
+// core (game/HistoryAsset.generateHistoryAsset) and STREAMS the two big, ever-growing sections (event log +
+// skill timeline) to sharded files as it goes, so RAM stays bounded no matter how long the run is. The output
+// is a DIRECTORY (a small meta.json header + compressed section/shard files), not a single file — so a large
+// asset splits into chunks the game loads on demand (only the shards up to the selected window), and stays
+// git-friendly without LFS.
 //
-// The DEFAULT config (json/historyGenerator.json) is the RICHEST, most expensive simulation: daily stepping
-// (daysPerStep 1), the full action log kept, yearly skill snapshots, and the logical-economy world fully on.
-// A centuries-long default run is very long AND produces a very large asset — that is intended. Use the flags
-// below to dial it back for calibration / a feasible run.
+// The DEFAULT config (json/historyGenerator.json) is the richest simulation: daily stepping, the logical
+// economy fully on, yearly skill snapshots. It is intentionally slow. The full ACTION log is OFF by default —
+// it can't fit a sane asset budget and is regenerated live in-game — turn it on with --keep-action-log for a
+// local ultra-rich asset (streaming keeps it RAM-safe).
 //
 // CLI flags override json/historyGenerator.json:
 //   --seed N  --years N  --threshold N  --founders N  --capacity N  --steepness N  --step-days N
-//   --snapshot-years N  --no-action-log  --no-capacity  --max-hours N  --max-people N  --out PATH
+//   --snapshot-years N  --flush-years N  --keep-action-log  --no-action-log  --no-capacity
+//   --max-hours N  --max-people N  --out DIR
 
-import { writeFileSync, mkdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import process from 'node:process';
 
@@ -26,7 +28,12 @@ import {
     HISTORY_GENERATOR_VERSION,
     HistoryGeneratorParams,
     GenerationProgress,
+    HistoryAssetSink,
+    ShardRef,
 } from 'game/HistoryAsset';
+import { EventLogTable } from 'types/LifeEvent';
+import { SkillTimeline } from 'types/Skill';
+import { AssetHeader } from 'game/HistoryAssetSelection';
 
 function parseFlags(argv: string[]): Record<string, string | boolean> {
     const flags: Record<string, string | boolean> = {};
@@ -63,6 +70,13 @@ function gitCommit(): string | null {
     }
 }
 
+// Writes a compressed section/shard file into the output dir and returns its byte size.
+function writeCompressed(dir: string, file: string, data: unknown): number {
+    const payload = compress(JSON.stringify(data));
+    writeFileSync(join(dir, file), payload, 'utf8');
+    return Buffer.byteLength(payload, 'utf8');
+}
+
 async function main(): Promise<void> {
     const flags = parseFlags(process.argv.slice(2));
     const base = DEFAULT_GENERATOR_PARAMS;
@@ -76,6 +90,7 @@ async function main(): Promise<void> {
         daysPerStep: num(flags['step-days'], base.daysPerStep),
         keepActionLog: flags['no-action-log'] ? false : (flags['keep-action-log'] ? true : base.keepActionLog),
         skillSnapshotYears: num(flags['snapshot-years'], base.skillSnapshotYears),
+        flushIntervalYears: num(flags['flush-years'], base.flushIntervalYears),
         carryingCapacity: {
             enabled: flags['no-capacity'] ? false : base.carryingCapacity.enabled,
             soft: num(flags.capacity, base.carryingCapacity.soft),
@@ -88,17 +103,55 @@ async function main(): Promise<void> {
     };
 
     const shortSeed = (params.seed >>> 0).toString(16);
-    const outPath = typeof flags.out === 'string'
+    const outDir = typeof flags.out === 'string'
         ? resolve(flags.out)
-        : resolve(process.cwd(), `src/assets/history/history-v${HISTORY_GENERATOR_VERSION}-${shortSeed}.tbz`);
+        : resolve(process.cwd(), `src/assets/history/history-v${HISTORY_GENERATOR_VERSION}-${shortSeed}`);
 
-    console.log(`[generate-history] generator v${HISTORY_GENERATOR_VERSION}, seed ${params.seed}`);
+    if (existsSync(outDir)) {
+        rmSync(outDir, { recursive: true, force: true }); // fresh dir so stale shards from a prior run never linger
+    }
+    mkdirSync(outDir, { recursive: true });
+
+    console.log(`[generate-history] generator v${HISTORY_GENERATOR_VERSION}, seed ${params.seed} → ${outDir}`);
     console.log(`[generate-history] founders ${params.founderCount} → threshold ${params.recordThreshold} → +${params.recordYears}y`
-        + `, ${params.daysPerStep}d/step, capacity ${params.carryingCapacity.enabled ? params.carryingCapacity.soft : 'off'}`);
+        + `, ${params.daysPerStep}d/step, capacity ${params.carryingCapacity.enabled ? params.carryingCapacity.soft : 'off'}`
+        + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`);
+
+    // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk.
+    let logIndex = 0;
+    let skillIndex = 0;
+    let shardBytes = 0;
+    const tickRange = (ticks: number[]): { minTick: number; maxTick: number } => ({
+        minTick: ticks.length ? Math.min(...ticks) : 0,
+        maxTick: ticks.length ? Math.max(...ticks) : 0,
+    });
+    const sink: HistoryAssetSink = {
+        logShard(table: EventLogTable): ShardRef {
+            const ticks: number[] = [];
+            for (const entries of Object.values(table)) {
+                for (const entry of entries) {
+                    ticks.push(entry.tick);
+                }
+            }
+            const file = `log-${String(logIndex++).padStart(4, '0')}.tbz`;
+            shardBytes += writeCompressed(outDir, file, table);
+            return { file, ...tickRange(ticks) };
+        },
+        skillShard(timeline: SkillTimeline): ShardRef {
+            const ticks: number[] = [];
+            for (const snapshots of Object.values(timeline)) {
+                for (const snapshot of snapshots) {
+                    ticks.push(snapshot.tick);
+                }
+            }
+            const file = `skills-${String(skillIndex++).padStart(4, '0')}.tbz`;
+            shardBytes += writeCompressed(outDir, file, timeline);
+            return { file, ...tickRange(ticks) };
+        },
+    };
 
     let lastLog = Date.now();
     const onProgress = (progress: GenerationProgress): void => {
-        // Throttle console spam to ~once/second; always show phase transitions cheaply via the year counter.
         if (Date.now() - lastLog < 1000) {
             return;
         }
@@ -106,17 +159,28 @@ async function main(): Promise<void> {
         console.log(`  [${progress.phase}] year ${progress.yearsDone} · living ${progress.living} · retained ${progress.retained}`);
     };
 
-    const asset = await generateHistoryAsset(params, onProgress, gitCommit());
+    const asset = await generateHistoryAsset(params, onProgress, gitCommit(), sink);
 
-    const json = JSON.stringify(asset);
-    asset.meta.stats.rawBytes = Buffer.byteLength(json, 'utf8');
-    const payload = compress(JSON.stringify(asset));
-    asset.meta.stats.compressedBytes = Buffer.byteLength(payload, 'utf8');
+    // Write the section files (small, held in RAM) + the header.
+    let sectionBytes = 0;
+    sectionBytes += writeCompressed(outDir, 'population.tbz', asset.population);
+    sectionBytes += writeCompressed(outDir, 'objects.tbz', asset.objects ?? { instances: {}, nextInstanceSeq: 0 });
+    sectionBytes += writeCompressed(outDir, 'eventHistory.tbz', asset.eventHistory);
 
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, payload, 'utf8');
+    const totalCompressed = shardBytes + sectionBytes;
+    asset.meta.stats.compressedBytes = totalCompressed;
+
+    const header: AssetHeader = {
+        meta: asset.meta,
+        eventLogSeq: asset.eventLogSeq,
+        sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
+        logShards: asset.logShards ?? [],
+        skillShards: asset.skillShards ?? [],
+    };
+    writeFileSync(join(outDir, 'meta.json'), JSON.stringify(header, null, 2), 'utf8');
 
     const { stats } = asset.meta;
+    const mb = (bytes: number) => (bytes / 1_048_576).toFixed(1);
     console.log('\n[generate-history] done. Measurements:');
     console.log(`  epoch tick (t0):     ${asset.meta.epochTick}`);
     console.log(`  end tick:            ${asset.meta.endTick}  (${Math.round((asset.meta.endTick - asset.meta.epochTick) / params.ticksPerYear)}y recorded)`);
@@ -124,14 +188,15 @@ async function main(): Promise<void> {
     console.log(`  retained people:     ${stats.retainedPeople}`);
     console.log(`  births / deaths:     ${stats.births} / ${stats.deaths}`);
     console.log(`  median history len:  ${stats.medianHistoryLen}`);
-    console.log(`  raw bytes:           ${stats.rawBytes.toLocaleString()}`);
-    console.log(`  compressed bytes:    ${stats.compressedBytes.toLocaleString()}  (${(stats.compressedBytes / 1_048_576).toFixed(2)} MB)`);
+    console.log(`  log shards:          ${header.logShards.length}   skill shards: ${header.skillShards.length}`);
+    console.log(`  shard bytes:         ${mb(shardBytes)} MB   section bytes: ${mb(sectionBytes)} MB`);
+    console.log(`  TOTAL on disk:       ${mb(totalCompressed)} MB`);
     console.log(`  runtime:             ${(stats.runtimeMs / 1000).toFixed(1)}s`);
     console.log('  population trajectory (per decade):');
     for (const point of stats.trajectory) {
         console.log(`    year ${String(point.year).padStart(4)} · living ${point.living}`);
     }
-    console.log(`\n[generate-history] wrote ${outPath}`);
+    console.log(`\n[generate-history] wrote ${outDir}`);
 }
 
 main().catch(error => {

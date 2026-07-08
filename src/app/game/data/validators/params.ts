@@ -116,7 +116,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'skillSnapshotYears', 'carryingCapacity', 'logicalWorld', 'safety'];
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'skillSnapshotYears', 'flushIntervalYears', 'carryingCapacity', 'logicalWorld', 'safety'];
     checkUnknownKeys(issues, '', data, fields);
     checkNumber(issues, 'seed', data['seed'], { integer: true });
     checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
@@ -130,6 +130,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     checkNumber(issues, 'maxWarmupYears', data['maxWarmupYears'], { min: 1 });
     checkBoolean(issues, 'keepActionLog', data['keepActionLog']);
     checkNumber(issues, 'skillSnapshotYears', data['skillSnapshotYears'], { min: 1, integer: true });
+    checkNumber(issues, 'flushIntervalYears', data['flushIntervalYears'], { min: 1, integer: true });
     if (checkRecord(issues, 'carryingCapacity', data['carryingCapacity'])) {
         const capacity = data['carryingCapacity'] as Record<string, unknown>;
         checkUnknownKeys(issues, 'carryingCapacity', capacity, ['enabled', 'soft', 'steepness']);

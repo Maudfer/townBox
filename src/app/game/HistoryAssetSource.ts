@@ -2,10 +2,18 @@
 // the box, so the game looks here for a committed asset to select a starting world from; when none is present
 // it cold-starts (a plain generated pool with empty histories — the §3.7 fallback).
 //
-// Committing an asset: run `npm run generate-history` (see scripts/generateHistoryAsset.ts), then set
-// COMMITTED_HISTORY_ASSET to the produced .tbz file's contents (the compressed, base64 payload string) — or
-// re-export it from a data module. It is kept as a module constant (rather than a runtime file read/fetch) so
-// Parcel always resolves it into the bundle and Jest can exercise the decode path.
+// Since task 077 the generator writes a SHARDED asset (a directory: meta.json header + compressed section/shard
+// files) so a large asset streams to disk and loads in chunks. Two committed-asset paths therefore exist:
+//   - SINGLE-FILE (small assets / fixtures): set COMMITTED_HISTORY_ASSET to a compressed HistoryAsset payload;
+//     the game calls selectStartingWorld on the decoded asset.
+//   - SHARDED (the default generator output): commit the directory under src/assets/history/<name>/ and wire a
+//     reader that fetches shard files by name, then call selectStartingWorldFromShards(header, read, seed)
+//     (game/HistoryAssetSelection) — it fetches only the shards up to the selected window, so browser memory
+//     stays bounded. (The browser fetch/bundle wiring for a committed sharded directory is a thin follow-up;
+//     the selection core + Node round-trip are covered by test/logicalWorld.test.ts.)
+//
+// COMMITTED_HISTORY_ASSET is a module constant (not a runtime read) so Parcel resolves it into the bundle and
+// Jest can exercise the decode path.
 
 import { decompress } from 'util/compress';
 
