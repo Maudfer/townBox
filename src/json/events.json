@@ -24852,5 +24852,120 @@
             "once": "perDay"
         },
         "effects": []
+    },
+    "object_acquired": {
+        "label": "Acquired an object",
+        "category": "possessions",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "object": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "effects": []
+    },
+    "object_given": {
+        "label": "Gave an object away",
+        "category": "possessions",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "object": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "effects": []
+    },
+    "object_received": {
+        "label": "Received an object",
+        "category": "possessions",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "object": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "effects": []
+    },
+    "object_lost": {
+        "label": "Lost an object",
+        "category": "possessions",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "object": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "effects": []
+    },
+    "object_consumed": {
+        "label": "Used an object up",
+        "category": "possessions",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "object": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "effects": []
     }
 }

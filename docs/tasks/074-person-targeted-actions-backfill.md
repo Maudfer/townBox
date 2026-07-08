@@ -2,7 +2,7 @@
 
 - **Type:** Content / Migration
 - **Labels:** `actions`, `social`, `content`, `progression-arc`
-- **Depends on:** [072](072-person-targeted-action-contracts.md) (schema + hook), [073](073-consent-and-action-failure.md) (consent/failure semantics), [068](068-generalize-actions-and-events.md) (generic give/borrow/return verbs)
+- **Depends on:** [072](072-person-targeted-action-contracts.md) (schema + hook), [073](073-consent-and-action-failure.md) (consent/failure semantics), [068](068-generalize-actions-and-events_DONE.md) (generic give/borrow/return verbs)
 
 ## Goal
 

@@ -15,7 +15,8 @@
     "test:coverage": "jest --coverage",
     "validate-data": "jest test/dataValidation.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "docs:sim": "UPDATE_SIM_DOCS=1 jest test/simulationDocs.test.ts"
+    "docs:sim": "UPDATE_SIM_DOCS=1 jest test/simulationDocs.test.ts",
+    "docs:events": "UPDATE_EVENT_DOCS=1 jest test/eventClassification.test.ts"
   },
   "keywords": [
     "game",

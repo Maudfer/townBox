@@ -126,3 +126,46 @@ describe('the action → event payload bridge', () => {
         expect(acquired.causationId).toBe(performed.seq);
     });
 });
+
+describe('the shipped generic verbs (task 068, real manifests)', () => {
+    function realHarness() {
+        const inventory = new Inventory(); // real objects.json archetypes
+        const world = new BootstrapWorld(inventory);
+        const engine = new EventEngine(); // real events.json
+        const actions = new ActionEngine(undefined, engine.getLifeLog()); // real actions.json
+        const deps: ActionDeps = { state: pool(), tick: 50, ticksPerYear: TPY, ctx: { mode: 'bootstrap', world }, eventEngine: engine, inventory };
+        return { inventory, engine, actions, deps };
+    }
+
+    test('grab -> put_down -> grab -> discard moves ONE real instance end to end (never conjured)', () => {
+        const { inventory, engine, actions, deps } = realHarness();
+        const pencil = inventory.createInstance({ archetypeId: 'pencil', owner: { kind: 'none' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+
+        expect(actions.startAction('a', 'grab', { object: 'pencil' }, cause, deps, result()).ok).toBe(true);
+        expect(inventory.possessionsOf('a').map(instance => instance.id)).toEqual([pencil.id]);
+        expect(inventory.getInstance(pencil.id)!.owner).toEqual({ kind: 'person', personId: 'a' });
+        // The generic parameterized event narrates it.
+        const acquired = engine.getPersonLog('a').find(entry => entry.kind === 'event' && entry.defId === 'object_acquired');
+        expect((acquired as { params?: Record<string, unknown> }).params).toEqual({ object: 'pencil' });
+
+        expect(actions.startAction('a', 'put_down', { object: 'pencil' }, cause, deps, result()).ok).toBe(true);
+        expect(inventory.getInstance(pencil.id)!.container).toEqual({ kind: 'location', key: 'home' });
+        expect(inventory.getInstance(pencil.id)!.owner).toEqual({ kind: 'person', personId: 'a' }); // still theirs
+
+        expect(actions.startAction('a', 'grab', { object: 'pencil' }, cause, deps, result()).ok).toBe(true);
+        expect(actions.startAction('a', 'discard_object', { object: 'pencil' }, cause, deps, result()).ok).toBe(true);
+        expect(inventory.getInstance(pencil.id)!.owner).toEqual({ kind: 'world' });
+        expect(engine.getPersonLog('a').some(entry => entry.kind === 'event' && entry.defId === 'object_lost')).toBe(true);
+        // Exactly one pencil instance ever existed.
+        expect(inventory.getState().instances[pencil.id]).toBeDefined();
+        expect(Object.keys(inventory.getState().instances)).toHaveLength(1);
+    });
+
+    test('grab refuses non-carryable archetypes (a real refrigerator stays put)', () => {
+        const { inventory, actions, deps } = realHarness();
+        inventory.createInstance({ archetypeId: 'refrigerator', owner: { kind: 'none' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        expect(actions.startAction('a', 'grab', { object: 'refrigerator' }, cause, deps, result()))
+            .toEqual({ ok: false, reason: 'requirementsUnmet' });
+        expect(inventory.possessionsOf('a')).toHaveLength(0);
+    });
+});

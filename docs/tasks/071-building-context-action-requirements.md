@@ -2,7 +2,7 @@
 
 - **Type:** Content / Migration
 - **Labels:** `actions`, `objects`, `content`, `progression-arc`
-- **Depends on:** [068](068-generalize-actions-and-events.md) (generic verbs), [069](069-object-placement-tags.md) + [070](070-contextual-object-generation.md) (context exists to require)
+- **Depends on:** [068](068-generalize-actions-and-events_DONE.md) (generic verbs), [069](069-object-placement-tags.md) + [070](070-contextual-object-generation.md) (context exists to require)
 
 ## Goal
 
