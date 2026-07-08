@@ -212,19 +212,17 @@ describe('object-action relationships (the bake chain)', () => {
         expect(lifecycle).toEqual(['bake_cake:started', 'mix_dough:performed', 'bake_dough:performed', 'add_topping:performed', 'bake_cake:completed']);
     });
 
-    test('a missing context object (no oven) blocks the parent at the bake step', () => {
+    test('no oven: the parent fails FAST at start (071 requirement) — nothing runs, nothing mixes', () => {
         const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
         const h = harness(inventory);
         inventory.createInstance({ archetypeId: 'flour_bag', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
         inventory.createInstance({ archetypeId: 'egg', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0, quantity: 2 });
-        const outcome = h.actions.startAction('a', 'bake_cake', {}, cause, h.deps, result());
-        const instanceId = (outcome as { instanceId: string }).instanceId;
-        h.actions.advance({ ...h.deps, tick: 1001 }); // mix succeeds
-        h.actions.advance({ ...h.deps, tick: 1002 }); // bake: no oven → inputsUnavailable → blockParent
-        expect(h.actions.getInstance(instanceId)!.status).toBe('blocked');
-        // The dough exists (mix committed) but was never transformed — no partial bake.
-        expect(inventory.carriedInstances('a').some(i => i.archetypeId === 'raw_dough')).toBe(true);
-        expect(inventory.carriedInstances('a').some(i => i.archetypeId === 'baked_dough')).toBe(false);
+        // Since 071 the parent REQUIRES the oven up front (matching the OAR bake-step context), so a
+        // kitchen-less bake never starts — the mid-sequence blockParent path stays covered by the engine
+        // suite's fixtures; here the data contract is fail-fast.
+        expect(h.actions.startAction('a', 'bake_cake', {}, cause, h.deps, result())).toEqual({ ok: false, reason: 'requirementsUnmet' });
+        expect(inventory.carriedInstances('a').some(i => i.archetypeId === 'raw_dough')).toBe(false);
+        expect(inventory.carriedInstances('a').some(i => i.archetypeId === 'flour_bag')).toBe(true); // untouched
     });
 
     test('missing ingredients make the first step unsatisfiable (typed, zero mutations)', () => {
