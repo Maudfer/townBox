@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserved**.
+Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -41,13 +41,13 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | became_estranged | family | probabilistic | texture | — |
 | became_grandparent | milestone | manual | reserved | — |
 | became_great_grandparent | milestone | manual | reserved | — |
-| became_homeless | housing | manual | reserved | — |
+| became_homeless | housing | manual | wired | City.displaceHousehold (eviction, task 076) |
 | became_local_legend | community | probabilistic | texture | — |
 | became_neighborhood_elder | aging | manual | reserved | — |
-| became_parent | family | manual | reserved | — |
+| became_parent | family | manual | wired | City.handleTick (birth, task 076) |
 | became_pen_pals | social | probabilistic | texture | — |
 | became_pregnant | family | probabilistic+manual | texture | — |
-| became_widowed | death | manual | reserved | — |
+| became_widowed | death | manual | wired | City.handleTick (death → surviving spouse, task 076) |
 | began_afternoon_naps | aging | probabilistic | texture | — |
 | believed_town_legend | childhood | probabilistic | texture | — |
 | bird_ruined_clean_car | possessions | probabilistic | texture | — |
@@ -220,7 +220,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | fridge_went_empty | food | manual | reserved | — |
 | gained_weight | health | probabilistic+manual | texture | — |
 | gave_away_kittens | pet | manual | reserved | — |
-| gave_birth | family | manual | reserved | — |
+| gave_birth | family | manual | wired | City.handleTick (birth, task 076) |
 | gave_directions | community | probabilistic+manual | texture | — |
 | gave_gift | social | probabilistic+manual | wired | gave_object_to_person.onComplete |
 | gave_up_driving | aging | probabilistic | texture | — |
@@ -229,7 +229,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | gave_valedictorian_speech | education | manual | reserved | — |
 | get_job | career | probabilistic | vital | — |
 | got_away_with_it | crime-mischief | manual | reserved | — |
-| got_back_on_feet | housing | manual | reserved | — |
+| got_back_on_feet | housing | manual | wired | City.runRecovery (homeless recovery, task 076) |
 | got_back_together | romance | probabilistic+manual | texture | — |
 | got_blister_hiking | travel | probabilistic+manual | texture | — |
 | got_braces | childhood | probabilistic | texture | — |
@@ -368,7 +368,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | learned_to_whistle | childhood | probabilistic | texture | — |
 | learned_to_write | education | manual | reserved | — |
 | left_big_tip | food | probabilistic+manual | texture | — |
-| left_home_first_time | milestone | manual | reserved | — |
+| left_home_first_time | milestone | manual | wired | City.resolveMoveOut (move-out, task 076) |
 | left_umbrella_at_cafe | possessions | probabilistic | texture | — |
 | lent_lawnmower | community | probabilistic+manual | texture | — |
 | lent_money_to_friend | finance | probabilistic+manual | texture | — |
@@ -379,7 +379,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | lost_argument | social | manual | reserved | — |
 | lost_balloon | childhood | probabilistic+manual | texture | — |
 | lost_chess_match | hobby | probabilistic+manual | texture | — |
-| lost_child | death | manual | reserved | — |
+| lost_child | death | manual | wired | City.handleTick (death → parents, task 076) |
 | lost_close_friend | death | manual | reserved | — |
 | lost_election | community | manual | reserved | — |
 | lost_first_tooth | childhood | probabilistic+manual | texture | — |
@@ -387,7 +387,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | lost_house_keys | housing | probabilistic+manual | texture | — |
 | lost_keys | possessions | probabilistic | texture | — |
 | lost_lucky_charm | possessions | probabilistic | texture | — |
-| lost_parent | death | manual | reserved | — |
+| lost_parent | death | manual | wired | City.handleTick (death → children, task 076) |
 | lost_phone | possessions | probabilistic | texture | — |
 | lost_power_in_storm | weather-reaction | manual | reserved | — |
 | lost_small_claims | legal | probabilistic+manual | texture | — |
@@ -589,7 +589,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | survived_heart_attack | death | probabilistic+manual | texture | — |
 | swam_in_lake | travel | probabilistic+manual | texture | — |
 | switched_careers | career | probabilistic+manual | texture | — |
-| taken_in_by_relatives | family | manual | reserved | — |
+| taken_in_by_relatives | family | manual | wired | City.displaceHousehold (eviction rehousing, task 076) |
 | taught_child_to_ride_bike | family | probabilistic+manual | texture | — |
 | taught_grandchild_to_fish | aging | probabilistic+manual | texture | — |
 | taught_parrot_word | pet | probabilistic+manual | texture | — |
@@ -645,7 +645,7 @@ Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserv
 | wallet_returned | finance | probabilistic | texture | — |
 | was_arrested | crime-mischief | probabilistic+manual | texture | — |
 | was_audited | finance | probabilistic+manual | texture | — |
-| was_born | milestone | manual | reserved | — |
+| was_born | milestone | manual | wired | City.handleTick (birth, task 076) |
 | was_burgled | crime-mischief | probabilistic+manual | texture | — |
 | was_cheated_on | romance | manual | reserved | — |
 | was_evicted | housing | manual | reserved | — |

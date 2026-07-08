@@ -354,6 +354,22 @@ export default class City {
         building.setObjectsGenerated(true);
     }
 
+    // Fires an effect-free milestone/relationship event on a person the simulation KNOWS reached that state
+    // (task 076/M4: wiring reserved events that shadow transitions the sim already computes — births, deaths,
+    // eviction, move-out, recovery — so a person's actual life milestones land in their log instead of only
+    // random texture). System-sourced, no causation chain. No-ops silently if the subject can't satisfy the
+    // event's own authored eligibility (e.g. an age gate) — we never override the predicate. Works pool-wide,
+    // so off-map relatives (a widow who isn't on the map) get the milestone too, enriching the asset.
+    private fireMilestone(eventId: string, subjectId: PersonId | null | undefined, tick: number): void {
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (!engine || !population || subjectId == null) {
+            return;
+        }
+        const ticksPerYear = Game.clock ? Game.clock.getTicksPerYear() : DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        engine.invoke(population.getState(), eventId, subjectId, tick, ticksPerYear, { source: 'system', causationId: null });
+    }
+
     // Generates a business for a newly placed work building (Engine A). Deterministic per save + location: the
     // seed is the world seed mixed with the workplace's anchor key, so the same building at the same spot
     // always yields the same business, and it survives save/load without a persisted cursor. Picks a blueprint,
@@ -655,6 +671,24 @@ export default class City {
                 // City-overview vital tallies (task 031).
                 this.deaths += result.died.length;
                 this.births += result.born.length;
+                // Wire the computable birth/death milestone events (task 076/M4) — the sim already knows these
+                // happened; fire them on the real subjects so their logs carry their own milestones.
+                const pool = population.getState().people;
+                for (const birth of result.born) {
+                    this.fireMilestone('was_born', birth.id, event.tick);
+                    this.fireMilestone('gave_birth', birth.motherId, event.tick);
+                    this.fireMilestone('became_parent', birth.motherId, event.tick);
+                    this.fireMilestone('became_parent', birth.fatherId, event.tick);
+                }
+                for (const deceased of result.died) {
+                    this.fireMilestone('became_widowed', spouseAt(pool, deceased, event.tick), event.tick);
+                    for (const childId of childrenOf(pool, deceased)) {
+                        this.fireMilestone('lost_parent', childId, event.tick);
+                    }
+                    for (const parentId of parentsOf(pool, deceased)) {
+                        this.fireMilestone('lost_child', parentId, event.tick);
+                    }
+                }
                 // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
                 if (result.died.length > 0) {
                     this.resolveRehousing(event.tick, ticksPerYear);
@@ -1095,6 +1129,7 @@ export default class City {
             const relativeHouse = this.findRelativeHouse(memberId, byGenId, pool, house, tick);
             if (relativeHouse) {
                 this.relocateMember(memberId, byGenId, house, relativeHouse);
+                this.fireMilestone('taken_in_by_relatives', memberId, tick); // task 076/M4
                 rehoused += 1;
             } else {
                 // No taker → homeless: leave the home, keep materialized but hidden, await recovery.
@@ -1102,6 +1137,7 @@ export default class City {
                 house.removeOccupant(person);
                 person.social.setHome(null);
                 person.setIndoors(true);
+                this.fireMilestone('became_homeless', memberId, tick); // task 076/M4
                 homelessIds.push(memberId);
             }
         }
@@ -1218,6 +1254,7 @@ export default class City {
                 person.setIndoors(true);
                 vacant.addResident(person);
                 vacant.addOccupant(person);
+                this.fireMilestone('got_back_on_feet', id, tick); // task 076/M4
             }
             vacant.setHousehold({
                 id: `hh-${vacant.getIdentifier()}`,
@@ -1548,6 +1585,7 @@ export default class City {
         });
         // Now occupied → re-draw so it drops the vacant (desaturated) look.
         Game.emit("tileSpawned", vacant);
+        this.fireMilestone('left_home_first_time', personId, tick); // task 076/M4
         this.announce('movedOut', tick, `${person.social.getFullName()} moved into their own place`, person);
     }
 
