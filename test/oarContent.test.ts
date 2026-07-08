@@ -191,6 +191,9 @@ describe('long-run object sanity (task 053)', () => {
             people: { baker: person('baker'), homebody: person('homebody') },
             drawSeed: 1, placedIds: [], nextSeq: 300, lastSimulatedYear: 0,
         };
+        // A kitchen fixture at home: since 071 cooking requires a stove/oven at the location (generated
+        // houses always have them via the 070 essentials; this fixture world places one directly).
+        inventory.createInstance({ archetypeId: 'stove', owner: { kind: 'none' }, container: { kind: 'location', key: 'home' }, tick: 0 });
         // The homebody starts with a stocked pantry so the cooking/eating chains run.
         for (const [archetype, quantity] of [['flour_bag', 2], ['egg', 6], ['lettuce', 2], ['tomato', 3], ['potato', 4], ['onion', 2], ['bread_loaf', 2], ['cheese_wedge', 2]] as const) {
             inventory.createInstance({ archetypeId: archetype, owner: { kind: 'person', personId: 'homebody' }, container: { kind: 'possessions', personId: 'homebody' }, tick: 0, quantity });

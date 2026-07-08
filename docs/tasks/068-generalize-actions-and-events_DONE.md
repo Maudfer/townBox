@@ -3,7 +3,7 @@
 - **Type:** Migration / Content
 - **Labels:** `actions`, `events`, `content`, `progression-arc`
 - **Depends on:** [067](067-parameterized-requirements-and-event-payloads_DONE.md) (param plumbing)
-- **Blocks:** [071](071-building-context-action-requirements.md) and [074](074-person-targeted-actions-backfill.md) build on the generalized verbs
+- **Blocks:** [071](071-building-context-action-requirements_DONE.md) and [074](074-person-targeted-actions-backfill.md) build on the generalized verbs
 
 ## Goal
 

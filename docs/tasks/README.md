@@ -83,7 +83,7 @@ Always run `npm test` before opening the PR.**
 | 068 | [Generalize Actions & Events](068-generalize-actions-and-events_DONE.md) | Migration | ✅ Done |
 | 069 | [Contextual placement tags — objects, buildings & businesses](069-object-placement-tags_DONE.md) | Framework | ✅ Done |
 | 070 | [Deterministic contextual object generation](070-contextual-object-generation_DONE.md) | Feature | ✅ Done |
-| 071 | [Backfill Action requirements from building context](071-building-context-action-requirements.md) | Content | ⬜ Open |
+| 071 | [Backfill Action requirements from building context](071-building-context-action-requirements_DONE.md) | Content | ✅ Done |
 | 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts.md) | Framework | ⬜ Open |
 | 073 | [Consent evaluation & Action failure handling](073-consent-and-action-failure.md) | Feature | ⬜ Open |
 | 074 | [Person-targeted Actions backfill](074-person-targeted-actions-backfill.md) | Content | ⬜ Open |
@@ -158,7 +158,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   classification sweep).
 - **Objects in context:** [069](069-object-placement-tags_DONE.md) (placement-tag axis + building/business tags,
   vocabulary from the 049 settings lists) → [070](070-contextual-object-generation_DONE.md) (deterministic
-  building fill, teardown symmetry) → [071](071-building-context-action-requirements.md) (activities require
+  building fill, teardown symmetry) → [071](071-building-context-action-requirements_DONE.md) (activities require
   real environmental context; no conjured objects).
 - **People acting on people:** [072](072-person-targeted-action-contracts.md) (interaction contracts,
   same-building, the target-binding social hook that revives today's dead social actions) →

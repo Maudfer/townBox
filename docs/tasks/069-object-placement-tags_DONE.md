@@ -3,7 +3,7 @@
 - **Type:** Framework / Data schema + Content
 - **Labels:** `objects`, `buildings`, `data-schema`, `progression-arc`
 - **Depends on:** [056](056-progression-arc-discovery-baseline_DONE.md)
-- **Blocks:** [070](070-contextual-object-generation_DONE.md) (generation consumes the tags), [071](071-building-context-action-requirements.md)
+- **Blocks:** [070](070-contextual-object-generation_DONE.md) (generation consumes the tags), [071](071-building-context-action-requirements_DONE.md)
 
 ## Goal
 

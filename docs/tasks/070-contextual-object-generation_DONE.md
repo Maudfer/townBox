@@ -3,7 +3,7 @@
 - **Type:** Feature / Simulation
 - **Labels:** `objects`, `buildings`, `save`, `progression-arc`
 - **Depends on:** [069](069-object-placement-tags_DONE.md) (tags + generation metadata)
-- **Blocks:** [071](071-building-context-action-requirements.md) (requirements consume generated objects), [055](055-history-asset-pipeline.md) (logical buildings need the same fill)
+- **Blocks:** [071](071-building-context-action-requirements_DONE.md) (requirements consume generated objects), [055](055-history-asset-pipeline.md) (logical buildings need the same fill)
 
 ## Goal
 
