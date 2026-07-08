@@ -37,7 +37,7 @@ skills — replacing the flat one-legacy-skill `requiredSkills` model end to end
 - Remove the flat `requiredSkills` field once every job has ranks (or keep it derived/absent per 064's final
   schema decision) — no dual-source-of-truth left behind.
 - Update `docs/simulation-relationships.md` (`npm run docs:sim`) in the same PR if the generator covers
-  jobs/skills by then ([075](075-progression-arc-validation-and-docs.md) extends it otherwise).
+  jobs/skills by then ([075](075-progression-arc-validation-and-docs_DONE.md) extends it otherwise).
 
 ## Non-goals
 

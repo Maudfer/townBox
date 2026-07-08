@@ -11,9 +11,16 @@ import {
 
 import { ActionManifest, OARTable } from '../src/types/Action';
 import { EventManifest } from '../src/types/LifeEvent';
+import { ArcManifests } from '../src/util/simulationDocs';
 import actionsConfig from '../src/json/actions.json';
 import eventsConfig from '../src/json/events.json';
 import oarConfig from '../src/json/object-action-relationships.json';
+import skillsConfig from '../src/json/skills.json';
+import jobsConfig from '../src/json/jobs.json';
+import placementConfig from '../src/json/placement.json';
+import businessesConfig from '../src/json/businesses.json';
+import residencesConfig from '../src/json/residences.json';
+import objectsConfig from '../src/json/objects.json';
 
 // The Action <-> Event relationship documentation (task 054): the generator's extraction logic, and the
 // checked-diff gate — docs/simulation-relationships.md must match what the shipped manifests derive.
@@ -22,6 +29,15 @@ import oarConfig from '../src/json/object-action-relationships.json';
 const ACTIONS = actionsConfig as unknown as ActionManifest;
 const EVENTS = eventsConfig as unknown as EventManifest;
 const OAR = oarConfig as unknown as OARTable;
+// The arc manifests (task 075): the generated artifact now covers skills/ranks/placement/contracts too.
+const EXTRAS: ArcManifests = {
+    skills: skillsConfig as ArcManifests['skills'],
+    jobs: jobsConfig as unknown as ArcManifests['jobs'],
+    placement: (placementConfig as { tags: ArcManifests['placement'] }).tags,
+    businesses: businessesConfig as unknown as ArcManifests['businesses'],
+    residences: residencesConfig as ArcManifests['residences'],
+    objects: objectsConfig as unknown as ArcManifests['objects'],
+};
 
 const DOC_PATH = path.join(__dirname, '..', 'docs', 'simulation-relationships.md');
 
@@ -72,7 +88,7 @@ describe('extraction', () => {
 
 describe('checked diff', () => {
     test('docs/simulation-relationships.md matches the shipped manifests', () => {
-        const generated = generateRelationshipDocs(ACTIONS, EVENTS, OAR);
+        const generated = generateRelationshipDocs(ACTIONS, EVENTS, OAR, EXTRAS);
         if (process.env['UPDATE_SIM_DOCS']) {
             fs.writeFileSync(DOC_PATH, generated);
         }

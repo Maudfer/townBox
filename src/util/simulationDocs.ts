@@ -149,7 +149,93 @@ function oarOutputCell(entry: OARTable[string]): string {
     }).join('<br>');
 }
 
-export function generateRelationshipDocs(actions: ActionManifest, events: EventManifest, oar: OARTable): string {
+// The arc manifests (task 075): optional inputs extending the generated artifact to the progression &
+// context data — skills DAG, job rank ladders, placement tags, interaction contracts. Loosely typed on
+// purpose: the generator summarizes; the validators own the schemas.
+export interface ArcManifests {
+    skills: Record<string, { basic?: boolean; dependsOn?: { skill: string }[] }>;
+    jobs: Record<string, { title: string; ranks?: { rankId: string; label: string; entry?: boolean; requires?: { skill: string; minProficiency: number }[]; progresses?: { skill: string; multiplier: number }[]; promotion?: { evaluateEveryWorkDays?: number }; entryTrainingGrant?: { grants: unknown[] } }[] }>;
+    placement: Record<string, { scope: string }>;
+    businesses: Record<string, { tags?: string[] }>;
+    residences: Record<string, { tags?: string[] }>;
+    objects: Record<string, { placement?: string[] }>;
+}
+
+function interactionContractRows(actions: ActionManifest): string[][] {
+    return Object.entries(actions)
+        .filter(([, def]) => def.interaction)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([actionId, def]) => {
+            const contract = def.interaction!;
+            const declineLink = def.events?.onDecline;
+            const declineEvent = declineLink === undefined ? '—' : code(typeof declineLink === 'string' ? declineLink : declineLink.event);
+            const selection = def.selection;
+            return [
+                code(actionId),
+                contract.askFirst ? 'ask first' : 'no consent',
+                contract.onDecline ?? '—',
+                declineEvent,
+                selection ? `w ${selection.weight}${selection.cooldownTicks !== undefined ? `, cd ${selection.cooldownTicks}` : ''}` : '—',
+            ];
+        });
+}
+
+function jobRankRows(jobs: ArcManifests['jobs']): string[][] {
+    return Object.entries(jobs)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([jobKey, job]) => {
+            const ranks = job.ranks ?? [];
+            const entry = ranks.find(rank => rank.entry);
+            const ladder = ranks.map(rank => rank.label).join(' → ');
+            const cadence = entry?.promotion?.evaluateEveryWorkDays;
+            return [
+                code(jobKey),
+                ladder || '—',
+                entry?.entryTrainingGrant ? `${entry.entryTrainingGrant.grants.length} skills` : '—',
+                cadence !== undefined ? `every ${cadence} work days` : '—',
+            ];
+        });
+}
+
+function skillsSummaryRows(skills: ArcManifests['skills']): { rows: string[][]; basics: number; specifics: number } {
+    const ids = Object.keys(skills);
+    const basics = ids.filter(id => skills[id]!.basic);
+    const dependents = new Map<string, number>();
+    for (const definition of Object.values(skills)) {
+        for (const dep of definition.dependsOn ?? []) {
+            dependents.set(dep.skill, (dependents.get(dep.skill) ?? 0) + 1);
+        }
+    }
+    const rows = basics.sort().map(basic => [code(basic), String(dependents.get(basic) ?? 0)]);
+    return { rows, basics: basics.length, specifics: ids.length - basics.length };
+}
+
+function placementTagRows(extras: ArcManifests): string[][] {
+    const archetypeCounts = new Map<string, number>();
+    for (const archetype of Object.values(extras.objects)) {
+        for (const tag of archetype.placement ?? []) {
+            archetypeCounts.set(tag, (archetypeCounts.get(tag) ?? 0) + 1);
+        }
+    }
+    const buildingCounts = new Map<string, number>();
+    const countBuilding = (tags: string[] | undefined): void => {
+        for (const tag of tags ?? []) {
+            buildingCounts.set(tag, (buildingCounts.get(tag) ?? 0) + 1);
+        }
+    };
+    Object.values(extras.businesses).forEach(blueprint => countBuilding(blueprint.tags));
+    Object.values(extras.residences).forEach(residence => countBuilding(residence.tags));
+    return Object.entries(extras.placement)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([tag, spec]) => [
+            code(tag),
+            spec.scope,
+            String(archetypeCounts.get(tag) ?? 0),
+            String(buildingCounts.get(tag) ?? 0),
+        ]);
+}
+
+export function generateRelationshipDocs(actions: ActionManifest, events: EventManifest, oar: OARTable, extras?: ArcManifests): string {
     const lifecycle = extractLifecycleLinks(actions);
     const consequenceLinks = extractConsequenceEventLinks(actions);
     const mixes = triggerMixCounts(events);
@@ -257,6 +343,34 @@ export function generateRelationshipDocs(actions: ActionManifest, events: EventM
         + 'person\'s carried instances. `required` inputs must be present but survive; `transformed` inputs '
         + 'preserve instance identity.\n\n'
         + table(['Entry', 'Action', 'Inputs', 'Outputs', 'Context'], oarRows));
+
+    // --- The progression & context arc manifests (task 075) ---
+    if (extras) {
+        sections.push('## Interaction contracts (person-targeted actions)\n\n'
+            + 'Every action with a `person` parameter carries a contract (072); `askFirst` routes consent through '
+            + 'the target (073); decline events are curated, not universal (074). All require same-building '
+            + 'co-location this iteration.\n\n'
+            + table(['Action', 'Consent', 'onDecline', 'Decline event', 'Selection'], interactionContractRows(actions)));
+
+        const skillSummary = skillsSummaryRows(extras.skills);
+        sections.push('## Skills (dependency DAG summary)\n\n'
+            + `${skillSummary.basics + skillSummary.specifics} skills — ${skillSummary.basics} basics, `
+            + `${skillSummary.specifics} specific abilities gated by the dependency DAG (059–062). School lands `
+            + 'every basic at 60 by 18 (perfect attendance); the band above 60 is career/talent territory.\n\n'
+            + table(['Basic skill', 'Direct dependents'], skillSummary.rows));
+
+        sections.push('## Job rank ladders\n\n'
+            + 'Every job carries a full authored ladder (064/066) with an explicit entry-rank training grant (the '
+            + 'temporary College shortcut, applied atomically ONLY inside a successful hire) and a deterministic '
+            + 'promotion cadence; the self-climbing rule (CI-enforced) guarantees no ladder silently stalls.\n\n'
+            + table(['Job', 'Ladder', 'Entry grant', 'Promotion cadence'], jobRankRows(extras.jobs)));
+
+        sections.push('## Placement tags (context vocabulary)\n\n'
+            + 'The controlled vocabulary (069): tags mean "this environmental context exists here" — rooms are '
+            + 'never simulated. `building`-scoped tags drive object generation (070); `deferred` tags await the '
+            + 'venue model.\n\n'
+            + table(['Tag', 'Scope', 'Archetypes', 'Buildings'], placementTagRows(extras)));
+    }
 
     return sections.join('\n\n') + '\n';
 }
