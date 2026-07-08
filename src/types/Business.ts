@@ -72,7 +72,9 @@ export interface BusinessJobSpec {
 // A business blueprint (src/json/businesses.json): the probabilistic/scaling recipe for a line of work.
 export interface BusinessBlueprint {
     friendlyName: string; // display label for the line of work, e.g. "Super Market"
-    category: string; // demand category it serves (json/demand.json), e.g. "groceries" — task 033
+    category: string;
+    // Placement/context tags this business type contains (task 069; json/placement.json vocabulary).
+    tags?: string[]; // demand category it serves (json/demand.json), e.g. "groceries" — task 033
     size: { min: number; max: number }; // drawn uniformly at placement (distribution weighting is a future extension)
     jobs: Record<string, BusinessJobSpec>; // jobId -> position count curve
     materialsPerUnit?: Record<string, number>; // input material amounts to produce one unit of output (task 033)

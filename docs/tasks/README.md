@@ -81,7 +81,7 @@ Always run `npm test` before opening the PR.**
 | 066 | [Jobs backfill — ranks, skills & progression](066-jobs-ranks-data-backfill_DONE.md) | Content | ✅ Done |
 | 067 | [Parameterized requirements, object refs & event payloads](067-parameterized-requirements-and-event-payloads_DONE.md) | Framework | ✅ Done |
 | 068 | [Generalize Actions & Events](068-generalize-actions-and-events_DONE.md) | Migration | ✅ Done |
-| 069 | [Contextual placement tags — objects, buildings & businesses](069-object-placement-tags.md) | Framework | ⬜ Open |
+| 069 | [Contextual placement tags — objects, buildings & businesses](069-object-placement-tags_DONE.md) | Framework | ✅ Done |
 | 070 | [Deterministic contextual object generation](070-contextual-object-generation.md) | Feature | ⬜ Open |
 | 071 | [Backfill Action requirements from building context](071-building-context-action-requirements.md) | Content | ⬜ Open |
 | 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts.md) | Framework | ⬜ Open |
@@ -156,7 +156,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
   requirements/queries + event payloads — the expressiveness the sweep needs; added during planning) →
   [068](068-generalize-actions-and-events_DONE.md) (generic object verbs, parameterized events, the 698-event
   classification sweep).
-- **Objects in context:** [069](069-object-placement-tags.md) (placement-tag axis + building/business tags,
+- **Objects in context:** [069](069-object-placement-tags_DONE.md) (placement-tag axis + building/business tags,
   vocabulary from the 049 settings lists) → [070](070-contextual-object-generation.md) (deterministic
   building fill, teardown symmetry) → [071](071-building-context-action-requirements.md) (activities require
   real environmental context; no conjured objects).
