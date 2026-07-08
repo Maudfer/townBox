@@ -27,6 +27,10 @@ import { PersonId } from 'types/Genealogy';
 import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
 
+// The selection weight assumed when an action declares none (task 076/L2). One shared convention across every
+// selection path (free-time and the social hook) so a weightless action is treated identically everywhere.
+export const DEFAULT_SELECTION_WEIGHT = 1;
+
 // The person's broad simulation state — a small, stable enum, never an arbitrary action name (038 §8). The
 // actual activity is the active instance (`activeActionInstanceId`), queryable separately.
 export type BrainStatus = 'idle' | 'sleeping' | 'commuting' | 'working' | 'performing_action' | 'waiting_for_materialization';
@@ -67,6 +71,11 @@ export interface BrainDeps extends ActionDeps {
     schoolOf?: (personId: PersonId) => SchoolFacts | null;
 }
 
+// Dispatched today: `onTick` and `onEventCommitted` (processTick), and `onActionFailed` (the decline path,
+// task 073). The remaining kinds are a RESERVED forward API for future producers (shift/arrival/action-lifecycle
+// systems) — declared so hooks can register against them without reshaping the resolution machinery, but not
+// yet emitted (task 076/L1: completion-driven selection is already covered by idleFallback on the same tick,
+// given actions advance in phases 1–2 before hooks run in phase 7).
 export type HookKind = 'onTick' | 'onEventCommitted' | 'onActionStarted' | 'onActionCompleted' | 'onActionFailed' | 'onActionInterrupted' | 'onLocationArrived' | 'onShiftStarted' | 'onShiftEnded';
 
 export interface HookContext {
@@ -100,7 +109,6 @@ export default class Brain {
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
             wokeUpHook,
-            actionCompletedHook,
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)
             inventoryOpportunityHook,
@@ -159,8 +167,9 @@ export default class Brain {
                         intents.push(...hook.propose({ personId, deps, brain: this, event }));
                     }
                 }
-                // Other kinds (arrival/shift/action hooks) are dispatched by their producers as those
-                // systems land (046 follow-ups + 047); the registry accommodates them already.
+                // onActionFailed is dispatched separately by the decline path (resolveIntents, task 073); the
+                // remaining reserved kinds have no producer yet (see the HookKind note). idleFallback (onTick)
+                // covers post-completion selection here, so no completion dispatch is needed.
             }
             this.resolveIntents(personId, intents, deps, result);
         }
@@ -237,7 +246,7 @@ export default class Brain {
                 continue; // obligations are hook-driven, never free-time picks
             }
             const selection = def.selection;
-            let weight = selection?.weight ?? 0;
+            let weight = selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
             if (weight <= 0) {
                 continue; // not selectable
             }
@@ -305,16 +314,6 @@ const wokeUpHook: BrainHook = {
             mayInterrupt: false,
             causationId: event.seq,
         }] : [];
-    },
-};
-
-// A continuous action just finished (observed as: committed stopped_working / no active instance) → the
-// idle fallback below covers selection; this hook exists as the registration point for 047's refinements.
-const actionCompletedHook: BrainHook = {
-    id: 'actionCompleted',
-    kind: 'onActionCompleted',
-    propose(): ActionIntent[] {
-        return [];
     },
 };
 
