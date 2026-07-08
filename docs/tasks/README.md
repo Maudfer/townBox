@@ -67,22 +67,41 @@ Always run `npm test` before opening the PR.**
 | 052 | [Events data backfill (500 probabilistic + 500 manual)](052-events-data-backfill_DONE.md) | Content | ✅ Done |
 | 053 | [object-action-relationships backfill](053-object-action-relationships-backfill_DONE.md) | Content | ✅ Done |
 | 054 | [Action ↔ Event relationship documentation](054-action-event-relationship-docs_DONE.md) | Docs | ✅ Done |
-| 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038) |
+| 055 | [Offline history-asset pipeline + asset-fed new game](055-history-asset-pipeline.md) | Simulation | ⬜ Open (renumbered from 038; runs after 056–075) |
+| 056 | [Progression arc — discovery & migration baseline](056-progression-arc-discovery-baseline_DONE.md) | Planning | ✅ Done |
+| 057 | [Calendar weekday & weekend support](057-calendar-weekdays-and-weekends.md) | Framework | ⬜ Open |
+| 058 | [School assignments, scheduling & weekend behavior](058-school-assignments-and-scheduling.md) | Feature | ⬜ Open |
+| 059 | [Skill rework — proficiency schema, dependency graph & store](059-skill-proficiency-schema-and-store.md) | Framework | ⬜ Open |
+| 060 | [Basic skills — definition & backfill](060-basic-skills-backfill.md) | Content | ⬜ Open |
+| 061 | [Specific skills — replace generic families & migrate references](061-specific-skills-backfill-and-migration.md) | Content | ⬜ Open |
+| 062 | [Person skill initialization & early-childhood seeding](062-skill-initialization-and-early-childhood.md) | Feature | ⬜ Open |
+| 063 | [School-day skill progression](063-school-day-skill-progression.md) | Feature | ⬜ Open |
+| 064 | [Job ranks & entry-level training grants](064-job-ranks-and-training-grants.md) | Framework | ⬜ Open |
+| 065 | [Job skill progression & rank promotion](065-job-skill-progression-and-promotion.md) | Feature | ⬜ Open |
+| 066 | [Jobs backfill — ranks, skills & progression](066-jobs-ranks-data-backfill.md) | Content | ⬜ Open |
+| 067 | [Parameterized requirements, object refs & event payloads](067-parameterized-requirements-and-event-payloads.md) | Framework | ⬜ Open |
+| 068 | [Generalize Actions & Events](068-generalize-actions-and-events.md) | Migration | ⬜ Open |
+| 069 | [Contextual placement tags — objects, buildings & businesses](069-object-placement-tags.md) | Framework | ⬜ Open |
+| 070 | [Deterministic contextual object generation](070-contextual-object-generation.md) | Feature | ⬜ Open |
+| 071 | [Backfill Action requirements from building context](071-building-context-action-requirements.md) | Content | ⬜ Open |
+| 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts.md) | Framework | ⬜ Open |
+| 073 | [Consent evaluation & Action failure handling](073-consent-and-action-failure.md) | Feature | ⬜ Open |
+| 074 | [Person-targeted Actions backfill](074-person-targeted-actions-backfill.md) | Content | ⬜ Open |
+| 075 | [Progression arc — end-to-end validation & documentation](075-progression-arc-validation-and-docs.md) | Test/Docs | ⬜ Open |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
 > its cross-dependencies.
 
-### Status (as of the 038 planning pass)
+### Status (as of the 056 planning pass)
 
-The **014–037** procedural-framework arc is complete — employment, the full economy cascade
-(wages → cost of living → business P&L → bankruptcy → eviction/homelessness → recovery, with a B2B supply chain),
-household-lifecycle dynamics, the UI/inspector layer, content expansion, CI, and the per-load history bootstrap
-all shipped. **Remaining open:** **008** (Playwright integration — would also let you verify 036 live),
-**012** (live-app verification), **033c** (optional Tier-2 demand), the documented **036 one-fidelity
-follow-up** (retire the coarse live pool sim), the **039–054 enrichment arc** (below), and **055** (the offline
-history-asset pipeline that reframes 036 from a per-load cost into a versioned data asset — renumbered from 038
-so it lands *after* the enrichment it should capture).
+The **014–037** procedural-framework arc and the **039–054 simulation-enrichment arc** are complete —
+employment, the full economy cascade, household-lifecycle dynamics, the UI/inspector layer, CI, hourly ticks,
+objects/possessions, actions, event triggers, Brain, the Job Orchestrator, and the content backfills all
+shipped. **Remaining open:** **008** (Playwright integration), **012** (live-app verification), **033c**
+(optional Tier-2 demand), the documented **036 one-fidelity follow-up** (retire the coarse live pool sim), the
+**056–075 progression & context arc** (below), and **055** (the offline history-asset pipeline — sequenced
+after 075 so the asset captures the arc).
 
 ### The simulation-enrichment arc (038–055)
 
@@ -103,9 +122,52 @@ modes (`live` / `bootstrap`) behind a formal **execution boundary** — never `i
   [050](050-objects-data-backfill_DONE.md)–[053](053-object-action-relationships-backfill_DONE.md);
   [054](054-action-event-relationship-docs_DONE.md) documents the action↔event web ([`docs/simulation-flows.md`](../simulation-flows.md) + the generated [`docs/simulation-relationships.md`](../simulation-relationships.md)).
 - **Strategic:** [055](055-history-asset-pipeline.md) then runs the *enriched* sim offline into the
-  versioned history asset.
+  versioned history asset — **after** the progression & context arc below, which it should also capture.
 
 Framework lands before content on purpose: never author 1,000+ data records against unstable schemas.
+
+### The progression & context arc (056–075)
+
+Planned from `docs/planning/original_prompts/02_original_prompt_skills_rework.md` (validated against the
+codebase 2026-07-07): make **time, skill acquisition, work progression, environmental context, and
+interpersonal Actions** materially affect the simulation — nothing generated-but-consumed-by-nothing. Same
+framework-before-content discipline; everything mode-agnostic under the 040 execution boundary so
+[055](055-history-asset-pipeline.md) captures it all. Phases (each strand is independently mergeable; the
+maintainer allows bundling related tasks per PR — sequencing notes live in each task):
+
+- **Baseline:** [056](056-progression-arc-discovery-baseline_DONE.md) ✅ (discovery verified, decisions
+  ratified 2026-07-07: per-job off-days kept; central skill store; **059–062 as one bundled PR**; marriage
+  stays event-owned).
+- **Calendar & school:** [057](057-calendar-weekdays-and-weekends.md) (weekday/`isWeekend` surfaced) →
+  [058](058-school-assignments-and-scheduling.md) (school assignments, the Brain school obligation,
+  walking commutes for minors).
+- **Skills** (**059–062 = one bundled branch/PR**, ratified 056 decision c):
+  [059](059-skill-proficiency-schema-and-store.md) (proficiency records, dependency DAG, central
+  personId-keyed store, save migration) + [060](060-basic-skills-backfill.md) (≥15 basics) +
+  [061](061-specific-skills-backfill-and-migration.md) (≥20 specifics per legacy family, full reference
+  migration) + [062](062-skill-initialization-and-early-childhood.md) (age-appropriate seeding: milestones
+  1–6, school-derived 7–17, adults basics@60 + assortment) → then
+  [063](063-school-day-skill-progression.md) (calendar-exact 60.0-at-18 school progression).
+- **Jobs:** [064](064-job-ranks-and-training-grants.md) (ranks + the explicit temporary College-shortcut
+  entry grants — closes the "nobody can ever be hired skilled" loop) →
+  [065](065-job-skill-progression-and-promotion.md) (per-work-day gains, deterministic promotion) →
+  [066](066-jobs-ranks-data-backfill.md) (rank ladders for all 33 jobs, 18-year-old reachability rule in CI).
+- **Generalization:** [067](067-parameterized-requirements-and-event-payloads.md) (param-aware
+  requirements/queries + event payloads — the expressiveness the sweep needs; added during planning) →
+  [068](068-generalize-actions-and-events.md) (generic object verbs, parameterized events, the 698-event
+  classification sweep).
+- **Objects in context:** [069](069-object-placement-tags.md) (placement-tag axis + building/business tags,
+  vocabulary from the 049 settings lists) → [070](070-contextual-object-generation.md) (deterministic
+  building fill, teardown symmetry) → [071](071-building-context-action-requirements.md) (activities require
+  real environmental context; no conjured objects).
+- **People acting on people:** [072](072-person-targeted-action-contracts.md) (interaction contracts,
+  same-building, the target-binding social hook that revives today's dead social actions) →
+  [073](073-consent-and-action-failure.md) (consent via the target's Brain — deterministic 80% placeholder —
+  and typed action failure consumed by Brain) → [074](074-person-targeted-actions-backfill.md) (askFirst
+  posture across the social repertoire).
+- **Gate:** [075](075-progression-arc-validation-and-docs.md) (end-to-end scenarios, live↔bootstrap
+  equivalence, budget re-pins, flows/relationships/CLAUDE.md documentation) — then
+  [055](055-history-asset-pipeline.md).
 
 ### Procedural-framework follow-ups (014–037)
 
