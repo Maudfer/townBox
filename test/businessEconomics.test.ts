@@ -282,3 +282,19 @@ describe('City B2B supply chain (task 035)', () => {
         expect(farmPnl(false)).toBeLessThan(0);
     });
 });
+
+// B2B closure (task 076/M5): every material a business CONSUMES must be produced by some blueprint, or its
+// demand is captured by nobody and the money paid for it silently leaves the economy.
+describe('B2B supply-chain closure (task 076/M5)', () => {
+    test('every consumed material is produced by at least one blueprint', () => {
+        const blueprints = businessesConfig as Record<string, { materialsPerUnit?: Record<string, number>; products?: Record<string, number> }>;
+        const consumed = new Set<string>();
+        const produced = new Set<string>();
+        for (const blueprint of Object.values(blueprints)) {
+            for (const material of Object.keys(blueprint.materialsPerUnit ?? {})) consumed.add(material);
+            for (const material of Object.keys(blueprint.products ?? {})) produced.add(material);
+        }
+        const unsupplied = [...consumed].filter(material => !produced.has(material)).sort();
+        expect(unsupplied).toEqual([]);
+    });
+});

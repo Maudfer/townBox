@@ -1102,7 +1102,9 @@
         "products": {
             "building_materials": 250,
             "hardware_stock": 250,
-            "electronics_parts": 150
+            "electronics_parts": 150,
+            "medical_supplies": 250,
+            "auto_parts": 200
         },
         "economics": {
             "priceMarkup": 1.3,
@@ -1154,7 +1156,8 @@
             "office_supplies": 350,
             "hotel_supplies": 250,
             "salon_supplies": 250,
-            "entertainment_supplies": 250
+            "entertainment_supplies": 250,
+            "school_supplies": 300
         },
         "economics": {
             "priceMarkup": 1.25,
