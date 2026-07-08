@@ -178,6 +178,16 @@
             "consumable": false,
             "equippable": false,
             "placeable": false
+        },
+        "placement": [
+            "bedroom",
+            "living-room"
+        ],
+        "generation": {
+            "kind": "loose",
+            "weight": 1,
+            "maxPerBuilding": 2,
+            "ownershipDefault": "none"
         }
     },
     "cellphone": {
@@ -199,7 +209,18 @@
         },
         "tags": [
             "valuable"
-        ]
+        ],
+        "placement": [
+            "bedroom",
+            "living-room",
+            "office"
+        ],
+        "generation": {
+            "kind": "loose",
+            "weight": 1,
+            "maxPerBuilding": 2,
+            "ownershipDefault": "none"
+        }
     },
     "wallet": {
         "label": "Wallet",
@@ -473,7 +494,19 @@
         },
         "tags": [
             "snack"
-        ]
+        ],
+        "placement": [
+            "kitchen",
+            "cafe",
+            "bar",
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 4,
+            "ownershipDefault": "none"
+        }
     },
     "water_bottle": {
         "label": "Water Bottle",
@@ -647,7 +680,18 @@
         },
         "tags": [
             "work"
-        ]
+        ],
+        "placement": [
+            "workshop",
+            "garage",
+            "hardware-store"
+        ],
+        "generation": {
+            "kind": "reusable",
+            "weight": 1,
+            "maxPerBuilding": 2,
+            "ownershipDefault": "none"
+        }
     },
     "screwdriver": {
         "label": "Screwdriver",
@@ -668,7 +712,18 @@
         },
         "tags": [
             "work"
-        ]
+        ],
+        "placement": [
+            "workshop",
+            "garage",
+            "hardware-store"
+        ],
+        "generation": {
+            "kind": "reusable",
+            "weight": 1,
+            "maxPerBuilding": 2,
+            "ownershipDefault": "none"
+        }
     },
     "flashlight": {
         "label": "Flashlight",
@@ -873,7 +928,19 @@
         "tags": [
             "hobby",
             "childhood"
-        ]
+        ],
+        "placement": [
+            "backyard-garden",
+            "park",
+            "sports-field",
+            "bedroom"
+        ],
+        "generation": {
+            "kind": "loose",
+            "weight": 1,
+            "maxPerBuilding": 2,
+            "ownershipDefault": "none"
+        }
     },
     "skipping_rope": {
         "label": "Skipping Rope",
@@ -952,6 +1019,17 @@
             "consumable": false,
             "equippable": false,
             "placeable": false
+        },
+        "placement": [
+            "kitchen",
+            "restaurant",
+            "school-cafeteria"
+        ],
+        "generation": {
+            "kind": "reusable",
+            "weight": 1,
+            "maxPerBuilding": 6,
+            "ownershipDefault": "none"
         }
     },
     "bowl": {
@@ -974,6 +1052,16 @@
         "container": {
             "capacityLiters": 2,
             "maxItems": 3
+        },
+        "placement": [
+            "kitchen",
+            "restaurant"
+        ],
+        "generation": {
+            "kind": "reusable",
+            "weight": 1,
+            "maxPerBuilding": 6,
+            "ownershipDefault": "none"
         }
     },
     "frying_pan": {
@@ -1019,6 +1107,16 @@
             "consumable": false,
             "equippable": false,
             "placeable": false
+        },
+        "placement": [
+            "kitchen",
+            "restaurant"
+        ],
+        "generation": {
+            "kind": "reusable",
+            "weight": 1,
+            "maxPerBuilding": 3,
+            "ownershipDefault": "none"
         }
     },
     "scarf": {
@@ -1095,6 +1193,15 @@
             "consumable": true,
             "equippable": false,
             "placeable": false
+        },
+        "placement": [
+            "bathroom"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 3,
+            "ownershipDefault": "none"
         }
     },
     "couch": {
@@ -18937,7 +19044,16 @@
         },
         "tags": [
             "leisure"
-        ]
+        ],
+        "placement": [
+            "cinema"
+        ],
+        "generation": {
+            "kind": "loose",
+            "weight": 1,
+            "maxPerBuilding": 4,
+            "ownershipDefault": "none"
+        }
     },
     "aa_battery": {
         "label": "AA Battery",

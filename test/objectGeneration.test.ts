@@ -117,3 +117,40 @@ describe('consumption proof (the 071 seam)', () => {
         expect(hasOven).toBe(true); // the bake chain's context requirement is satisfiable in any generated kitchen
     });
 });
+
+// Object reachability (task 076/M2): every object archetype must be able to enter the world — generatable
+// into some building (placement tag ∩ building tags), created as an OAR output, or referenced by an
+// action/OAR/event. Before this task ~581 objects sat behind deferred venues and 11 seed objects had no
+// placement at all, so they could never spawn.
+describe('object reachability (task 076/M2)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const objects = require('../src/json/objects.json') as Record<string, { placement?: string[] }>;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const actions = require('../src/json/actions.json');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const oar = require('../src/json/object-action-relationships.json');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const events = require('../src/json/events.json');
+
+    test('every object archetype can enter the world', () => {
+        const buildingTags = new Set<string>(HOUSE_TAGS);
+        for (const blueprint of Object.values(businessesConfig as Record<string, { tags?: string[] }>)) {
+            for (const tag of blueprint.tags ?? []) buildingTags.add(tag);
+        }
+        const ids = new Set(Object.keys(objects));
+        const referenced = new Set<string>();
+        const scan = (value: unknown): void => {
+            if (value == null) return;
+            if (typeof value === 'string') { if (ids.has(value)) referenced.add(value); return; }
+            if (typeof value === 'object') for (const v of Object.values(value as Record<string, unknown>)) scan(v);
+        };
+        scan(actions); scan(oar); scan(events);
+
+        const unreachable = Object.keys(objects).filter(id => {
+            const placement = objects[id]!.placement ?? [];
+            const generatable = placement.some(tag => buildingTags.has(tag));
+            return !generatable && !referenced.has(id);
+        }).sort();
+        expect(unreachable).toEqual([]);
+    });
+});

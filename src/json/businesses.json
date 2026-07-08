@@ -175,7 +175,7 @@
                 "count": {
                     "mode": "sqrt",
                     "base": 1,
-                    "coeff": 1.0,
+                    "coeff": 1,
                     "max": 6
                 }
             }
@@ -1165,6 +1165,765 @@
                 "mode": "linear",
                 "base": 1200,
                 "perUnit": 800
+            }
+        }
+    },
+    "bar": {
+        "friendlyName": "Bar",
+        "category": "hospitality",
+        "tags": [
+            "bar"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "waiter": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 12
+                }
+            },
+            "barista": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 5
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "food_ingredients": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1600,
+                "perUnit": 900
+            }
+        }
+    },
+    "bookstore": {
+        "friendlyName": "Bookstore",
+        "category": "retail",
+        "tags": [
+            "bookstore"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "sales_associate": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 10
+                }
+            },
+            "checkout_clerk": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 5
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "retail_goods": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1400,
+                "perUnit": 800
+            }
+        }
+    },
+    "toy_store": {
+        "friendlyName": "Toy Store",
+        "category": "retail",
+        "tags": [
+            "toy-store"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "sales_associate": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 10
+                }
+            },
+            "checkout_clerk": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 5
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "retail_goods": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1400,
+                "perUnit": 800
+            }
+        }
+    },
+    "pet_shop": {
+        "friendlyName": "Pet Shop",
+        "category": "retail",
+        "tags": [
+            "pet-shop"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "sales_associate": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 10
+                }
+            },
+            "checkout_clerk": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 5
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "retail_goods": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1400,
+                "perUnit": 800
+            }
+        }
+    },
+    "music_studio": {
+        "friendlyName": "Music Studio",
+        "category": "services",
+        "tags": [
+            "music-studio"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "teacher": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "entertainment_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1200,
+                "perUnit": 700
+            }
+        }
+    },
+    "art_studio": {
+        "friendlyName": "Art Studio",
+        "category": "services",
+        "tags": [
+            "art-studio"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "teacher": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "entertainment_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1200,
+                "perUnit": 700
+            }
+        }
+    },
+    "dentist_office": {
+        "friendlyName": "Dentist Office",
+        "category": "healthcare",
+        "tags": [
+            "dentist-office"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "nurse": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            },
+            "receptionist": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 4
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "medical_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 2000,
+                "perUnit": 1200
+            }
+        }
+    },
+    "veterinary_clinic": {
+        "friendlyName": "Veterinary Clinic",
+        "category": "healthcare",
+        "tags": [
+            "veterinary-clinic"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "nurse": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            },
+            "receptionist": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 4
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "medical_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1900,
+                "perUnit": 1100
+            }
+        }
+    },
+    "laundromat": {
+        "friendlyName": "Laundromat",
+        "category": "services",
+        "tags": [
+            "laundromat"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "janitor": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 1,
+                    "max": 6
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1000,
+                "perUnit": 600
+            }
+        }
+    },
+    "library": {
+        "friendlyName": "Library",
+        "category": "services",
+        "tags": [
+            "library"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "receptionist": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "office_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1300,
+                "perUnit": 700
+            }
+        }
+    },
+    "post_office": {
+        "friendlyName": "Post Office",
+        "category": "services",
+        "tags": [
+            "post-office"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "checkout_clerk": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            },
+            "delivery_driver": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 1,
+                    "max": 8
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "office_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1500,
+                "perUnit": 800
+            }
+        }
+    },
+    "police_station": {
+        "friendlyName": "Police Station",
+        "category": "services",
+        "tags": [
+            "police-station"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "security_guard": {
+                "count": {
+                    "mode": "linear",
+                    "base": 3,
+                    "perUnit": 2,
+                    "max": 16
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 2200,
+                "perUnit": 1300
+            }
+        }
+    },
+    "fire_station": {
+        "friendlyName": "Fire Station",
+        "category": "services",
+        "tags": [
+            "fire-station"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "security_guard": {
+                "count": {
+                    "mode": "linear",
+                    "base": 3,
+                    "perUnit": 2,
+                    "max": 16
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 2200,
+                "perUnit": 1300
+            }
+        }
+    },
+    "church": {
+        "friendlyName": "Church",
+        "category": "services",
+        "tags": [
+            "church"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "janitor": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 4
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1100,
+                "perUnit": 600
+            }
+        }
+    },
+    "cemetery": {
+        "friendlyName": "Cemetery",
+        "category": "services",
+        "tags": [
+            "cemetery"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "janitor": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 4
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1000,
+                "perUnit": 500
+            }
+        }
+    },
+    "sports_complex": {
+        "friendlyName": "Sports Complex",
+        "category": "leisure",
+        "tags": [
+            "sports-field",
+            "swimming-pool"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "fitness_trainer": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 12
+                }
+            },
+            "security_guard": {
+                "count": {
+                    "mode": "linear",
+                    "base": 1,
+                    "perUnit": 0.5,
+                    "max": 6
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "entertainment_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1800,
+                "perUnit": 1000
+            }
+        }
+    },
+    "beach": {
+        "friendlyName": "Beach",
+        "category": "leisure",
+        "tags": [
+            "beach",
+            "fishing-pier"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "security_guard": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 10
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1200,
+                "perUnit": 700
+            }
+        }
+    },
+    "park": {
+        "friendlyName": "Park",
+        "category": "leisure",
+        "tags": [
+            "park",
+            "campsite",
+            "street-sidewalk",
+            "bus-stop"
+        ],
+        "size": {
+            "min": 1,
+            "max": 6
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "janitor": {
+                "count": {
+                    "mode": "linear",
+                    "base": 2,
+                    "perUnit": 1,
+                    "max": 10
+                }
+            }
+        },
+        "materialsPerUnit": {
+            "entertainment_supplies": 1
+        },
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.3,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1300,
+                "perUnit": 700
             }
         }
     }
