@@ -289,7 +289,9 @@ export default class City {
             // central SkillBook so hiring (015) has something to match. Idempotent across rematerialization.
             Game.skillBook?.initialize(memberId, age, genPerson.birthTick, currentTick, population.getState().worldSeed, JOB_CORE_SKILLS);
             // Seed starting funds (task 017). Newborns (materializeNewborns) start at 0.
-            Game.economy?.setPersonBalance(memberId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds);
+            // Seed starting funds as an injection from the external sector (task 076/H3): idempotent (adjust by
+            // the delta to the target) so re-materialization never double-mints, and conserved (external tracks it).
+            Game.economy?.adjustPerson(memberId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds - (Game.economy?.getPersonBalance(memberId) ?? 0));
 
             house.addResident(person);
             house.addOccupant(person);
@@ -415,7 +417,8 @@ export default class City {
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
         // Seed starting capital (task 017), scaled by size so bigger establishments start with more.
-        Game.economy?.setBusinessBalance(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size);
+        // Starting capital injected from the external sector (task 076/H3): idempotent + conserved.
+        Game.economy?.adjustBusiness(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size - (Game.economy?.getBusinessBalance(key) ?? 0));
         workplace.setBusinessGenerations(generation + 1);
         workplace.setVacantMonths(0);
         // Fill the venue with contextual objects at placement/re-occupancy (task 070; H1 fix). Runs after the
@@ -923,7 +926,9 @@ export default class City {
         for (const person of laidOff) {
             person.work.clearJob();
         }
-        Game.economy?.setBusinessBalance(key, 0);
+        // Write off the (usually negative) balance to zero, routed through the external sector (task 076/H3) so
+        // the write-off is accounted rather than silently minting/burning money.
+        Game.economy?.adjustBusiness(key, -(Game.economy?.getBusinessBalance(key) ?? 0));
         // A closing school drops its student assignments (task 058); the next daily sweep re-enrolls the
         // children elsewhere if seats exist. Covers both bankruptcy (021) and bulldozing (025).
         if (business.blueprintKey === SCHOOL_BLUEPRINT_KEY) {

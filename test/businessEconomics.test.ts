@@ -324,3 +324,30 @@ describe('City business shrink-via-layoffs (task 076/M6)', () => {
         expect(emit.mock.calls.some(call => call[0] === 'cityEvent' && (call[1] as { kind: string }).kind === 'businessShrank')).toBe(true);
     });
 });
+
+// Money conservation across the live monthly economy (task 076/H3): the grand total (local + external) must
+// not drift over repeated economic ticks — the property that lets a long offline run stay stable.
+describe('economy-wide money conservation (task 076/H3)', () => {
+    test('the grand total is invariant across many monthly economic ticks', () => {
+        const { city, field, economy } = makeWorld();
+        expect(economy.grandTotal()).toBe(0);
+
+        // A couple of businesses (capital injected from external) and some resident-consumers.
+        const a = field.loadStructure('work', 10, 10, 'wa') as Workplace;
+        a.setBusiness({ blueprintKey: 'supermarket', name: 'A', lineOfWork: 'Super Market', size: 2, positions: [] });
+        economy.adjustBusiness(a.getIdentifier(), 40000);
+        const b = field.loadStructure('work', 20, 20, 'wb') as Workplace;
+        b.setBusiness({ blueprintKey: 'restaurant', name: 'B', lineOfWork: 'Restaurant', size: 2, positions: [] });
+        economy.adjustBusiness(b.getIdentifier(), 40000);
+        for (let i = 0; i < 12; i++) {
+            const person = field.loadPerson(200 + i * 4, 200);
+            economy.adjustPerson(`c${i}`, 3000);
+            person.social.setPersonId(`c${i}`);
+        }
+
+        for (let month = 0; month < 8; month++) {
+            city.processMonthlyEconomy(month * TICKS_PER_MONTH);
+            expect(economy.grandTotal()).toBe(0); // conserved every month — no minting/burning drift
+        }
+    });
+});
