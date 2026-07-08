@@ -63,7 +63,7 @@ function resolveContainer(container: 'possessions' | 'location' | undefined, ctx
         return { kind: 'possessions', personId: ctx.personId };
     }
     const world = ctx.deps.ctx.world;
-    return world ? { kind: 'location', key: locationKey(world.locationOf(ctx.personId)) } : null;
+    return world ? { kind: 'location', key: locationKey(world.objectLocationOf(ctx.personId)) } : null;
 }
 
 // Resolve an ObjectQuery's archetypeParam (067/068) against the committing action's params.
@@ -112,7 +112,7 @@ function resolveObjectRef(ref: ObjectRef, ctx: CommitContext, plannedOutputs: Se
     if (!query) {
         return null;
     }
-    const match = world.objectsAt(world.locationOf(ctx.personId)).find(id => inventory.instanceMatches(id, query));
+    const match = world.objectsAt(world.objectLocationOf(ctx.personId)).find(id => inventory.instanceMatches(id, query));
     return match ?? null;
 }
 
@@ -201,7 +201,7 @@ function contextSatisfied(entry: OAREntry, ctx: CommitContext): boolean {
     if (!inventory || !world) {
         return false;
     }
-    return world.objectsAt(world.locationOf(ctx.personId)).some(id => inventory.instanceMatches(id, query));
+    return world.objectsAt(world.objectLocationOf(ctx.personId)).some(id => inventory.instanceMatches(id, query));
 }
 
 // Plans the FIRST satisfiable OAR entry for the action (declaration order). Returns undefined when the

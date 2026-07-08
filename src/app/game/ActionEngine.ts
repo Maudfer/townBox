@@ -211,7 +211,7 @@ export default class ActionEngine {
                 if (!world || !inventory || !query) {
                     return false;
                 }
-                return world.objectsAt(world.locationOf(personId)).some(id => matches(id, query));
+                return world.objectsAt(world.objectLocationOf(personId)).some(id => matches(id, query));
             },
         };
     }

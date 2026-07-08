@@ -42,7 +42,7 @@ values. Generic must never mean vague: every generic action stays strongly param
   pool binds `pocket` with a tag/param) or is deleted. Update the child pools/sequences that referenced them
   (e.g. writing-like actions require a writing instrument and may bind `grab(object=pencil)` as a step).
 - Buy/sell first pass: `buy` moves an instance from a business-owned stock when one exists and adjusts money;
-  until [070](070-contextual-object-generation.md) fills shops, a validated fallback (create-with-provenance at
+  until [070](070-contextual-object-generation_DONE.md) fills shops, a validated fallback (create-with-provenance at
   a shop context) is acceptable — mark it clearly and revisit in 071. No silent conjuring outside that marked
   fallback.
 

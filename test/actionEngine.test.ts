@@ -181,6 +181,7 @@ describe('continuous lifecycle', () => {
         const world: WorldAdapter = {
             mode: 'live',
             locationOf: () => location,
+            objectLocationOf: () => location,
             peopleAt: () => [],
             objectsAt: () => [],
             requestTransition: (personId, target, tick, causationId) => {

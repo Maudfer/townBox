@@ -12,6 +12,12 @@ import { SaveProvider } from 'game/save/SaveProvider';
 import LocalStorageProvider from 'game/save/LocalStorageProvider';
 import { migrateSnapshot } from 'game/save/migrations';
 import { applyLegacySkills } from 'game/save/legacySkills';
+import { generateBuildingObjects } from 'game/ObjectGeneration';
+import businessesConfig from 'json/businesses.json';
+import residencesConfig from 'json/residences.json';
+
+const BUSINESS_BLUEPRINTS = businessesConfig as Record<string, { tags?: string[] }>;
+const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { tags: string[] } }).house.tags;
 import jobsConfig from 'json/jobs.json';
 
 // Skill ids referenced by any job (the initialization employability bias, task 062) — mirrors City's set.
@@ -177,6 +183,9 @@ export default class SaveManager {
             assetName: structure.getAssetName(),
         };
 
+        if (structure instanceof House || structure instanceof Workplace) {
+            snapshot.objectsGenerated = structure.isObjectsGenerated();
+        }
         if (structure instanceof House) {
             snapshot.residentIds = this.idsFor(structure.getResidents(), personIds);
             snapshot.occupantIds = this.idsFor(structure.getOccupants(), personIds);
@@ -322,6 +331,30 @@ export default class SaveManager {
             this.game.schools?.loadState(snapshot.schools);
         }
 
+        // Contextual-object load sweep (task 070): pre-v12 saves (or buildings placed before the fill
+        // existed) get their one-time fill now, marked so it never reruns. Deterministic per anchor + seed.
+        if (this.game.inventory && snapshot.population) {
+            const worldSeed = snapshot.population.worldSeed;
+            const tick = this.game.clock ? this.game.clock.getCurrentTick() : 0;
+            for (const structure of this.game.field?.getStructures() ?? []) {
+                if (structure instanceof House && !structure.isObjectsGenerated()) {
+                    generateBuildingObjects({ anchorKey: structure.getIdentifier(), tags: HOUSE_PLACEMENT_TAGS, host: 'house', worldSeed, tick }, this.game.inventory);
+                    structure.setObjectsGenerated(true);
+                } else if (structure instanceof Workplace && !structure.isObjectsGenerated()) {
+                    const business = structure.getBusiness();
+                    if (!business) {
+                        continue; // vacant lots fill on re-occupancy
+                    }
+                    const blueprint = (BUSINESS_BLUEPRINTS as Record<string, { tags?: string[] }>)[business.blueprintKey];
+                    generateBuildingObjects({
+                        anchorKey: structure.getIdentifier(), tags: blueprint?.tags ?? [], host: 'business',
+                        worldSeed, generationIndex: Math.max(0, structure.getBusinessGenerations() - 1), tick,
+                    }, this.game.inventory);
+                    structure.setObjectsGenerated(true);
+                }
+            }
+        }
+
         // Skill records (v10+, tasks 059-062). Pre-v10 saves carry none: every loaded person is
         // re-initialized deterministically (same seed convention as materialization) and their legacy
         // boolean skills are granted on top via the 061 mapping, so a MedicalSkill person stays medical.
@@ -437,6 +470,7 @@ export default class SaveManager {
         for (const structureSnapshot of snapshot.structures) {
             const structure = structureByKey.get(`${structureSnapshot.row}-${structureSnapshot.col}`);
             if (structure instanceof House) {
+                structure.setObjectsGenerated(structureSnapshot.objectsGenerated ?? false);
                 this.restorePeople(structureSnapshot.residentIds, personById, person => structure.addResident(person));
                 this.restorePeople(structureSnapshot.occupantIds, personById, person => structure.addOccupant(person));
                 this.restoreVehicles(structureSnapshot.garageIds, vehicleById, vehicle => structure.addVehicle(vehicle));
@@ -447,6 +481,7 @@ export default class SaveManager {
                 // Re-occupancy bookkeeping (task 037). Legacy saves lack these: a lot that already hosts a
                 // business has hosted at least one generation, so default an occupied lot to 1 (not 0) — else a
                 // future re-occupancy would reuse the generation-0 seed and respawn the identical business.
+                structure.setObjectsGenerated(structureSnapshot.objectsGenerated ?? false);
                 structure.setVacantMonths(structureSnapshot.vacantMonths ?? 0);
                 structure.setBusinessGenerations(structureSnapshot.businessGenerations ?? (structureSnapshot.business ? 1 : 0));
                 // Rebuild the employee<->employer link so the commute (006) knows where each employee works.

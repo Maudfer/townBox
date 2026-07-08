@@ -6,7 +6,7 @@
 // objects validator (shape) plus the semantic vocabulary check here-adjacent (validators/objects.ts).
 
 import { IssueCollector } from 'game/data/registry';
-import { checkArray, checkEnum, checkRecord, checkString, checkUnknownKeys, isRecord } from 'game/data/checks';
+import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isRecord } from 'game/data/checks';
 
 const TAG_PATTERN = /^[a-z][a-z0-9-]*$/;
 
@@ -99,4 +99,13 @@ export function validateResidencesStructure(data: unknown, issues: IssueCollecto
             tags.forEach((tag, index) => checkString(issues, `${key}.tags[${index}]`, tag));
         }
     }
+}
+
+export function validateObjectGenerationStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, '', data)) {
+        return;
+    }
+    checkUnknownKeys(issues, '', data, ['perBuildingCap', 'densityMultiplier']);
+    checkNumber(issues, 'perBuildingCap', data['perBuildingCap'], { min: 0, integer: true });
+    checkNumber(issues, 'densityMultiplier', data['densityMultiplier'], { min: 0.000001 });
 }

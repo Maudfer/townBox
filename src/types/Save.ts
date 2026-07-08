@@ -31,7 +31,9 @@ import { SkillBookState } from 'types/Skill';
 //          (game/save/legacySkills.ts).
 // v10 → v11: job ranks (task 064). Serialized JobPositions gain rankId + work-day counters; the migration
 //          defaults existing employees to their job's entry rank with zeroed counters.
-export const SAVE_VERSION = 11;
+// v11 → v12: contextual building objects (task 070). Structures gain `objectsGenerated`; loading an older
+//          save runs the fill once per existing building (SaveManager's load sweep) and marks them.
+export const SAVE_VERSION = 12;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -56,6 +58,9 @@ export interface StructureSnapshot {
     // count of businesses the lot has hosted (varies the re-occupancy seed). Absent on legacy saves (read as 0).
     vacantMonths?: number;
     businessGenerations?: number;
+    // Whether the contextual object fill (task 070, v12) already ran for this building. Absent on older
+    // saves: the load sweep generates once and sets it.
+    objectsGenerated?: boolean;
 }
 
 export type RelationshipSnapshot = Partial<Record<Relationships, string | string[]>>;

@@ -824,6 +824,14 @@ export default class City {
         if (business.blueprintKey === SCHOOL_BLUEPRINT_KEY) {
             Game.schools?.releaseSchool(key);
         }
+        // Teardown symmetry (task 070): the context dies with the business — location-contained objects are
+        // removed (carried ones are untouched), and anything still business-owned elsewhere (borrowed tools,
+        // employee-carried stock) becomes ownerless world property. The lot refills on re-occupancy (037).
+        if (Game.inventory) {
+            Game.inventory.clearLocation(`building:${key}`);
+            Game.inventory.reassignOwnedBy({ kind: 'business', key }, { kind: 'world' });
+            workplace.setObjectsGenerated(false);
+        }
 
         this.announce('businessClosed', tick, `${business.name} has gone out of business`, null);
         if (laidOff.length > 0) {
@@ -1082,6 +1090,9 @@ export default class City {
     // business-closure (021) paths; the clock supplies the tick.
     public demolishHouse(house: House): void {
         const tick = Game.clock?.getCurrentTick() ?? 0;
+        // Teardown symmetry (task 070): the house's objects go down with it; residents keep what they carry.
+        Game.inventory?.clearLocation(`building:${house.getIdentifier()}`);
+        Game.inventory?.reassignOwnedBy({ kind: 'building', key: house.getIdentifier() }, { kind: 'world' });
         const { householdName, homeless } = this.displaceHousehold(house, tick);
         if (homeless > 0) {
             this.announce('becameHomeless', tick, `The ${householdName} household is now homeless`, null);
