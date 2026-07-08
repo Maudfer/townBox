@@ -8,6 +8,7 @@ export interface Timestamp {
     hour: number; // 0..23
     minute: number; // 0..59
     absoluteDay: number; // 0-based day index since the Year 1 epoch
+    dayOfWeek: number; // 0 = Monday .. 6 = Sunday (task 057; see util/time WEEKDAY_NAMES / isWeekendDay)
 }
 
 // Emitted whenever the displayed time-of-day (minute) advances.

@@ -44,9 +44,29 @@ export function hourOfTick(tick: number): number {
     return ((tick % TICKS_PER_DAY) + TICKS_PER_DAY) % TICKS_PER_DAY;
 }
 
+// The day-of-week (0 = Monday .. 6 = Sunday) an absolute day index falls on; correct for negative days
+// (pre-game bootstrap history lives at negative ticks/days).
+export function dayOfWeekOfDay(absoluteDay: number): number {
+    return ((absoluteDay % DAYS_PER_WEEK) + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+}
+
 // The day-of-week (0 = Monday .. 6 = Sunday) a tick falls on; correct for negative ticks.
 export function dayOfWeekOfTick(tick: number): number {
-    return ((dayOfTick(tick) % DAYS_PER_WEEK) + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+    return dayOfWeekOfDay(dayOfTick(tick));
+}
+
+// Weekend days (task 057): day 0 = Monday, so 5 = Saturday and 6 = Sunday. The weekend gates SCHOOL
+// scheduling (task 058) — jobs keep their own authored `daysOfWeek` (task 045) and are unaffected. Future
+// calendar exceptions (holidays, school vacations, PTO) must compose ON TOP of these helpers (e.g. an
+// `isSchoolDay` that also consults an exception layer), never replace them.
+export const WEEKEND_DAYS: readonly number[] = [5, 6];
+
+export function isWeekendDay(dayOfWeek: number): boolean {
+    return WEEKEND_DAYS.includes(dayOfWeek);
+}
+
+export function isWeekendTick(tick: number): boolean {
+    return isWeekendDay(dayOfWeekOfTick(tick));
 }
 
 // Converts elapsed real milliseconds (since the Year 1 epoch) into a full in-game timestamp.
@@ -63,8 +83,9 @@ export function timestampFromElapsed(elapsedMs: number): Timestamp {
     const dayOfYear = absoluteDay % DAYS_PER_YEAR;
     const month = Math.floor(dayOfYear / DAYS_PER_MONTH) + 1;
     const day = (dayOfYear % DAYS_PER_MONTH) + 1;
+    const dayOfWeek = dayOfWeekOfDay(absoluteDay);
 
-    return { year, month, day, hour, minute, absoluteDay };
+    return { year, month, day, hour, minute, absoluteDay, dayOfWeek };
 }
 
 // "Year 1, 01/01 09:00"-style label for the HUD. Zero-pads the calendar fields.

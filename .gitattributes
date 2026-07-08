@@ -1,0 +1,3 @@
+# Generated files are compared byte-for-byte by checked-diff tests (test/simulationDocs.test.ts);
+# keep them LF on every platform so local runs match CI and the generator output.
+docs/simulation-relationships.md text eol=lf

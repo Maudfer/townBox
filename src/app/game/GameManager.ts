@@ -334,7 +334,8 @@ export default class GameManager {
             this.emit("gameLoaded");
             if (this.clock) {
                 const timestamp = this.clock.getTimestamp();
-                this.emit("timeChanged", { timestamp, tick: timestamp.absoluteDay });
+                // The TimeChangedEvent contract carries the current HOUR tick (task 040), not the day index.
+                this.emit("timeChanged", { timestamp, tick: this.clock.getCurrentTick() });
             }
         } catch (error) {
             console.error("[GameManager] Load failed:", error);

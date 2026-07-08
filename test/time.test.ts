@@ -4,6 +4,9 @@ import {
     DAYS_PER_YEAR,
     DAYS_PER_MONTH,
     MONTHS_PER_YEAR,
+    DAYS_PER_WEEK,
+    WEEKDAY_NAMES,
+    WEEKEND_DAYS,
     TICKS_PER_DAY,
     TICKS_PER_YEAR,
     timestampFromElapsed,
@@ -11,6 +14,10 @@ import {
     absoluteTickFromElapsed,
     dayOfTick,
     hourOfTick,
+    dayOfWeekOfDay,
+    dayOfWeekOfTick,
+    isWeekendDay,
+    isWeekendTick,
     formatTimestamp,
     formatTick,
 } from '../src/util/time';
@@ -62,9 +69,9 @@ describe('time math', () => {
         expect(absoluteDayFromElapsed(HOUR_MS - 1)).toBe(0);
     });
 
-    test('the epoch reads as Year 1, 01/01 00:00', () => {
+    test('the epoch reads as Year 1, 01/01 00:00 (a Monday)', () => {
         const ts = timestampFromElapsed(0);
-        expect(ts).toEqual({ year: 1, month: 1, day: 1, hour: 0, minute: 0, absoluteDay: 0 });
+        expect(ts).toEqual({ year: 1, month: 1, day: 1, hour: 0, minute: 0, absoluteDay: 0, dayOfWeek: 0 });
     });
 
     test('time-of-day is derived within a day (half a day = noon)', () => {
@@ -96,6 +103,69 @@ describe('time math', () => {
     });
 });
 
+describe('weekdays & weekends (task 057)', () => {
+    test('the week constants hold together (day 0 = Monday, weekend = Sat/Sun)', () => {
+        expect(DAYS_PER_WEEK).toBe(7);
+        expect(WEEKDAY_NAMES).toHaveLength(7);
+        expect(WEEKDAY_NAMES[0]).toBe('mon');
+        expect(WEEKEND_DAYS).toEqual([5, 6]);
+        expect(WEEKDAY_NAMES[5]).toBe('sat');
+        expect(WEEKDAY_NAMES[6]).toBe('sun');
+    });
+
+    test('isWeekendDay flags exactly Saturday and Sunday', () => {
+        expect([0, 1, 2, 3, 4].map(isWeekendDay)).toEqual([false, false, false, false, false]);
+        expect(isWeekendDay(5)).toBe(true);
+        expect(isWeekendDay(6)).toBe(true);
+    });
+
+    test('weekdays roll over across years and drift against the 360-day calendar', () => {
+        // Day 0 = Monday. 360 % 7 = 3, so each new year starts three weekdays later than the last.
+        expect(dayOfWeekOfDay(0)).toBe(0); // Year 1, 01/01 -> mon
+        expect(dayOfWeekOfDay(6)).toBe(6); // first sunday
+        expect(dayOfWeekOfDay(7)).toBe(0); // next monday
+        expect(dayOfWeekOfDay(DAYS_PER_YEAR)).toBe(3); // Year 2, 01/01 -> thu
+        expect(dayOfWeekOfDay(2 * DAYS_PER_YEAR)).toBe(6); // Year 3, 01/01 -> sun
+        expect(dayOfWeekOfDay(3 * DAYS_PER_YEAR)).toBe(2); // Year 4, 01/01 -> wed
+        // A full 7-year super-cycle returns to the same weekday (7 * 360 is a multiple of 7).
+        expect(dayOfWeekOfDay(7 * DAYS_PER_YEAR)).toBe(0);
+    });
+
+    test('negative (bootstrap) ticks continue the same weekly cycle through tick 0', () => {
+        // Day -1 must be the day before Monday: Sunday.
+        expect(dayOfWeekOfDay(-1)).toBe(6);
+        expect(dayOfWeekOfDay(-7)).toBe(0);
+        expect(dayOfWeekOfTick(-1)).toBe(6); // last hour of day -1
+        expect(dayOfWeekOfTick(-TICKS_PER_DAY)).toBe(6); // first hour of day -1
+        expect(dayOfWeekOfTick(-TICKS_PER_DAY - 1)).toBe(5); // last hour of day -2 (a Saturday)
+        expect(isWeekendTick(-1)).toBe(true);
+        expect(isWeekendTick(-TICKS_PER_DAY * 2 - 1)).toBe(false); // day -3 -> friday
+    });
+
+    test('isWeekendTick agrees with dayOfWeekOfTick across a two-week hourly sweep', () => {
+        for (let tick = -7 * TICKS_PER_DAY; tick < 7 * TICKS_PER_DAY; tick++) {
+            expect(isWeekendTick(tick)).toBe(isWeekendDay(dayOfWeekOfTick(tick)));
+        }
+    });
+
+    test('Timestamp.dayOfWeek agrees with the tick math for the same elapsed time', () => {
+        for (let day = 0; day < 15; day++) {
+            const elapsed = day * MS_PER_IN_GAME_DAY + HOUR_MS / 3; // mid-day offset
+            const ts = timestampFromElapsed(elapsed);
+            expect(ts.dayOfWeek).toBe(dayOfWeekOfTick(absoluteTickFromElapsed(elapsed)));
+            expect(ts.dayOfWeek).toBe(dayOfWeekOfDay(ts.absoluteDay));
+        }
+    });
+
+    test('coarse strides classify every covered day consistently with the pure math', () => {
+        // Stepping by e.g. 7-tick strides must never disagree with per-tick classification.
+        const stride = 7;
+        for (let tick = 0; tick < 4 * 7 * TICKS_PER_DAY; tick += stride) {
+            expect(isWeekendTick(tick)).toBe(WEEKEND_DAYS.includes(dayOfWeekOfDay(dayOfTick(tick))));
+        }
+    });
+});
+
 describe('Clock', () => {
     test('advances elapsed time and ignores non-positive deltas', () => {
         const clock = new Clock();
@@ -112,6 +182,23 @@ describe('Clock', () => {
         clock.setElapsedMs(5 * HOUR_MS + HOUR_MS / 4);
         expect(clock.getTimestamp().absoluteDay).toBe(5);
         expect(clock.getTimestamp().hour).toBe(6);
+    });
+
+    test('exposes day-of-week and weekend state derived from the current tick (task 057)', () => {
+        const clock = new Clock();
+        expect(clock.getDayOfWeek()).toBe(0); // epoch is a Monday
+        expect(clock.isWeekend()).toBe(false);
+
+        clock.setElapsedMs(5 * MS_PER_IN_GAME_DAY); // day 5 -> saturday
+        expect(clock.getDayOfWeek()).toBe(5);
+        expect(clock.isWeekend()).toBe(true);
+
+        clock.setElapsedMs(6 * MS_PER_IN_GAME_DAY); // day 6 -> sunday
+        expect(clock.isWeekend()).toBe(true);
+
+        clock.setElapsedMs(7 * MS_PER_IN_GAME_DAY); // day 7 -> monday again
+        expect(clock.getDayOfWeek()).toBe(0);
+        expect(clock.isWeekend()).toBe(false);
     });
 
     test('the genealogy tick contract: ticksPerYear matches the pool and ages derive correctly', () => {

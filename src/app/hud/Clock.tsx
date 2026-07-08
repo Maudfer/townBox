@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 
 import GameManager from 'game/GameManager';
 import { Timestamp, TimeChangedEvent } from 'types/Time';
-import { formatTimestamp } from 'util/time';
+import { formatTimestamp, WEEKDAY_NAMES } from 'util/time';
 
 interface ClockProps {
     game: GameManager;
@@ -26,6 +26,10 @@ const Clock: FC<ClockProps> = ({ game }) => {
         return null;
     }
 
+    // Presentation-only weekday label (task 057): "mon" -> "Mon".
+    const weekdayName = WEEKDAY_NAMES[timestamp.dayOfWeek] ?? '';
+    const weekdayLabel = weekdayName.charAt(0).toUpperCase() + weekdayName.slice(1);
+
     // Clicking the clock opens the city overview dashboard (task 031).
     return (
         <div
@@ -34,7 +38,7 @@ const Clock: FC<ClockProps> = ({ game }) => {
             title="Open city overview"
             onClick={() => game.emit('CitySelected', game.city)}
         >
-            {formatTimestamp(timestamp)}
+            {weekdayLabel ? `${weekdayLabel} · ` : ''}{formatTimestamp(timestamp)}
         </div>
     );
 };

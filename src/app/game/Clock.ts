@@ -1,5 +1,12 @@
 import { Timestamp } from 'types/Time';
-import { timestampFromElapsed, absoluteTickFromElapsed, absoluteDayFromElapsed, TICKS_PER_YEAR } from 'util/time';
+import {
+    timestampFromElapsed,
+    absoluteTickFromElapsed,
+    absoluteDayFromElapsed,
+    dayOfWeekOfTick,
+    isWeekendDay,
+    TICKS_PER_YEAR,
+} from 'util/time';
 
 // The single source of truth for in-game time. It accumulates elapsed real time from the `update` event's
 // timeDelta and derives every calendar/clock value from it (no other system re-derives time). Only `advance`
@@ -47,5 +54,16 @@ export default class Clock {
     // Hour-ticks per year; equals the genealogy `ticksPerYear`.
     getTicksPerYear(): number {
         return TICKS_PER_YEAR;
+    }
+
+    // Day-of-week of the current tick (0 = Monday .. 6 = Sunday; task 057). Derived, like everything here.
+    getDayOfWeek(): number {
+        return dayOfWeekOfTick(this.getCurrentTick());
+    }
+
+    // Whether the current day is a weekend day (Saturday/Sunday). Gates school scheduling (task 058);
+    // jobs follow their own authored daysOfWeek and do not consult this.
+    isWeekend(): boolean {
+        return isWeekendDay(this.getDayOfWeek());
     }
 }
