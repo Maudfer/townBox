@@ -3,7 +3,7 @@
 - **Type:** Framework / Simulation
 - **Labels:** `actions`, `events`, `predicates`, `progression-arc`
 - **Depends on:** [056](056-progression-arc-discovery-baseline_DONE.md)
-- **Blocks:** [068](068-generalize-actions-and-events_DONE.md) (generic actions/events are inexpressible without this), [073](073-consent-and-action-failure_DONE.md) (failure-reason payloads), [074](074-person-targeted-actions-backfill.md)
+- **Blocks:** [068](068-generalize-actions-and-events_DONE.md) (generic actions/events are inexpressible without this), [073](073-consent-and-action-failure_DONE.md) (failure-reason payloads), [074](074-person-targeted-actions-backfill_DONE.md)
 - **Note:** this task was added during the planning pass — the discovery found that the generalization arc's
   data work is *inexpressible* on current plumbing; landing it as data-backfill-time hacks would be worse.
 

@@ -4,12 +4,12 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 707 events — **15 vital**, **18 wired**, **521 texture**, **153 reserved**.
+Totals: 707 events — **15 vital**, **19 wired**, **521 texture**, **152 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
 | aced_final | education | probabilistic+manual | texture | — |
-| action_declined | social | manual | reserved | — |
+| action_declined | social | manual | wired | lent_an_object.onDecline, gave_object_to_person.onDecline |
 | action_failed | mishap | manual | reserved | — |
 | adopted_cat | pet | probabilistic+manual | texture | — |
 | adopted_child | family | probabilistic+manual | texture | — |

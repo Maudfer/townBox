@@ -3183,7 +3183,8 @@
         "interaction": {
             "targetParam": "target",
             "requiresSameBuilding": true,
-            "askFirst": true
+            "askFirst": true,
+            "onDecline": "failParent"
         },
         "requirements": {
             "carries": {
@@ -3200,7 +3201,20 @@
                 },
                 "target": "targetPerson"
             }
-        ]
+        ],
+        "selection": {
+            "weight": 0.2,
+            "cooldownTicks": 48
+        },
+        "events": {
+            "onDecline": {
+                "event": "action_declined",
+                "params": {
+                    "action": "lent_an_object",
+                    "reason": "consent_declined"
+                }
+            }
+        }
     },
     "borrowed_an_object": {
         "label": "Borrowed an object",
@@ -3235,7 +3249,8 @@
         "interaction": {
             "targetParam": "target",
             "requiresSameBuilding": true,
-            "askFirst": true
+            "askFirst": true,
+            "onDecline": "failParent"
         },
         "consequences": [
             {
@@ -3245,7 +3260,11 @@
                 },
                 "target": "targetPerson"
             }
-        ]
+        ],
+        "selection": {
+            "weight": 3.0,
+            "cooldownTicks": 12
+        }
     },
     "laughed_together": {
         "label": "Laughed together",
@@ -3328,6 +3347,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 1.5,
+            "cooldownTicks": 2
         }
     },
     "talked_to_person": {
@@ -3344,6 +3367,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 1.2,
+            "cooldownTicks": 2
         }
     },
     "asked_for_help": {
@@ -3360,6 +3387,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 12
         }
     },
     "complimented_person": {
@@ -3376,6 +3407,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.6,
+            "cooldownTicks": 8
         }
     },
     "apologized_to_person": {
@@ -3392,6 +3427,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.15,
+            "cooldownTicks": 24
         }
     },
     "argued_with_person": {
@@ -3408,6 +3447,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.15,
+            "cooldownTicks": 24
         }
     },
     "invited_person_over": {
@@ -3423,7 +3466,12 @@
         "interaction": {
             "targetParam": "target",
             "requiresSameBuilding": true,
-            "askFirst": true
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "selection": {
+            "weight": 0.2,
+            "cooldownTicks": 48
         }
     },
     "told_a_joke": {
@@ -3440,6 +3488,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.7,
+            "cooldownTicks": 6
         }
     },
     "asked_for_advice": {
@@ -3456,6 +3508,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 12
         }
     },
     "offered_job_lead": {
@@ -3472,6 +3528,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.1,
+            "cooldownTicks": 48
         }
     },
     "celebrated_with_person": {
@@ -3488,6 +3548,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 24
         }
     },
     "consoled_person": {
@@ -3504,6 +3568,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.2,
+            "cooldownTicks": 24
         }
     },
     "played_with_person": {
@@ -3520,6 +3588,10 @@
             "targetParam": "target",
             "requiresSameBuilding": true,
             "askFirst": false
+        },
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 8
         }
     },
     "taught_person_something": {
@@ -3535,7 +3607,12 @@
         "interaction": {
             "targetParam": "target",
             "requiresSameBuilding": true,
-            "askFirst": true
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "selection": {
+            "weight": 0.25,
+            "cooldownTicks": 24
         }
     },
     "gave_object_to_person": {
@@ -3551,7 +3628,8 @@
         "interaction": {
             "targetParam": "target",
             "requiresSameBuilding": true,
-            "askFirst": true
+            "askFirst": true,
+            "onDecline": "failParent"
         },
         "requirements": {
             "carries": {
@@ -3570,7 +3648,18 @@
             }
         ],
         "events": {
-            "onComplete": "gave_gift"
+            "onComplete": "gave_gift",
+            "onDecline": {
+                "event": "action_declined",
+                "params": {
+                    "action": "gave_object_to_person",
+                    "reason": "consent_declined"
+                }
+            }
+        },
+        "selection": {
+            "weight": 0.12,
+            "cooldownTicks": 72
         }
     },
     "shared_food_with_person": {
@@ -3586,7 +3675,8 @@
         "interaction": {
             "targetParam": "target",
             "requiresSameBuilding": true,
-            "askFirst": true
+            "askFirst": true,
+            "onDecline": "failParent"
         },
         "requirements": {
             "carries": {
@@ -3603,7 +3693,11 @@
                 },
                 "quantity": 1
             }
-        ]
+        ],
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 12
+        }
     },
     "balancing_the_till": {
         "label": "Balancing the till",
@@ -4238,6 +4332,27 @@
             "carries": {
                 "archetypeParam": "object"
             }
+        }
+    },
+    "hugged_person": {
+        "label": "Hugged someone",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "selection": {
+            "weight": 0.6,
+            "cooldownTicks": 8
         }
     }
 }

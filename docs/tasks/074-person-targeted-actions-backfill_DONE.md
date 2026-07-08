@@ -66,3 +66,29 @@ note). Combat mechanics.
 - Distribution sanity: over N simulated days, consent declines ≈ 20% of askFirst attempts; social action rates
   within the recorded bands; deterministic across runs and modes.
 - `npm run docs:sim` regenerated (action↔event links changed).
+
+---
+
+## Outcome (as merged)
+
+- **Postures:** 7 askFirst (`gave_object_to_person`, `lent_an_object`, `returned_borrowed_object`,
+  `shared_food_with_person`, `invited_person_over`, `taught_person_something`, `hugged_person` — NEW, the set
+  had no affection action) / 12 non-consent, including the hostile `argued_with_person` (no punch-class action
+  added — the argument covers the canonical non-consent case; this is a life sim). Kissing deferred: a
+  partner-gated affection action needs relationship-context selection drivers that don't exist yet.
+- **onDecline:** the four object transfers `failParent`; hug/invite/teach `skipStep`. All 19 carry curated
+  `selection` weights/cooldowns (returns heaviest at 3.0, giving rarest at 0.12).
+- **Decline events (keep/skip):** `action_declined` wired on `gave_object_to_person` + `lent_an_object` only
+  (`events.onDecline`, validator-gated to askFirst actions); returned/shared_food/hug/invite/teach declines
+  keep the failed log entry as their record. `action_failed` stays reserved.
+- **Return-side coherence:** the socialOpportunityHook now binds `returned_borrowed_object` to the OWNER of a
+  carried borrowed instance (co-located only), and skips any candidate with required params it can't bind.
+- **Noted gaps (future drivers, not forced):** relationship-context selection modifiers (parent→child gift
+  weighting) and duplicate-possession queries are inexpressible in today's predicate/modifier grammar; pool
+  children cannot bind person params (the validator forbids required-param pool children), so the
+  visiting_relatives kin-loop binding waits for pool param binding — household co-location already routes the
+  give/lend/return verbs through the social hook at home.
+- **Marriage:** remains Engine-B owned (ratified in 056); no `proposed_marriage` action added.
+- **Sampled balance (fixture trio, 30 days, seed 9):** 1.27 social actions/person/day, 26 askFirst attempts,
+  23.1% consent-decline rate. Bands pinned in `test/personTargetedBackfill.test.ts` (re-print with
+  `PRINT_RATES=1`).

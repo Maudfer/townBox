@@ -86,7 +86,7 @@ Always run `npm test` before opening the PR.**
 | 071 | [Backfill Action requirements from building context](071-building-context-action-requirements_DONE.md) | Content | ✅ Done |
 | 072 | [Person-targeted Action interaction contracts](072-person-targeted-action-contracts_DONE.md) | Framework | ✅ Done |
 | 073 | [Consent evaluation & Action failure handling](073-consent-and-action-failure_DONE.md) | Feature | ✅ Done |
-| 074 | [Person-targeted Actions backfill](074-person-targeted-actions-backfill.md) | Content | ⬜ Open |
+| 074 | [Person-targeted Actions backfill](074-person-targeted-actions-backfill_DONE.md) | Content | ⬜ Open |
 | 075 | [Progression arc — end-to-end validation & documentation](075-progression-arc-validation-and-docs.md) | Test/Docs | ⬜ Open |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
@@ -163,7 +163,7 @@ maintainer allows bundling related tasks per PR — sequencing notes live in eac
 - **People acting on people:** [072](072-person-targeted-action-contracts_DONE.md) (interaction contracts,
   same-building, the target-binding social hook that revives today's dead social actions) →
   [073](073-consent-and-action-failure_DONE.md) (consent via the target's Brain — deterministic 80% placeholder —
-  and typed action failure consumed by Brain) → [074](074-person-targeted-actions-backfill.md) (askFirst
+  and typed action failure consumed by Brain) → [074](074-person-targeted-actions-backfill_DONE.md) (askFirst
   posture across the social repertoire).
 - **Gate:** [075](075-progression-arc-validation-and-docs.md) (end-to-end scenarios, live↔bootstrap
   equivalence, budget re-pins, flows/relationships/CLAUDE.md documentation) — then

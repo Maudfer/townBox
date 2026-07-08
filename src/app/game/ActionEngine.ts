@@ -313,12 +313,15 @@ export default class ActionEngine {
                     tick: deps.tick, worldSeed: deps.state.worldSeed,
                 });
                 if (!consented) {
-                    this.lifeLog.append(personId, {
+                    const seq = this.lifeLog.append(personId, {
                         tick: deps.tick, kind: 'action', defId: actionId, instanceId: null, lifecycle: 'failed',
                         params: { ...params }, parentInstanceId, triggerSource: cause.source,
                         causationId: cause.causationId, failureReason: 'consent_declined',
                     });
                     this.recordAction(personId, actionId, deps.tick);
+                    // Curated decline events (task 074): only actions that wire events.onDecline fire one —
+                    // the failed log entry above is the universal record; the event is for consumers.
+                    this.fireEvent(def.events?.onDecline, personId, seq, deps, result, params);
                     return { ok: false, reason: 'consentDeclined' };
                 }
             }

@@ -3,7 +3,7 @@
 - **Type:** Migration / Content
 - **Labels:** `actions`, `events`, `content`, `progression-arc`
 - **Depends on:** [067](067-parameterized-requirements-and-event-payloads_DONE.md) (param plumbing)
-- **Blocks:** [071](071-building-context-action-requirements_DONE.md) and [074](074-person-targeted-actions-backfill.md) build on the generalized verbs
+- **Blocks:** [071](071-building-context-action-requirements_DONE.md) and [074](074-person-targeted-actions-backfill_DONE.md) build on the generalized verbs
 
 ## Goal
 
@@ -32,7 +32,7 @@ values. Generic must never mean vague: every generic action stays strongly param
   instance-moving consequences: `grab` / `pocket` (move a real instance from the location into possessions —
   **never conjure**), `place`, `store`, `discard`, `consume`, `use`, `repair`, `clean`, `buy`, `sell`, and the
   person-targeted `give`/`borrow`/`return` (contract details land in
-  [072](072-person-targeted-action-contracts_DONE.md)/[074](074-person-targeted-actions-backfill.md) — here just
+  [072](072-person-targeted-action-contracts_DONE.md)/[074](074-person-targeted-actions-backfill_DONE.md) — here just
   keep their object side generic). `grab(object)` requires, per the vision: a matching accessible instance at
   the current location (`objectAtLocation` param-ref), carryable flag; pocketable when the destination is
   pocket-like; no conflicting ownership/access rule (keep to the existing owner-kinds semantics; full access

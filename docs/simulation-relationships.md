@@ -9,7 +9,7 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 259 | 67 continuous / 192 discrete |
+| `actions.json` | 260 | 67 continuous / 193 discrete |
 | `events.json` | 707 | 175 probabilistic, 160 manual, 2 manual + automated, 370 probabilistic + manual |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 

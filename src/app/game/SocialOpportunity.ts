@@ -39,9 +39,35 @@ export const socialOpportunityHook: BrainHook = {
 
         const engine = brain.getActionEngine();
         const context = engine.contextFor(personId, deps);
-        const candidates: { actionId: string; weight: number }[] = [];
+
+        // Return-side coherence (task 074): a carried instance OWNED by a co-located other person is a
+        // borrowed object whose return-target is knowable — the ownership-vs-possession split identifies it.
+        // Deterministic: first by instance id.
+        const borrowed = (deps.inventory?.carriedInstances(personId) ?? [])
+            .filter(instance => instance.owner.kind === 'person' && instance.owner.personId !== personId
+                && company.includes(instance.owner.personId))
+            .sort((a, b) => a.id.localeCompare(b.id));
+
+        const candidates: { actionId: string; weight: number; objectParam: string | null }[] = [];
         for (const [actionId, def] of Object.entries(engine.getManifest())) {
             if (!def.interaction) {
+                continue;
+            }
+            // The hook can bind the target and (for return-style actions) ONE borrowed object instance;
+            // any other required parameter is unbindable here — never propose an unstartable intent.
+            let objectParam: string | null = null;
+            let bindable = true;
+            for (const [name, spec] of Object.entries(def.parameters ?? {})) {
+                if (!spec.required || name === def.interaction.targetParam) {
+                    continue;
+                }
+                if (spec.type === 'objectInstance' && objectParam === null && borrowed.length > 0) {
+                    objectParam = name;
+                } else {
+                    bindable = false;
+                }
+            }
+            if (!bindable) {
                 continue;
             }
             let weight = def.selection?.weight ?? 1;
@@ -60,7 +86,7 @@ export const socialOpportunityHook: BrainHook = {
                 }
             }
             if (weight > 0) {
-                candidates.push({ actionId, weight });
+                candidates.push({ actionId, weight, objectParam });
             }
         }
         if (candidates.length === 0) {
@@ -77,11 +103,19 @@ export const socialOpportunityHook: BrainHook = {
                 break;
             }
         }
-        const target = company[rng.nextInt(0, company.length - 1)]!;
         const targetParam = engine.getManifest()[picked.actionId]!.interaction!.targetParam;
+        // Return-style pick: the object names its own target (the owner). Otherwise: a random companion.
+        const params: Record<string, string> = {};
+        if (picked.objectParam !== null) {
+            const instance = borrowed[0]!;
+            params[targetParam] = (instance.owner as { kind: 'person'; personId: string }).personId;
+            params[picked.objectParam] = instance.id;
+        } else {
+            params[targetParam] = company[rng.nextInt(0, company.length - 1)]!;
+        }
         return [{
             actionId: picked.actionId,
-            params: { [targetParam]: target },
+            params,
             sourceHook: 'socialOpportunity',
             priority: 20,
             necessity: 'optional',
