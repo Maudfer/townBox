@@ -11,12 +11,12 @@ export function validateEconomyStructure(data: unknown, issues: IssueCollector):
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'growthMonths', 'bankruptcyDebtFloor', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths', 'recoveryFunds'];
+    const fields = ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'growthMonths', 'shrinkMonths', 'bankruptcyDebtFloor', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths', 'recoveryFunds'];
     checkUnknownKeys(issues, '', data, fields);
     for (const field of ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'recoveryFunds']) {
         checkNumber(issues, field, data[field], { min: 0 });
     }
-    for (const field of ['growthMonths', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths']) {
+    for (const field of ['growthMonths', 'shrinkMonths', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths']) {
         checkNumber(issues, field, data[field], { min: 1, integer: true });
     }
     checkNumber(issues, 'bankruptcyDebtFloor', data['bankruptcyDebtFloor'], { max: 0 });

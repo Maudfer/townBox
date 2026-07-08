@@ -119,3 +119,47 @@ describe('multi-day life smoke (task 051)', () => {
         expect(carriedTotal).toBeGreaterThan(0);
     }, 30000);
 });
+
+// Action reachability (task 076/M3): the inverse of the dead-action scan — every authored action must be
+// proposable by SOME runtime path, or it is dead data. Paths: a Brain hook that binds it directly, the social
+// hook (interaction actions), free-time selection (continuous non-work/obligation with weight>0), a job work
+// repertoire, or a pool/sequence child of a continuous action.
+describe('action reachability (task 076/M3)', () => {
+    const manifest = DEFAULT_ACTION_MANIFEST;
+    // Actions a Brain hook proposes by id (see Brain.ts / SchoolOrchestrator.ts). Keep in sync with the hooks.
+    const DIRECTLY_HOOKED = new Set([
+        'attend_school',                                                    // schoolObligationHook
+        'pocketed_small_object', 'grab', 'use_object', 'put_down', 'discard_object', // inventoryOpportunityHook
+    ]);
+
+    test('every action is reachable via some proposal path', () => {
+        const childRefs = new Set<string>();
+        for (const def of Object.values(manifest)) {
+            const children = (def as { children?: { entries?: { action?: string }[]; steps?: { action?: string }[] } }).children;
+            for (const entry of children?.entries ?? []) if (entry.action) childRefs.add(entry.action);
+            for (const step of children?.steps ?? []) if (step.action) childRefs.add(step.action);
+        }
+        const jobRefs = new Set<string>();
+        for (const job of Object.values(JOBS)) {
+            const collect = (wa?: { continuous?: { action: string }[]; discrete?: { action: string }[] }) => {
+                for (const entry of wa?.continuous ?? []) jobRefs.add(entry.action);
+                for (const entry of wa?.discrete ?? []) jobRefs.add(entry.action);
+            };
+            collect((job as { workActions?: { continuous?: { action: string }[]; discrete?: { action: string }[] } }).workActions);
+            for (const rank of (job as { ranks?: { workActions?: { continuous?: { action: string }[]; discrete?: { action: string }[] } }[] }).ranks ?? []) collect(rank.workActions);
+        }
+
+        const reachable = (id: string): boolean => {
+            const def = manifest[id]!;
+            if (DIRECTLY_HOOKED.has(id)) return true;
+            if (def.interaction) return true; // socialOpportunityHook
+            if (def.type === 'continuous' && def.category !== 'work' && def.category !== 'obligation' && (def.selection?.weight ?? 0) > 0) return true; // free-time
+            if (jobRefs.has(id)) return true;
+            if (childRefs.has(id)) return true;
+            return false;
+        };
+
+        const dead = Object.keys(manifest).filter(id => !reachable(id)).sort();
+        expect(dead).toEqual([]);
+    });
+});

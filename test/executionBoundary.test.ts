@@ -154,3 +154,50 @@ describe('engine under the boundary (roll-before-resolve)', () => {
         expect(JSON.stringify(run('live'))).toBe(JSON.stringify(run('bootstrap')));
     });
 });
+
+// Off-map co-location seam (task 076/H2): the offline generator (055) runs the full enriched sim with no map.
+// The social layer works off-map ONLY if the host registers its agent roster with the BootstrapWorld so
+// peopleAt can enumerate co-located people. This proves the seam: with a registered, co-located roster the
+// social-opportunity hook fires in bootstrap mode; separated, it does not. (The remaining logical-world plan
+// inputs — jobs/economy/school/skillProgression/onCommitted — are the documented 055 build-out.)
+describe('off-map co-location seam (task 076/H2)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const ActionEngine = require('../src/app/game/ActionEngine').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { DEFAULT_ACTION_MANIFEST } = require('../src/app/game/ActionEngine');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Brain = require('../src/app/game/Brain').default;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { socialOpportunityHook } = require('../src/app/game/SocialOpportunity');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Inventory = require('../src/app/game/Inventory').default;
+
+    function socialProposalsOver(ticks: number, coLocated: boolean): number {
+        const state = pool(30 * TPY, [['p1', Genders.Female], ['p2', Genders.Male]]);
+        const engine = new EventEngine({} as EventManifest);
+        const actionEngine = new ActionEngine(DEFAULT_ACTION_MANIFEST);
+        const brain = new Brain(actionEngine);
+        const inventory = new Inventory();
+        const world = new BootstrapWorld(inventory);
+        // The host registers its roster (what 055 must do) and places people logically.
+        world.register('p1');
+        world.register('p2');
+        world.requestTransition('p1', { kind: 'building', key: 'b1' }, 0, null);
+        world.requestTransition('p2', { kind: 'building', key: coLocated ? 'b1' : 'b2' }, 0, null);
+
+        let proposals = 0;
+        for (let tick = 0; tick < ticks; tick++) {
+            const deps = { state, tick, ticksPerYear: TPY, ctx: { mode: 'bootstrap' as const, world }, eventEngine: engine, inventory };
+            proposals += socialOpportunityHook.propose({ personId: 'p1', deps, brain }).length;
+        }
+        return proposals;
+    }
+
+    test('a registered, co-located roster lets the social hook fire off-map', () => {
+        expect(socialProposalsOver(200, true)).toBeGreaterThan(0);
+    });
+
+    test('separated people never trigger a social proposal (co-location is the discriminator)', () => {
+        expect(socialProposalsOver(200, false)).toBe(0);
+    });
+});

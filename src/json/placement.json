@@ -2,7 +2,7 @@
     "tags": {
         "art-studio": {
             "label": "Art Studio",
-            "scope": "deferred"
+            "scope": "building"
         },
         "attic-basement": {
             "label": "Attic Basement",
@@ -26,7 +26,7 @@
         },
         "bar": {
             "label": "Bar",
-            "scope": "deferred"
+            "scope": "building"
         },
         "bathroom": {
             "label": "Bathroom",
@@ -34,7 +34,7 @@
         },
         "beach": {
             "label": "Beach",
-            "scope": "deferred"
+            "scope": "building"
         },
         "bedroom": {
             "label": "Bedroom",
@@ -42,11 +42,11 @@
         },
         "bookstore": {
             "label": "Bookstore",
-            "scope": "deferred"
+            "scope": "building"
         },
         "bus-stop": {
             "label": "Bus Stop",
-            "scope": "deferred"
+            "scope": "building"
         },
         "cafe": {
             "label": "Cafe",
@@ -54,15 +54,15 @@
         },
         "campsite": {
             "label": "Campsite",
-            "scope": "deferred"
+            "scope": "building"
         },
         "cemetery": {
             "label": "Cemetery",
-            "scope": "deferred"
+            "scope": "building"
         },
         "church": {
             "label": "Church",
-            "scope": "deferred"
+            "scope": "building"
         },
         "cinema": {
             "label": "Cinema",
@@ -82,7 +82,7 @@
         },
         "dentist-office": {
             "label": "Dentist Office",
-            "scope": "deferred"
+            "scope": "building"
         },
         "electronics-store": {
             "label": "Electronics Store",
@@ -98,11 +98,11 @@
         },
         "fire-station": {
             "label": "Fire Station",
-            "scope": "deferred"
+            "scope": "building"
         },
         "fishing-pier": {
             "label": "Fishing Pier",
-            "scope": "deferred"
+            "scope": "building"
         },
         "garage": {
             "label": "Garage",
@@ -134,11 +134,11 @@
         },
         "laundromat": {
             "label": "Laundromat",
-            "scope": "deferred"
+            "scope": "building"
         },
         "library": {
             "label": "Library",
-            "scope": "deferred"
+            "scope": "building"
         },
         "living-room": {
             "label": "Living Room",
@@ -146,7 +146,7 @@
         },
         "music-studio": {
             "label": "Music Studio",
-            "scope": "deferred"
+            "scope": "building"
         },
         "office": {
             "label": "Office",
@@ -154,11 +154,11 @@
         },
         "park": {
             "label": "Park",
-            "scope": "deferred"
+            "scope": "building"
         },
         "pet-shop": {
             "label": "Pet Shop",
-            "scope": "deferred"
+            "scope": "building"
         },
         "pharmacy": {
             "label": "Pharmacy",
@@ -170,11 +170,11 @@
         },
         "police-station": {
             "label": "Police Station",
-            "scope": "deferred"
+            "scope": "building"
         },
         "post-office": {
             "label": "Post Office",
-            "scope": "deferred"
+            "scope": "building"
         },
         "restaurant": {
             "label": "Restaurant",
@@ -186,11 +186,11 @@
         },
         "sports-field": {
             "label": "Sports Field",
-            "scope": "deferred"
+            "scope": "building"
         },
         "street-sidewalk": {
             "label": "Street Sidewalk",
-            "scope": "deferred"
+            "scope": "building"
         },
         "supermarket": {
             "label": "Supermarket",
@@ -198,15 +198,15 @@
         },
         "swimming-pool": {
             "label": "Swimming Pool",
-            "scope": "deferred"
+            "scope": "building"
         },
         "toy-store": {
             "label": "Toy Store",
-            "scope": "deferred"
+            "scope": "building"
         },
         "veterinary-clinic": {
             "label": "Veterinary Clinic",
-            "scope": "deferred"
+            "scope": "building"
         },
         "warehouse": {
             "label": "Warehouse",

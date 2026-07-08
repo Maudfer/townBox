@@ -4,6 +4,7 @@
     "housingCost": 800,
     "perCapitaCost": 400,
     "growthMonths": 3,
+    "shrinkMonths": 4,
     "bankruptcyDebtFloor": 0,
     "bankruptcyMonths": 3,
     "reoccupancyMonths": 2,

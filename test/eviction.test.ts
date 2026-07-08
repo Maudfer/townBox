@@ -167,6 +167,34 @@ describe('Household eviction (task 022)', () => {
         expect(city.getHomelessHouseholds()).toHaveLength(0);
     });
 
+    test('with no vacant house, a homeless household recovers into a home with spare capacity (task 076/L3)', () => {
+        const tickNow = 40 * TPY;
+        const { field, population, clock, economy, city } = makeGame(40, 40);
+
+        const a = gen('a', Genders.Female, 40, tickNow);
+        const b = gen('b', Genders.Male, 42, tickNow);
+        loadState(population, clock, { a, b }, ['a', 'b'], tickNow);
+
+        // The ONLY house is occupied (by b) but below capacity — no fully-vacant home exists. Pre-L3 the
+        // homeless household would be trapped forever regardless of funds.
+        const occupied = field.loadStructure('house', 8, 8, 'building_1x1x1_1') as House;
+        const personB = materialize(field, occupied, 'b', 130, 130);
+        occupied.setHousehold({ id: 'hh-8-8', houseKey: occupied.getIdentifier(), headId: 'b', memberIds: ['b'], arrangement: HouseholdArrangements.Single });
+
+        const personA = materialize(field, null, 'a', 72, 72);
+        personA.setIndoors(true);
+        economy.setPersonBalance('a', 1000); // >= recoveryFunds
+        city.setHomelessHouseholds([{ id: 'homeless-1', houseKey: '', headId: 'a', memberIds: ['a'], arrangement: HouseholdArrangements.Homeless }]);
+
+        city.processMonthlyEconomy(0);
+
+        expect(personA.social.getHome()).toBe(occupied); // moved in with the existing household
+        expect(occupied.getResidents()).toContain(personA);
+        expect(occupied.getResidents()).toContain(personB);
+        expect(occupied.getHousehold()!.memberIds.sort()).toEqual(['a', 'b']); // appended, not overwritten
+        expect(city.getHomelessHouseholds()).toHaveLength(0);
+    });
+
     test('homeless households round-trip through save/load', async () => {
         const provider = new MemoryProvider();
         const tickNow = 40 * TPY;

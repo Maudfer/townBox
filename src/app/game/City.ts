@@ -8,6 +8,7 @@ import Person from 'game/Person';
 import Vehicle from 'game/Vehicle';
 import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
 import { generateBusiness } from 'game/BusinessGen';
+import { generateBuildingObjects } from 'game/ObjectGeneration';
 import JobMarket from 'game/JobMarket';
 import HousingMarket from 'game/HousingMarket';
 import SkillRegistry from 'game/SkillRegistry';
@@ -39,6 +40,7 @@ import householdDrawConfig from 'json/householdDraw.json';
 import materialsConfig from 'json/materials.json';
 import demandConfig from 'json/demand.json';
 import schoolsConfig from 'json/schools.json';
+import residencesConfig from 'json/residences.json';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
@@ -46,6 +48,7 @@ const MATERIAL_PRICES: Record<string, number> = Object.fromEntries(
     Object.entries(materialsConfig as Record<string, { basePrice: number }>).map(([key, value]) => [key, value.basePrice])
 );
 const DEMAND_TABLE = demandConfig as unknown as DemandTable;
+const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { tags: string[] } }).house.tags;
 // Skill ids referenced by any job's requirements — the employability bias for initialization assortments
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
@@ -286,7 +289,9 @@ export default class City {
             // central SkillBook so hiring (015) has something to match. Idempotent across rematerialization.
             Game.skillBook?.initialize(memberId, age, genPerson.birthTick, currentTick, population.getState().worldSeed, JOB_CORE_SKILLS);
             // Seed starting funds (task 017). Newborns (materializeNewborns) start at 0.
-            Game.economy?.setPersonBalance(memberId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds);
+            // Seed starting funds as an injection from the external sector (task 076/H3): idempotent (adjust by
+            // the delta to the target) so re-materialization never double-mints, and conserved (external tracks it).
+            Game.economy?.adjustPerson(memberId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds - (Game.economy?.getPersonBalance(memberId) ?? 0));
 
             house.addResident(person);
             house.addOccupant(person);
@@ -315,8 +320,56 @@ export default class City {
         };
         house.setHousehold(household);
 
+        // Fill the home with contextual objects at placement (task 070; H1 fix — previously only the
+        // save-load sweep ran this, so a fresh session's homes were empty and object-grounded actions were
+        // unreachable until a round-trip).
+        this.fillBuildingObjects(house);
+
         this.population += personByGenId.size;
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
+    }
+
+    // Fills a freshly placed/occupied building with contextual Object Instances (task 070). Idempotent via the
+    // building's objects-generated flag, so re-materialization and the load sweep never double-fill.
+    // Deterministic per (worldSeed, anchorKey, generation index) — matches the SaveManager sweep's convention
+    // (generationIndex = generations - 1) so a building fills identically whether at placement or on load.
+    private fillBuildingObjects(building: House | Workplace): void {
+        const inventory = Game.inventory;
+        if (!inventory || building.isObjectsGenerated()) {
+            return;
+        }
+        const worldSeed = Game.population ? Game.population.getState().worldSeed : 0;
+        const tick = Game.clock ? Game.clock.getCurrentTick() : 0;
+        if (building instanceof House) {
+            generateBuildingObjects({ anchorKey: building.getIdentifier(), tags: HOUSE_PLACEMENT_TAGS, host: 'house', worldSeed, tick }, inventory);
+        } else {
+            const business = building.getBusiness();
+            if (!business) {
+                return; // vacant lot — fills on re-occupancy
+            }
+            const blueprint = BUSINESS_BLUEPRINTS[business.blueprintKey] as { tags?: string[] } | undefined;
+            generateBuildingObjects({
+                anchorKey: building.getIdentifier(), tags: blueprint?.tags ?? [], host: 'business',
+                worldSeed, generationIndex: Math.max(0, building.getBusinessGenerations() - 1), tick,
+            }, inventory);
+        }
+        building.setObjectsGenerated(true);
+    }
+
+    // Fires an effect-free milestone/relationship event on a person the simulation KNOWS reached that state
+    // (task 076/M4: wiring reserved events that shadow transitions the sim already computes — births, deaths,
+    // eviction, move-out, recovery — so a person's actual life milestones land in their log instead of only
+    // random texture). System-sourced, no causation chain. No-ops silently if the subject can't satisfy the
+    // event's own authored eligibility (e.g. an age gate) — we never override the predicate. Works pool-wide,
+    // so off-map relatives (a widow who isn't on the map) get the milestone too, enriching the asset.
+    private fireMilestone(eventId: string, subjectId: PersonId | null | undefined, tick: number): void {
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (!engine || !population || subjectId == null) {
+            return;
+        }
+        const ticksPerYear = Game.clock ? Game.clock.getTicksPerYear() : DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        engine.invoke(population.getState(), eventId, subjectId, tick, ticksPerYear, { source: 'system', causationId: null });
     }
 
     // Generates a business for a newly placed work building (Engine A). Deterministic per save + location: the
@@ -364,9 +417,13 @@ export default class City {
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
         // Seed starting capital (task 017), scaled by size so bigger establishments start with more.
-        Game.economy?.setBusinessBalance(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size);
+        // Starting capital injected from the external sector (task 076/H3): idempotent + conserved.
+        Game.economy?.adjustBusiness(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size - (Game.economy?.getBusinessBalance(key) ?? 0));
         workplace.setBusinessGenerations(generation + 1);
         workplace.setVacantMonths(0);
+        // Fill the venue with contextual objects at placement/re-occupancy (task 070; H1 fix). Runs after the
+        // generation count is bumped so generationIndex matches the SaveManager sweep convention.
+        this.fillBuildingObjects(workplace);
         return business;
     }
 
@@ -396,7 +453,24 @@ export default class City {
             return;
         }
         const materializedIds = new Set(this.indexMaterialized().keys());
-        population.simulate(event.tick, clock.getTicksPerYear(), undefined, materializedIds);
+        const coarse = population.simulate(event.tick, clock.getTicksPerYear(), undefined, materializedIds);
+
+        // Cross-fidelity reconciliation (task 076/L4): off-map (coarse-sim) deaths used to reach nobody — a
+        // materialized person whose off-map spouse/parent/child died got no milestone in their log (only
+        // Engine-B deaths flowed through onCommitted). Fire the same relative milestones here so the loss
+        // registers regardless of which fidelity owned the deceased. (`marital` already self-corrects, since it
+        // checks the spouse is alive.) Pool-wide, matching the M4 birth/death wiring; disjoint from Engine B's
+        // set (materialized are excluded from the coarse sim), so no double-fire.
+        const coarsePool = population.getState().people;
+        for (const deceased of coarse.died) {
+            this.fireMilestone('became_widowed', spouseAt(coarsePool, deceased, event.tick), event.tick);
+            for (const childId of childrenOf(coarsePool, deceased)) {
+                this.fireMilestone('lost_parent', childId, event.tick);
+            }
+            for (const parentId of parentsOf(coarsePool, deceased)) {
+                this.fireMilestone('lost_child', parentId, event.tick);
+            }
+        }
 
         // School enrollment upkeep (task 058): release invalid assignments, enroll unassigned children.
         this.runSchoolSweeps(event.tick, clock.getTicksPerYear());
@@ -617,6 +691,24 @@ export default class City {
                 // City-overview vital tallies (task 031).
                 this.deaths += result.died.length;
                 this.births += result.born.length;
+                // Wire the computable birth/death milestone events (task 076/M4) — the sim already knows these
+                // happened; fire them on the real subjects so their logs carry their own milestones.
+                const pool = population.getState().people;
+                for (const birth of result.born) {
+                    this.fireMilestone('was_born', birth.id, event.tick);
+                    this.fireMilestone('gave_birth', birth.motherId, event.tick);
+                    this.fireMilestone('became_parent', birth.motherId, event.tick);
+                    this.fireMilestone('became_parent', birth.fatherId, event.tick);
+                }
+                for (const deceased of result.died) {
+                    this.fireMilestone('became_widowed', spouseAt(pool, deceased, event.tick), event.tick);
+                    for (const childId of childrenOf(pool, deceased)) {
+                        this.fireMilestone('lost_parent', childId, event.tick);
+                    }
+                    for (const parentId of parentsOf(pool, deceased)) {
+                        this.fireMilestone('lost_child', parentId, event.tick);
+                    }
+                }
                 // Resolve households left incoherent by deaths (e.g. a minor whose guardian died) — task 011.
                 if (result.died.length > 0) {
                     this.resolveRehousing(event.tick, ticksPerYear);
@@ -804,6 +896,22 @@ export default class City {
                 workplace.expandPositions(business.size + 1, grown.positions, positionDelta(business.positions, grown.positions));
                 business.profitStreak = 0;
                 this.announce('businessGrew', tick, `${business.name} is expanding`, null);
+            } else if ((business.profitStreak ?? 0) <= -DEFAULT_ECONOMY_PARAMS.shrinkMonths
+                && business.size > blueprint.size.min) {
+                // Shrink-via-layoffs (task 076/M6): a solvent-but-sustainedly-unprofitable business downsizes
+                // instead of only ever growing or bankrupting — it sheds a size step (cutting payroll to match
+                // fallen demand). Laid-off staff re-enter the job market. Symmetric with growth.
+                const shrunk = generateBusiness(business.blueprintKey, blueprint, JOBS, business.name, business.size - 1);
+                const laidOff = workplace.shrinkPositions(business.size - 1, shrunk.positions);
+                for (const person of laidOff) {
+                    person.work.clearJob();
+                }
+                business.profitStreak = 0;
+                this.announce('businessShrank', tick, `${business.name} is downsizing`, null);
+                if (laidOff.length > 0) {
+                    const subject = laidOff.length === 1 ? '1 person was' : `${laidOff.length} people were`;
+                    this.announce('massLayoff', tick, `${subject} laid off from ${business.name}`, null);
+                }
             }
         }
     }
@@ -818,7 +926,9 @@ export default class City {
         for (const person of laidOff) {
             person.work.clearJob();
         }
-        Game.economy?.setBusinessBalance(key, 0);
+        // Write off the (usually negative) balance to zero, routed through the external sector (task 076/H3) so
+        // the write-off is accounted rather than silently minting/burning money.
+        Game.economy?.adjustBusiness(key, -(Game.economy?.getBusinessBalance(key) ?? 0));
         // A closing school drops its student assignments (task 058); the next daily sweep re-enrolls the
         // children elsewhere if seats exist. Covers both bankruptcy (021) and bulldozing (025).
         if (business.blueprintKey === SCHOOL_BLUEPRINT_KEY) {
@@ -1057,6 +1167,7 @@ export default class City {
             const relativeHouse = this.findRelativeHouse(memberId, byGenId, pool, house, tick);
             if (relativeHouse) {
                 this.relocateMember(memberId, byGenId, house, relativeHouse);
+                this.fireMilestone('taken_in_by_relatives', memberId, tick); // task 076/M4
                 rehoused += 1;
             } else {
                 // No taker → homeless: leave the home, keep materialized but hidden, await recovery.
@@ -1064,6 +1175,7 @@ export default class City {
                 house.removeOccupant(person);
                 person.social.setHome(null);
                 person.setIndoors(true);
+                this.fireMilestone('became_homeless', memberId, tick); // task 076/M4
                 homelessIds.push(memberId);
             }
         }
@@ -1167,32 +1279,45 @@ export default class City {
             }
 
             const funds = livingMembers.reduce((total, id) => total + economy.getPersonBalance(id), 0);
-            const vacant = funds >= DEFAULT_ECONOMY_PARAMS.recoveryFunds ? this.findVacantHouse() : null;
-            if (!vacant) {
+            // Prefer a fully-vacant home; if none exists (task 076/L3: a fully-built city used to trap the
+            // homeless forever regardless of funds), fall back to any home with a spare slot — moving in with a
+            // relative or as roommates — so recovery stays reachable.
+            const target = funds >= DEFAULT_ECONOMY_PARAMS.recoveryFunds
+                ? (this.findVacantHouse() ?? this.findHouseWithCapacity(livingMembers))
+                : null;
+            if (!target) {
                 remaining.push({ ...household, memberIds: livingMembers, headId: livingMembers[0]! });
                 continue;
             }
 
-            const movers = livingMembers.slice(0, vacant.getOverview().maxResidents);
+            const existing = target.getHousehold();
+            const freeSlots = Math.max(0, target.getOverview().maxResidents - target.getResidents().length);
+            const movers = livingMembers.slice(0, freeSlots);
             for (const id of movers) {
                 const person = byGenId.get(id)!;
-                person.social.setHome(vacant);
+                person.social.setHome(target);
                 person.setIndoors(true);
-                vacant.addResident(person);
-                vacant.addOccupant(person);
+                target.addResident(person);
+                target.addOccupant(person);
+                this.fireMilestone('got_back_on_feet', id, tick); // task 076/M4
             }
-            vacant.setHousehold({
-                id: `hh-${vacant.getIdentifier()}`,
-                houseKey: vacant.getIdentifier(),
-                headId: movers[0]!,
-                memberIds: movers,
-                arrangement: movers.length === 1 ? HouseholdArrangements.Single : HouseholdArrangements.Nuclear,
-            });
-            Game.emit("tileSpawned", vacant); // now occupied → drop the vacant look
+            if (existing) {
+                // Joined an existing household (moved in with family/roommates): append, keep its head.
+                target.setHousehold({ ...existing, memberIds: [...existing.memberIds, ...movers] });
+            } else {
+                target.setHousehold({
+                    id: `hh-${target.getIdentifier()}`,
+                    houseKey: target.getIdentifier(),
+                    headId: movers[0]!,
+                    memberIds: movers,
+                    arrangement: movers.length === 1 ? HouseholdArrangements.Single : HouseholdArrangements.Nuclear,
+                });
+            }
+            Game.emit("tileSpawned", target); // now occupied → drop the vacant look
             this.announce('rehoused', tick, `A homeless household found a home again`, null);
 
             // Anyone who didn't fit stays homeless.
-            const leftover = livingMembers.slice(vacant.getOverview().maxResidents);
+            const leftover = livingMembers.slice(movers.length);
             if (leftover.length > 0) {
                 remaining.push({ ...household, memberIds: leftover, headId: leftover[0]! });
             }
@@ -1510,6 +1635,7 @@ export default class City {
         });
         // Now occupied → re-draw so it drops the vacant (desaturated) look.
         Game.emit("tileSpawned", vacant);
+        this.fireMilestone('left_home_first_time', personId, tick); // task 076/M4
         this.announce('movedOut', tick, `${person.social.getFullName()} moved into their own place`, person);
     }
 
@@ -1532,6 +1658,48 @@ export default class City {
             }
         }
         return best;
+    }
+
+    // An occupied house with at least one free resident slot (task 076/L3): the recovery fallback when no
+    // fully-vacant home exists. Prefers a house where the recovering members already have a living relative
+    // (move in with family), else the lowest-keyed house with room. Null only if every home is full.
+    private findHouseWithCapacity(memberIds: PersonId[]): House | null {
+        const field = Game.field;
+        if (!field) {
+            return null;
+        }
+        const pool = Game.population?.getPeople() ?? {};
+        const relatives = new Set<PersonId>();
+        for (const id of memberIds) {
+            for (const relative of [...parentsOf(pool, id), ...childrenOf(pool, id), ...siblingsOf(pool, id)]) {
+                relatives.add(relative);
+            }
+        }
+        let best: House | null = null, bestKey = '';
+        let relativeHome: House | null = null, relativeKey = '';
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House)) {
+                continue;
+            }
+            const residents = structure.getResidents();
+            if (residents.length === 0 || residents.length >= structure.getOverview().maxResidents) {
+                continue; // fully vacant is handled by findVacantHouse; full has no room
+            }
+            const key = structure.getIdentifier();
+            const hasRelative = residents.some(resident => {
+                const rid = resident.social.getPersonId();
+                return rid != null && relatives.has(rid);
+            });
+            if (hasRelative && (!relativeHome || key < relativeKey)) {
+                relativeHome = structure;
+                relativeKey = key;
+            }
+            if (!best || key < bestKey) {
+                best = structure;
+                bestKey = key;
+            }
+        }
+        return relativeHome ?? best;
     }
 
     // Schedule-driven commute (task 006). On each in-game minute, dispatch employed, idle residents: out to

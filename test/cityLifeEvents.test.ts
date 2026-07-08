@@ -32,6 +32,10 @@ const BIRTH_MANIFEST: EventManifest = {
         triggers: { probabilistic: { perYear: 200000 } },
         effects: [{ type: 'birth', mother: 'subject', father: 'father' }],
     },
+    // Milestone events City wires to the birth transition (task 076/M4) — manual, effect-free.
+    was_born: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { manual: {} }, effects: [] },
+    gave_birth: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { manual: {} }, effects: [] },
+    became_parent: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { manual: {} }, effects: [] },
 };
 
 function gen(id: string, gender: Gender, ageYears: number, tickNow: number): GenPerson {
@@ -115,5 +119,42 @@ describe('City.handleTick — birth materialization', () => {
         expect(house.getHousehold()!.memberIds).toContain(childId);
         expect(house.getResidents().some(resident => resident.social.getPersonId() === childId)).toBe(true);
         expect(city.getPopulation()).toBe(3);
+    });
+
+    test('the birth fires the computable milestone events on the real subjects (task 076/M4)', async () => {
+        const tickNow = 10 * TPY;
+        const { game, field, population, clock } = makeGame(20, 20, BIRTH_MANIFEST);
+        const city = new City(game);
+        const engine = (game as unknown as { eventEngine: EventEngine }).eventEngine;
+
+        const mother = gen('mom', Genders.Female, 30, tickNow);
+        const father = gen('dad', Genders.Male, 32, tickNow);
+        mother.partnerships.push({ partnerId: 'dad', startTick: tickNow - 5 * TPY, endTick: null });
+        father.partnerships.push({ partnerId: 'mom', startTick: tickNow - 5 * TPY, endTick: null });
+        const people: PersonTable = { mom: mother, dad: father };
+        population.loadState({ worldSeed: 11, people, drawSeed: 0, placedIds: ['mom', 'dad'], nextSeq: 2, lastSimulatedYear: 0 });
+        clock.setElapsedMs(tickNow * MS_PER_TICK);
+
+        const house = field.loadStructure('house', 7, 7, 'building_1x1x1_1') as House;
+        const momPerson = field.loadPerson(112, 112);
+        momPerson.social.setPersonId('mom');
+        momPerson.social.setHome(house);
+        house.addResident(momPerson);
+        const dadPerson = field.loadPerson(116, 112);
+        dadPerson.social.setPersonId('dad');
+        dadPerson.social.setHome(house);
+        house.addResident(dadPerson);
+        house.setHousehold({ id: 'hh-7-7', houseKey: house.getIdentifier(), headId: 'mom', memberIds: ['mom', 'dad'], arrangement: HouseholdArrangements.Nuclear });
+        city.setPopulation(2);
+
+        await city.handleTick({ tick: tickNow, timestamp: clock.getTimestamp() });
+
+        // The mother's log carries her real milestones; both parents "became a parent".
+        expect(engine.getHistory()['mom']?.['gave_birth']?.count).toBeGreaterThanOrEqual(1);
+        expect(engine.getHistory()['mom']?.['became_parent']?.count).toBeGreaterThanOrEqual(1);
+        expect(engine.getHistory()['dad']?.['became_parent']?.count).toBeGreaterThanOrEqual(1);
+        // The newborn's own birth is logged.
+        const childId = Object.keys(population.getPeople()).find(id => id !== 'mom' && id !== 'dad')!;
+        expect(engine.getHistory()[childId]?.['was_born']?.count).toBe(1);
     });
 });

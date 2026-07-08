@@ -27,6 +27,10 @@ import { PersonId } from 'types/Genealogy';
 import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
 
+// The selection weight assumed when an action declares none (task 076/L2). One shared convention across every
+// selection path (free-time and the social hook) so a weightless action is treated identically everywhere.
+export const DEFAULT_SELECTION_WEIGHT = 1;
+
 // The person's broad simulation state — a small, stable enum, never an arbitrary action name (038 §8). The
 // actual activity is the active instance (`activeActionInstanceId`), queryable separately.
 export type BrainStatus = 'idle' | 'sleeping' | 'commuting' | 'working' | 'performing_action' | 'waiting_for_materialization';
@@ -67,6 +71,11 @@ export interface BrainDeps extends ActionDeps {
     schoolOf?: (personId: PersonId) => SchoolFacts | null;
 }
 
+// Dispatched today: `onTick` and `onEventCommitted` (processTick), and `onActionFailed` (the decline path,
+// task 073). The remaining kinds are a RESERVED forward API for future producers (shift/arrival/action-lifecycle
+// systems) — declared so hooks can register against them without reshaping the resolution machinery, but not
+// yet emitted (task 076/L1: completion-driven selection is already covered by idleFallback on the same tick,
+// given actions advance in phases 1–2 before hooks run in phase 7).
 export type HookKind = 'onTick' | 'onEventCommitted' | 'onActionStarted' | 'onActionCompleted' | 'onActionFailed' | 'onActionInterrupted' | 'onLocationArrived' | 'onShiftStarted' | 'onShiftEnded';
 
 export interface HookContext {
@@ -100,7 +109,6 @@ export default class Brain {
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
             wokeUpHook,
-            actionCompletedHook,
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)
             inventoryOpportunityHook,
@@ -159,8 +167,9 @@ export default class Brain {
                         intents.push(...hook.propose({ personId, deps, brain: this, event }));
                     }
                 }
-                // Other kinds (arrival/shift/action hooks) are dispatched by their producers as those
-                // systems land (046 follow-ups + 047); the registry accommodates them already.
+                // onActionFailed is dispatched separately by the decline path (resolveIntents, task 073); the
+                // remaining reserved kinds have no producer yet (see the HookKind note). idleFallback (onTick)
+                // covers post-completion selection here, so no completion dispatch is needed.
             }
             this.resolveIntents(personId, intents, deps, result);
         }
@@ -237,7 +246,7 @@ export default class Brain {
                 continue; // obligations are hook-driven, never free-time picks
             }
             const selection = def.selection;
-            let weight = selection?.weight ?? 0;
+            let weight = selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
             if (weight <= 0) {
                 continue; // not selectable
             }
@@ -308,16 +317,6 @@ const wokeUpHook: BrainHook = {
     },
 };
 
-// A continuous action just finished (observed as: committed stopped_working / no active instance) → the
-// idle fallback below covers selection; this hook exists as the registration point for 047's refinements.
-const actionCompletedHook: BrainHook = {
-    id: 'actionCompleted',
-    kind: 'onActionCompleted',
-    propose(): ActionIntent[] {
-        return [];
-    },
-};
-
 // A proposed action was declined/failed at start (task 073) — dispatched in the same tick, one level deep.
 // Deliberately inert this iteration: no automatic retry, no counter-proposal. It exists as the registration
 // point for future reactions (074's curated decline responses, relationship consequences).
@@ -329,8 +328,12 @@ const actionFailedHook: BrainHook = {
     },
 };
 
-// Inventory opportunity (onTick): something pocketable is lying at the person's location and they're not
-// otherwise engaged → a discrete pocket action (038 §8's "natural variety in Possessions").
+// Inventory opportunity (onTick): an idle person interacts with objects around them (038 §8's "natural variety
+// in Possessions"). This is the sole proposer of the generic object verbs (task 076/M3 — grab/use_object/
+// put_down/discard_object were dead before this): pools can't bind params (they start children with {}), so
+// param-bound verbs must come from a hook. Preference order: pick up a free loose carryable here (grab),
+// else pocket a small item (generic flavor), else occasionally fiddle with what they carry (use/put-down/
+// discard). The carried-fiddle is probability-gated so it doesn't starve free-time continuous actions.
 const inventoryOpportunityHook: BrainHook = {
     id: 'inventoryOpportunity',
     kind: 'onTick',
@@ -338,18 +341,63 @@ const inventoryOpportunityHook: BrainHook = {
         if (brain.statusOf(personId).status !== 'idle') {
             return [];
         }
-        const context = brain.getActionEngine().contextFor(personId, deps);
-        if (!context.objectAtLocation?.({ flag: 'pocketable' })) {
-            return [];
-        }
-        return [{
-            actionId: 'pocketed_small_object',
+        const intent = (actionId: string, object?: string): ActionIntent => ({
+            actionId,
+            ...(object ? { params: { object } } : {}),
             sourceHook: 'inventoryOpportunity',
             priority: 15,
             necessity: 'optional',
             mayInterrupt: false,
             causationId: null,
-        }];
+        });
+
+        const world = deps.ctx.world ?? null;
+        const inventory = deps.inventory ?? null;
+        const context = brain.getActionEngine().contextFor(personId, deps);
+
+        // No object substrate (e.g. today's bootstrap, pure tests): keep the generic pocket flavor if eligible.
+        if (!world || !inventory) {
+            return context.objectAtLocation?.({ flag: 'pocketable' })
+                ? [intent('pocketed_small_object')]
+                : [];
+        }
+
+        const flagsOf = (archetypeId: string): Record<string, boolean> =>
+            (inventory.getArchetype(archetypeId)?.flags as unknown as Record<string, boolean>) ?? {};
+        const carriedArchetypes = new Set(inventory.carriedInstances(personId).map(instance => instance.archetypeId));
+
+        // Free-to-take, carryable (non-pocketable) loose objects here that they aren't already carrying → Grab X.
+        const grabbable = world.objectsAt(world.objectLocationOf(personId))
+            .map(id => inventory.getInstance(id))
+            .filter((instance): instance is NonNullable<typeof instance> => !!instance && instance.owner.kind === 'none')
+            .map(instance => instance.archetypeId)
+            .filter(archetypeId => {
+                const flags = flagsOf(archetypeId);
+                return flags.carryable && !flags.pocketable && !carriedArchetypes.has(archetypeId);
+            })
+            .sort();
+        if (grabbable.length > 0) {
+            return [intent('grab', grabbable[0])];
+        }
+
+        // Small item lying around → pocket it (generic, unchanged behavior; self-limits as it's consumed).
+        if (context.objectAtLocation?.({ flag: 'pocketable' })) {
+            return [intent('pocketed_small_object')];
+        }
+
+        // Otherwise, occasionally use/put-down/discard something they carry. Gated so most idle ticks fall
+        // through to the free-time continuous action (idleFallback, lower priority).
+        const carried = [...carriedArchetypes].sort();
+        if (carried.length > 0) {
+            const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x0b1);
+            if (rng.next() < 0.15) {
+                const object = carried[Math.floor(rng.next() * carried.length)]!;
+                const roll = rng.next();
+                const verb = roll < 0.7 ? 'use_object' : roll < 0.9 ? 'put_down' : 'discard_object';
+                return [intent(verb, object)];
+            }
+        }
+        return [];
     },
 };
 

@@ -9,6 +9,11 @@ export interface EconomyState {
     // Highest in-game month the monthly economic update (payroll, cost of living, P&L) has applied. -1 means
     // none yet. Persisted so save/load doesn't double-run or skip a month (task 018+).
     lastEconomyMonth: number;
+    // The "external sector" counterparty (task 076/H3): the rest-of-the-world account every non-transfer flow
+    // (revenue in, cost-of-living/materials/fixed-costs out, starting-capital injections, write-offs, event
+    // money adjustments) is balanced against, so the grand total (people + businesses + external) is conserved
+    // and a long run can be checked for drift. Optional for pre-H3 saves (derived on load).
+    externalBalance?: number;
 }
 
 // Tunable economy values (src/json/economy.json).
@@ -18,6 +23,7 @@ export interface EconomyParams {
     housingCost: number; // monthly housing cost per household
     perCapitaCost: number; // monthly food/upkeep per resident
     growthMonths: number; // consecutive profitable months before a fully-staffed business grows (task 020)
+    shrinkMonths: number; // consecutive loss-making months before a solvent, over-min business sheds a position (task 076/M6)
     bankruptcyDebtFloor: number; // a business whose balance stays below this is insolvent (task 021)
     bankruptcyMonths: number; // consecutive insolvent months before a business goes bankrupt and closes (task 021)
     reoccupancyMonths: number; // months a work building stays vacant before it can attract a new business (task 037)

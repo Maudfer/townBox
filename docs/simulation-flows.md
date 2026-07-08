@@ -216,3 +216,27 @@ sequenceDiagram
   shift, co-location for social targets (`peopleAt`), object queries (`objectLocationOf`). If you
   find yourself writing `if (mode === 'bootstrap')`, stop — that's the line the whole arc exists to
   hold.
+
+## The offline-generator TickPlan contract (task 076/H2 → 055)
+
+`TickRunner.runTick` is genuinely mode-agnostic, but it only runs the systems whose plan inputs are
+supplied. `City.handleTick` (live) supplies the full set; the per-load `HistoryBootstrap` supplies a thin
+subset, so today the bootstrap path is a **demographic + pool-intrinsic-events** simulator, not the full
+enriched sim. For the **055 offline generator** to capture the whole simulation off-map, its bootstrap
+driver must populate the same `TickPlan` fields live play does. This is a build-out, not a rewrite (the
+spine and the `WorldAdapter` contract are shared) — the audit's H2 finding, recorded so 055 is additive.
+
+| Plan input | System it drives | Bootstrap status today | What 055 must supply |
+|---|---|---|---|
+| `engine` (full manifest) | life events (Engine B) | ✅ runs | — |
+| `actionEngine` + `brain` | Actions + Brain free-time | ⚠️ run but starved | a logical inventory + object gen (below) so object-gated actions pass |
+| `inventory` + `ctx.world` object gen | objects, Possessions, object-gated actions | ❌ null inventory, no buildings | a logical world: homes/venues with **distinct location keys** + `generateBuildingObjects` per logical building |
+| `ctx.world.register()` for the roster | social co-location (`peopleAt`) | ❌ never called (seam exists — task 076 proves it) | register every living agent each tick/entry; give homes distinct keys so co-location isn't a single shared 'home' |
+| `markets.jobMarket` + `jobOf`/`employerKeyOf`/`jobAssignmentOf` | hiring, work actions, Job Orchestrator | ❌ absent | a logical JobMarket over logical businesses/jobs generated from the same blueprints |
+| `schoolOf` + an off-map enrollment sweep | school attendance | ❌ absent (sweep is `handleNewDay`-only) | logical schools + a mode-agnostic enrollment sweep |
+| `skillProgression` | school-day + work-day proficiency + promotions | ❌ guarded off | pass the `SkillProgression` service (already mode-agnostic) |
+| `markets.ledger` + the monthly economy | wages, cost-of-living, P&L, bankruptcy/shrink | ❌ economy is `handleNewDay`/`processMonthlyEconomy`-only | a mode-agnostic monthly-economy driver over the logical world (money is conserved via the external sector, task 076/H3, so a long run won't drift) |
+| `onCommitted` reconciliation + day cadence | births/deaths materialization, re-housing, cohabitation, move-out, milestones (076/M4), skill milestones | ❌ absent | an off-map reconciliation + day-cadence driver (the live versions are `City`/map-bound; 055 provides logical equivalents) |
+
+The keystone guarantee (075's `test/arcScenarios.test.ts`) — live ↔ bootstrap skill/economy outcomes identical
+modulo arrival-tick offsets — is only meaningful once these inputs exist off-map; extend it as each lands.

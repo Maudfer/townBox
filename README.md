@@ -44,13 +44,15 @@ life stories, then surfacing them.
   education that grants real skills, retirement, friendships and arguments — all defined as **flat JSON** with
   eligibility predicates and probability gradients. A load-time compiler derives their dependency/exclusivity
   graph (NPM-style); mutual exclusivity is *derived, never authored*.
-- **A generative business economy.** Work buildings spawn businesses from **blueprints** (≈18 lines of work
-  across 9 demand categories), each with job positions that scale with size via declarative curves. Households
-  generate demand; businesses compete for it by capacity; revenue, wages, cost of living, and P&L are all
-  simulated.
-- **An emergent bad-numbers cascade.** Oversupply → business losses → **bankruptcy** → layoffs → unemployment →
-  household **arrears** → **eviction → homelessness** → recovery through re-employment. Vacated shops and homes
-  heal over time (re-occupancy, move-out). Nobody scripted these outcomes; they fall out of the numbers.
+- **A generative business economy.** Work buildings spawn businesses from **blueprints** (≈39 lines of work
+  across 9 demand categories — from supermarkets and hospitals to bars, libraries, parks and cemeteries), each
+  with job positions that scale with size via declarative curves. Households generate demand; businesses compete
+  for it by capacity; revenue, wages, cost of living, and P&L are all simulated, with the total money supply
+  **conserved** against an external sector so a long run can't silently inflate or deflate.
+- **An emergent bad-numbers cascade.** Oversupply → business losses → **shrink-via-layoffs** or **bankruptcy** →
+  layoffs → unemployment → household **arrears** → **eviction → homelessness** → recovery through re-employment.
+  Vacated shops and homes heal over time (re-occupancy, move-out). Nobody scripted these outcomes; they fall out
+  of the numbers.
 - **Inspect any life.** A universal Select tool opens inspectors for a person (identity, age, job, skills,
   relationships, and a dated **life-event log**), a business (positions, employees, balance, P&L), or a
   household (an interactive family tree). A city dashboard and a live event feed narrate the emergent story.
@@ -112,7 +114,8 @@ canonical simulation tick is the **in-game hour** (24 ticks/day); the clock emit
   numbers and causation ids.
 - **Per minute** — the commute scheduler moves employees between home and work.
 - **Per month** — the economic tick runs payroll → demand-driven business P&L → producer (B2B) revenue →
-  bankruptcy/growth → vacant-lot re-occupancy → household cost-of-living → eviction → homeless recovery.
+  growth / shrink-via-layoffs / bankruptcy → vacant-lot re-occupancy → household cost-of-living → eviction →
+  homeless recovery.
 
 Everything feeds back into everything. The diagram below ties the simulated aspects — **people, skills, jobs,
 businesses, materials, money, life events** — into one loop:
@@ -165,7 +168,7 @@ graph TD
     MAT -->|B2B revenue to producers| BIZ
 
     BIZ -->|profit + fully staffed → grow| JOB
-    BIZ -->|sustained losses → bankruptcy → layoffs| PPL
+    BIZ -->|sustained losses → shrink or bankruptcy → layoffs| PPL
     BIZ -->|vacated lot → re-occupancy| BIZ
     MONEY -->|household arrears too long → eviction| HH
     HH -->|homeless → recovers funds → re-home| PPL
@@ -186,10 +189,12 @@ blueprints, their job counts scaling with size). Businesses pay **wages** into t
 **cost of living** and generate per-category **demand**; businesses compete for that demand by staffing capacity,
 earning **revenue** and buying **input materials** — which become **B2B demand** on local producers (farms,
 factories, warehouses) who earn by supplying it. The monthly **P&L** decides fates: profitable, fully-staffed
-businesses **grow**; chronically unprofitable ones go **bankrupt**, lay everyone off, and leave a vacant lot that
-later attracts a *different* business. On the household side, too many months of unpaid **cost of living** ends
-in **eviction** and **homelessness**, escapable only when someone finds work again and the family can afford a
-vacant home. The one dotted edge — a business's **product output** feeding *downstream industries* as more than
+businesses **grow**; a solvent business that stays unprofitable **shrinks** — shedding a size step and laying off
+its surplus back into the job market; and a business that sinks below the debt floor for too long goes
+**bankrupt**, lays everyone off, and leaves a vacant lot that later attracts a *different* business. On the
+household side, too many months of unpaid **cost of living** ends in **eviction** and **homelessness**, escapable
+when someone finds work again and the family can afford a vacant home (or move in with relatives if the town is
+full). The one dotted edge — a business's **product output** feeding *downstream industries* as more than
 just raw materials — is **not yet implemented** (see [task 035](docs/tasks/035-materials-and-products_DONE.md)
 for the materials/B2B layer that exists, and the roadmap for where it goes next).
 
@@ -218,10 +223,11 @@ tested code change.
 Skills (335 — 15 basics + 320 specific abilities on a dependency DAG, each held as a 0–100 **proficiency** with
 provenance) and jobs (≈33, each with a full authored **rank ladder** and an explicit entry training grant) are
 JSON reference tables kept internally consistent by validators — including the CI-enforced reachability rule (a
-fresh 18-year-old with school basics can reach every job's entry rank) and the self-climbing rule (no ladder
-silently stalls). Business
-**blueprints** (≈18, across groceries, dining, healthcare, education, construction, retail, leisure, services,
-hospitality, plus B2B producers) describe how to generate a business of a given size: each job's position count
+fresh 18-year-old with school basics can reach every job's entry rank), the self-climbing rule (no ladder
+silently stalls), and the consumption rule (every non-basic skill is required or progressed by some job rank, so
+none is inert data). Business
+**blueprints** (≈39, across groceries, dining, healthcare, education, construction, retail, leisure, services,
+hospitality, plus civic/leisure venues and B2B producers) describe how to generate a business of a given size: each job's position count
 is a `Curve` over size, so a big supermarket has proportionally more clerks than janitors. Hiring is a real
 event (`get_job`) resolved through a **`JobMarket`** adapter that scores candidates by skill fit minus
 home↔work distance and hires into the highest rank strictly met (else the entry rank via its grant) — so school,
@@ -232,21 +238,27 @@ A serializable `Economy` holds per-person and per-business balances behind one l
 monthly tick runs **wages** (businesses → employees), **cost of living** (households → suppliers, accruing
 `arrears` when they can't pay), and **demand-driven P&L**: `revenue = unitsSold × price` (units capped by
 `staffing × throughput` and split among competitors by capacity), minus materials, fixed costs, and payroll.
-Sustained profit + full staffing → **growth**; a balance below the debt floor for too long → **bankruptcy &
-closure** (staff laid off, lot vacated, debt written off), after which a cooldown lets a new business move in.
+Sustained profit + full staffing → **growth**; sustained losses while still solvent → **shrink-via-layoffs**
+(a size step shed, surplus staff back on the market); a balance below the debt floor for too long → **bankruptcy
+& closure** (staff laid off, lot vacated, debt written off), after which a cooldown lets a new business move in.
+Every one-sided flow (revenue, cost of living, materials, starting capital, write-offs) is balanced against an
+**external sector** account, so the grand total (people + businesses + external) is **conserved** — a long run
+neither mints nor burns money.
 
 ### Materials & the B2B supply chain
 A business's input **materials** become demand on local **producers** whose `products` are those materials —
 farms produce food, factories produce building/hardware/electronics stock, warehouses produce retail/office
-goods. The same demand-resolution machinery runs a second time keyed by material, so producers earn B2B revenue
-by supplying downstream shops. (Deeper multi-tier product chains and business product *output* beyond raw
-materials are future work.)
+goods (and medical/school supplies and auto parts). The same demand-resolution machinery runs a second time
+keyed by material, so producers earn B2B revenue by supplying downstream shops; a validator guarantees every
+consumed material is produced by some blueprint. (Deeper multi-tier product chains and business product *output*
+beyond raw materials are future work.)
 
 ### Household lifecycle dynamics
 Households aren't frozen at placement. Death re-houses orphaned minors with a living relative; marriage triggers
 **cohabitation** (newlyweds move in together); grown, employed adults **move out** into a vacant home to start
-their own household; insolvency drives **eviction → homelessness**, with recovery back into a vacant home once
-funds return. All of it runs through one shared relocation helper.
+their own household; insolvency drives **eviction → homelessness**, with recovery once funds return — into a
+vacant home, or, if the town is full, in with a relative or as roommates in any home with a spare room. All of it
+runs through one shared relocation helper.
 
 ### Movement & commute
 A shared A\* pathfinder routes people over sidewalks/crosswalks and cars in their lanes. Employed residents run a
@@ -337,6 +349,14 @@ and deterministic **building object generation**, context-grounded action requir
 interaction **contracts** with a deterministic **consent** flow and typed action failure — validated end-to-end
 (live ↔ bootstrap equivalence, tick-budget re-pins) by task 075.
 
+A post-arc **audit-remediation pass (076)** then closed the consumption gaps the arcs left behind: contextual
+objects generate **at placement** (not only on save/load); **all authored content is now consumed** — orphaned
+skills wired into job progression, the deferred venues promoted to real blueprints so every object can spawn, the
+generic object verbs proposed by the inventory hook, and computable milestone events (born, became-parent,
+widowed, homeless, moved-out…) fired from the transitions the sim already performs — each guarded by a CI
+reachability test; businesses **shrink-via-layoffs** as well as grow; and **money is conserved** via an explicit
+external sector.
+
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/README.md)):
 
 - **055 — offline history-asset pipeline** (renumbered from 038; lands *after* the enrichment it should
@@ -346,7 +366,7 @@ interaction **contracts** with a deterministic **consent** flow and typed action
   simulating — the strategic key to one-fidelity simulation and near-infinite starting scenarios.
 - **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
-- Business **product output** into downstream industries and business **shrink-via-layoffs**.
+- Business **product output** into downstream industries (beyond raw materials).
 
 ---
 

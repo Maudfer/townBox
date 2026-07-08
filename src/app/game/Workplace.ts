@@ -87,6 +87,45 @@ export default class Workplace extends Building {
         this.avaiableJobs.push(...addedOpen);
     }
 
+    // Graceful downsizing (task 076/M6): shrink to a smaller position set (mirror of expandPositions). Keeps
+    // employees up to each title's capacity in the shrunk business and lays off the surplus (returned so the
+    // caller clears their WorkLife.job → they re-enter the job market via get_job, like a bankruptcy layoff but
+    // without closure). Open positions are recomputed from the leftover capacity, preserving the invariant
+    // employees + open == positions.
+    public shrinkPositions(newSize: number, fullPositions: JobPosition[]): Person[] {
+        if (!this.business) {
+            return [];
+        }
+        const remaining = new Map<string, number>();
+        for (const position of fullPositions) {
+            remaining.set(position.title, (remaining.get(position.title) ?? 0) + 1);
+        }
+        const kept: Person[] = [];
+        const laidOff: Person[] = [];
+        for (const employee of this.employees) {
+            const title = employee.work.getJob()?.title;
+            if (title && (remaining.get(title) ?? 0) > 0) {
+                kept.push(employee);
+                remaining.set(title, remaining.get(title)! - 1);
+            } else {
+                laidOff.push(employee);
+            }
+        }
+        this.employees = kept;
+        // Whatever capacity the retained employees didn't consume becomes the new open-position pool.
+        const open: JobPosition[] = [];
+        for (const position of fullPositions) {
+            if ((remaining.get(position.title) ?? 0) > 0) {
+                open.push(position);
+                remaining.set(position.title, remaining.get(position.title)! - 1);
+            }
+        }
+        this.avaiableJobs = open;
+        this.business.size = newSize;
+        this.business.positions = fullPositions;
+        return laidOff;
+    }
+
     // The open (unfilled) positions still available for hiring.
     public getOpenPositions(): JobPosition[] {
         return [...this.avaiableJobs];

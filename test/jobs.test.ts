@@ -38,3 +38,30 @@ describe('workplace hiring against a generated business', () => {
         expect(job!.shiftStart).toBeLessThan(job!.shiftEnd);
     });
 });
+
+// Skill consumption (task 076/M1): every non-basic skill must be REQUIRED or PROGRESSED by some job rank, or
+// it's inert data on Person records (a proficiency number nothing gates or grows). The inverse of the CI
+// 18-year-old reachability rule.
+describe('skill consumption over the real manifests (task 076/M1)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const realSkills = require('../src/json/skills.json') as Record<string, { basic?: boolean }>;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const realJobs = require('../src/json/jobs.json') as Record<string, { ranks?: { requires?: { skill: string }[]; progresses?: { skill: string }[]; entryTrainingGrant?: { grants?: { skill: string }[] } }[] }>;
+
+    test('every non-basic skill is required or progressed by at least one job rank', () => {
+        const consumed = new Set<string>();
+        for (const job of Object.values(realJobs)) {
+            for (const rank of job.ranks ?? []) {
+                for (const r of rank.requires ?? []) consumed.add(r.skill);
+                for (const p of rank.progresses ?? []) consumed.add(p.skill);
+                for (const g of rank.entryTrainingGrant?.grants ?? []) consumed.add(g.skill);
+            }
+        }
+        const dead = Object.entries(realSkills)
+            .filter(([, def]) => !def.basic)
+            .map(([id]) => id)
+            .filter(id => !consumed.has(id))
+            .sort();
+        expect(dead).toEqual([]);
+    });
+});

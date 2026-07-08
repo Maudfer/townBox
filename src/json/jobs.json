@@ -231,6 +231,26 @@
                     {
                         "skill": "rotate_perishable_stock",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "count_stock_accurately",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "keep_shipping_manifests",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_a_forklift",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "pick_warehouse_orders",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "track_inventory",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -282,6 +302,26 @@
                     {
                         "skill": "manage_storage_space",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "handle_fragile_goods",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "label_and_sort_packages",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_a_pallet_jack",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "schedule_deliveries",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "track_shipments_digitally",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -318,6 +358,26 @@
                     {
                         "skill": "manage_storage_space",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "inspect_incoming_goods",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "load_and_unload_trucks",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "organize_a_stockroom",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "seal_and_palletize_freight",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "weigh_and_measure_freight",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -428,6 +488,26 @@
                     {
                         "skill": "deep_clean_kitchens",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "clean_restrooms",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "empty_and_sort_waste",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "organize_storage_closets",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "remove_stains",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "sort_laundry",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -479,6 +559,26 @@
                     {
                         "skill": "schedule_cleaning_rounds",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "disinfect_medical_areas",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "mix_cleaning_solutions",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "polish_furniture",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "restock_cleaning_supplies",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "wash_windows",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -515,6 +615,22 @@
                     {
                         "skill": "schedule_cleaning_rounds",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "dust_high_surfaces",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_floor_buffer",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "power_wash_exteriors",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "shampoo_carpets",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -627,6 +743,30 @@
                     {
                         "skill": "plan_shift_coverage",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "enforce_procedures",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "liaise_with_head_office",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "motivate_a_team",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "resolve_staff_disputes",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "run_team_meetings",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "write_staff_rotas",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -678,6 +818,26 @@
                     {
                         "skill": "forecast_busy_periods",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "handle_escalated_complaints",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "manage_petty_cash",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "open_and_close_procedures",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "review_performance",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "set_sales_targets",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -714,6 +874,26 @@
                     {
                         "skill": "forecast_busy_periods",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "interview_candidates",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "mentor_junior_staff",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "order_supplies_on_budget",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "run_stock_takes",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "train_new_hires",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -1155,6 +1335,14 @@
                     {
                         "skill": "give_injections",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "apply_bandages_and_splints",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "perform_cpr",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1206,6 +1394,14 @@
                     {
                         "skill": "monitor_iv_lines",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "assist_in_minor_procedures",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "screen_blood_pressure",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -1246,6 +1442,10 @@
                     {
                         "skill": "triage_patients",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "chart_patient_notes",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -1282,6 +1482,10 @@
                     {
                         "skill": "triage_patients",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "draw_blood_samples",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -1406,6 +1610,22 @@
                     {
                         "skill": "grade_assignments",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "adapt_lessons_for_ages",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "keep_attendance_records",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "run_science_demonstrations",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "teach_reading_groups",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1485,6 +1705,22 @@
                     {
                         "skill": "design_quizzes_and_tests",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "coach_public_speaking",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "lead_music_classes",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "set_homework",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "tutor_one_on_one",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -1533,6 +1769,18 @@
                     {
                         "skill": "build_a_curriculum",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "communicate_with_parents",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "mark_report_cards",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "supervise_recess",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -1577,6 +1825,18 @@
                     {
                         "skill": "build_a_curriculum",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "encourage_struggling_students",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "organize_field_trips",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "teach_arithmetic_drills",
+                        "multiplier": 0.25
                     }
                 ],
                 "workActions": {
@@ -1702,6 +1962,22 @@
                     {
                         "skill": "work_a_flat_top",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "butcher_and_portion_meat",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "follow_recipes",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "make_stocks_and_sauces",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "preserve_and_pickle",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1753,6 +2029,22 @@
                     {
                         "skill": "time_multiple_dishes",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_food_temperatures",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "fry_safely",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "manage_a_prep_list",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "scale_recipes_up",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -1789,6 +2081,22 @@
                     {
                         "skill": "time_multiple_dishes",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "cook_rice_and_grains",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "keep_a_clean_station",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "plate_dishes",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "season_and_taste",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -1904,6 +2212,14 @@
                     {
                         "skill": "recommend_menu_items",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "carry_loaded_trays",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "prepare_continental_breakfast",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -1955,6 +2271,14 @@
                     {
                         "skill": "handle_guest_complaints",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "polish_glassware_and_silver",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "set_formal_tables",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -1991,6 +2315,14 @@
                     {
                         "skill": "handle_guest_complaints",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "pour_and_serve_drinks",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "turn_over_hotel_rooms",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -2101,6 +2433,30 @@
                     {
                         "skill": "operate_power_tools",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "apply_roofing",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "follow_site_safety_rules",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "install_insulation",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "measure_and_cut_lumber",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "pour_and_level_floors",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "tile_floors_and_walls",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2152,6 +2508,26 @@
                     {
                         "skill": "erect_scaffolding",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "clear_demolition_debris",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "frame_walls",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "install_windows_and_doors",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_a_jackhammer",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "read_blueprints",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -2188,6 +2564,26 @@
                     {
                         "skill": "erect_scaffolding",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "dig_foundations",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "install_drywall",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "lay_bricks",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "paint_surfaces",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "seal_and_waterproof",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -2709,6 +3105,18 @@
                     {
                         "skill": "explain_product_features",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "bag_groceries",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "open_and_close_a_shop",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "spot_shoplifting",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -2760,6 +3168,18 @@
                     {
                         "skill": "upsell_products",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "handle_layaway_plans",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_barcode_scanner",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "take_special_orders",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -2796,6 +3216,18 @@
                     {
                         "skill": "upsell_products",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "manage_fitting_rooms",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "price_merchandise",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "wrap_gifts",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -2826,6 +3258,10 @@
                 {
                     "action": "pruning_displays",
                     "chancePerTick": 0.35
+                },
+                {
+                    "action": "shelving_returns",
+                    "chancePerTick": 0.3
                 },
                 {
                     "action": "balancing_the_till",
@@ -3501,6 +3937,18 @@
                     {
                         "skill": "reconcile_accounts",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "budget_departments",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "keep_double_entry_books",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "spot_transaction_fraud",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3552,6 +4000,18 @@
                     {
                         "skill": "audit_expense_reports",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "calculate_interest",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "open_customer_accounts",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "track_invoices",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -3592,6 +4052,18 @@
                     {
                         "skill": "forecast_cash_flow",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "explain_financial_products",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "process_loan_applications",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "value_collateral",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -3628,6 +4100,18 @@
                     {
                         "skill": "forecast_cash_flow",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "file_tax_paperwork",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "run_payroll",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "write_financial_summaries",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -3742,6 +4226,26 @@
                     {
                         "skill": "write_incident_reports",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "check_credentials",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "document_cctv_footage",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "inspect_bags_and_deliveries",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "stay_alert_on_night_shifts",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -3793,6 +4297,26 @@
                     {
                         "skill": "secure_a_perimeter",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "enforce_house_rules",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "lock_up_and_alarm_buildings",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "watch_for_suspicious_behavior",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -3829,6 +4353,22 @@
                     {
                         "skill": "secure_a_perimeter",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "guard_valuables_in_transit",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_metal_detectors",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "respond_to_alarms",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -4132,6 +4672,22 @@
                     {
                         "skill": "apply_makeup",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "advise_on_skin_care",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "give_scalp_massages",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "recommend_beauty_products",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "shave_and_trim_beards",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -4183,6 +4739,22 @@
                     {
                         "skill": "apply_nail_extensions",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "braid_and_updo",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "keep_client_style_cards",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "sanitize_salon_tools",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "tint_brows_and_lashes",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -4219,6 +4791,22 @@
                     {
                         "skill": "apply_nail_extensions",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "demonstrate_home_hair_care",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "match_styles_to_faces",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "schedule_salon_appointments",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "wax_and_thread",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -4328,6 +4916,26 @@
                     {
                         "skill": "tune_engines",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "adjust_brakes",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "change_oil_and_fluids",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "operate_a_car_lift",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "service_air_conditioning",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "use_a_torque_wrench",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -4379,6 +4987,26 @@
                     {
                         "skill": "rebuild_carburetors",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "align_wheels",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "fabricate_small_parts",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "read_repair_manuals",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "test_batteries_and_alternators",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "weld_metal",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -4415,6 +5043,22 @@
                     {
                         "skill": "rebuild_carburetors",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "balance_and_rotate_tires",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "flush_cooling_systems",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "repair_exhaust_systems",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "troubleshoot_by_sound",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -4720,6 +5364,30 @@
                     {
                         "skill": "assess_client_fitness",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "adapt_workouts_for_seniors",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "coach_youth_sports",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "maintain_gym_equipment",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "referee_pickup_games",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "teach_stretching_routines",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "warm_up_and_cool_down",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -4771,6 +5439,26 @@
                     {
                         "skill": "lead_group_classes",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "administer_gym_first_aid",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "correct_exercise_posture",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "motivate_clients",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "run_circuit_training",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "teach_swimming_strokes",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -4807,6 +5495,26 @@
                     {
                         "skill": "lead_group_classes",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "coach_running_form",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "demonstrate_yoga_poses",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "plan_meal_guidance",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "spot_weightlifting",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "track_client_progress",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -6344,6 +7052,30 @@
                     {
                         "skill": "deliver_on_schedule",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "back_up_with_mirrors",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "drive_a_box_truck",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "drive_in_bad_weather",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "keep_vehicle_logs",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "navigate_by_gps",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "read_road_maps",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -6395,6 +7127,30 @@
                     {
                         "skill": "dispatch_couriers",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "chauffeur_passengers",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "drive_at_night",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "economize_fuel",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "load_a_roof_rack",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "parallel_park",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "secure_cargo_loads",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -6431,6 +7187,26 @@
                     {
                         "skill": "dispatch_couriers",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "courier_documents_securely",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "drive_defensively",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "handle_road_emergencies",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "maintain_tire_pressure",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "perform_pre_trip_inspections",
+                        "multiplier": 0.25
                     }
                 ]
             }
@@ -6537,6 +7313,14 @@
                     {
                         "skill": "estimate_material_requirements",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "inspect_safety_standards",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "survey_a_site",
+                        "multiplier": 0.25
                     }
                 ],
                 "entryTrainingGrant": {
@@ -6588,6 +7372,14 @@
                     {
                         "skill": "test_mechanical_systems",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "program_simple_controllers",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "use_measuring_tools",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -6628,6 +7420,10 @@
                     {
                         "skill": "analyze_load_requirements",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "prototype_with_hand_tools",
+                        "multiplier": 0.25
                     }
                 ],
                 "promotion": {
@@ -6664,6 +7460,10 @@
                     {
                         "skill": "analyze_load_requirements",
                         "multiplier": 0.5
+                    },
+                    {
+                        "skill": "review_engineering_specs",
+                        "multiplier": 0.25
                     }
                 ]
             }

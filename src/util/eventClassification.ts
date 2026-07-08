@@ -23,6 +23,17 @@ export const SYSTEM_INVOKED_EVENTS: Record<string, string> = {
     started_school: 'City.runSchoolSweeps (enrollment, task 058)',
     graduated_school: 'City.runSchoolSweeps (age-out, task 058)',
     got_promoted: 'SkillProgression promotion evaluation (task 065)',
+    // Computable life milestones wired to the transitions the sim already performs (task 076/M4).
+    was_born: 'City.handleTick (birth, task 076)',
+    gave_birth: 'City.handleTick (birth, task 076)',
+    became_parent: 'City.handleTick (birth, task 076)',
+    became_widowed: 'City.handleTick (death → surviving spouse, task 076)',
+    lost_parent: 'City.handleTick (death → children, task 076)',
+    lost_child: 'City.handleTick (death → parents, task 076)',
+    taken_in_by_relatives: 'City.displaceHousehold (eviction rehousing, task 076)',
+    became_homeless: 'City.displaceHousehold (eviction, task 076)',
+    got_back_on_feet: 'City.runRecovery (homeless recovery, task 076)',
+    left_home_first_time: 'City.resolveMoveOut (move-out, task 076)',
 };
 
 function linkEvent(link: EventLink | undefined): string | null {

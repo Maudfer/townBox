@@ -282,3 +282,72 @@ describe('City B2B supply chain (task 035)', () => {
         expect(farmPnl(false)).toBeLessThan(0);
     });
 });
+
+// B2B closure (task 076/M5): every material a business CONSUMES must be produced by some blueprint, or its
+// demand is captured by nobody and the money paid for it silently leaves the economy.
+describe('B2B supply-chain closure (task 076/M5)', () => {
+    test('every consumed material is produced by at least one blueprint', () => {
+        const blueprints = businessesConfig as Record<string, { materialsPerUnit?: Record<string, number>; products?: Record<string, number> }>;
+        const consumed = new Set<string>();
+        const produced = new Set<string>();
+        for (const blueprint of Object.values(blueprints)) {
+            for (const material of Object.keys(blueprint.materialsPerUnit ?? {})) consumed.add(material);
+            for (const material of Object.keys(blueprint.products ?? {})) produced.add(material);
+        }
+        const unsupplied = [...consumed].filter(material => !produced.has(material)).sort();
+        expect(unsupplied).toEqual([]);
+    });
+});
+
+// Business shrink-via-layoffs (task 076/M6): a solvent but sustainedly loss-making, over-min business
+// downsizes instead of only ever growing or bankrupting.
+describe('City business shrink-via-layoffs (task 076/M6)', () => {
+    test('a solvent, sustainedly unprofitable, over-min business sheds a size step and lays off surplus', () => {
+        const { city, field, economy, game } = makeWorld();
+        const emit = jest.fn((..._args: unknown[]) => Promise.resolve([]));
+        (game as unknown as { emit: typeof emit }).emit = emit;
+
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        // Size 2 (above supermarket's min of 1); no consumers → guaranteed monthly losses; solvent balance so
+        // it never bankrupts (stays above the debt floor) — the shrink path, not the bankruptcy path.
+        workplace.setBusiness({ blueprintKey: 'supermarket', name: 'Mart', lineOfWork: 'Super Market', size: 2, positions: [] });
+        const key = workplace.getIdentifier();
+        economy.setBusinessBalance(key, 5_000_000);
+
+        for (let month = 0; month <= 4; month++) {
+            city.processMonthlyEconomy(month * TICKS_PER_MONTH);
+        }
+
+        expect(workplace.getBusiness()).not.toBeNull();          // solvent — did NOT bankrupt
+        expect(workplace.getBusiness()!.size).toBe(1);           // shrank one step
+        expect(economy.getBusinessBalance(key)).toBeGreaterThan(0);
+        expect(emit.mock.calls.some(call => call[0] === 'cityEvent' && (call[1] as { kind: string }).kind === 'businessShrank')).toBe(true);
+    });
+});
+
+// Money conservation across the live monthly economy (task 076/H3): the grand total (local + external) must
+// not drift over repeated economic ticks — the property that lets a long offline run stay stable.
+describe('economy-wide money conservation (task 076/H3)', () => {
+    test('the grand total is invariant across many monthly economic ticks', () => {
+        const { city, field, economy } = makeWorld();
+        expect(economy.grandTotal()).toBe(0);
+
+        // A couple of businesses (capital injected from external) and some resident-consumers.
+        const a = field.loadStructure('work', 10, 10, 'wa') as Workplace;
+        a.setBusiness({ blueprintKey: 'supermarket', name: 'A', lineOfWork: 'Super Market', size: 2, positions: [] });
+        economy.adjustBusiness(a.getIdentifier(), 40000);
+        const b = field.loadStructure('work', 20, 20, 'wb') as Workplace;
+        b.setBusiness({ blueprintKey: 'restaurant', name: 'B', lineOfWork: 'Restaurant', size: 2, positions: [] });
+        economy.adjustBusiness(b.getIdentifier(), 40000);
+        for (let i = 0; i < 12; i++) {
+            const person = field.loadPerson(200 + i * 4, 200);
+            economy.adjustPerson(`c${i}`, 3000);
+            person.social.setPersonId(`c${i}`);
+        }
+
+        for (let month = 0; month < 8; month++) {
+            city.processMonthlyEconomy(month * TICKS_PER_MONTH);
+            expect(economy.grandTotal()).toBe(0); // conserved every month — no minting/burning drift
+        }
+    });
+});

@@ -46,7 +46,10 @@ export function simulatePopulation(
     for (let year = fromYear; year <= toYear; year++) {
         simulateYear(state, year, ticksPerYear, params, result, excludeIds);
     }
-    state.lastSimulatedYear = Math.max(state.lastSimulatedYear, currentYear);
+    // Advance the cursor only to the last year actually simulated (task 076/M7). Previously this jumped to the
+    // full currentYear, so any year beyond the maxCatchUpYears cap was silently never simulated (mortality and
+    // births for those years vanished). Now the capped remainder is caught up on subsequent calls instead.
+    state.lastSimulatedYear = Math.max(state.lastSimulatedYear, toYear);
     return result;
 }
 

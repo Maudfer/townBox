@@ -8,7 +8,7 @@
 // convention), sorts candidates before every draw, and consumes RNG identically in both execution modes.
 // Modest by design — social actions season free time (a per-tick chance), they don't dominate it.
 
-import { ActionIntent, BrainHook, HookContext } from 'game/Brain';
+import { ActionIntent, BrainHook, HookContext, DEFAULT_SELECTION_WEIGHT } from 'game/Brain';
 
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
@@ -70,7 +70,7 @@ export const socialOpportunityHook: BrainHook = {
             if (!bindable) {
                 continue;
             }
-            let weight = def.selection?.weight ?? 1;
+            let weight = def.selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
             if (weight <= 0) {
                 continue;
             }
