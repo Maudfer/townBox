@@ -155,7 +155,7 @@ export interface ActionEngineState {
 // Typed result of starting an action — failures are explicit, never silent skips.
 export type ActionStartOutcome =
     | { ok: true; instanceId: ActionInstanceId | null; logSeq: number } // instanceId null for discrete actions
-    | { ok: false; reason: 'unknownAction' | 'requirementsUnmet' | 'missingParameter' | 'targetNotPresent' | 'alreadyActive' | 'invalidParent' | 'inputsUnavailable' };
+    | { ok: false; reason: 'unknownAction' | 'requirementsUnmet' | 'missingParameter' | 'targetNotPresent' | 'consentDeclined' | 'alreadyActive' | 'invalidParent' | 'inputsUnavailable' };
 
 export interface ActionCause {
     source: TriggerSource;

@@ -177,6 +177,13 @@ export interface EventLogEntry {
     params?: Record<string, string | number | boolean>;
 }
 
+// Why an action failed at runtime (task 073). A closed vocabulary, grown deliberately. Produced today:
+// 'consent_declined' (an askFirst target said no at start) and 'inputs_unavailable' (the completion
+// consequence plan was unsatisfiable — the pre-073 silent downgrade, now labeled). 'target_not_present' and
+// 'requirements_unmet' are reserved for runtime paths that don't yet log (start-time rejections stay typed
+// ActionStartOutcome reasons with zero mutations and no entry).
+export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet';
+
 // An action lifecycle transition in the same append-only log (task 043). One entry per transition
 // ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones),
 // linked by instanceId — the log itself stays immutable.
@@ -189,6 +196,8 @@ export interface ActionLogEntry {
     lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed';
     params: Record<string, string | number | boolean>;
     parentInstanceId: string | null;
+    // Why a runtime failure/decline happened (task 073) — a closed vocabulary, additive on the log.
+    failureReason?: ActionFailureReason;
     triggerSource: TriggerSource;
     causationId: number | null;
 }

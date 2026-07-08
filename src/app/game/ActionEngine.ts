@@ -16,6 +16,7 @@
 import EventEngine from 'game/EventEngine';
 import LifeLog from 'game/LifeLog';
 import Inventory from 'game/Inventory';
+import { evaluateConsent } from 'game/Consent';
 import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/Consequences';
 
 import { SeededRandom } from 'util/random';
@@ -130,6 +131,9 @@ export default class ActionEngine {
         return null;
     }
 
+    // The aggregate counts ATTEMPTS: consent-declined starts record here too (task 073), so anti-repetition
+    // and selection cooldowns gate immediate re-tries after a decline. A requirement that needs "successfully
+    // did X" (not "attempted X") should query the action's success event via hasEvent instead.
     hasAction(personId: PersonId, actionId: string, tick: number, query?: HasEventQuery): boolean {
         const record = this.state.actionHistory[personId]?.[actionId];
         if (!record) {
@@ -297,6 +301,25 @@ export default class ActionEngine {
                 const world = deps.ctx.world;
                 if (!world || locationKey(world.locationOf(personId)) !== locationKey(world.locationOf(targetId))) {
                     return { ok: false, reason: 'targetNotPresent' };
+                }
+            }
+            // Consent (task 073): askFirst actions consult the TARGET's decision layer before anything
+            // commits. A decline is a real, traceable outcome — a 'failed' log entry with the reason and the
+            // full params snapshot — never a silent skip; it also counts toward the actor's action history,
+            // so selection cooldowns apply to declined attempts (no immediate re-tries).
+            if (def.interaction.askFirst) {
+                const consented = evaluateConsent({
+                    actionId, params, sourcePersonId: personId, targetPersonId: targetId,
+                    tick: deps.tick, worldSeed: deps.state.worldSeed,
+                });
+                if (!consented) {
+                    this.lifeLog.append(personId, {
+                        tick: deps.tick, kind: 'action', defId: actionId, instanceId: null, lifecycle: 'failed',
+                        params: { ...params }, parentInstanceId, triggerSource: cause.source,
+                        causationId: cause.causationId, failureReason: 'consent_declined',
+                    });
+                    this.recordAction(personId, actionId, deps.tick);
+                    return { ok: false, reason: 'consentDeclined' };
                 }
             }
         }
@@ -481,6 +504,7 @@ export default class ActionEngine {
 
     private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {
         const def = this.manifest[instance.defId]!;
+        let failureReason: import('types/LifeEvent').ActionFailureReason | undefined;
 
         // Completion consequences (task 044): planned before the outcome is logged — an unsatisfiable plan
         // turns the completion into a failure with zero mutations. Outputs are seeded from the sequence's
@@ -492,6 +516,7 @@ export default class ActionEngine {
             completionPlan = planConsequences(def.consequences, completionCtx, new Set());
             if (!completionPlan) {
                 outcome = 'failed';
+                failureReason = 'inputs_unavailable';
             }
         }
 
@@ -502,6 +527,7 @@ export default class ActionEngine {
         const seq = this.lifeLog.append(instance.personId, {
             tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: outcome,
             params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
+            ...(failureReason ? { failureReason } : {}),
         });
         if (outcome === 'completed') {
             if (completionCtx && completionPlan) {
@@ -572,11 +598,17 @@ export default class ActionEngine {
             instance.sequenceIndex += 1;
             return null;
         }
-        if (policy === 'skipStep') {
+        // A consent decline (task 073) resolves through the DECLINED child's own onDecline policy when it
+        // declares one, falling back to the sequence-wide onStepFailure. That fallback is deliberate: a
+        // rejected transfer must never let the sequence continue as though the object changed hands.
+        const effectivePolicy = outcome.reason === 'consentDeclined'
+            ? this.manifest[step.action]?.interaction?.onDecline ?? policy
+            : policy;
+        if (effectivePolicy === 'skipStep') {
             instance.sequenceIndex += 1;
             return null;
         }
-        return policy === 'failParent' ? 'failed' : 'blocked';
+        return effectivePolicy === 'failParent' ? 'failed' : 'blocked';
     }
 
     // Named bindings (038 §7.3): "$parent.<param>" reads the parent instance's parameters;

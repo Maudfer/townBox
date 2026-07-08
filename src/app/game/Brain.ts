@@ -13,6 +13,7 @@
 
 import ActionEngine, { ActionDeps } from 'game/ActionEngine';
 
+import { evaluateConsent, ConsentRequest } from 'game/Consent';
 import { jobOrchestratorHook } from 'game/JobOrchestrator';
 import { schoolObligationHook } from 'game/SchoolOrchestrator';
 import { socialOpportunityHook } from 'game/SocialOpportunity';
@@ -66,7 +67,7 @@ export interface BrainDeps extends ActionDeps {
     schoolOf?: (personId: PersonId) => SchoolFacts | null;
 }
 
-export type HookKind = 'onTick' | 'onEventCommitted' | 'onActionStarted' | 'onActionCompleted' | 'onActionInterrupted' | 'onLocationArrived' | 'onShiftStarted' | 'onShiftEnded';
+export type HookKind = 'onTick' | 'onEventCommitted' | 'onActionStarted' | 'onActionCompleted' | 'onActionFailed' | 'onActionInterrupted' | 'onLocationArrived' | 'onShiftStarted' | 'onShiftEnded';
 
 export interface HookContext {
     personId: PersonId;
@@ -74,6 +75,8 @@ export interface HookContext {
     brain: Brain;
     // For onEventCommitted: the committing event.
     event?: { eventId: string; seq: number };
+    // For onActionFailed (task 073): the declined/failed attempt being observed.
+    failure?: { actionId: string; reason: string };
 }
 
 export interface BrainHook {
@@ -98,10 +101,18 @@ export default class Brain {
             schoolObligationHook, // school attendance for enrolled children (task 058)
             wokeUpHook,
             actionCompletedHook,
+            actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)
             inventoryOpportunityHook,
             idleFallbackHook,
         ];
+    }
+
+    // Consent (task 073): the TARGET's pure, stateless yes/no on an askFirst interaction. Architecturally
+    // Brain territory (the target's decision layer) — the policy itself lives in game/Consent.ts so the
+    // Action engine can consult it without a Brain import cycle. Placeholder 80%-yes; see that module.
+    evaluateConsent(request: ConsentRequest): boolean {
+        return evaluateConsent(request);
     }
 
     registerHook(hook: BrainHook): void {
@@ -168,6 +179,7 @@ export default class Brain {
             || a.actionId.localeCompare(b.actionId)
         );
 
+        const failures: { actionId: string; reason: string }[] = [];
         for (const intent of intents) {
             const def = this.actionEngine.getDefinition(intent.actionId);
             if (!def) {
@@ -176,7 +188,7 @@ export default class Brain {
             const active = this.actionEngine.activeInstanceOf(personId);
             if (def.type === 'continuous' && active) {
                 if (active.defId === intent.actionId) {
-                    return; // already doing it — the winning intent is satisfied
+                    break; // already doing it — the winning intent is satisfied
                 }
                 if (!intent.mayInterrupt) {
                     continue; // can't displace the current activity; try the next intent
@@ -187,10 +199,31 @@ export default class Brain {
                 personId, intent.actionId, intent.params ?? {}, { source: 'brain', causationId: intent.causationId },
                 deps, result, null, undefined, intent.locationOverride
             );
+            if (!outcome.ok && outcome.reason === 'consentDeclined') {
+                failures.push({ actionId: intent.actionId, reason: outcome.reason });
+            }
             if (outcome.ok && def.type === 'continuous') {
-                return; // one continuous activity per person; lower intents wait for another tick
+                break; // one continuous activity per person; lower intents wait for another tick
             }
             // Discrete intents (or failed starts) fall through to the next intent.
+        }
+
+        // Failure dispatch (task 073): onActionFailed hooks observe declines in the SAME tick's phase 7.
+        // The failed intent is already gone (intents are per-tick), the engine recorded the attempt (so
+        // selection cooldowns gate re-proposal), and this dispatch is ONE level deep — intents proposed
+        // here execute, but their own failures never re-dispatch, so retry loops are structurally impossible.
+        for (const failure of failures) {
+            for (const hook of this.hooks) {
+                if (hook.kind !== 'onActionFailed') {
+                    continue;
+                }
+                for (const intent of hook.propose({ personId, deps, brain: this, failure })) {
+                    this.actionEngine.startAction(
+                        personId, intent.actionId, intent.params ?? {}, { source: 'brain', causationId: intent.causationId },
+                        deps, result, null, undefined, intent.locationOverride
+                    );
+                }
+            }
         }
     }
 
@@ -280,6 +313,17 @@ const wokeUpHook: BrainHook = {
 const actionCompletedHook: BrainHook = {
     id: 'actionCompleted',
     kind: 'onActionCompleted',
+    propose(): ActionIntent[] {
+        return [];
+    },
+};
+
+// A proposed action was declined/failed at start (task 073) — dispatched in the same tick, one level deep.
+// Deliberately inert this iteration: no automatic retry, no counter-proposal. It exists as the registration
+// point for future reactions (074's curated decline responses, relationship consequences).
+const actionFailedHook: BrainHook = {
+    id: 'actionFailed',
+    kind: 'onActionFailed',
     propose(): ActionIntent[] {
         return [];
     },
