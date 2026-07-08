@@ -20,6 +20,11 @@ export interface ObjectQuery {
     archetype?: string;
     tag?: string;
     flag?: string;
+    // Task 067: resolve the archetype from the evaluating ACTION's parameter of this name (declared type
+    // objectArchetype). Lets one generic action ("Grab X") require X-at-location as pure data. Only
+    // meaningful where params exist (action requirements, OAR context) — validators reject it in event
+    // predicates.
+    archetypeParam?: string;
 }
 
 // The read-only view a predicate (and, later, a probability factor) evaluates against. An implementation

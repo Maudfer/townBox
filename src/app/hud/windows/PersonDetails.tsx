@@ -146,9 +146,12 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                                 const label = entry.kind === 'action'
                                     ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle})` : ''}`
                                     : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
+                                // Event payloads (task 067): show the invocation params inline.
+                                const paramEntries = entry.kind === 'event' && entry.params ? Object.entries(entry.params) : [];
+                                const paramSuffix = paramEntries.length ? ` [${paramEntries.map(([key, value]) => `${key}: ${String(value)}`).join(', ')}]` : '';
                                 return (
                                     <li key={entry.seq}>
-                                        {label} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
+                                        {label}{paramSuffix} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
                                     </li>
                                 );
                             })}

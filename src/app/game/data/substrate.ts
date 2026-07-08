@@ -113,12 +113,15 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
         if (!checkRecord(issues, `${path}.${key}`, query)) {
             return;
         }
-        checkUnknownKeys(issues, `${path}.${key}`, query as Record<string, unknown>, ['archetype', 'tag', 'flag']);
+        checkUnknownKeys(issues, `${path}.${key}`, query as Record<string, unknown>, ['archetype', 'tag', 'flag', 'archetypeParam']);
         const q = query as Record<string, unknown>;
-        if (!('archetype' in q) && !('tag' in q) && !('flag' in q)) {
-            issues.add(`${path}.${key}`, 'an object query needs at least one of archetype/tag/flag');
+        if (!('archetype' in q) && !('tag' in q) && !('flag' in q) && !('archetypeParam' in q)) {
+            issues.add(`${path}.${key}`, 'an object query needs at least one of archetype/tag/flag/archetypeParam');
         }
-        for (const field of ['archetype', 'tag', 'flag']) {
+        if ('archetype' in q && 'archetypeParam' in q) {
+            issues.add(`${path}.${key}`, 'archetype and archetypeParam are mutually exclusive');
+        }
+        for (const field of ['archetype', 'tag', 'flag', 'archetypeParam']) {
             if (field in q) {
                 checkString(issues, `${path}.${key}.${field}`, q[field]);
             }

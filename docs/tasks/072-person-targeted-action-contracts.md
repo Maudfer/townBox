@@ -2,7 +2,7 @@
 
 - **Type:** Framework / Simulation
 - **Labels:** `actions`, `brain`, `social`, `progression-arc`
-- **Depends on:** [067](067-parameterized-requirements-and-event-payloads.md) (param plumbing), [056](056-progression-arc-discovery-baseline_DONE.md)
+- **Depends on:** [067](067-parameterized-requirements-and-event-payloads_DONE.md) (param plumbing), [056](056-progression-arc-discovery-baseline_DONE.md)
 - **Blocks:** [073](073-consent-and-action-failure.md) (consent rides the contract), [074](074-person-targeted-actions-backfill.md)
 
 ## Goal

@@ -7,7 +7,8 @@ export interface CityNotification {
     message: string;
 }
 
-const FEED_MESSAGES: Record<string, (name: string) => CityNotification> = {
+// Builders may interpolate the committing event's payload (task 067), e.g. a rank or object label.
+const FEED_MESSAGES: Record<string, (name: string, params?: Record<string, string | number | boolean>) => CityNotification> = {
     partnershipFormed: name => ({ kind: 'marriage', message: `${name} got married` }),
     hired: name => ({ kind: 'hired', message: `${name} started a new job` }),
     laidOff: name => ({ kind: 'laidOff', message: `${name} was laid off` }),
@@ -28,7 +29,7 @@ const INTERNAL_SIGNALS = ['rehousingNeeded', 'movedOut'];
 // nothing consumes is an authoring error — add its consumer (feed mapping above or a City handler) first.
 export const KNOWN_SIGNALS: string[] = [...Object.keys(FEED_MESSAGES), ...INTERNAL_SIGNALS];
 
-export function notificationForSignal(signal: string, name: string): CityNotification | null {
+export function notificationForSignal(signal: string, name: string, params?: Record<string, string | number | boolean>): CityNotification | null {
     const build = FEED_MESSAGES[signal];
-    return build ? build(name) : null;
+    return build ? build(name, params) : null;
 }
