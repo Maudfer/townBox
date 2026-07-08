@@ -58,6 +58,18 @@ export default class LiveWorld implements WorldAdapter {
         return { kind: 'building', key: building.getIdentifier() };
     }
 
+    // Concrete object location (task 070): the current building's own key, home included — every house has
+    // its own object pool (the shared 'home' key was a pre-070 wart that never mattered while nothing
+    // seeded buildings).
+    objectLocationOf(personId: PersonId): LogicalLocation {
+        const person = this.findPerson(personId);
+        const building = person?.getCurrentBuilding();
+        if (!person || !building) {
+            return { kind: 'outside' };
+        }
+        return { kind: 'building', key: building.getIdentifier() };
+    }
+
     peopleAt(location: LogicalLocation): PersonId[] {
         const ids: PersonId[] = [];
         for (const person of this.deps.getPeople()) {

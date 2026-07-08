@@ -59,6 +59,39 @@ export default class Inventory {
         this.byContainer = new Map();
     }
 
+    getArchetypes(): Record<string, ObjectArchetype> {
+        return this.archetypes;
+    }
+
+    // Teardown (task 070): remove every instance physically at a location key, recursively including the
+    // contents of containers standing there. Carried instances are unaffected (their container is a person).
+    clearLocation(key: string): number {
+        let removed = 0;
+        const atLocation = this.instancesAtLocation(key).map(instance => instance.id);
+        const removeDeep = (instanceId: string): void => {
+            for (const child of this.contentsOf({ kind: 'object', instanceId })) {
+                removeDeep(child.id);
+            }
+            this.removeInstance(instanceId);
+            removed++;
+        };
+        for (const instanceId of atLocation) {
+            removeDeep(instanceId);
+        }
+        return removed;
+    }
+
+    // Teardown (task 070): reassign everything an owner holds (e.g. a closed business's stock carried by
+    // employees) to a new owner — physical containment untouched.
+    reassignOwnedBy(owner: ObjectOwner, newOwner: ObjectOwner): number {
+        let reassigned = 0;
+        for (const instance of this.instancesOwnedBy(owner)) {
+            this.transferOwnership(instance.id, newOwner);
+            reassigned++;
+        }
+        return reassigned;
+    }
+
     getState(): InventoryState {
         return this.state;
     }

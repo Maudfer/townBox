@@ -3,6 +3,18 @@ import Tile from 'game/Tile';
 import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
 export default class Building extends Tile {
+    // Whether the contextual object fill (task 070) already ran for this building. Serialized so loads
+    // never regenerate (a looted/emptied building stays emptied); the load sweep fills pre-070 saves once.
+    private objectsGenerated = false;
+
+    isObjectsGenerated(): boolean {
+        return this.objectsGenerated;
+    }
+
+    setObjectsGenerated(generated: boolean): void {
+        this.objectsGenerated = generated;
+    }
+
     private entrance: PixelPosition;
 
     constructor(row: number, col: number, assetName: string | null) {

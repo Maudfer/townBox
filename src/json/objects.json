@@ -1113,6 +1113,17 @@
             "consumable": false,
             "equippable": false,
             "placeable": true
+        },
+        "placement": [
+            "living-room"
+        ],
+        "generation": {
+            "kind": "fixture",
+            "weight": 1,
+            "minPerBuilding": 1,
+            "maxPerBuilding": 1,
+            "uniquePerBuilding": true,
+            "ownershipDefault": "building"
         }
     },
     "bed": {
@@ -1131,6 +1142,17 @@
             "consumable": false,
             "equippable": false,
             "placeable": true
+        },
+        "placement": [
+            "bedroom"
+        ],
+        "generation": {
+            "kind": "fixture",
+            "weight": 1,
+            "minPerBuilding": 1,
+            "maxPerBuilding": 1,
+            "uniquePerBuilding": true,
+            "ownershipDefault": "building"
         }
     },
     "desk": {
@@ -1149,6 +1171,18 @@
             "consumable": false,
             "equippable": false,
             "placeable": true
+        },
+        "placement": [
+            "office",
+            "bedroom"
+        ],
+        "generation": {
+            "kind": "fixture",
+            "weight": 1,
+            "minPerBuilding": 1,
+            "maxPerBuilding": 1,
+            "uniquePerBuilding": true,
+            "ownershipDefault": "building"
         }
     },
     "office_chair": {
@@ -1236,6 +1270,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -1267,6 +1302,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -1299,6 +1335,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -1330,6 +1367,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -1358,6 +1396,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -12312,6 +12351,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -12879,6 +12919,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -13208,6 +13249,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"
@@ -13293,6 +13335,7 @@
         "generation": {
             "kind": "fixture",
             "weight": 1,
+            "minPerBuilding": 1,
             "maxPerBuilding": 1,
             "uniquePerBuilding": true,
             "ownershipDefault": "building"

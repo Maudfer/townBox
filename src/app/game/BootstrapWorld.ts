@@ -27,6 +27,12 @@ export default class BootstrapWorld implements WorldAdapter {
         return this.locations.get(personId) ?? { kind: 'home' };
     }
 
+    // Off-map, locations are already logical: object location == location. 055's logical world gives homes
+    // distinct keys; until then the bootstrap 'home' stays a shared logical place (mode-consistent for tests).
+    objectLocationOf(personId: PersonId): LogicalLocation {
+        return this.locationOf(personId);
+    }
+
     peopleAt(location: LogicalLocation): PersonId[] {
         const ids: PersonId[] = [];
         for (const [personId, current] of this.locations) {

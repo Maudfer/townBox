@@ -33,6 +33,11 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         defaultJobRanks(snapshot);
         snapshot.version = 11;
     }
+    if (snapshot.version < 12) {
+        // v11 → v12 (task 070): `objectsGenerated` is additive; absent reads as false and the SaveManager
+        // load sweep runs the contextual fill once per building. Nothing to transform here.
+        snapshot.version = 12;
+    }
     return snapshot;
 }
 

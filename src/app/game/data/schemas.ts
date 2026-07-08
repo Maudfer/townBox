@@ -20,6 +20,7 @@ import lifeSimulationConfig from 'json/lifeSimulation.json';
 import materialsConfig from 'json/materials.json';
 import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
+import objectGenerationConfig from 'json/objectGeneration.json';
 import placementConfig from 'json/placement.json';
 import populationConfig from 'json/population.json';
 import residencesConfig from 'json/residences.json';
@@ -56,7 +57,7 @@ import { validateActionsSemantics, validateActionsStructure } from 'game/data/va
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
-import { validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
+import { validateObjectGenerationStructure, validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
 import {
     validateAssetsStructure,
     validateConfigStructure,
@@ -76,6 +77,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'objects', version: 2, data: objectsConfig, validateStructure: validateObjectsStructure, validateSemantics: validateObjectsSemantics },
         { name: 'placement', version: 1, data: placementConfig, validateStructure: validatePlacementStructure, validateSemantics: validatePlacementSemantics },
         { name: 'residences', version: 1, data: residencesConfig, validateStructure: validateResidencesStructure },
+        { name: 'objectGeneration', version: 1, data: objectGenerationConfig, validateStructure: validateObjectGenerationStructure },
         { name: 'skills', version: 2, data: skillsConfig, validateStructure: validateSkillsStructure, validateSemantics: validateSkillsSemantics },
         { name: 'skillInit', version: 1, data: skillInitConfig, validateStructure: validateSkillInitStructure, validateSemantics: validateSkillInitSemantics },
         { name: 'demand', version: 1, data: demandConfig, validateStructure: validateDemandStructure, validateSemantics: validateDemandSemantics },

@@ -35,6 +35,10 @@ export interface TransitionHandle {
 export interface WorldAdapter {
     readonly mode: SimulationMode;
     locationOf(personId: PersonId): LogicalLocation;
+    // Where the person's OBJECTS are (task 070): like locationOf, but always concrete — a resident at home
+    // resolves to their house's building key, never the shared 'home' kind, so each house has its own
+    // object pool. Action-location semantics ('sleep at home') keep using locationOf.
+    objectLocationOf(personId: PersonId): LogicalLocation;
     peopleAt(location: LogicalLocation): PersonId[];
     // Object instance ids physically at the location (task 041) — the query "is there something pocketable
     // here" style requirements resolve through. Ids resolve against the Inventory (game/Inventory.ts).
