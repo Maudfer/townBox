@@ -80,7 +80,7 @@ describe('continuous rotation', () => {
     });
 
     test('off shift → no proposals; still working past shift end → completion request (interrupt)', () => {
-        const { brain, actions, makeDeps } = harness();
+        const { engine, brain, makeDeps } = harness();
         expect(jobOrchestratorHook.propose({ personId: 'a', deps: makeDeps(20), brain })).toEqual([]); // 20:00 off
 
         // Start work, then cross the shift end: the hook interrupts.
@@ -88,8 +88,8 @@ describe('continuous rotation', () => {
         expect(brain.statusOf('a').status).toBe('working');
         jobOrchestratorHook.propose({ personId: 'a', deps: makeDeps(16), brain }); // 16:00 = shift over
         expect(brain.statusOf('a').status).not.toBe('working');
-        const interrupted = actions.getState();
-        expect(Object.values(interrupted.instances).some(instance => instance.outcome === 'interrupted')).toBe(true);
+        // Terminal instances are pruned (task 078); assert the interrupt from the log.
+        expect(engine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.lifecycle === 'interrupted')).toBe(true);
     });
 });
 

@@ -100,6 +100,69 @@ describe('generator (Part A) — tiny config', () => {
     });
 });
 
+// --- Task 078: reduced-manifest generator mode + perf-neutral behavior ------------------------------------
+
+describe('reduced-manifest generator mode (task 078)', () => {
+    jest.setTimeout(180000);
+
+    // A tiny logical-world run: exercises the full spine (events + actions + brain + logical schools/jobs/
+    // objects), which is what the reduced manifest and the ActionEngine active-index/pruning touch.
+    const LOGICAL: HistoryGeneratorParams = {
+        ...DEFAULT_GENERATOR_PARAMS,
+        seed: 909,
+        founderCount: 40,
+        recordThreshold: 30,
+        recordYears: 2,
+        daysPerStep: 30, // monthly cadence keeps the test fast
+        keepActionLog: false,
+        logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
+        populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
+    };
+
+    test('reduced mode is deterministic — same (seed, params) → identical asset', async () => {
+        const a = await generateHistoryAsset({ ...LOGICAL, reducedEventManifest: true });
+        const b = await generateHistoryAsset({ ...LOGICAL, reducedEventManifest: true });
+        expect(b.population).toEqual(a.population);
+        expect(b.eventLog).toEqual(a.eventLog);
+        expect(b.skillTimeline).toEqual(a.skillTimeline);
+        expect(b.objects).toEqual(a.objects);
+    });
+
+    test('reduced and full modes both carry vital histories + lived skills (content preserved in kind)', async () => {
+        const reduced = await generateHistoryAsset({ ...LOGICAL, reducedEventManifest: true });
+        const full = await generateHistoryAsset({ ...LOGICAL, reducedEventManifest: false });
+        for (const asset of [reduced, full]) {
+            expect(asset.meta.stats.retainedPeople).toBeGreaterThan(0);
+            // Vital events still fire (the logical world hires people → get_job in the log).
+            const eventIds = new Set(Object.values(asset.eventLog).flatMap(entries => entries.map(entry => entry.defId)));
+            expect(eventIds.size).toBeGreaterThan(0);
+            // Lived skills travelled into the asset.
+            expect(Object.keys(asset.skillTimeline ?? {}).length).toBeGreaterThan(0);
+        }
+        // The reduced walk changes the RNG stream, so the two assets differ (documented trade-off) — but the
+        // reduced one still holds only loggable events.
+        const loggable = loggableEventIds();
+        for (const entries of Object.values(reduced.eventLog)) {
+            for (const entry of entries) {
+                expect(entry.kind === 'action' || loggable.has(entry.defId)).toBe(true);
+            }
+        }
+    });
+
+    test('--profile attributes per-phase cost and stays deterministic (timing never affects logic)', async () => {
+        const profiled = await generateHistoryAsset({ ...LOGICAL, reducedEventManifest: true, profile: true });
+        const plain = await generateHistoryAsset({ ...LOGICAL, reducedEventManifest: true, profile: false });
+        // Profiling changes nothing but the attached measurements.
+        expect(profiled.population).toEqual(plain.population);
+        expect(profiled.eventLog).toEqual(plain.eventLog);
+        const profile = profiled.meta.stats.profile!;
+        expect(profile).toBeDefined();
+        expect(profile.steps).toBeGreaterThan(0);
+        expect(profile.agentSteps).toBeGreaterThan(0);
+        expect(plain.meta.stats.profile).toBeUndefined();
+    });
+});
+
 // --- Part B: window selection, rebasing, re-identification ------------------------------------------------
 
 function fixtureAsset(): HistoryAsset {

@@ -122,6 +122,14 @@ export default class EventEngine {
     private probPlan: ProbPlanEntry[];
     // False only in test/reference runs that verify the index is behavior-invariant.
     private eligibilityIndex: boolean;
+    // The reduced-manifest generator mode (task 078): an optional predicate restricting which probabilistic
+    // events enter the walk. The offline generator passes `loggableEventIds` so the ~680 effect-free texture
+    // events (already dropped from the persisted asset) are never rolled — cutting the per-agent probabilistic
+    // draw count ~10-20×. Null (default) = full walk, so live play and the arcScenarios keystone are untouched.
+    // Manual/automated/atHour paths are NOT affected (they read the full manifest), so action-caused and
+    // scheduled events still fire; only the spontaneous probabilistic rolling of texture events is skipped.
+    // It changes the RNG stream, so a reduced-manifest asset differs from a full-manifest one (still
+    // deterministic per seed) — the generatorVersion records it.
     // Event-driven attributes not derived from the pool (e.g. marital after divorce/widowhood).
     private overlay: Record<PersonId, Record<string, Value>>;
     // Adapters bound for the current simulateTick pass; null in pure/test runs that don't provide them.
@@ -136,10 +144,11 @@ export default class EventEngine {
     // untouched — never set in live mode.
     private probabilityScale: ((eventId: string) => number) | null = null;
 
-    constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST, lifeLog: LifeLog = new LifeLog(), options: { eligibilityIndex?: boolean } = {}) {
+    constructor(manifest: EventManifest = DEFAULT_EVENT_MANIFEST, lifeLog: LifeLog = new LifeLog(), options: { eligibilityIndex?: boolean; probabilisticWalkFilter?: (eventId: string) => boolean } = {}) {
         this.manifest = manifest;
         this.graph = compileEvents(manifest);
         this.eligibilityIndex = options.eligibilityIndex ?? true;
+        const walkFilter = options.probabilisticWalkFilter ?? null;
         this.history = {};
         this.lifeLog = lifeLog;
         this.schedule = { queue: [], nextScheduleSeq: 0 };
@@ -167,6 +176,9 @@ export default class EventEngine {
             const spec = definition?.triggers?.probabilistic;
             if (!definition || !spec) {
                 continue;
+            }
+            if (walkFilter && !walkFilter(eventId)) {
+                continue; // reduced-manifest mode (task 078): this probabilistic event never rolls
             }
             const factors: ParsedFactor[] = (spec.factors ?? []).map(factor => {
                 const [role = '', attr = ''] = factor.driver.split('.');

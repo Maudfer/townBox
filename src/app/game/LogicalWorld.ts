@@ -47,6 +47,10 @@ const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
 const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { tags: string[] } }).house.tags;
 // Job-core skills bias the adult skill assortment toward employable abilities (SkillBook.initialize contract).
 export const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
+// Job definition keyed by title, built once (task 078): accrueWorkDays looked this up with an O(jobs)
+// Object.entries(JOBS).find per employed person per step; a precomputed map makes it O(1).
+const JOB_DEF_BY_TITLE = new Map<string, { key: string; def: JobDefinition }>(
+    Object.entries(JOBS).map(([key, def]) => [def.title, { key, def }]));
 
 const LOGICAL_SALT = 0x077;
 
@@ -249,17 +253,36 @@ export default class LogicalWorld implements WorldAdapter {
         }
     }
 
+    // The sorted living ids to sweep each step. Prefers the generator's incremental `living` set (task 078):
+    // homeKeyOf RETAINS the dead (never pruned), so iterating it grew O(total-ever-lived) per step over a long
+    // run — iterating the living set keeps the day-cadence sweeps O(living). Falls back to homeKeyOf (alive-
+    // filtered) when no living set is supplied (e.g. the unit test), preserving the identical set of people.
+    private sweepIds(state: PopulationState, tick: number, living?: ReadonlySet<PersonId>): PersonId[] {
+        const source = living ?? this.homeKeyOf.keys();
+        const ids: PersonId[] = [];
+        for (const personId of source) {
+            if (!this.homeKeyOf.has(personId)) {
+                continue;
+            }
+            const person = state.people[personId];
+            if (person && isAliveAt(person, tick)) {
+                ids.push(personId);
+            }
+        }
+        return ids.sort();
+    }
+
     // The daily enrollment sweep (mirrors City.runSchoolSweeps): enroll/release school-age children, invoking
     // the education texture events so the log carries them.
-    runSchoolSweep(state: PopulationState, tick: number, ticksPerYear: number, engine: EventEngine): void {
+    runSchoolSweep(state: PopulationState, tick: number, ticksPerYear: number, engine: EventEngine, ids?: PersonId[]): void {
         if (!this.config.schools || this.schoolSeats.length === 0) {
             return;
         }
         const pool = state.people;
         const candidates: SchoolCandidate[] = [];
-        for (const personId of this.homeKeyOf.keys()) {
+        for (const personId of ids ?? this.sweepIds(state, tick)) {
             const person = pool[personId];
-            if (!person || !isAliveAt(person, tick)) {
+            if (!person) {
                 continue;
             }
             const ageYears = ageAt(person, tick, ticksPerYear);
@@ -279,11 +302,11 @@ export default class LogicalWorld implements WorldAdapter {
     }
 
     // Early-childhood milestone grants for under-school-age children (mirrors City.runSkillMilestones).
-    runSkillMilestones(state: PopulationState, tick: number, ticksPerYear: number, skillBook: SkillBook): void {
+    runSkillMilestones(state: PopulationState, tick: number, ticksPerYear: number, skillBook: SkillBook, ids?: PersonId[]): void {
         const pool = state.people;
-        for (const personId of [...this.homeKeyOf.keys()].sort()) {
+        for (const personId of ids ?? this.sweepIds(state, tick)) {
             const person = pool[personId];
-            if (!person || !isAliveAt(person, tick)) {
+            if (!person) {
                 continue;
             }
             const ageYears = ageAt(person, tick, ticksPerYear);
@@ -337,26 +360,29 @@ export default class LogicalWorld implements WorldAdapter {
     // and work-day gains + promotion to employed adults. This replaces the intra-day shift-obligation chain
     // (attend_school / stopped_working), which coarse stepping can't drive, with a stepping-tolerant accrual
     // that reproduces the same per-day numbers (schoolDailyGain / WORK_DAILY_GAIN). Deterministic, RNG-free.
-    runDaily(state: PopulationState, fromTick: number, toTick: number, ticksPerYear: number, skillBook: SkillBook, engine: EventEngine): void {
-        this.runSkillMilestones(state, fromTick, ticksPerYear, skillBook);
-        this.runSchoolSweep(state, fromTick, ticksPerYear, engine);
+    runDaily(state: PopulationState, fromTick: number, toTick: number, ticksPerYear: number, skillBook: SkillBook, engine: EventEngine, living?: ReadonlySet<PersonId>): void {
+        // Sweep the living once per step (task 078) and reuse the sorted list across every sub-sweep, so the
+        // ever-growing homeKeyOf (which retains the dead) is never re-iterated four times per step.
+        const ids = this.sweepIds(state, fromTick, living);
+        this.runSkillMilestones(state, fromTick, ticksPerYear, skillBook, ids);
+        this.runSchoolSweep(state, fromTick, ticksPerYear, engine, ids);
         const fromDay = dayOfTick(fromTick);
         const toDay = dayOfTick(toTick);
         if (this.config.schools) {
-            this.accrueSchoolDays(state, fromDay, toDay, skillBook, fromTick);
+            this.accrueSchoolDays(state, fromDay, toDay, skillBook, fromTick, ids);
         }
         if (this.config.jobs && this.jobMarket) {
-            this.accrueWorkDays(state, fromDay, toDay, ticksPerYear, skillBook, engine, toTick);
+            this.accrueWorkDays(state, fromDay, toDay, ticksPerYear, skillBook, engine, toTick, ids);
         }
     }
 
-    private accrueSchoolDays(state: PopulationState, fromDay: number, toDay: number, skillBook: SkillBook, tick: number): void {
+    private accrueSchoolDays(state: PopulationState, fromDay: number, toDay: number, skillBook: SkillBook, tick: number, ids: PersonId[]): void {
         const days = countSchoolDays(SCHOOL_CONFIG, fromDay, toDay);
         if (days <= 0) {
             return;
         }
         const basics = Object.keys(skillBook.getManifest()).filter(id => skillBook.getManifest()[id]!.basic).sort();
-        for (const personId of [...this.homeKeyOf.keys()].sort()) {
+        for (const personId of ids) {
             const assignment = this.schoolRegistry.assignmentOf(personId);
             const person = state.people[personId];
             if (!assignment || !person) {
@@ -373,17 +399,17 @@ export default class LogicalWorld implements WorldAdapter {
         }
     }
 
-    private accrueWorkDays(state: PopulationState, fromDay: number, toDay: number, ticksPerYear: number, skillBook: SkillBook, engine: EventEngine, tick: number): void {
-        for (const personId of [...this.homeKeyOf.keys()].sort()) {
+    private accrueWorkDays(state: PopulationState, fromDay: number, toDay: number, ticksPerYear: number, skillBook: SkillBook, engine: EventEngine, tick: number, ids: PersonId[]): void {
+        for (const personId of ids) {
             const assignment = this.jobMarket!.assignmentOf(personId);
             if (!assignment || !assignment.rankId) {
                 continue;
             }
-            const entry = Object.entries(JOBS).find(([, definition]) => definition.title === assignment.title);
+            const entry = JOB_DEF_BY_TITLE.get(assignment.title);
             if (!entry) {
                 continue;
             }
-            const [defKey, definition] = entry;
+            const { key: defKey, def: definition } = entry;
             const rankIndex = definition.ranks.findIndex(rank => rank.rankId === assignment.rankId);
             if (rankIndex === -1) {
                 continue;

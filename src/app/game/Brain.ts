@@ -23,6 +23,7 @@ import { evaluatePredicate } from 'util/predicate';
 import { isOnShiftAtTick } from 'util/shifts';
 
 import { TickResult } from 'types/LifeEvent';
+import { ActionDefinition } from 'types/Action';
 import { PersonId } from 'types/Genealogy';
 import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
@@ -100,6 +101,12 @@ const NECESSITY_RANK = { emergency: 2, required: 1, optional: 0 } as const;
 export default class Brain {
     private actionEngine: ActionEngine;
     private hooks: BrainHook[];
+    // The static free-time candidate set (task 078): the manifest scan that decides an action is a
+    // free-time pick — continuous, not work/obligation, positive base weight — depends only on the action
+    // DEFINITION, so it is computed once (lazily) instead of re-scanning all ~260 actions (incl. discrete/
+    // work) per idle person per tick. The per-call work (cooldown, requirement predicate, dynamic modifiers,
+    // the seeded weighted pick) is unchanged, so selection stays byte-identical.
+    private freeTimeCandidates: { actionId: string; def: ActionDefinition; baseWeight: number }[] | null = null;
 
     constructor(actionEngine: ActionEngine) {
         this.actionEngine = actionEngine;
@@ -238,18 +245,35 @@ export default class Brain {
 
     // --- Free-time selection (038 §8): filter → score → deterministic weighted pick -----------------------
 
-    selectFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
-        const context = this.actionEngine.contextFor(personId, deps);
-        const candidates: { actionId: string; weight: number }[] = [];
+    // The continuous, non-work/obligation, positive-base-weight actions eligible to be free-time picks. Static
+    // per manifest, so computed once and reused (task 078) — already sorted by actionId so the downstream
+    // weighted pick sees the same order as the prior full-manifest scan (byte-identical selection).
+    private getFreeTimeCandidates(): { actionId: string; def: ActionDefinition; baseWeight: number }[] {
+        if (this.freeTimeCandidates) {
+            return this.freeTimeCandidates;
+        }
+        const candidates: { actionId: string; def: ActionDefinition; baseWeight: number }[] = [];
         for (const [actionId, def] of Object.entries(this.actionEngine.getManifest())) {
             if (def.type !== 'continuous' || def.category === 'work' || def.category === 'obligation') {
                 continue; // obligations are hook-driven, never free-time picks
             }
-            const selection = def.selection;
-            let weight = selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
-            if (weight <= 0) {
+            const baseWeight = def.selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
+            if (baseWeight <= 0) {
                 continue; // not selectable
             }
+            candidates.push({ actionId, def, baseWeight });
+        }
+        candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
+        this.freeTimeCandidates = candidates;
+        return candidates;
+    }
+
+    selectFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
+        const context = this.actionEngine.contextFor(personId, deps);
+        const candidates: { actionId: string; weight: number }[] = [];
+        for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
+            const selection = def.selection;
+            let weight = baseWeight;
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue; // anti-repetition
             }

@@ -271,8 +271,9 @@ describe('sequence children (a rejected give never lets the sequence continue)',
     }
 
     test('default policy: the declined give terminates the parent; the object never moves', () => {
-        const { inventory, actions, engine, gift, instanceId } = runRitual('ritual_default', 'seq_give');
-        expect(actions.getInstance(instanceId)!.status).toBe('blocked'); // onStepFailure default: blockParent
+        const { inventory, engine, gift, instanceId } = runRitual('ritual_default', 'seq_give');
+        // The parent instance is pruned once terminal (task 078); assert the blocked outcome from the log.
+        expect(engine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.instanceId === instanceId && entry.lifecycle === 'blocked')).toBe(true);
         expect(inventory.getInstance(gift.id)!.owner).toEqual({ kind: 'person', personId: 'a' });
         // seq_after never ran — the sequence did NOT continue past the decline.
         expect(engine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.defId === 'seq_after')).toBe(false);
@@ -283,8 +284,8 @@ describe('sequence children (a rejected give never lets the sequence continue)',
     });
 
     test("onDecline: 'skipStep' lets the sequence continue past the decline and complete", () => {
-        const { inventory, actions, engine, gift, instanceId } = runRitual('ritual_skippable', 'seq_give_skippable');
-        expect(actions.getInstance(instanceId)!.status).toBe('completed');
+        const { inventory, engine, gift, instanceId } = runRitual('ritual_skippable', 'seq_give_skippable');
+        expect(engine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.instanceId === instanceId && entry.lifecycle === 'completed')).toBe(true);
         expect(inventory.getInstance(gift.id)!.owner).toEqual({ kind: 'person', personId: 'a' }); // still not given
         expect(engine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.defId === 'seq_after')).toBe(true);
     });

@@ -198,7 +198,8 @@ describe('object-action relationships (the bake chain)', () => {
         for (let tick = 1001; tick <= 1004; tick++) {
             actions.advance({ ...deps, tick });
         }
-        expect(actions.getInstance(instanceId)!.status).toBe('completed');
+        // Terminal instances are pruned (task 078); assert completion from the log.
+        expect(engine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.instanceId === instanceId && entry.lifecycle === 'completed')).toBe(true);
 
         const carried = inventory.carriedInstances('a').map(instance => instance.archetypeId).sort();
         // flour + 2 eggs consumed (1 egg left), cream consumed, dough transformed through to ONE cake.

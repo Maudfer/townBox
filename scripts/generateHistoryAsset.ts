@@ -15,6 +15,8 @@
 //   --seed N  --years N  --threshold N  --founders N  --capacity N (thermostat target)  --band F  --step-days N
 //   --suppress-level F  --snapshot-years N  --flush-years N  --keep-action-log  --no-action-log  --no-capacity
 //   --max-hours N  --max-people N  --out DIR
+//   --full-manifest (run the full event manifest — texture events included; slower, for correctness runs)
+//   --reduced-manifest (force the reduced walk on)  --profile (per-phase timing attribution → printed at end)
 
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -89,6 +91,8 @@ async function main(): Promise<void> {
         founderCount: num(flags.founders, base.founderCount),
         daysPerStep: num(flags['step-days'], base.daysPerStep),
         keepActionLog: flags['no-action-log'] ? false : (flags['keep-action-log'] ? true : base.keepActionLog),
+        reducedEventManifest: flags['full-manifest'] ? false : (flags['reduced-manifest'] ? true : base.reducedEventManifest),
+        profile: flags.profile ? true : base.profile,
         skillSnapshotYears: num(flags['snapshot-years'], base.skillSnapshotYears),
         flushIntervalYears: num(flags['flush-years'], base.flushIntervalYears),
         populationControl: {
@@ -117,7 +121,8 @@ async function main(): Promise<void> {
     console.log(`[generate-history] generator v${HISTORY_GENERATOR_VERSION}, seed ${params.seed} → ${outDir}`);
     console.log(`[generate-history] founders ${params.founderCount} → threshold ${params.recordThreshold} → +${params.recordYears}y`
         + `, ${params.daysPerStep}d/step, target ${params.populationControl.enabled ? params.populationControl.target : 'off'}`
-        + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`);
+        + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`
+        + `, manifest ${params.reducedEventManifest ? 'reduced' : 'full'}${params.profile ? ', profile ON' : ''}`);
 
     // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk.
     let logIndex = 0;
@@ -194,6 +199,21 @@ async function main(): Promise<void> {
     console.log(`  shard bytes:         ${mb(shardBytes)} MB   section bytes: ${mb(sectionBytes)} MB`);
     console.log(`  TOTAL on disk:       ${mb(totalCompressed)} MB`);
     console.log(`  runtime:             ${(stats.runtimeMs / 1000).toFixed(1)}s`);
+    if (stats.profile) {
+        const p = stats.profile;
+        const perAgentUs = (ms: number) => p.agentSteps > 0 ? ((ms * 1000) / p.agentSteps).toFixed(2) : '0';
+        const pct = (ms: number) => p.total > 0 ? ((ms / p.total) * 100).toFixed(1) : '0';
+        console.log(`\n  profile (${p.steps} steps, ${p.agentSteps} agent-steps; µs/agent-step, share of total):`);
+        const row = (label: string, ms: number) => console.log(`    ${label.padEnd(12)} ${perAgentUs(ms).padStart(8)} µs   ${pct(ms).padStart(5)}%`);
+        row('actions', p.actions);
+        row('events', p.events);
+        row('progression', p.progression);
+        row('brain', p.brain);
+        row('runDaily', p.runDaily);
+        row('snapshot', p.snapshot);
+        row('other', p.other);
+        console.log(`    ${'TOTAL'.padEnd(12)} ${perAgentUs(p.total).padStart(8)} µs   ${(stats.profile.total / 1000).toFixed(1)}s`);
+    }
     console.log('  population trajectory (per decade):');
     for (const point of stats.trajectory) {
         console.log(`    year ${String(point.year).padStart(4)} · living ${point.living}`);

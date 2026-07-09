@@ -116,7 +116,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'reducedEventManifest', 'profile', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
     checkUnknownKeys(issues, '', data, fields);
     checkNumber(issues, 'seed', data['seed'], { integer: true });
     checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
@@ -129,6 +129,8 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     checkNumber(issues, 'warmMarginYears', data['warmMarginYears'], { min: 0 });
     checkNumber(issues, 'maxWarmupYears', data['maxWarmupYears'], { min: 1 });
     checkBoolean(issues, 'keepActionLog', data['keepActionLog']);
+    checkBoolean(issues, 'reducedEventManifest', data['reducedEventManifest']);
+    checkBoolean(issues, 'profile', data['profile']);
     checkNumber(issues, 'skillSnapshotYears', data['skillSnapshotYears'], { min: 1, integer: true });
     checkNumber(issues, 'flushIntervalYears', data['flushIntervalYears'], { min: 1, integer: true });
     if (checkRecord(issues, 'populationControl', data['populationControl'])) {

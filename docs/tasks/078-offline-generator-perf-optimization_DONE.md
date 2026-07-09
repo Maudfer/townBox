@@ -62,3 +62,30 @@ so larger canonical assets (1,000/250, 2,000/500) become practical.
 - Live-play per-tick perf (the live sim runs over materialized agents only; the generator runs the whole pool —
   different regime). Any shared win is a bonus, not the target.
 - Changing the simulation's *fidelity* (event/action content) for live play.
+
+---
+
+## Delivered
+
+Merged as task 078 (generator `078.0`). Full write-up in
+[`docs/planning/offline-generator-performance.md` §9](../planning/offline-generator-performance.md).
+
+- **`--profile` mode** (acceptance #1): per-phase timers thread through `TickRunner` (`TickProfiler`) into
+  `HistoryAsset`'s `meta.stats.profile` (µs/agent-step + share), printed by the CLI (`--profile`). Zero overhead
+  when off; timing never affects logic (determinism preserved).
+- **Profiling inverted the §6 ranking.** The driver was **not** the event walk (a ~0.3% rounding error) but
+  `ActionEngine.activeInstanceOf` scanning **every continuous instance ever created** (~2,700/call after 27
+  steps, growing unbounded — terminal instances were never pruned), called ~5×/agent/tick by Brain's `statusOf`
+  → ~97% of per-agent cost.
+- **Fix:** an O(1) **active-instance index** + **terminal-instance pruning** in `ActionEngine` (both
+  behaviour-identical; index rebuilt on load). Plus the **reduced event manifest** (§6 #2, `reducedEventManifest`,
+  default on, `--full-manifest` to disable — a secondary 2–3× cut of the event phase) and the §6 #4 micro-opts
+  (`LogicalWorld.runDaily` iterates the living set, precomputed job title→def map, `Brain` static candidate list).
+- **Result (acceptance #2/#3):** measured **ms/agent/step** at ~60/~400/~800 agents daily: **2.68→0.20**,
+  **2.82→0.22**, **3.03→0.27** — **~11–13×**, and now *flat* over the run (was growing). Projected 1000/250
+  daily ≈ ~7 h (was ~7–8 days) — stretch goal met, and the memory wall that would have OOM'd the big assets is
+  gone.
+- **Determinism/no-regression:** `generatorVersion` bumped to `078.0`; reduced mode gated behind a flag, live
+  play + the `arcScenarios` live↔bootstrap keystone keep the full manifest. New tests: reduced-mode determinism
+  (logical world on), reduced/full content parity, `--profile` determinism, and the ActionEngine index/pruning
+  invariants (incl. load rebuild). `npm test` (631) green, `npm run typecheck` clean.

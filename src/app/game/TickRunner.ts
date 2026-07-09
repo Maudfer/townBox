@@ -26,10 +26,22 @@ import { ExecutionContext } from 'types/Execution';
 import { SchoolFacts } from 'types/School';
 import { JobPosition } from 'types/Work';
 
+// Optional per-phase timing accumulator (task 078 --profile): runTick adds the wall-clock ms spent in each
+// phase block, so the offline generator can attribute per-agent cost to action-advance / event-walk /
+// progression / brain. Absent (the default, incl. live play) = zero overhead beyond a few truthiness checks;
+// timing never affects logic, so determinism is untouched.
+export interface TickProfiler {
+    actions: number;
+    events: number;
+    progression: number;
+    brain: number;
+}
+
 export interface TickPlan {
     engine: EventEngine;
     actionEngine?: ActionEngine;
     brain?: Brain;
+    profiler?: TickProfiler;
     inventory?: Inventory | null;
     employerKeyOf?: (personId: PersonId) => string | null;
     jobOf?: (personId: PersonId) => JobFacts | null;
@@ -60,11 +72,14 @@ function mergeInto(target: TickResult, source: TickResult): void {
 
 export async function runTick(plan: TickPlan): Promise<TickResult> {
     const result: TickResult = { died: [], born: [], signals: [], committed: [] };
+    const profiler = plan.profiler;
+    const clock = profiler ? () => performance.now() : null;
 
     // Phases 1–2 (task 043): advance running continuous Actions and resolve due children. Runs inside the
     // market-bound window so action requirements can read market-derived attributes; lifecycle Events fired
     // here (onStart/onComplete/…) land in the same TickResult.
     if (plan.actionEngine) {
+        const t0 = clock ? clock() : 0;
         plan.engine.bindMarkets(plan.ctx);
         mergeInto(result, plan.actionEngine.advance({
             state: plan.state,
@@ -76,17 +91,28 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             inventory: plan.inventory ?? null,
             ...(plan.employerKeyOf ? { employerKeyOf: plan.employerKeyOf } : {}),
         }));
+        if (profiler && clock) {
+            profiler.actions += clock() - t0;
+        }
     }
 
     // Phases 3–5: automated-trigger drain + probabilistic evaluation + commit (task 042).
+    const tEvents = clock ? clock() : 0;
     mergeInto(result, plan.engine.simulateTick(plan.state, plan.agentIds, plan.tick, plan.ticksPerYear, plan.ctx, plan.ticksPerStep ?? 1));
+    if (profiler && clock) {
+        profiler.events += clock() - tEvents;
+    }
 
     // Phase 5.5 (tasks 063/065): completed-day events convert into skill proficiency and career progression
     // — in the SHARED spine, so both execution modes progress people identically. Runs BEFORE the world
     // reconciliation so promotion commits/signals ride this tick's dispatch (feed, Brain hooks).
     if (plan.skillProgression) {
+        const t0 = clock ? clock() : 0;
         mergeInto(result, plan.skillProgression.processCommits(result.committed, plan.state, plan.tick,
             plan.jobAssignmentOf ? { engine: plan.engine, ticksPerYear: plan.ticksPerYear, assignmentOf: plan.jobAssignmentOf } : undefined));
+        if (profiler && clock) {
+            profiler.progression += clock() - t0;
+        }
     }
 
     // Phase 6: dispatch to the committed-notification consumer.
@@ -99,6 +125,7 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
     // (047) will add its proposals here. Phase 9: persistence rides the save cadence; deferred materialization
     // requests live in the WorldAdapter.
     if (plan.brain && plan.actionEngine) {
+        const t0 = clock ? clock() : 0;
         plan.engine.bindMarkets(plan.ctx);
         plan.brain.processTick(plan.agentIds, {
             state: plan.state,
@@ -113,6 +140,9 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             ...(plan.schoolOf ? { schoolOf: plan.schoolOf } : {}),
         }, result.committed, result);
         plan.engine.unbindMarkets();
+        if (profiler && clock) {
+            profiler.brain += clock() - t0;
+        }
     }
     return result;
 }

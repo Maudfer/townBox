@@ -8,6 +8,8 @@
     "warmMarginYears": 40,
     "maxWarmupYears": 400,
     "keepActionLog": true,
+    "reducedEventManifest": true,
+    "profile": false,
     "skillSnapshotYears": 1,
     "flushIntervalYears": 5,
     "populationControl": {
