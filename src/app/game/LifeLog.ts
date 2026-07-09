@@ -36,6 +36,16 @@ export default class LifeLog {
         return this.nextSeq;
     }
 
+    // Hands back the accumulated entries and RESETS the table to empty, keeping `nextSeq` (task 077 streaming):
+    // the offline generator flushes the full log to disk shards periodically so it never holds the whole
+    // centuries-long log in RAM. The aggregate history (EventEngine.history) is separate and unaffected, so the
+    // sim's hasEvent queries keep working after a drain — the full log is write-only during generation.
+    drain(): EventLogTable {
+        const drained = this.table;
+        this.table = {};
+        return drained;
+    }
+
     // Restores the log (save/load). `nextSeq` persists explicitly; when absent (defensive), derive it from
     // the highest stored seq so future commits never collide.
     load(table: EventLogTable, nextSeq?: number): void {

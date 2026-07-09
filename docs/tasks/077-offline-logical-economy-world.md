@@ -29,11 +29,55 @@
 > - Tests: `test/logicalWorld.test.ts` (homes, adapter, direct school accrual, carried-inventory filtering,
 >   per-window snapshot selection, end-to-end generator determinism + career progression).
 >
-> **Defaults are the richest, most expensive simulation** (`json/historyGenerator.json`): daily stepping
-> (`daysPerStep: 1`), the full action log kept (`keepActionLog: true`), yearly skill snapshots
-> (`skillSnapshotYears: 1`), and the logical-economy world fully on. This is intentionally slow AND produces a
-> large asset — dial back for a feasible run with `--step-days N`, `--no-action-log`, `--snapshot-years N`,
-> `--capacity N` (measured ~3.8 ms/agent/step at daily cadence with the full logical world).
+> **Streaming to sharded files (RAM-bounded generation + chunked loading).** The generator no longer holds the
+> whole centuries-long history in RAM: the two big, ever-growing sections (event log + skill timeline) are
+> DRAINED to compressed disk **shards** every `flushIntervalYears` via a `HistoryAssetSink` (`LifeLog.drain` /
+> `LogicalWorld.drainSkillTimeline`; the aggregate history the sim reads is untouched, so `hasEvent` keeps
+> working). The asset is now a **directory** — a small `meta.json` header + `population`/`objects`/
+> `eventHistory` sections + `log-*`/`skills-*` shards, each shard carrying its tick range. New-game selection
+> (`selectStartingWorldFromShards`) reads **only the shards up to the chosen window `w`** (future shards never
+> fetched), so both generation and browser loading stay memory-bounded, and a multi-GB asset splits into
+> git-friendly chunks (no LFS). Streamed↔in-memory selection equivalence is pinned by `test/logicalWorld.test.ts`.
+>
+> **Bounded, non-exponential population.** Two mechanisms replace the old logistic carrying capacity so
+> population is *stable*, not exponential:
+> - **Per-person `maxChildren`** (`types/Genealogy.GenPerson`, sampled at creation from `util/fertility` — a
+>   distribution mounding on 2–4 (~70%), 0–6 tails). Gates pregnancy via the new `wantsMoreChildren` Context
+>   attribute (and the coarse off-map sim mirrors it), so a couple stops at their innate willingness regardless
+>   of probability. Applies in live play too. Save v13 backfills legacy people deterministically.
+> - **A global fertility multiplier** on the pregnancy hazard (`EventEngine.setProbabilityScale`; 0 = nobody
+>   has children, 1 = no influence). Live play leaves it at 1; the offline generator drives it with a
+>   **population thermostat** — AC-style **hysteresis** (`PopulationThermostat`): suppress above the high pivot
+>   `target·(1+band)`, allow below the low pivot `target·(1−band)`, HOLD between (no chatter around a single
+>   setpoint). Verified to grow to `target` and hold within the band instead of ballooning.
+>
+> **Co-location perf fix.** `LogicalWorld.peopleAt` was an O(agents) scan called once per idle person per tick
+> by the social hook → **O(agents²)/step**, the daily bottleneck. It now uses a **reverse location→people
+> index** (`byLocationKey`, maintained on home-assignment / transition / death), making `peopleAt` O(occupants)
+> and the whole step near-linear. Behavior-preserving (same sorted ids → identical asset). Measured
+> per-agent-per-step: **4.0 ms @ 63 agents → 5.4 @ 402 → 6.2 @ 801** (a pure quadratic term would have hit
+> ~50 ms/agent at 800).
+>
+> **Defaults** (`json/historyGenerator.json`): the richest asset the budget allows — daily stepping, logical
+> economy fully on, yearly skill snapshots, **and the full action log kept** — over **250 living × 100 years**
+> (thermostat `target` 250, ±5% band); begins and holds ~250 living. At this scale the action log fits (~560 MB
+> < 2 GB), so the default asset carries full per-tick action texture. `--no-action-log` drops it (~29 MB).
+>
+> ### Measured size + runtime estimates for a full 250/100 run (compressed on disk; ±~40%)
+>
+> | Scenario | Flags | Asset size | Est. runtime |
+> |---|---|---|---|
+> | **Default** (daily · full action log · yearly snaps) | *(none)* | **~560 MB** | **~15 h** |
+> | Events-only | `--no-action-log` | **~29 MB** | ~15 h |
+> | Coarser snapshots | `--snapshot-years 5` | **~550 MB** | ~15 h |
+> | **Feasible / fast** | `--step-days 30 --no-action-log` | **~15 MB** | **~30 min** |
+>
+> (~31k living-person-years, ~600 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions;
+> skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed. ~5 ms/agent/step at ~250 agents.)
+> 250/100 daily is **overnight-feasible** (~15 h). Larger canonical assets (1,000/250 ≈ ~270 MB / ~7–8 days;
+> 2,000/500 ≈ ~1 GB / ~3 weeks) remain available via flags. RAM stays bounded (~one flush interval) in every
+> scenario. **The per-agent step cost (~5 ms) is now the runtime driver — the co-location O(agents²) is fixed;
+> further speedups target the per-agent work itself (see the perf task 078).**
 >
 > Everything below is the original ticket.
 

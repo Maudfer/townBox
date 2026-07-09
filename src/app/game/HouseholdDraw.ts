@@ -2,6 +2,7 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { SeededRandom } from 'util/random';
 import { isAliveAt, ageAt, spouseAt, parentsOf, childrenOf, siblingsOf, unclesAuntsOf, relationshipLabel } from 'util/kinship';
+import { sampleMaxChildren } from 'util/fertility';
 
 import { Genders, Gender } from 'types/Social';
 import { GenPerson, PersonId, PopulationState } from 'types/Genealogy';
@@ -201,6 +202,7 @@ function immigrantHousehold(
             fatherId,
             motherId,
             partnerships: [],
+            maxChildren: sampleMaxChildren(rng),
         };
         state.people[id] = person;
         return person;

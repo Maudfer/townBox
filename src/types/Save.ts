@@ -33,7 +33,9 @@ import { SkillBookState } from 'types/Skill';
 //          defaults existing employees to their job's entry rank with zeroed counters.
 // v11 → v12: contextual building objects (task 070). Structures gain `objectsGenerated`; loading an older
 //          save runs the fill once per existing building (SaveManager's load sweep) and marks them.
-export const SAVE_VERSION = 12;
+// v12 → v13: bounded fertility — every pool person gains an innate `maxChildren`. Older saves backfill it
+//          deterministically from (worldSeed, personId) in migrations.
+export const SAVE_VERSION = 13;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';

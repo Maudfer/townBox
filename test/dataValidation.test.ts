@@ -355,8 +355,8 @@ describe('params validation', () => {
     test('historyGenerator rejects a mismatched ticksPerYear', () => {
         const fixture = {
             seed: 1, founderCount: 100, recordThreshold: 1000, recordYears: 500, ticksPerYear: 100,
-            daysPerStep: 1, warmMarginYears: 40, maxWarmupYears: 400, keepActionLog: false, skillSnapshotYears: 1,
-            carryingCapacity: { enabled: true, soft: 3000, steepness: 4 },
+            daysPerStep: 1, warmMarginYears: 40, maxWarmupYears: 400, keepActionLog: false, skillSnapshotYears: 1, flushIntervalYears: 5,
+            populationControl: { enabled: true, target: 2000, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
             logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
             safety: { maxRuntimeMs: 0, maxPeople: 0 },
         };

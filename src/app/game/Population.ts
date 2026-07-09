@@ -1,7 +1,8 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
 import { SeededRandom } from 'util/random';
-import { isAliveAt, spouseAt } from 'util/kinship';
+import { isAliveAt, spouseAt, childrenOf } from 'util/kinship';
+import { sampleMaxChildren } from 'util/fertility';
 
 import { selectHousehold, HouseholdSelection } from 'game/HouseholdDraw';
 
@@ -99,6 +100,11 @@ function simulateYear(
         if (!partner || partner.deathTick !== null) {
             continue;
         }
+        // Bounded fertility: a woman stops once she has reached her innate willingness (maxChildren). Mirrors
+        // the pregnancy event's `wantsMoreChildren` gate so the off-map coarse sim doesn't over-breed either.
+        if (childrenOf(pool, woman.id).length >= (woman.maxChildren ?? Number.POSITIVE_INFINITY)) {
+            continue;
+        }
         if (rng.chance(params.annualBirthProbability)) {
             const id = `p${state.nextSeq++}`;
             const gender = rng.chance(0.5) ? Genders.Male : Genders.Female;
@@ -112,6 +118,7 @@ function simulateYear(
                 fatherId: partner.id,
                 motherId: woman.id,
                 partnerships: [],
+                maxChildren: sampleMaxChildren(rng),
             };
             result.born.push(id);
         }
@@ -163,6 +170,7 @@ export function createFounders(seed: number, count: number, params: FounderParam
             fatherId: null,
             motherId: null,
             partnerships: [],
+            maxChildren: sampleMaxChildren(rng),
         };
         people[id] = person;
         return person;
@@ -224,6 +232,7 @@ export function generatePopulation(seed: number, params: PopulationParams): Popu
             fatherId,
             motherId,
             partnerships: [],
+            maxChildren: sampleMaxChildren(rng),
         };
         people[id] = person;
         return person;
