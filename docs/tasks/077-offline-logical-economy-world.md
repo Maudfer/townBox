@@ -51,25 +51,32 @@
 >   `target·(1+band)`, allow below the low pivot `target·(1−band)`, HOLD between (no chatter around a single
 >   setpoint). Verified to grow to `target` and hold within the band instead of ballooning.
 >
-> **Defaults** (`json/historyGenerator.json`): the richest *simulation* — daily stepping, logical economy fully
-> on, yearly skill snapshots — over **2,000 living × 500 years** (thermostat `target` 2,000, ±5% band); begins
-> and holds ~2,000 living. The full ACTION log is **off** by default (persistence choice, regenerated live;
-> `--keep-action-log` for a local ultra-asset — streaming keeps it RAM-safe). ~5 ms/agent/step.
+> **Co-location perf fix.** `LogicalWorld.peopleAt` was an O(agents) scan called once per idle person per tick
+> by the social hook → **O(agents²)/step**, the daily bottleneck. It now uses a **reverse location→people
+> index** (`byLocationKey`, maintained on home-assignment / transition / death), making `peopleAt` O(occupants)
+> and the whole step near-linear. Behavior-preserving (same sorted ids → identical asset). Measured
+> per-agent-per-step: **4.0 ms @ 63 agents → 5.4 @ 402 → 6.2 @ 801** (a pure quadratic term would have hit
+> ~50 ms/agent at 800).
 >
-> ### Measured size + runtime estimates for a full 2,000/500 run (compressed on disk; ±~40%)
+> **Defaults** (`json/historyGenerator.json`): the richest *simulation* — daily stepping, logical economy fully
+> on, yearly skill snapshots — over **1,000 living × 250 years** (thermostat `target` 1,000, ±5% band); begins
+> and holds ~1,000 living. The full ACTION log is **off** by default (persistence choice, regenerated live;
+> `--keep-action-log` for a local ultra-asset — streaming keeps it RAM-safe).
+>
+> ### Measured size + runtime estimates for a full 1,000/250 run (compressed on disk; ±~40%)
 >
 > | Scenario | Flags | Asset size | Est. runtime |
 > |---|---|---|---|
-> | **Default** (daily · events-only · yearly snaps) | *(none)* | **~1.0 GB** | **~3 weeks** ⚠️ |
-> | + full action log | `--keep-action-log` | **~19.5 GB** ⚠️ (>2 GB) | ~3 weeks |
-> | Coarser snapshots | `--snapshot-years 5` | **~700 MB** | ~3 weeks |
-> | **Feasible / fast** | `--step-days 30` | **~520 MB** | **~18 h** |
+> | **Default** (daily · events-only · yearly snaps) | *(none)* | **~270 MB** | **~7–8 days** |
+> | + full action log | `--keep-action-log` | **~5.2 GB** ⚠️ (>2 GB) | ~7–8 days |
+> | Coarser snapshots | `--snapshot-years 5` | **~190 MB** | ~7–8 days |
+> | **Feasible / fast** | `--step-days 30` | **~140 MB** | **~6 h** |
 >
-> (~1.08M living-person-years, ~15k retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions
-> · ~145 B/py monthly; skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed.) The daily
-> runtime is dominated by ~2,000-agent steps and is likely worse due to **O(agents) co-location** in the social
-> hook (a candidate perf follow-up); **`--step-days 30` (~18 h, ~520 MB) is the practical run.** RAM stays
-> bounded (~one flush interval) in every scenario — even the 19.5 GB action-log run completes instead of OOMing.
+> (~290k living-person-years, ~4,300 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions
+> · ~145 B/py monthly; skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed. ~6.7 ms/agent/
+> step at 1,000 agents.) Daily is dominated by ~1,000-agent × 90k recording steps — inherently ~a week even
+> near-linear; **`--step-days 30` (~6 h, ~140 MB) is the practical run.** RAM stays bounded (~one flush interval)
+> in every scenario — even the 5.2 GB action-log run completes instead of OOMing.
 >
 > Everything below is the original ticket.
 

@@ -1,8 +1,8 @@
 {
     "seed": 1337,
     "founderCount": 100,
-    "recordThreshold": 2000,
-    "recordYears": 500,
+    "recordThreshold": 1000,
+    "recordYears": 250,
     "ticksPerYear": 8640,
     "daysPerStep": 1,
     "warmMarginYears": 40,
@@ -12,7 +12,7 @@
     "flushIntervalYears": 5,
     "populationControl": {
         "enabled": true,
-        "target": 2000,
+        "target": 1000,
         "band": 0.05,
         "suppressLevel": 0.1,
         "allowLevel": 1.0

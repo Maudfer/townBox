@@ -20,7 +20,6 @@ import EventEngine from 'game/EventEngine';
 import { WORK_DAILY_GAIN, PROMOTION_EVENT } from 'game/SkillProgression';
 import { generateBusiness } from 'game/BusinessGen';
 import { generateBuildingObjects } from 'game/ObjectGeneration';
-import { sameLocation } from 'game/BootstrapWorld';
 
 import { SeededRandom } from 'util/random';
 import { evaluateCurve } from 'util/curve';
@@ -88,6 +87,11 @@ export default class LogicalWorld implements WorldAdapter {
     private homeKeyOf = new Map<PersonId, string>();
     private locationNow = new Map<PersonId, LogicalLocation>();
     private nextHandleId = 0;
+    // Reverse index location-key → present people, so peopleAt is O(occupants) instead of O(all agents). The
+    // social hook queries it once per idle person per tick, so the naive scan was O(agents²)/step — the daily
+    // 1000-agent bottleneck. `locKeyOf` caches each person's current effective-location key for O(1) moves.
+    private byLocationKey = new Map<string, Set<PersonId>>();
+    private locKeyOf = new Map<PersonId, string>();
 
     // Subsystems (reused, scene-free).
     readonly inventory: Inventory;
@@ -125,13 +129,25 @@ export default class LogicalWorld implements WorldAdapter {
     }
 
     peopleAt(location: LogicalLocation): PersonId[] {
-        const ids: PersonId[] = [];
-        for (const personId of this.homeKeyOf.keys()) {
-            if (sameLocation(this.locationOf(personId), location)) {
-                ids.push(personId);
-            }
+        return [...(this.byLocationKey.get(locationKey(location)) ?? [])].sort();
+    }
+
+    // Moves a person to `locKey` in the reverse index (O(1)); a no-op when unchanged.
+    private setLocationIndex(personId: PersonId, locKey: string): void {
+        const previous = this.locKeyOf.get(personId);
+        if (previous === locKey) {
+            return;
         }
-        return ids.sort();
+        if (previous !== undefined) {
+            this.byLocationKey.get(previous)?.delete(personId);
+        }
+        let set = this.byLocationKey.get(locKey);
+        if (!set) {
+            set = new Set();
+            this.byLocationKey.set(locKey, set);
+        }
+        set.add(personId);
+        this.locKeyOf.set(personId, locKey);
     }
 
     objectsAt(location: LogicalLocation): string[] {
@@ -144,6 +160,7 @@ export default class LogicalWorld implements WorldAdapter {
 
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
         this.locationNow.set(personId, target);
+        this.setLocationIndex(personId, locationKey(target));
         return {
             id: this.nextHandleId++,
             personId,
@@ -162,31 +179,20 @@ export default class LogicalWorld implements WorldAdapter {
     // is enough for per-home object pools + co-location. `pool` lets births resolve the mother; null for a bare
     // register (founders / co-location roster).
     assignHome(personId: PersonId, pool: PopulationState['people'] | null): void {
-        if (!this.config.homes) {
-            this.homeKeyOf.set(personId, 'home');
-            return;
-        }
         if (this.homeKeyOf.has(personId)) {
-            return;
+            return; // already homed (idempotent); the person is already in the location index
         }
-        const person = pool?.[personId];
+        let homeKey = this.config.homes ? `home:${personId}` : 'home';
+        const person = this.config.homes ? pool?.[personId] : undefined;
         if (person) {
-            for (const partnership of person.partnerships) {
-                const partnerHome = this.homeKeyOf.get(partnership.partnerId);
-                if (partnerHome) {
-                    this.homeKeyOf.set(personId, partnerHome);
-                    return;
-                }
-            }
-            for (const parentId of [person.motherId, person.fatherId]) {
-                const parentHome = parentId ? this.homeKeyOf.get(parentId) : undefined;
-                if (parentHome) {
-                    this.homeKeyOf.set(personId, parentHome);
-                    return;
-                }
-            }
+            // A partner joins their (already-homed) partner; else a child joins a homed parent.
+            const partnerHome = person.partnerships.map(p => this.homeKeyOf.get(p.partnerId)).find(h => h !== undefined);
+            const parentHome = [person.motherId, person.fatherId].map(id => (id ? this.homeKeyOf.get(id) : undefined)).find(h => h !== undefined);
+            homeKey = partnerHome ?? parentHome ?? homeKey;
         }
-        this.homeKeyOf.set(personId, `home:${personId}`);
+        this.homeKeyOf.set(personId, homeKey);
+        // Effective location starts at home (no transition yet) — index it so co-location sees them immediately.
+        this.setLocationIndex(personId, locationKey(this.homeLocation(personId)));
     }
 
     // --- Entry / exit ---------------------------------------------------------------------------------------
@@ -205,6 +211,13 @@ export default class LogicalWorld implements WorldAdapter {
         this.jobMarket?.fire(personId);
         this.schoolRegistry.release(personId);
         this.locationNow.delete(personId);
+        // Remove from the co-location index so peopleAt never returns the dead (homeKeyOf is kept; the
+        // isAliveAt guards in the daily sweeps already skip them).
+        const locKey = this.locKeyOf.get(personId);
+        if (locKey !== undefined) {
+            this.byLocationKey.get(locKey)?.delete(personId);
+            this.locKeyOf.delete(personId);
+        }
     }
 
     private filledHomes = new Set<string>();
