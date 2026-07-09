@@ -58,25 +58,26 @@
 > per-agent-per-step: **4.0 ms @ 63 agents → 5.4 @ 402 → 6.2 @ 801** (a pure quadratic term would have hit
 > ~50 ms/agent at 800).
 >
-> **Defaults** (`json/historyGenerator.json`): the richest *simulation* — daily stepping, logical economy fully
-> on, yearly skill snapshots — over **1,000 living × 250 years** (thermostat `target` 1,000, ±5% band); begins
-> and holds ~1,000 living. The full ACTION log is **off** by default (persistence choice, regenerated live;
-> `--keep-action-log` for a local ultra-asset — streaming keeps it RAM-safe).
+> **Defaults** (`json/historyGenerator.json`): the richest asset the budget allows — daily stepping, logical
+> economy fully on, yearly skill snapshots, **and the full action log kept** — over **250 living × 100 years**
+> (thermostat `target` 250, ±5% band); begins and holds ~250 living. At this scale the action log fits (~560 MB
+> < 2 GB), so the default asset carries full per-tick action texture. `--no-action-log` drops it (~29 MB).
 >
-> ### Measured size + runtime estimates for a full 1,000/250 run (compressed on disk; ±~40%)
+> ### Measured size + runtime estimates for a full 250/100 run (compressed on disk; ±~40%)
 >
 > | Scenario | Flags | Asset size | Est. runtime |
 > |---|---|---|---|
-> | **Default** (daily · events-only · yearly snaps) | *(none)* | **~270 MB** | **~7–8 days** |
-> | + full action log | `--keep-action-log` | **~5.2 GB** ⚠️ (>2 GB) | ~7–8 days |
-> | Coarser snapshots | `--snapshot-years 5` | **~190 MB** | ~7–8 days |
-> | **Feasible / fast** | `--step-days 30` | **~140 MB** | **~6 h** |
+> | **Default** (daily · full action log · yearly snaps) | *(none)* | **~560 MB** | **~15 h** |
+> | Events-only | `--no-action-log` | **~29 MB** | ~15 h |
+> | Coarser snapshots | `--snapshot-years 5` | **~550 MB** | ~15 h |
+> | **Feasible / fast** | `--step-days 30 --no-action-log` | **~15 MB** | **~30 min** |
 >
-> (~290k living-person-years, ~4,300 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions
-> · ~145 B/py monthly; skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed. ~6.7 ms/agent/
-> step at 1,000 agents.) Daily is dominated by ~1,000-agent × 90k recording steps — inherently ~a week even
-> near-linear; **`--step-days 30` (~6 h, ~140 MB) is the practical run.** RAM stays bounded (~one flush interval)
-> in every scenario — even the 5.2 GB action-log run completes instead of OOMing.
+> (~31k living-person-years, ~600 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions;
+> skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed. ~5 ms/agent/step at ~250 agents.)
+> 250/100 daily is **overnight-feasible** (~15 h). Larger canonical assets (1,000/250 ≈ ~270 MB / ~7–8 days;
+> 2,000/500 ≈ ~1 GB / ~3 weeks) remain available via flags. RAM stays bounded (~one flush interval) in every
+> scenario. **The per-agent step cost (~5 ms) is now the runtime driver — the co-location O(agents²) is fixed;
+> further speedups target the per-agent work itself (see the perf task 078).**
 >
 > Everything below is the original ticket.
 

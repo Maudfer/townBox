@@ -90,6 +90,7 @@ Always run `npm test` before opening the PR.**
 | 075 | [Progression arc — end-to-end validation & documentation](075-progression-arc-validation-and-docs_DONE.md) | Test/Docs | ✅ Done |
 | 076 | [Consumption & closed-loop remediation (pre-055 hardening)](076-audit-remediation.md) | Audit/Remediation | 🚧 In progress |
 | 077 | [Offline logical-economy world (off-map jobs/schools/objects during history generation)](077-offline-logical-economy-world.md) | Feature | ✅ Landed — asset carries lived skills (per-window timeline) / careers / possessions |
+| 078 | [Offline generator per-agent step-cost optimization](078-offline-generator-perf-optimization.md) | Performance | ⬜ Open (077 follow-up; see [perf notes](../planning/offline-generator-performance.md)) |
 
 > Numbering is roughly a suggested ordering, not a hard dependency graph. Several tasks reference
 > one another (e.g. 003 ↔ 005 ↔ 006 ↔ 007, and 008 → 009); each task's **Notes** section calls out
