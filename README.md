@@ -109,9 +109,9 @@ canonical simulation tick is the **in-game hour** (24 ticks/day); the clock emit
 `newTick` (per hour), and `newDay` (per rollover). Three cadences ride on top:
 
 - **Per hour (tick)** — the life-event engine (Engine B) resolves detailed events over every materialized
-  person through a shared tick lifecycle that live play and the history bootstrap both run, behind a formal
-  live/bootstrap **execution boundary**; every commit lands in an append-only per-person log with sequence
-  numbers and causation ids.
+  person through a shared tick lifecycle that live play and the offline history generator both run, behind a
+  formal live/bootstrap **execution boundary**; every commit lands in an append-only per-person log with
+  sequence numbers and causation ids.
 - **Per minute** — the commute scheduler moves employees between home and work.
 - **Per month** — the economic tick runs payroll → demand-driven business P&L → producer (B2B) revenue →
   growth / shrink-via-layoffs / bankruptcy → vacant-lot re-occupancy → household cost-of-living → eviction →
@@ -207,7 +207,22 @@ A pure `generatePopulation(seed, params)` forward-simulates founders → generat
 lifespans, producing a flat, serializable table of people (deceased ancestors + a living cohort). **Kinship and
 age are never stored** — siblings, grandparents, cousins, and current age are derived on demand from the graph
 and the live clock, so people genuinely get older as time passes. A coarse yearly off-map sim advances mortality
-and fertility for people who aren't on the map.
+and fertility for people who aren't on the map. Population is kept **stable, not exponential**: every person
+carries an innate maximum number of children they are willing to have (a distribution mounding on 2–4).
+
+### Offline history & new-game world
+Rather than simulate a starting world on every new game, the deep simulation runs **once, offline**
+(`npm run generate-history`) and is captured as a versioned **history asset**. A new game then *selects* a slice
+of it — a random present-tick window, rebased to tick 0, with re-randomized (lineage-coherent) identities — so
+drawn people arrive with **real event histories** and no loading wait; when no asset is committed the game
+cold-starts a plain generated pool. The generator runs the same simulation engines over an off-map
+**logical-economy world** (logical homes, schools, jobs, and generated objects), so the asset carries **lived
+skills, real careers-as-history, and possessions**, not just demographics — skills are stored as a per-person
+**timeline** so selection installs each person's proficiency *as of the chosen window* (matching their windowed
+age). Generation **streams to sharded files** (RAM-bounded) and the asset is a **directory** of chunks the game
+loads on demand (only the shards up to the window), so a multi-GB asset stays git-friendly without LFS. During
+generation an AC-style **thermostat** on a global fertility multiplier holds the population at a target
+headcount. This retires the earlier per-load history bootstrap.
 
 ### Life events (Engine B)
 `json/events.json` is a flat manifest: each event declares its **roles** (a subject plus co-participants bound by
@@ -335,8 +350,8 @@ For a much deeper, source-verified walkthrough of every subsystem, read [`CLAUDE
 
 The **014–037** arc is complete: employment & movement, the full economy cascade (wages → cost of living →
 business P&L → bankruptcy → eviction/homelessness → recovery, with a B2B supply chain), household-lifecycle
-dynamics, the UI/inspector layer, content expansion, CI, and a per-load history bootstrap that gives freshly
-drawn people real event histories.
+dynamics, the UI/inspector layer, content expansion, and CI. (This arc's per-load history bootstrap has since
+been retired in favor of the offline history asset — see *Offline history & new-game world* above.)
 
 The **039–054 simulation-enrichment arc** is complete (architecture in
 [task 038](docs/tasks/038-simulation-enrichment-architecture_DONE.md)): hourly ticks (24/day), object archetypes
@@ -357,22 +372,8 @@ widowed, homeless, moved-out…) fired from the transitions the sim already perf
 reachability test; businesses **shrink-via-layoffs** as well as grow; and **money is conserved** via an explicit
 external sector.
 
-**In flight / planned** (see [`docs/tasks/`](docs/tasks/README.md)):
+**In flight / planned** (see [`docs/tasks/`](docs/tasks/)):
 
-- **055 — offline history-asset pipeline** (renumbered from 038). **Pipeline landed:** the deep sim runs
-  *once, offline* (`npm run generate-history` — 100 founders → grow to 1,000 → simulate 500 years, with an
-  incremental living index and a soft carrying capacity) into a **versioned, compressed asset**, and new games
-  *select* a random window from it (rebased to tick 0, identities re-randomized) instead of simulating — the
-  per-load history bootstrap is retired.
-- **077 — offline logical-economy world** (055 follow-up, landed). The generator can run an **off-map logical
-  world** (homes, schools, jobs, object generation) during generation, so the asset carries **lived skills,
-  real careers-as-history, and possessions** — not just pool-intrinsic demographics. Skills are a **per-person
-  timeline**, so new-game selection installs each drawn person's proficiency *as of the chosen window*.
-  Generation **streams to sharded files** (RAM-bounded) and the asset is a **directory** of chunks the game
-  loads on demand (only the shards up to the window), so large assets stay git-friendly without LFS.
-  Population is kept **stable, not exponential**: each person has an innate **max children** they'll have, and
-  the offline generator runs a **thermostat** (hysteresis pivots) on a global fertility multiplier to hold a
-  target headcount.
 - **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).

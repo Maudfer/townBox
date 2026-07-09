@@ -63,21 +63,22 @@
 > (thermostat `target` 250, ±5% band); begins and holds ~250 living. At this scale the action log fits (~560 MB
 > < 2 GB), so the default asset carries full per-tick action texture. `--no-action-log` drops it (~29 MB).
 >
-> ### Measured size + runtime estimates for a full 250/100 run (compressed on disk; ±~40%)
+> ### Measured size + runtime estimates for a full 250/100 run (compressed on disk; ±~40%; runtimes POST-078)
 >
 > | Scenario | Flags | Asset size | Est. runtime |
 > |---|---|---|---|
-> | **Default** (daily · full action log · yearly snaps) | *(none)* | **~560 MB** | **~15 h** |
-> | Events-only | `--no-action-log` | **~29 MB** | ~15 h |
-> | Coarser snapshots | `--snapshot-years 5` | **~550 MB** | ~15 h |
-> | **Feasible / fast** | `--step-days 30 --no-action-log` | **~15 MB** | **~30 min** |
+> | **Default** (daily · full action log · yearly snaps) | *(none)* | **~560 MB** | **~40 min** |
+> | Events-only | `--no-action-log` | **~29 MB** | ~40 min |
+> | Coarser snapshots | `--snapshot-years 5` | **~550 MB** | ~40 min |
+> | **Feasible / fast** | `--step-days 30 --no-action-log` | **~15 MB** | **~1–2 min** |
 >
 > (~31k living-person-years, ~600 retained people. Log ~584 B/py events-only daily · ~17.7 KB/py with actions;
-> skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed. ~5 ms/agent/step at ~250 agents.)
-> 250/100 daily is **overnight-feasible** (~15 h). Larger canonical assets (1,000/250 ≈ ~270 MB / ~7–8 days;
-> 2,000/500 ≈ ~1 GB / ~3 weeks) remain available via flags. RAM stays bounded (~one flush interval) in every
-> scenario. **The per-agent step cost (~5 ms) is now the runtime driver — the co-location O(agents²) is fixed;
-> further speedups target the per-agent work itself (see the perf task 078).**
+> skill timeline ~330 B/py yearly; objects ~200 B/person — all compressed. **~0.2 ms/agent/step post-078**,
+> down from ~5 ms; flat over the run.) Larger canonical assets are now feasible too: **1,000/250 ≈ ~270 MB /
+> ~7–8 h** (was ~7–8 days); **2,000/500 ≈ ~1 GB / ~1.5 days** (was ~3 weeks) — add the action log for ~5.2 GB /
+> ~19.5 GB respectively. RAM stays bounded (~one flush interval) in every scenario. **Task 078 cut the per-agent
+> step cost ~11–13× (the driver was `ActionEngine.activeInstanceOf` scanning every instance ever created, not
+> the event walk) — see `docs/planning/offline-generator-performance.md` §9.**
 >
 > Everything below is the original ticket.
 
@@ -219,9 +220,9 @@ asset, including skills/possessions.
   realistic fraction of adults are employed (otherwise careers never progress); size it to the living count.
 - **Determinism at scale:** the incremental living index + carrying capacity from 055 must remain pure with the
   logical world layered on (no RNG stream perturbation of the event walk — the logical world forks its own).
-- **Runtime:** the added per-tick work (job market rebuild, school sweep, object gen) must not blow the ~15h
-  budget for a full run; the logical `JobMarket`/sweep should be incremental, not rebuilt from scratch each step
-  where avoidable.
+- **Runtime:** the added per-tick work (job market rebuild, school sweep, object gen) must stay cheap; the
+  logical `JobMarket`/sweep should be incremental, not rebuilt from scratch each step where avoidable. *(Post-078
+  the per-agent cost is ~0.2 ms/step — see task 078 / the perf planning doc.)*
 
 ## 7. Out of scope
 

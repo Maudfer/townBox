@@ -2,7 +2,7 @@
 
 - **Type:** Performance / Simulation + Tooling
 - **Labels:** `performance`, `simulation`, `generator`, `077-followup`
-- **Depends on:** [077](077-offline-logical-economy-world.md) (the offline logical-economy generator + streaming).
+- **Depends on:** [077](077-offline-logical-economy-world_DONE.md) (the offline logical-economy generator + streaming).
 - **Context (read first):** [`docs/planning/offline-generator-performance.md`](../planning/offline-generator-performance.md)
   — a detailed dump of the generator's per-tick mechanics, the determinism constraints, every benchmark we ran,
   the rates, what's already optimized, and the ranked optimization opportunities this task pursues.
