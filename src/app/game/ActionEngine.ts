@@ -77,12 +77,22 @@ export default class ActionEngine {
     // Pending world transitions by instance id. Transient (handles are live objects); a load re-requests
     // transitions for waiting instances on the next advance.
     private handles: Map<ActionInstanceId, TransitionHandle>;
+    // Active-instance index (task 078): person → their active instance ids, in insertion order. `activeInstanceOf`
+    // and `advance` used to scan `Object.values(state.instances)` (every instance EVER created) on every call —
+    // called ~5×/agent/tick by Brain hooks, it was the offline generator's dominant per-agent cost (~2.7 ms/agent,
+    // ~100× the event walk) and grew without bound as terminal instances piled up. With this index the lookup is
+    // O(1) and the advance scan is O(active). Transient: rebuilt from state on construction/load. Terminal
+    // instances are also pruned from `state.instances` in `finish` (they're inert once done — children are
+    // discrete, the one-active-continuous rule blocks a second, and history lives in the LifeLog), so both the
+    // scan set and memory stay bounded over a centuries-long run.
+    private activeByPerson: Map<PersonId, Set<ActionInstanceId>>;
 
     constructor(manifest: ActionManifest = DEFAULT_ACTION_MANIFEST, lifeLog: LifeLog = new LifeLog(), oar: OARTable = DEFAULT_OAR_TABLE) {
         this.manifest = manifest;
         this.lifeLog = lifeLog;
         this.state = { instances: {}, nextInstanceSeq: 0, actionHistory: {} };
         this.handles = new Map();
+        this.activeByPerson = new Map();
         this.oarByAction = new Map();
         for (const entry of Object.values(oar)) {
             const entries = this.oarByAction.get(entry.action) ?? [];
@@ -98,6 +108,40 @@ export default class ActionEngine {
     loadState(state: ActionEngineState): void {
         this.state = state ?? { instances: {}, nextInstanceSeq: 0, actionHistory: {} };
         this.handles = new Map();
+        this.rebuildActiveIndex();
+    }
+
+    // Rebuilds the person → active-instance-id index from `state.instances` (task 078). Insertion order follows
+    // instance id (a{seq}) so `activeInstanceOf` returns the same instance the old full scan (state insertion
+    // order) did. Called on load; construction starts with an empty state so the index starts empty.
+    private rebuildActiveIndex(): void {
+        this.activeByPerson = new Map();
+        const ids = Object.keys(this.state.instances).sort((a, b) => a.localeCompare(b));
+        for (const id of ids) {
+            const instance = this.state.instances[id]!;
+            if (ACTIVE_STATUSES.has(instance.status)) {
+                this.indexActivate(instance);
+            }
+        }
+    }
+
+    private indexActivate(instance: ActionInstance): void {
+        let set = this.activeByPerson.get(instance.personId);
+        if (!set) {
+            set = new Set();
+            this.activeByPerson.set(instance.personId, set);
+        }
+        set.add(instance.id);
+    }
+
+    private indexDeactivate(instance: ActionInstance): void {
+        const set = this.activeByPerson.get(instance.personId);
+        if (set) {
+            set.delete(instance.id);
+            if (set.size === 0) {
+                this.activeByPerson.delete(instance.personId);
+            }
+        }
     }
 
     getDefinition(actionId: string): ActionDefinition | null {
@@ -123,8 +167,16 @@ export default class ActionEngine {
     // The person's currently active continuous instance (at most one; Brain owns the single-activity rule
     // and this engine enforces it at start).
     activeInstanceOf(personId: PersonId): ActionInstance | null {
-        for (const instance of Object.values(this.state.instances)) {
-            if (instance.personId === personId && ACTIVE_STATUSES.has(instance.status)) {
+        // O(1) via the active index (task 078): the first still-active instance for the person, in id order —
+        // identical to the old full state-insertion-order scan (at most one active continuous instance exists
+        // per person by the arbitration rule, so the "first" is unambiguous in practice).
+        const set = this.activeByPerson.get(personId);
+        if (!set) {
+            return null;
+        }
+        for (const id of set) {
+            const instance = this.state.instances[id];
+            if (instance && ACTIVE_STATUSES.has(instance.status)) {
                 return instance;
             }
         }
@@ -390,6 +442,7 @@ export default class ActionEngine {
             lastPoolChild: null,
         };
         this.state.instances[instance.id] = instance;
+        this.indexActivate(instance);
         this.materialize(instance, cause, deps, result);
         if (instance.status === 'blocked') {
             return { ok: true, instanceId: instance.id, logSeq: this.lifeLog.getNextSeq() - 1 };
@@ -451,9 +504,18 @@ export default class ActionEngine {
     advance(deps: ActionDeps): TickResult {
         const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(0xac7);
-        const active = Object.values(this.state.instances)
-            .filter(instance => ACTIVE_STATUSES.has(instance.status))
-            .sort((a, b) => a.id.localeCompare(b.id));
+        // Iterate the active index (task 078) instead of scanning every instance ever created. Snapshotted to
+        // an array first so finishes/starts during the loop don't mutate what we're iterating.
+        const active: ActionInstance[] = [];
+        for (const set of this.activeByPerson.values()) {
+            for (const id of set) {
+                const instance = this.state.instances[id];
+                if (instance && ACTIVE_STATUSES.has(instance.status)) {
+                    active.push(instance);
+                }
+            }
+        }
+        active.sort((a, b) => a.id.localeCompare(b.id));
 
         for (const instance of active) {
             const person = deps.state.people[instance.personId];
@@ -541,6 +603,13 @@ export default class ActionEngine {
         } else if (outcome === 'interrupted') {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
         }
+
+        // Prune the now-terminal instance (task 078): it is inert — its children were discrete (no lingering
+        // instances), the log already holds every lifecycle entry, and nothing reads a finished instance by id
+        // (interrupt only touches active ones, sequence outputs live on the parent). Dropping it keeps
+        // `state.instances` (and its serialization) bounded to the ~one-active-per-person set over a long run.
+        this.indexDeactivate(instance);
+        delete this.state.instances[instance.id];
     }
 
     // --- Children --------------------------------------------------------------

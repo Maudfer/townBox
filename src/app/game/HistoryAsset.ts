@@ -50,7 +50,10 @@ export const HISTORY_ASSET_FORMAT_VERSION = 1;
 // 077.3: streaming to sharded files (RAM-bounded generation; chunked, load-only-≤w asset directory).
 // 077.4: bounded fertility (per-person maxChildren + wantsMoreChildren gate) + population thermostat
 //        (hysteresis pivots replace the logistic carrying capacity) → stable, non-exponential population.
-export const HISTORY_GENERATOR_VERSION = '077.4';
+// 078.0: reduced-manifest generator mode (default) — the probabilistic walk is restricted to loggable events,
+//        dropping the ~680 effect-free texture events. A per-agent perf win that CHANGES the RNG stream, so
+//        assets differ byte-wise from 077.4 (same content in kind); still deterministic per seed.
+export const HISTORY_GENERATOR_VERSION = '078.0';
 
 // The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -100,6 +103,19 @@ export interface HistoryGeneratorParams {
     // over centuries and which the game regenerates live anyway — is dropped from the serialized log. Set true
     // only for small diagnostic runs.
     keepActionLog: boolean;
+    // The reduced-manifest generator mode (task 078). When true (the generator default), the event engine's
+    // probabilistic walk is restricted to `loggableEventIds` — the ~18 vital/effect-bearing + requirement-
+    // referenced events that actually reach the asset — skipping the ~680 effect-free story-texture events that
+    // are already dropped from the persisted log. This cuts the per-agent probabilistic draw count ~10-20× at
+    // no loss of asset content (skills/careers/vital histories are unchanged in KIND). It CHANGES the RNG
+    // stream, so a reduced-manifest asset differs (byte-wise) from a full-manifest one — still deterministic
+    // per seed; the generatorVersion records the mode. Set false for a full-fidelity correctness run.
+    reducedEventManifest: boolean;
+    // Diagnostic profiling (task 078 --profile): accumulate per-phase wall-clock timings (action-advance /
+    // event-walk / progression / brain / runDaily / snapshot) and attach them to meta.stats.profile, so
+    // per-agent cost can be attributed to phases. Off by default (a few truthy checks of overhead when on;
+    // timing never affects logic, so determinism is untouched).
+    profile: boolean;
 }
 
 export const DEFAULT_GENERATOR_PARAMS: HistoryGeneratorParams = generatorConfig as HistoryGeneratorParams;
@@ -127,6 +143,24 @@ export interface HistoryAssetStats {
     runtimeMs: number;
     rawBytes: number;        // filled in by the CLI after serialization
     compressedBytes: number; // filled in by the CLI after serialization
+    profile?: TickProfile;   // per-phase timing attribution (task 078 --profile); present only when profiling
+}
+
+// Per-phase wall-clock attribution over a profiled run (task 078). `agentSteps` = Σ agents-per-step, so a
+// phase's ms/agent/step is phaseMs / agentSteps. The runTick phases (actions/events/progression/brain) plus
+// the generator-owned day-cadence work (runDaily/snapshot) and the residual `other` (loop overhead: the
+// living sort, thermostat, trajectory sampling, flush).
+export interface TickProfile {
+    actions: number;
+    events: number;
+    progression: number;
+    brain: number;
+    runDaily: number;
+    snapshot: number;
+    other: number;
+    total: number;
+    steps: number;
+    agentSteps: number;
 }
 
 // The asset payload (pre-compression). Reuses the save's PopulationState + LifeEvent table shapes so the game
@@ -251,9 +285,20 @@ export async function generateHistoryAsset(
     // Phase 0 — founders.
     const state = createFounders(params.seed, params.founderCount, { ...DEFAULT_FOUNDER_PARAMS, ticksPerYear: tpy });
 
-    const engine = new EventEngine();
+    // Reduced-manifest mode (task 078): restrict the probabilistic walk to the loggable events (the only ones
+    // that reach the asset), skipping the ~680 texture events. `loggable` is reused below at flush time.
+    const loggable = loggableEventIds();
+    const engine = new EventEngine(undefined, undefined,
+        params.reducedEventManifest ? { probabilisticWalkFilter: (id: string) => loggable.has(id) } : {});
     const actionEngine = new ActionEngine(undefined, engine.getLifeLog());
     const brain = new Brain(actionEngine);
+
+    // Optional per-phase profiling accumulator (task 078 --profile).
+    const profiler = params.profile ? { actions: 0, events: 0, progression: 0, brain: 0 } : undefined;
+    const profile: TickProfile | undefined = params.profile
+        ? { actions: 0, events: 0, progression: 0, brain: 0, runDaily: 0, snapshot: 0, other: 0, total: 0, steps: 0, agentSteps: 0 }
+        : undefined;
+    const now = params.profile ? () => performance.now() : () => 0;
 
     // The logical-economy world (task 077) or the plain 055 spine. When enabled it owns homes/schools/jobs/
     // objects + a SkillBook, and drives DIRECT per-step skill accrual (runDaily); when disabled, skills
@@ -298,8 +343,8 @@ export async function generateHistoryAsset(
 
     // Streaming state (task 077): when a sink is provided, periodically flush the log + skill timeline to disk
     // shards so RAM never holds the whole centuries-long history. `logCounts` tracks per-person log lengths for
-    // the median stat (the in-RAM log is drained away). The loggable filter is applied at flush time.
-    const loggable = loggableEventIds();
+    // the median stat (the in-RAM log is drained away). The `loggable` filter (declared above) is applied at
+    // flush time.
     const logShards: ShardRef[] = [];
     const skillShards: ShardRef[] = [];
     const logCounts = new Map<PersonId, number>();
@@ -370,6 +415,7 @@ export async function generateHistoryAsset(
             break;
         }
 
+        const stepStart = now();
         livingCount = living.size;
         const agentIds = [...living].sort();
         const facts = logical && skillBook ? logical.tickFacts(skillBook, tick) : null;
@@ -377,6 +423,7 @@ export async function generateHistoryAsset(
             engine,
             actionEngine,
             brain,
+            ...(profiler ? { profiler } : {}),
             state,
             agentIds,
             tick,
@@ -389,13 +436,26 @@ export async function generateHistoryAsset(
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
-            logical.runDaily(state, tick, tick + step, tpy, skillBook, engine);
+            const tDaily = now();
+            logical.runDaily(state, tick, tick + step, tpy, skillBook, engine, living);
+            if (profile) {
+                profile.runDaily += now() - tDaily;
+            }
             // Per-window skill snapshot at the configured cadence (task 077 fix).
             const bucket = Math.floor(tick / snapshotIntervalTicks);
             if (bucket !== lastSnapshotBucket) {
                 lastSnapshotBucket = bucket;
+                const tSnap = now();
                 logical.snapshotSkills(skillBook, tick, living);
+                if (profile) {
+                    profile.snapshot += now() - tSnap;
+                }
             }
+        }
+        if (profile) {
+            profile.steps++;
+            profile.agentSteps += agentIds.length;
+            profile.total += now() - stepStart;
         }
 
         // Streaming flush: drain the log + skill timeline to disk shards at the flush cadence, keeping RAM
@@ -425,6 +485,16 @@ export async function generateHistoryAsset(
         tick += step;
     }
     engine.setProbabilityScale(null);
+
+    // Fold the runTick phase accumulator into the profile and derive the residual loop overhead (task 078).
+    if (profile && profiler) {
+        profile.actions = profiler.actions;
+        profile.events = profiler.events;
+        profile.progression = profiler.progression;
+        profile.brain = profiler.brain;
+        profile.other = Math.max(0, profile.total
+            - profile.actions - profile.events - profile.progression - profile.brain - profile.runDaily - profile.snapshot);
+    }
 
     const endTick = tick;
     const epoch = epochTick ?? endTick; // no threshold reached: nothing is "warm-up dead" to prune
@@ -509,6 +579,7 @@ export async function generateHistoryAsset(
             runtimeMs: Date.now() - startedAt,
             rawBytes: 0,
             compressedBytes: 0,
+            ...(profile ? { profile } : {}),
         },
     };
 

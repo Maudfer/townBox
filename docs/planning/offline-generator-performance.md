@@ -4,7 +4,7 @@
 > history generator (`npm run generate-history`, task 077) across a long back-and-forth: how the per-tick
 > simulation is structured, what costs what, the benchmarks we ran, the fixes we landed, the size/runtime
 > rates, and — most importantly — the **optimization opportunities** for the next session. The follow-up task
-> is [tasks/078-offline-generator-perf-optimization.md](../tasks/078-offline-generator-perf-optimization.md).
+> is [tasks/078-offline-generator-perf-optimization_DONE.md](../tasks/078-offline-generator-perf-optimization_DONE.md).
 >
 > Written 2026-07-09, at the end of the task-077 work (PR #85). Numbers are measured on this dev machine
 > (single-threaded Node via `tsx`), ±~40% — treat them as ratios/orders-of-magnitude, not absolutes.
@@ -227,5 +227,66 @@ years (log/timeline) or retained-people (objects/population).
 ## 8. Current default (as of this doc)
 
 `json/historyGenerator.json`: **250 living × 100 years**, daily, logical world on, yearly snapshots, **action
-log ON** (~560 MB, ~15 h — fits the budget at this scale). Flags dial to larger canonical assets or faster
-iteration runs. See task 077's delivered note for the full size/runtime table.
+log ON**, **reduced event manifest ON** (task 078). Flags dial to larger canonical assets or faster iteration
+runs. See task 077's delivered note for the full size/runtime table. Task 078 cut per-agent cost ~11–13× (see
+§9), so the runtime figures in §3 are now pessimistic by roughly that factor.
+
+---
+
+## 9. Task 078 results — what the profiler actually found (and the fix)
+
+Written 2026-07-09 at the end of task 078. **The ranked hypotheses in §6 were largely wrong**, which is exactly
+why the task mandated a `--profile` pass *first*. The per-phase attribution (new `--profile` mode; timings
+threaded through `TickRunner` into `meta.stats.profile`, printed by the CLI) at daily cadence, fixed agent
+counts (`founders = threshold` so the epoch is tick 0):
+
+### The real bottleneck: `ActionEngine.activeInstanceOf` — not the event walk
+
+Profiling (µs per agent-step, daily, logical world on):
+
+| phase | before | after | note |
+|---|---|---|---|
+| **brain** | **~2600–2930** | **~124–150** | `statusOf → activeInstanceOf`, called ~5×/agent/tick by Brain hooks |
+| actions | ~77–99 | ~65–109 | `ActionEngine.advance` (now bounded to active instances) |
+| events (full manifest) | ~7–9 | ~7–9 | the event walk — a **rounding error**, not the driver |
+| events (reduced manifest) | — | ~2–4 | the reduced walk (§6 #1) — a real 2–3× cut, but ~2% of the total |
+| runDaily / snapshot / other | ~4 | ~4 | micro-opts (§6 #4) applied; already small |
+
+`activeInstanceOf` and `advance` scanned **`Object.values(state.instances)` — every continuous instance ever
+created** — on every call. Terminal instances were **never pruned**, so the scan set grew without bound
+(measured: ~2,700 instances/call after only 27 steps, ~78 M total iterations; it would reach hundreds of
+thousands over a 100-year run). Called ~5×/agent/tick by the Brain hooks (`statusOf`), this was **~97% of
+per-agent cost and grew over the run** — dwarfing the event walk the §6 ranking fingered.
+
+**Fix (task 078):**
+- **Active-instance index** — a `Map<person → active instance ids>` maintained on start/finish, so
+  `activeInstanceOf` is O(1) and `advance` iterates O(active) instead of O(all-ever). Rebuilt from state on
+  load; behaviour-identical (returns the same first-active instance in id order).
+- **Terminal-instance pruning** — a finished continuous instance is deleted from `state.instances` (it is inert:
+  children are discrete, the one-active-continuous rule blocks a second, and the LifeLog holds every lifecycle
+  entry). Keeps the scan set *and* memory bounded over a centuries-long run, and shrinks live saves. No
+  production code read terminal instances by id — only tests did (now assert the outcome from the log).
+- **Reduced event manifest** (§6 #1, gated behind `reducedEventManifest`, default on for the generator) —
+  restricts the probabilistic walk to `loggableEventIds`, cutting the event phase 2–3×. Kept because it is free
+  and clean, but it is a secondary win, not the headline. It changes the RNG stream, so the generated asset
+  differs byte-wise from a full-manifest run (still deterministic per seed) — `generatorVersion` bumped to
+  `078.0`.
+- **Micro-opts** (§6 #4): `LogicalWorld.runDaily` and its sub-sweeps iterate the generator's incremental
+  **living** set instead of the ever-growing `homeKeyOf` (which retains the dead); `accrueWorkDays` uses a
+  precomputed title→definition map; `Brain.selectFreeTimeAction` precomputes its static leisure-candidate list.
+
+### Net result (ms/agent/step, daily, logical world on)
+
+| agents | before | after (reduced) | speedup |
+|---|---|---|---|
+| ~60  | 2.68 | 0.20 | ~13× |
+| ~400 | 2.82 | 0.22 | ~13× |
+| ~800 | 3.03 | 0.27 | ~11× |
+
+And critically, the after-cost is **flat over the run** (the before-cost grew as instances piled up). Projected
+**1000/250 daily ≈ ~7 h** (was ~7–8 days) — the stretch goal (< 2 days) is met with margin, and the memory
+wall that would have OOM'd the big assets is gone.
+
+**Takeaway for the next pass:** the remaining per-agent cost is now split between `brain` (free-time selection +
+hooks, ~130 µs) and `actions` (`advance` child/sequence processing, ~65–110 µs). Both are honest work over the
+full spine; there is no longer a single dominant O(n²)/unbounded term. Profile before chasing further.

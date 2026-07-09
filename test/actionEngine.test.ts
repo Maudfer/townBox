@@ -136,9 +136,9 @@ describe('continuous lifecycle', () => {
         for (let tick = 1001; tick <= 1003; tick++) {
             actions.advance({ ...deps, tick });
         }
-        const instance = actions.getInstance((outcome as { instanceId: string }).instanceId)!;
-        expect(instance).toMatchObject({ status: 'completed', outcome: 'completed', endedTick: 1003 });
         const completed = actionEntries(engine, 'a').find(entry => entry.lifecycle === 'completed')!;
+        // Terminal instances are pruned (task 078); the log is the source of truth for the outcome.
+        expect(completed).toMatchObject({ instanceId: (outcome as { instanceId: string }).instanceId, tick: 1003 });
         const stoppedEvent = engine.getPersonLog('a').find(entry => entry.kind === 'event' && entry.defId === 'stopped_working')!;
         expect(stoppedEvent.causationId).toBe(completed.seq);
     });
@@ -152,13 +152,32 @@ describe('continuous lifecycle', () => {
         expect(actions.startAction('b', 'adult_thing', {}, cause, deps, emptyResult())).toEqual({ ok: false, reason: 'requirementsUnmet' });
     });
 
+    test('terminal instances are pruned; the active index frees the person and survives a load (task 078)', () => {
+        const state = pool(1000);
+        const { deps, actions } = makeDeps(state, 1000);
+        const outcome = actions.startAction('a', 'work_shift', {}, cause, deps, emptyResult());
+        const instanceId = (outcome as { instanceId: string }).instanceId;
+        // While active it is indexed and blocks a second continuous action.
+        expect(actions.activeInstanceOf('a')?.id).toBe(instanceId);
+        // A load rebuilds the active index from state, so the person is still found as active.
+        actions.loadState(actions.getState());
+        expect(actions.activeInstanceOf('a')?.id).toBe(instanceId);
+        // Run to completion (work_shift has a short duration): the instance is pruned and the person freed.
+        for (let tick = 1001; tick <= 1003; tick++) {
+            actions.advance({ ...deps, tick });
+        }
+        expect(actions.activeInstanceOf('a')).toBeNull();
+        expect(actions.getInstance(instanceId)).toBeNull(); // pruned from state.instances
+        expect(actions.startAction('a', 'play_outside', {}, cause, deps, emptyResult()).ok).toBe(true);
+    });
+
     test('interruption logs and fires onInterrupt', () => {
         const state = pool(1000);
         const { deps, engine, actions } = makeDeps(state, 1000);
         const outcome = actions.startAction('a', 'work_shift', {}, cause, deps, emptyResult());
         const instanceId = (outcome as { instanceId: string }).instanceId;
         expect(actions.interrupt(instanceId, { source: 'brain', causationId: 9 }, { ...deps, tick: 1001 }, emptyResult())).toBe(true);
-        expect(actions.getInstance(instanceId)).toMatchObject({ status: 'interrupted', endedTick: 1001 });
+        expect(actionEntries(engine, 'a').find(entry => entry.lifecycle === 'interrupted')).toMatchObject({ instanceId, tick: 1001 });
         expect(engine.getPersonLog('a').some(entry => entry.kind === 'event' && entry.defId === 'was_interrupted')).toBe(true);
     });
 
@@ -251,9 +270,8 @@ describe('sequence children', () => {
         expect(mixed.params).toEqual({ recipe: 'carrot_cake' });
 
         actions.advance({ ...deps, tick: 1002 }); // step 2: grab_pencil — no pencil → blockParent
-        const instance = actions.getInstance(instanceId)!;
-        expect(instance.status).toBe('blocked');
-        expect(actionEntries(engine, 'a').some(entry => entry.lifecycle === 'blocked')).toBe(true);
+        // Terminal instances are pruned (task 078); assert the blocked outcome from the log.
+        expect(actionEntries(engine, 'a').find(entry => entry.lifecycle === 'blocked')).toMatchObject({ instanceId });
         // The blocked step never ran and neither did the step after it.
         expect(actionEntries(engine, 'a').some(entry => entry.defId === 'stretch')).toBe(false);
     });
@@ -275,7 +293,7 @@ describe('sequence children', () => {
         for (let tick = 1001; tick <= 1004; tick++) {
             actions.advance({ ...deps, tick });
         }
-        expect(actions.getInstance((outcome as { instanceId: string }).instanceId)!.status).toBe('completed');
+        expect(actionEntries(engine, 'a').find(entry => entry.lifecycle === 'completed')).toMatchObject({ instanceId: (outcome as { instanceId: string }).instanceId });
         expect(actionEntries(engine, 'a').some(entry => entry.defId === 'stretch')).toBe(true);
     });
 });
