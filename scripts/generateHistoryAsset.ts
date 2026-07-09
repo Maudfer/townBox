@@ -124,36 +124,49 @@ async function main(): Promise<void> {
         + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`
         + `, manifest ${params.reducedEventManifest ? 'reduced' : 'full'}${params.profile ? ', profile ON' : ''}`);
 
-    // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk.
+    // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk. min/max ticks
+    // are accumulated in a running loop — NOT `Math.min(...ticks)` — because an action-log shard can hold
+    // hundreds of thousands of entries, and spreading that many args overflows the call stack.
     let logIndex = 0;
     let skillIndex = 0;
     let shardBytes = 0;
-    const tickRange = (ticks: number[]): { minTick: number; maxTick: number } => ({
-        minTick: ticks.length ? Math.min(...ticks) : 0,
-        maxTick: ticks.length ? Math.max(...ticks) : 0,
-    });
+    const emptyRange = (): { minTick: number; maxTick: number } => ({ minTick: 0, maxTick: 0 });
     const sink: HistoryAssetSink = {
         logShard(table: EventLogTable): ShardRef {
-            const ticks: number[] = [];
+            const range = emptyRange();
+            let seen = false;
             for (const entries of Object.values(table)) {
                 for (const entry of entries) {
-                    ticks.push(entry.tick);
+                    if (!seen) {
+                        range.minTick = range.maxTick = entry.tick;
+                        seen = true;
+                    } else {
+                        if (entry.tick < range.minTick) { range.minTick = entry.tick; }
+                        if (entry.tick > range.maxTick) { range.maxTick = entry.tick; }
+                    }
                 }
             }
             const file = `log-${String(logIndex++).padStart(4, '0')}.tbz`;
             shardBytes += writeCompressed(outDir, file, table);
-            return { file, ...tickRange(ticks) };
+            return { file, ...range };
         },
         skillShard(timeline: SkillTimeline): ShardRef {
-            const ticks: number[] = [];
+            const range = emptyRange();
+            let seen = false;
             for (const snapshots of Object.values(timeline)) {
                 for (const snapshot of snapshots) {
-                    ticks.push(snapshot.tick);
+                    if (!seen) {
+                        range.minTick = range.maxTick = snapshot.tick;
+                        seen = true;
+                    } else {
+                        if (snapshot.tick < range.minTick) { range.minTick = snapshot.tick; }
+                        if (snapshot.tick > range.maxTick) { range.maxTick = snapshot.tick; }
+                    }
                 }
             }
             const file = `skills-${String(skillIndex++).padStart(4, '0')}.tbz`;
             shardBytes += writeCompressed(outDir, file, timeline);
-            return { file, ...tickRange(ticks) };
+            return { file, ...range };
         },
     };
 
