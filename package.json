@@ -6,10 +6,12 @@
   "license": "MIT",
   "scripts": {
     "copy-images": "cross-env cpy ./src/img/sprites/**/*.* ./dist/sprites/ --watch",
+    "copy-history": "tsx scripts/copyLatestHistory.ts",
     "build-dev": "cross-env parcel watch ./src/html/index.html --dist-dir ./dist",
     "build-prod": "cross-env parcel build ./src/html/index.html --dist-dir ./bin",
+    "postbuild-prod": "tsx scripts/copyLatestHistory.ts bin",
     "serve-dev": "cross-env browser-sync start --server ./dist --files ./dist",
-    "dev": "concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
+    "dev": "npm run copy-history && concurrently 'npm:copy-images' 'npm:build-dev' 'npm:serve-dev'",
     "package": "concurrently 'npm:copy-images' 'npm:build-prod'",
     "test": "jest",
     "test:coverage": "jest --coverage",
