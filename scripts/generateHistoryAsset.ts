@@ -18,9 +18,11 @@
 //   --full-manifest (run the full event manifest — texture events included; slower, for correctness runs)
 //   --reduced-manifest (force the reduced walk on)  --profile (per-phase timing attribution → printed at end)
 
-import { writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join, resolve, basename } from 'node:path';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { hostname } from 'node:os';
 import process from 'node:process';
 
 import { compress } from 'util/compress';
@@ -108,13 +110,27 @@ async function main(): Promise<void> {
         },
     };
 
-    const shortSeed = (params.seed >>> 0).toString(16);
-    const outDir = typeof flags.out === 'string'
-        ? resolve(flags.out)
-        : resolve(process.cwd(), `src/assets/history/history-v${HISTORY_GENERATOR_VERSION}-${shortSeed}`);
+    // Naming (never overwrites, "latest" = numerically highest): history-<serial>-<hash>. `serial` is a
+    // 14-digit sortable timestamp (YYYYMMDDHHMMSS) — monotonic and scalable to unlimited runs; a later run is
+    // always a higher number. `hash` is 4 hex chars over (argv, seed, params, hrtime) for uniqueness/provenance
+    // and to disambiguate two runs in the same second. A committed `latest.json` pointer (below) then makes
+    // "load the newest asset" a one-file lookup.
+    const historyRoot = resolve(process.cwd(), 'src/assets/history');
+    const now = new Date();
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    const serial = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
+    const hash = createHash('sha1')
+        .update(JSON.stringify({ argv: process.argv.slice(2), seed: params.seed, params }) + process.hrtime.bigint().toString())
+        .digest('hex').slice(0, 4);
 
+    let outDir = typeof flags.out === 'string' ? resolve(flags.out) : join(historyRoot, `history-${serial}-${hash}`);
+    // Never overwrite: if the target somehow already exists, bump a suffix instead of wiping it.
     if (existsSync(outDir)) {
-        rmSync(outDir, { recursive: true, force: true }); // fresh dir so stale shards from a prior run never linger
+        let suffix = 2;
+        while (existsSync(`${outDir}-${suffix}`)) {
+            suffix++;
+        }
+        outDir = `${outDir}-${suffix}`;
     }
     mkdirSync(outDir, { recursive: true });
 
@@ -199,6 +215,55 @@ async function main(): Promise<void> {
     };
     writeFileSync(join(outDir, 'meta.json'), JSON.stringify(header, null, 2), 'utf8');
 
+    // Exhaustive provenance manifest (human/tooling-facing; the loader only needs meta.json). Everything we
+    // know about how this asset was produced: when, on what, with which flags/params, and its measured stats.
+    const generatedAt = now.toISOString();
+    const manifest = {
+        generatedAt,
+        serial,
+        hash,
+        dir: basename(outDir),
+        generator: { version: HISTORY_GENERATOR_VERSION, script: 'scripts/generateHistoryAsset.ts' },
+        gitCommit: asset.meta.gitCommit,
+        environment: { node: process.version, platform: `${process.platform}/${process.arch}`, host: hostname() },
+        invocation: { argv: process.argv.slice(2), flags },
+        params,
+        seed: params.seed,
+        assetMeta: {
+            formatVersion: asset.meta.formatVersion,
+            generatorVersion: asset.meta.generatorVersion,
+            epochTick: asset.meta.epochTick,
+            endTick: asset.meta.endTick,
+            ticksPerYear: asset.meta.ticksPerYear,
+            createdAt: asset.meta.createdAt,
+        },
+        stats: asset.meta.stats,
+        files: {
+            sections: header.sections,
+            logShards: header.logShards.length,
+            skillShards: header.skillShards.length,
+        },
+        sizes: { shardBytes, sectionBytes, totalCompressedBytes: totalCompressed },
+    };
+    writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+
+    // "Latest" pointer (default-located assets only): a one-file lookup so the game/tooling can resolve the
+    // newest asset without listing the directory. `serial` is monotonic, so this always points at the newest.
+    if (typeof flags.out !== 'string') {
+        const latest = {
+            dir: basename(outDir),
+            serial,
+            hash,
+            generatedAt,
+            generatorVersion: HISTORY_GENERATOR_VERSION,
+            seed: params.seed,
+            livingAtEnd: asset.meta.stats.livingAtEnd,
+            retainedPeople: asset.meta.stats.retainedPeople,
+            totalCompressedBytes: totalCompressed,
+        };
+        writeFileSync(join(historyRoot, 'latest.json'), JSON.stringify(latest, null, 2), 'utf8');
+    }
+
     const { stats } = asset.meta;
     const mb = (bytes: number) => (bytes / 1_048_576).toFixed(1);
     console.log('\n[generate-history] done. Measurements:');
@@ -232,6 +297,10 @@ async function main(): Promise<void> {
         console.log(`    year ${String(point.year).padStart(4)} · living ${point.living}`);
     }
     console.log(`\n[generate-history] wrote ${outDir}`);
+    console.log(`[generate-history]   + manifest.json (exhaustive provenance)`);
+    if (typeof flags.out !== 'string') {
+        console.log(`[generate-history]   + latest.json → ${basename(outDir)} (newest asset pointer)`);
+    }
 }
 
 main().catch(error => {
