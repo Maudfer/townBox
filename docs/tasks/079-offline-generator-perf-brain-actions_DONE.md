@@ -53,8 +53,22 @@ generated asset hashes **byte-identical** to `main`. New regression tests: the p
 (`test/actionEngine.test.ts`) and the unpinned-`where`-role candidate search through `invoke`
 (`test/eventTriggers.test.ts`).
 
+## Pass 2 (same session — planning doc §12)
+
+A second pass pushed **~98 → ~54 µs/agent-step** (4× under the §10 baseline overall), still byte-identical
+(`generatorVersion` unchanged; fixed-seed hash == `main`). Method: hook-internal segment timers
+(`HookContext.sub`) plus **V8 `--cpu-prof` as ground truth** when a bracket read 1000× its micro-benched cost.
+Finds: (1) a real bug in pass 1 — `invokeNeedsCandidateSearch` included the **subject** role's `where`, so the
+O(whole-pool) agent build still ran on every invoke (pass 1's win had actually come from the faker gate);
+(2) `socialOpportunityHook` computed `peopleAt` (the run's hottest function) before its 15% RNG gate — rolling
+first is byte-identical and skips 85% of the queries; (3) repeated pure reads → three cache layers:
+per-containerKey-invalidated `Inventory.contentsOf`/`carriedInstances` caches + mutation/container epochs, an
+engine-level `objectAtLocation` query cache validated per location epoch, and a one-entry proposal-phase context
+memo (person/tick/backing/epoch-keyed, dropped at every mutation point). Regression tests cover the cache
+invalidation and memo semantics. Projected 1000/250 daily ≈ ~1.7 h.
+
 ## Follow-ups (not done here)
 
-Remaining per-agent cost is honest work with no dominant term (§11). If a further pass is wanted: share one
-context per (person, tick) across hooks; a cheap early-out before `socialOpportunity`'s `peopleAt`; or cache the
-free-time *filtered candidate set* across ticks while a person's context signature is unchanged. Profile first.
+Remaining cost is the predicate-interpreter floor over the free-time candidates (~17 µs) and few-µs hook
+residuals. The next lever, if ever needed: **predicate precompilation** (JSON AST → closures, once per
+manifest), est. ~2× on that slice. Profile first — this task went three-for-three on ranked guesses being wrong.

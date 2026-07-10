@@ -41,8 +41,18 @@ function socialCandidates(manifest: ActionManifest): { actionId: string; def: Ac
 export const socialOpportunityHook: BrainHook = {
     id: 'socialOpportunity',
     kind: 'onTick',
-    propose({ personId, deps, brain }: HookContext): ActionIntent[] {
+    propose({ personId, deps, brain, sub }: HookContext): ActionIntent[] {
+        // --profile segment timers (task 079 pass 2). Null clock outside profiled runs.
+        const clock = sub ? () => performance.now() : null;
+        const addSeg = (key: string, t0: number): void => {
+            if (sub && clock) {
+                sub.brainHooks[key] = (sub.brainHooks[key] ?? 0) + (clock() - t0);
+            }
+        };
+
+        const tStatus = clock ? clock() : 0;
         const status = brain.statusOf(personId).status;
+        addSeg('social:status', tStatus);
         if (status !== 'idle' && status !== 'performing_action') {
             return []; // never during work/school/sleep/commute; discrete socials season leisure time
         }
@@ -50,16 +60,28 @@ export const socialOpportunityHook: BrainHook = {
         if (!world) {
             return [];
         }
-        const company = world.peopleAt(world.locationOf(personId)).filter(id => id !== personId);
-        if (company.length === 0) {
+        // The chance gate rolls BEFORE the co-location query (task 079 pass 2): `peopleAt` was the single
+        // hottest function of a generator run (~10% — sorted-copy per idle person per tick), and 85% of those
+        // calls were discarded by this roll. Byte-identical: the RNG stream is a private per-(tick, person)
+        // fork nobody else reads — a person with no company returns [] either way (the extra draw dies with
+        // the fork), and a person WITH company consumes the exact same draw sequence as before (chance first,
+        // then the pick draws below).
+        const tRng = clock ? clock() : 0;
+        const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(SOCIAL_SALT);
+        const rolled = rng.chance(SOCIAL_CHANCE_PER_TICK);
+        addSeg('social:rng', tRng);
+        if (!rolled) {
             return [];
         }
-        const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(SOCIAL_SALT);
-        if (!rng.chance(SOCIAL_CHANCE_PER_TICK)) {
+        const tCompany = clock ? clock() : 0;
+        const company = world.peopleAt(world.locationOf(personId)).filter(id => id !== personId);
+        addSeg('social:company', tCompany);
+        if (company.length === 0) {
             return [];
         }
 
         const engine = brain.getActionEngine();
+        const tLoop = clock ? clock() : 0;
         const context = engine.contextFor(personId, deps);
 
         // Return-side coherence (task 074): a carried instance OWNED by a co-located other person is a
@@ -105,6 +127,7 @@ export const socialOpportunityHook: BrainHook = {
                 candidates.push({ actionId, weight, objectParam });
             }
         }
+        addSeg('social:loop', tLoop);
         if (candidates.length === 0) {
             return [];
         }

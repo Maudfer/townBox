@@ -421,3 +421,69 @@ onComplete commit, now cheap). Candidate levers if more is wanted: share ONE con
 hooks (so the attr memo spans them), a cheap early-out before `socialOpportunity`'s `peopleAt`, or (bigger) cache
 the free-time *filtered candidate set* across ticks while the person's context signature is unchanged. Profile
 first — the record here is two-for-two that the ranked guesses were wrong.
+
+---
+
+## 12. Task 079 pass 2 — hook-internal profiling, the V8 ground truth, and another ~1.8×
+
+Written 2026-07-10, same session as §11, immediately after. §11 ended at ~98 µs/agent-step; this pass ends at
+**~54 µs** (4× under the §10 baseline). Everything remains **byte-identical** (fixed-seed asset hash == `main`,
+`generatorVersion` still 078.0); all 639 tests green.
+
+### Method upgrades (both mattered)
+
+- **Hook-internal segment timers.** `HookContext` gained an optional `sub` (the SubProfiler), and the hooks +
+  `computeFreeTimeAction` + `invoke`/`attemptCommit` time their internal segments (`social:company`,
+  `freeTime:requirements`, `invoke:pre`, …). This is what localized the real costs below.
+- **V8 `--cpu-prof` as ground truth.** When a bracket read ~11 µs for code that micro-benched at 0.0095 µs, the
+  next step was `NODE_OPTIONS=--cpu-prof` + a script summing self-time per function — NOT more guessing. Lesson:
+  **bracket timers lie at fine granularity** (V8 attributes inlined callees to the caller; bracket boundaries
+  catch work that "belongs" elsewhere). The CPU profile named `peopleAt` (10.1%!), `invoke` (7%), and
+  `contentsOf` (~5%) — none of which §11's takeaway had ranked first.
+
+### What was actually wrong (three finds)
+
+1. **A real bug in the §11 fix.** `invokeNeedsCandidateSearch` was computed over ALL roles — **including the
+   subject**, whose `where` (the alive check) nearly every event has. So the set contained ~everything and the
+   O(whole-pool) agent build still ran on every invoke; the §11 speedup had actually come from the faker gate
+   (faker's Mersenne-twister reseed was the hidden heavyweight). Excluding the subject (only non-subject roles
+   consume `agents`) made the set = {marriage} → `invoke:pre` fell 9.2 → 0.14 µs and `actions` 16 → ~6 µs.
+2. **`peopleAt` before the RNG gate.** `socialOpportunityHook` computed the co-located company (sorted copy per
+   idle person per tick — the single hottest function of the run) BEFORE its 15%-per-tick roll. Rolling first is
+   byte-identical (the RNG fork is private and discarded; empty-company people return `[]` either way; with-company
+   people consume the same draw sequence) and skips 85% of the queries. `social:company` 15.5 → 2.9 µs.
+3. **Repeated pure reads.** Three cache layers, all invalidation-correct and byte-identical:
+   - `Inventory.contentsOf` / `carriedInstances` results cached, invalidated per-containerKey on containment
+     mutation (`invalidateReadCaches(key)`; a global clear churned too often to hit) + a **mutation epoch** and
+     **per-container epochs** exposed for external caches. `transformInstance`'s in-place archetype swap also
+     invalidates (query-visible without a containment change — easy to miss).
+   - An engine-level **objectAtLocation query cache** (`WeakMap<Inventory, Map<locKey|sig, {epoch, result}>>`)
+     validated against the location's container epoch — free-time selection asks the same ~20 queries for every
+     idle person at the same location every tick.
+   - A one-entry **proposal-phase context memo** in `contextFor` keyed (person, tick, world, inventory,
+     inventory-epoch), served only to param-less callers (executing paths pass params and always rebuild), and
+     dropped at every mutation point (startAction/interrupt/finish). Covered by regression tests
+     (`test/actionEngine.test.ts`: query-cache invalidation; memo share/drop semantics).
+
+### Net (µs/agent-step, daily, 250 agents, reduced manifest, no action log)
+
+| bucket | §10 baseline | §11 (PR #91 v1) | pass 2 |
+|---|---|---|---|
+| actions | 75.60 | ~15.2 | **5.7** |
+| brain | 124.37 | ~76 | **41.8** |
+| events | 3.03 | ~3 | 2.9 |
+| **TOTAL** | **206.35** | **~98** | **~53.6** |
+
+Projected 1000/250 daily ≈ **~1.7 h** (was ~7 h post-078, ~7–8 days pre-078). Remaining cost is now dominated by
+free-time predicate evaluation itself (`freeTime:requirements` ~10 µs + `modifiers` ~7 µs — the AST interpreter
+floor over ~60 candidates) and per-hook residuals of a few µs each. The next lever, if ever needed, is predicate
+**precompilation** (compile the JSON AST to closures once per manifest) — broader change, est. ~2× on that slice.
+
+### Lessons added to the record
+- **Three-for-three: every ranked guess was wrong until profiled.** This pass's own §11 fix contained a bug that
+  a bracket + a micro-bench + a CPU profile were needed to find.
+- **Verify fixes with the profiler, not just the outcome metric** — §11's headline number improved for a
+  different reason than claimed (faker, not the agent list).
+- **Micro-bench + CPU profile beat bracket timers** once you're under ~10 µs.
+- **Global cache epochs churn to death in an interleaved sim** — invalidate at the finest natural key
+  (per-container here) or the cache never survives one person's resolution phase.

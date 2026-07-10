@@ -90,6 +90,19 @@ export default class ActionEngine {
     // attribute its internal cost (consequence planning / log append / onComplete event fire) without every
     // caller threading it. Undefined outside profiled advances (finish from interrupt etc. isn't sub-timed).
     private advanceSub: SubProfiler | undefined;
+    // Object-query result cache (task 079 pass 2): objectAtLocation answers are a pure function of
+    // (inventory contents at the location, query signature) — and free-time selection asks the SAME ~20
+    // queries for every idle person at the same location every tick, each a scan of ~40 instances. Keyed per
+    // Inventory (WeakMap — separate inventories never share entries); each entry validates against the
+    // inventory's PER-CONTAINER epoch, so a grab in one house invalidates only that house's answers instead
+    // of the whole cache (a global epoch churned too often to ever hit). Byte-identical: pure reads, cached.
+    private objectQueryCache = new WeakMap<Inventory, Map<string, { epoch: number; result: boolean }>>();
+    // Shared requirement-context memo (task 079 pass 2): within one person's PROPOSAL phase (Brain hooks only
+    // propose — nothing mutates until resolveIntents executes), the same param-less context is built 2–3×
+    // (free-time selection, the inventory hook, the social hook). One entry, keyed (person, tick), served only
+    // to param-less callers (executing paths pass params — even {} — and always rebuild), and dropped at every
+    // mutation point (startAction/interrupt/finish), so an execution can never read pre-mutation memos.
+    private ctxMemo: { personId: PersonId; tick: number; world: unknown; inventory: unknown; epoch: number; context: SimulationContext } | null = null;
 
     constructor(manifest: ActionManifest = DEFAULT_ACTION_MANIFEST, lifeLog: LifeLog = new LifeLog(), oar: OARTable = DEFAULT_OAR_TABLE) {
         this.manifest = manifest;
@@ -223,6 +236,15 @@ export default class ActionEngine {
     }
 
     contextFor(personId: PersonId, deps: ActionDeps, params?: Record<string, Value>): SimulationContext {
+        // Serve the shared proposal-phase context when valid (see the ctxMemo field docs). Keyed on the deps'
+        // world/inventory identities (same-tick calls against different backings — tests, other hosts — never
+        // share) AND the inventory's mutation epoch, so object mutations from OUTSIDE the engine's own
+        // execution paths (placement generation, teardown, direct moves) also invalidate it.
+        if (params === undefined && this.ctxMemo && this.ctxMemo.personId === personId && this.ctxMemo.tick === deps.tick
+            && this.ctxMemo.world === (deps.ctx.world ?? null) && this.ctxMemo.inventory === (deps.inventory ?? null)
+            && this.ctxMemo.epoch === (deps.inventory?.getMutationEpoch() ?? -1)) {
+            return this.ctxMemo.context;
+        }
         const base = deps.eventEngine.contextFor(deps.state, personId, deps.tick, deps.ticksPerYear);
         const world = deps.ctx.world ?? null;
         const inventory = deps.inventory ?? null;
@@ -263,7 +285,7 @@ export default class ActionEngine {
             }
             return carriedHere;
         };
-        return {
+        const context: SimulationContext = {
             getAttr: (name: string) => {
                 const cached = attrMemo.get(name);
                 if (cached !== undefined || attrMemo.has(name)) {
@@ -298,9 +320,30 @@ export default class ActionEngine {
                 if (!world || !inventory || !query) {
                     return false;
                 }
-                return objectsHereList().some(id => matches(id, query));
+                // Cross-person, cross-tick query cache (see the objectQueryCache field docs): the answer is a
+                // pure function of (inventory contents at the location, query), validated per entry against
+                // the location's container epoch instead of rescanned per candidate per person.
+                let cache = this.objectQueryCache.get(inventory);
+                if (!cache) {
+                    cache = new Map();
+                    this.objectQueryCache.set(inventory, cache);
+                }
+                const locKey = locationKey(world.objectLocationOf(personId));
+                const epoch = inventory.getContainerEpoch(`location:${locKey}`);
+                const key = `${locKey}|${query.archetype ?? ''}|${query.tag ?? ''}|${query.flag ?? ''}`;
+                const cached = cache.get(key);
+                if (cached && cached.epoch === epoch) {
+                    return cached.result;
+                }
+                const result = objectsHereList().some(id => matches(id, query));
+                cache.set(key, { epoch, result });
+                return result;
             },
         };
+        if (params === undefined) {
+            this.ctxMemo = { personId, tick: deps.tick, world, inventory, epoch: inventory?.getMutationEpoch() ?? -1, context };
+        }
+        return context;
     }
 
     private recordAction(personId: PersonId, actionId: string, tick: number): void {
@@ -333,6 +376,10 @@ export default class ActionEngine {
                 }
             }
         }
+        // --profile plumbing (task 079 pass 2): let invoke attribute its internal cost during profiled advances.
+        if (this.advanceSub) {
+            deps.eventEngine.setProfileSub(this.advanceSub);
+        }
         const { result: eventResult } = deps.eventEngine.invoke(
             deps.state, eventId, personId, deps.tick, deps.ticksPerYear,
             { source: 'action', causationId: causationSeq },  // triggerSource 'action', causation = lifecycle log seq
@@ -340,6 +387,9 @@ export default class ActionEngine {
             deps.ctx,
             payload                                            // the mapped event payload (067)
         );
+        if (this.advanceSub) {
+            deps.eventEngine.setProfileSub(null);
+        }
         result.died.push(...eventResult.died);
         result.born.push(...eventResult.born);
         result.signals.push(...eventResult.signals);
@@ -351,6 +401,7 @@ export default class ActionEngine {
     // Starts an action for a person. Discrete actions commit immediately ('performed'); continuous actions
     // materialize an instance, requesting a location transition through the boundary when needed.
     startAction(personId: PersonId, actionId: string, params: Record<string, Value>, cause: ActionCause, deps: ActionDeps, result: TickResult, parentInstanceId: ActionInstanceId | null = null, onOutputs?: (outputs: Record<string, string>) => void, locationOverride?: string): ActionStartOutcome {
+        this.ctxMemo = null; // execution may mutate (consequences, history, events) — drop the proposal memo
         const def = this.manifest[actionId];
         if (!def) {
             return { ok: false, reason: 'unknownAction' };
@@ -622,6 +673,7 @@ export default class ActionEngine {
 
     // External interruption (Brain arbitration, shift obligations, death reconciliation).
     interrupt(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult): boolean {
+        this.ctxMemo = null; // finishing may mutate — drop the proposal memo
         const instance = this.state.instances[instanceId];
         if (!instance || !ACTIVE_STATUSES.has(instance.status)) {
             return false;
@@ -631,6 +683,7 @@ export default class ActionEngine {
     }
 
     private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {
+        this.ctxMemo = null; // completion consequences/events mutate — drop the proposal memo
         const def = this.manifest[instance.defId]!;
         let failureReason: import('types/LifeEvent').ActionFailureReason | undefined;
 

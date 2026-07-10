@@ -88,6 +88,9 @@ export interface HookContext {
     event?: { eventId: string; seq: number };
     // For onActionFailed (task 073): the declined/failed attempt being observed.
     failure?: { actionId: string; reason: string };
+    // Optional --profile sub-timer (task 079 pass 2): hooks may attribute their internal segments into it
+    // (keys namespaced by hook id, e.g. 'social:peopleAt'). Absent outside profiled generator runs.
+    sub?: SubProfiler;
 }
 
 export interface BrainHook {
@@ -116,6 +119,9 @@ export default class Brain {
     // nothing new serializes (Brain stays stateless across saves) and the result is byte-identical in both modes.
     private freeTimeMemo = new Map<PersonId, string | null>();
     private freeTimeMemoTick: number | null = null;
+    // Transient --profile sub-timer (task 079 pass 2), set for the duration of processTick so
+    // computeFreeTimeAction can attribute its internal segments. Undefined outside profiled runs.
+    private profileSub: SubProfiler | undefined;
 
     constructor(actionEngine: ActionEngine) {
         this.actionEngine = actionEngine;
@@ -176,15 +182,16 @@ export default class Brain {
         // Optional --profile sub-timing (task 079): per-hook + arbitration wall-clock. `clock` is null (and the
         // per-hook branches skipped) when no SubProfiler is threaded, so live play pays nothing.
         const clock = sub ? () => performance.now() : null;
+        this.profileSub = sub;
         for (const personId of [...agentIds].sort()) {
             const intents: ActionIntent[] = [];
             for (const hook of this.hooks) {
                 const t0 = clock ? clock() : 0;
                 if (hook.kind === 'onTick') {
-                    intents.push(...hook.propose({ personId, deps, brain: this }));
+                    intents.push(...hook.propose({ personId, deps, brain: this, ...(sub ? { sub } : {}) }));
                 } else if (hook.kind === 'onEventCommitted') {
                     for (const event of committedByPerson.get(personId) ?? []) {
-                        intents.push(...hook.propose({ personId, deps, brain: this, event }));
+                        intents.push(...hook.propose({ personId, deps, brain: this, event, ...(sub ? { sub } : {}) }));
                     }
                 }
                 // onActionFailed is dispatched separately by the decline path (resolveIntents, task 073); the
@@ -200,6 +207,7 @@ export default class Brain {
                 sub.brainResolve += clock() - tResolve;
             }
         }
+        this.profileSub = undefined;
     }
 
     // Deterministic arbitration: necessity, then priority, then hook registration order, then actionId.
@@ -304,7 +312,22 @@ export default class Brain {
     }
 
     private computeFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
+        // --profile segment timers (task 079 pass 2): attribute the compute to context-build / requirement
+        // predicates / modifier predicates / the rest of the loop. Null clock outside profiled runs.
+        const sub = this.profileSub;
+        const clock = sub ? () => performance.now() : null;
+        const addSeg = (key: string, t0: number): void => {
+            if (sub && clock) {
+                sub.brainHooks[key] = (sub.brainHooks[key] ?? 0) + (clock() - t0);
+            }
+        };
+
+        const tCtx = clock ? clock() : 0;
         const context = this.actionEngine.contextFor(personId, deps);
+        addSeg('freeTime:context', tCtx);
+        const tLoop = clock ? clock() : 0;
+        let reqMs = 0;
+        let modMs = 0;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
@@ -312,11 +335,23 @@ export default class Brain {
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue; // anti-repetition
             }
-            if (def.requirements && !evaluatePredicate(def.requirements, context)) {
-                continue; // hard gate
+            if (def.requirements) {
+                const tReq = clock ? clock() : 0;
+                const pass = evaluatePredicate(def.requirements, context);
+                if (clock) {
+                    reqMs += clock() - tReq;
+                }
+                if (!pass) {
+                    continue; // hard gate
+                }
             }
             for (const modifier of selection?.modifiers ?? []) {
-                if (evaluatePredicate(modifier.when, context)) {
+                const tMod = clock ? clock() : 0;
+                const applies = evaluatePredicate(modifier.when, context);
+                if (clock) {
+                    modMs += clock() - tMod;
+                }
+                if (applies) {
                     weight *= modifier.multiply;
                 }
             }
@@ -324,6 +359,11 @@ export default class Brain {
                 candidates.push({ actionId, weight });
             }
         }
+        if (sub && clock) {
+            sub.brainHooks['freeTime:requirements'] = (sub.brainHooks['freeTime:requirements'] ?? 0) + reqMs;
+            sub.brainHooks['freeTime:modifiers'] = (sub.brainHooks['freeTime:modifiers'] ?? 0) + modMs;
+        }
+        addSeg('freeTime:loop', tLoop);
         if (candidates.length === 0) {
             return null;
         }
@@ -396,8 +436,18 @@ const actionFailedHook: BrainHook = {
 const inventoryOpportunityHook: BrainHook = {
     id: 'inventoryOpportunity',
     kind: 'onTick',
-    propose({ personId, deps, brain }): ActionIntent[] {
-        if (brain.statusOf(personId).status !== 'idle') {
+    propose({ personId, deps, brain, sub }): ActionIntent[] {
+        // --profile segment timers (task 079 pass 2). Null clock outside profiled runs.
+        const clock = sub ? () => performance.now() : null;
+        const addSeg = (key: string, t0: number): void => {
+            if (sub && clock) {
+                sub.brainHooks[key] = (sub.brainHooks[key] ?? 0) + (clock() - t0);
+            }
+        };
+        const tStatus = clock ? clock() : 0;
+        const idle = brain.statusOf(personId).status === 'idle';
+        addSeg('inv:status', tStatus);
+        if (!idle) {
             return [];
         }
         const intent = (actionId: string, object?: string): ActionIntent => ({
@@ -412,7 +462,9 @@ const inventoryOpportunityHook: BrainHook = {
 
         const world = deps.ctx.world ?? null;
         const inventory = deps.inventory ?? null;
+        const tCtx = clock ? clock() : 0;
         const context = brain.getActionEngine().contextFor(personId, deps);
+        addSeg('inv:context', tCtx);
 
         // No object substrate (e.g. today's bootstrap, pure tests): keep the generic pocket flavor if eligible.
         if (!world || !inventory) {
@@ -421,6 +473,7 @@ const inventoryOpportunityHook: BrainHook = {
                 : [];
         }
 
+        const tScan = clock ? clock() : 0;
         const flagsOf = (archetypeId: string): Record<string, boolean> =>
             (inventory.getArchetype(archetypeId)?.flags as unknown as Record<string, boolean>) ?? {};
         const carriedArchetypes = new Set(inventory.carriedInstances(personId).map(instance => instance.archetypeId));
@@ -435,12 +488,16 @@ const inventoryOpportunityHook: BrainHook = {
                 return flags.carryable && !flags.pocketable && !carriedArchetypes.has(archetypeId);
             })
             .sort();
+        addSeg('inv:grabScan', tScan);
         if (grabbable.length > 0) {
             return [intent('grab', grabbable[0])];
         }
 
         // Small item lying around → pocket it (generic, unchanged behavior; self-limits as it's consumed).
-        if (context.objectAtLocation?.({ flag: 'pocketable' })) {
+        const tPocket = clock ? clock() : 0;
+        const pocketable = context.objectAtLocation?.({ flag: 'pocketable' }) ?? false;
+        addSeg('inv:pocketScan', tPocket);
+        if (pocketable) {
             return [intent('pocketed_small_object')];
         }
 

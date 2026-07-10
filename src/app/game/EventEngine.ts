@@ -130,6 +130,9 @@ export default class EventEngine {
     // faker is only drawn by birth, which still reseeds identically) — so the asset stays byte-identical.
     private invokeNeedsCandidateSearch: Set<string>;
     private invokeUsesFaker: Set<string>;
+    // Transient --profile sub-timer (task 079 pass 2): set by the ActionEngine around lifecycle event fires so
+    // invoke/attemptCommit can attribute their internal cost. Null outside profiled generator runs.
+    private profileSub: import('types/Execution').SubProfiler | null = null;
     // The precompiled probabilistic walk plan (task 052 perf + the eligibility index): flat, in topo order,
     // with parsed factors, discriminant gates, and per-event excludes/limit resolved once.
     private probPlan: ProbPlanEntry[];
@@ -170,7 +173,9 @@ export default class EventEngine {
         this.invokeNeedsCandidateSearch = new Set();
         this.invokeUsesFaker = new Set();
         for (const [eventId, definition] of Object.entries(manifest)) {
-            if (Object.values(definition.roles).some(role => role.where !== undefined)) {
+            // Subject excluded: the subject's `where` is evaluated directly against the subject context, and
+            // resolveRoles skips the subject role — only NON-subject where-roles ever iterate `agents`.
+            if (Object.entries(definition.roles).some(([role, spec]) => role !== ROLE_SUBJECT && spec.where !== undefined)) {
                 this.invokeNeedsCandidateSearch.add(eventId);
             }
             if (definition.effects.some(effect => effect.type === 'birth')) {
@@ -870,16 +875,30 @@ export default class EventEngine {
         if (!this.limitAllows(subjectId, eventId, event.limit, tick)) {
             return { ok: false, reason: 'limited' };
         }
+        const sub = this.profileSub;
+        const clock = sub ? () => performance.now() : null;
+        const addSeg = (key: string, t0: number): void => {
+            if (sub && clock) {
+                sub.actionsAdvance[key] = (sub.actionsAdvance[key] ?? 0) + (clock() - t0);
+            }
+        };
+        const tPred = clock ? clock() : 0;
         const subjectWhere = event.roles[ROLE_SUBJECT]?.where;
         const subjectCtx = this.makeContext(state, subjectId, { [ROLE_SUBJECT]: subjectId }, tick, ticksPerYear);
-        if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
+        const eligible = !subjectWhere || evaluatePredicate(subjectWhere, subjectCtx);
+        addSeg('invoke:predicate', tPred);
+        if (!eligible) {
             return { ok: false, reason: 'ineligible' };
         }
+        const tRoles = clock ? clock() : 0;
         const roleMap = this.resolveRoles(event, subjectId, state, agents, tick, ticksPerYear, rng, bindings);
+        addSeg('invoke:roles', tRoles);
         if (!roleMap) {
             return { ok: false, reason: 'rolesUnresolved' };
         }
+        const tCommit = clock ? clock() : 0;
         const seq = this.commit(state, eventId, event, subjectId, roleMap, tick, result, rng, source, causationId, params);
+        addSeg('invoke:commit', tCommit);
         if (seq === null) {
             return { ok: false, reason: 'aborted' };
         }
@@ -924,6 +943,11 @@ export default class EventEngine {
     // rules) commit an event through the same pipeline as every other trigger. The event must declare a
     // `manual` trigger; `requiredBindings` must all be supplied. Deterministic: the RNG forks off the tick
     // stream with a fixed salt so invocations don't perturb the probabilistic stream.
+    // --profile plumbing (task 079 pass 2): the ActionEngine sets this around lifecycle event fires.
+    setProfileSub(sub: import('types/Execution').SubProfiler | null): void {
+        this.profileSub = sub;
+    }
+
     invoke(
         state: PopulationState,
         eventId: string,
@@ -935,6 +959,9 @@ export default class EventEngine {
         ctx: Partial<ExecutionContext> = {},
         params?: Record<string, string | number | boolean>
     ): { outcome: InvokeOutcome; result: TickResult } {
+        const sub = this.profileSub;
+        const clock = sub ? () => performance.now() : null;
+        const tPre = clock ? clock() : 0;
         const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const event = this.manifest[eventId];
         if (!event) {
@@ -973,18 +1000,26 @@ export default class EventEngine {
         const rng = new SeededRandom(state.worldSeed).fork(tick).fork(0x51ed);
         // Seed faker only for events that actually draw from it (birth). The seed is a pure function of
         // (worldSeed, tick), so a birth invoke reseeds identically to before; non-birth invokes never touched
-        // faker, so skipping the reseed is invisible (task 079).
+        // faker, so skipping the reseed is invisible (task 079) — and faker's Mersenne-twister reseed was the
+        // single heaviest hidden cost of the action-completion path.
         if (this.invokeUsesFaker.has(eventId)) {
             fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1) ^ 0x51ed) >>> 0);
         }
-        // Build the sorted living-agent list only for events whose roles need a candidate search — otherwise
-        // it is never iterated. This avoids an O(whole-pool, incl. the dead) filter+sort on every invoke (task
-        // 079); with ~one action onComplete invoke per agent per step it was the bulk of `advance` cost, and it
-        // grew as the deceased pool accumulated over a long run.
+        // Build the sorted living-agent list only for events with a non-subject candidate-search (`where`)
+        // role — the only consumer of `agents` (resolveRoles skips the subject; the subject predicate is
+        // evaluated directly). Everything else skips an O(whole-pool, incl. the dead) filter+sort per invoke
+        // that also GREW as the deceased pool accumulated over a long run (task 079).
         const agents = this.invokeNeedsCandidateSearch.has(eventId)
             ? Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort()
             : EMPTY_AGENTS;
+        if (sub && clock) {
+            sub.actionsAdvance['invoke:pre'] = (sub.actionsAdvance['invoke:pre'] ?? 0) + (clock() - tPre);
+        }
+        const tAttempt = clock ? clock() : 0;
         const outcome = this.attemptCommit(state, eventId, subjectId, agents, tick, ticksPerYear, result, rng, cause.source, cause.causationId, bindings, params);
+        if (sub && clock) {
+            sub.actionsAdvance['invoke:attempt'] = (sub.actionsAdvance['invoke:attempt'] ?? 0) + (clock() - tAttempt);
+        }
 
         this.jobMarket = previous.jobMarket;
         this.ledger = previous.ledger;

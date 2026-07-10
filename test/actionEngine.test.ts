@@ -333,6 +333,44 @@ describe('shared requirements & determinism', () => {
         expect(ctx1.objectAtLocation!({ archetype: 'pencil' })).toBe(true);
     });
 
+    // The engine-level object-query cache (task 079 pass 2) is validated against the location's container
+    // epoch — a mutation at the location must invalidate the cached answer for the NEXT context, while the
+    // proposal-phase context memo is dropped at every execution point (startAction/interrupt/finish).
+    test('object-query cache: a mutation at the location invalidates the cached answer', () => {
+        const state = pool(1000);
+        const inventory = new Inventory();
+        const world = new BootstrapWorld(inventory);
+        const pencil = inventory.createInstance({ archetypeId: 'pencil', owner: { kind: 'world' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        const { deps, actions } = makeDeps(state, 1000, world, inventory);
+
+        expect(actions.contextFor('a', deps).objectAtLocation!({ archetype: 'pencil' })).toBe(true);
+        // Remove the pencil from the location (containment mutation → container epoch bump).
+        inventory.moveInstance(pencil.id, { kind: 'possessions', personId: 'b' });
+        expect(actions.contextFor('a', deps).objectAtLocation!({ archetype: 'pencil' })).toBe(false);
+        // And back again — the cache must follow the epoch, not stick to either answer.
+        inventory.moveInstance(pencil.id, { kind: 'location', key: 'home' });
+        expect(actions.contextFor('a', deps).objectAtLocation!({ archetype: 'pencil' })).toBe(true);
+    });
+
+    test('proposal context memo: same (person, tick, backing) shares; startAction drops it', () => {
+        const state = pool(1000);
+        const inventory = new Inventory();
+        const world = new BootstrapWorld(inventory);
+        inventory.createInstance({ archetypeId: 'pencil', owner: { kind: 'world' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        const { deps, actions } = makeDeps(state, 1000, world, inventory);
+
+        // Param-less contexts for the same (person, tick, world, inventory) are the SAME object (the memo).
+        const ctx1 = actions.contextFor('a', deps);
+        expect(actions.contextFor('a', deps)).toBe(ctx1);
+        // A different person or tick misses the memo.
+        expect(actions.contextFor('b', deps)).not.toBe(ctx1);
+        expect(actions.contextFor('a', { ...deps, tick: 1001 })).not.toBe(ctx1);
+        // Executing an action (a mutation point) drops the memo — the next context is rebuilt fresh.
+        const ctx2 = actions.contextFor('a', deps);
+        actions.startAction('a', 'grab_pencil', {}, cause, deps, emptyResult());
+        expect(actions.contextFor('a', deps)).not.toBe(ctx2);
+    });
+
     test('same seed → identical logs; state round-trips and the instance counter continues', () => {
         const run = () => {
             const state = pool(1000);
