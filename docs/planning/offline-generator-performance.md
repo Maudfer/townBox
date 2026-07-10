@@ -487,3 +487,30 @@ floor over ~60 candidates) and per-hook residuals of a few µs each. The next le
 - **Micro-bench + CPU profile beat bracket timers** once you're under ~10 µs.
 - **Global cache epochs churn to death in an interleaved sim** — invalidate at the finest natural key
   (per-container here) or the cache never survives one person's resolution phase.
+
+---
+
+## 13. Task 079 pass 3 — predicate precompilation (~53.6 → ~49.4 µs)
+
+Written 2026-07-10, same session. The §12 takeaway named the predicate interpreter as the remaining floor;
+this pass cashes part of it. `evaluatePredicate` re-walks the JSON AST on every call — the `'x' in pred`
+structural dispatch plus recursion. `compilePredicate` (`util/predicate.ts`) resolves that dispatch ONCE into a
+closure tree; `evaluatePredicateCached` memoizes the compiled closure per predicate-object identity (a WeakMap
+— manifest predicates are stable references), and the hot selection paths (Brain free-time
+requirements/modifiers, the social hook, ActionEngine requirement/`completeWhen`/pool checks) call it instead
+of the interpreter.
+
+**Byte-identical by construction** — the compiled form is a mechanical mirror of the interpreter (same
+short-circuit order, same `compareValues`, same query shapes), and `test/predicate.test.ts` cross-checks
+`compilePredicate`/`evaluatePredicateCached` against `evaluatePredicate` over every node kind × combinator in
+both a rich and a sparse context. Fixed-seed asset hash still == `main`; all 641 tests green.
+
+**Result:** `freeTime:modifiers` 7.0 → 4.9 µs, `freeTime:requirements` 10.1 → 8.9 µs; TOTAL ~53.6 → **~49.4 µs**
+(~8%). Smaller than the earlier passes — because most of a predicate eval's cost is the *context field access*
+(`getAttr`/`hasEvent` closures, already memoized in pass 2), not the AST dispatch the compiler removes. The
+interpreter floor is real but shallow once the data access underneath it is cached. Net over the whole task:
+**206 → ~49 µs, ~4.2×, byte-identical, `generatorVersion` unchanged.**
+
+Further gains would need to attack the field access itself (e.g. a positional attribute vector instead of the
+`getAttr(name)` string-keyed closure) — a deeper change to the Context contract, clearly diminishing returns.
+This is a natural place to stop.

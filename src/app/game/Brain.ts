@@ -19,7 +19,7 @@ import { schoolObligationHook } from 'game/SchoolOrchestrator';
 import { socialOpportunityHook } from 'game/SocialOpportunity';
 
 import { SeededRandom, hashStringToSeed } from 'util/random';
-import { evaluatePredicate } from 'util/predicate';
+import { evaluatePredicateCached } from 'util/predicate';
 import { isOnShiftAtTick } from 'util/shifts';
 
 import { TickResult } from 'types/LifeEvent';
@@ -337,7 +337,7 @@ export default class Brain {
             }
             if (def.requirements) {
                 const tReq = clock ? clock() : 0;
-                const pass = evaluatePredicate(def.requirements, context);
+                const pass = evaluatePredicateCached(def.requirements, context);
                 if (clock) {
                     reqMs += clock() - tReq;
                 }
@@ -347,7 +347,7 @@ export default class Brain {
             }
             for (const modifier of selection?.modifiers ?? []) {
                 const tMod = clock ? clock() : 0;
-                const applies = evaluatePredicate(modifier.when, context);
+                const applies = evaluatePredicateCached(modifier.when, context);
                 if (clock) {
                     modMs += clock() - tMod;
                 }

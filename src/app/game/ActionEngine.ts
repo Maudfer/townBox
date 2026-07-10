@@ -20,7 +20,7 @@ import { evaluateConsent } from 'game/Consent';
 import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/Consequences';
 
 import { SeededRandom } from 'util/random';
-import { evaluatePredicate } from 'util/predicate';
+import { evaluatePredicateCached } from 'util/predicate';
 import { isAliveAt } from 'util/kinship';
 
 import { EventLink,
@@ -460,7 +460,7 @@ export default class ActionEngine {
                 }
             }
         }
-        if (def.requirements && !evaluatePredicate(def.requirements, this.contextFor(personId, deps, params))) {
+        if (def.requirements && !evaluatePredicateCached(def.requirements, this.contextFor(personId, deps, params))) {
             return { ok: false, reason: 'requirementsUnmet' };
         }
 
@@ -660,7 +660,7 @@ export default class ActionEngine {
             }
             if (def.completeWhen) {
                 const tComplete = clock ? clock() : 0;
-                const done = evaluatePredicate(def.completeWhen, this.contextFor(instance.personId, deps, instance.params));
+                const done = evaluatePredicateCached(def.completeWhen, this.contextFor(instance.personId, deps, instance.params));
                 if (done) {
                     this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
                 }
@@ -758,7 +758,7 @@ export default class ActionEngine {
             if (entry.cooldownTicks !== undefined && deps.tick - bookkeeping.lastTick < entry.cooldownTicks) {
                 continue;
             }
-            if (entry.requirements && !evaluatePredicate(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
+            if (entry.requirements && !evaluatePredicateCached(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
                 continue;
             }
             const slots = Math.max(1, entry.maxPerTick ?? 1);

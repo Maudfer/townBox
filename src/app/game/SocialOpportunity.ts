@@ -11,7 +11,7 @@
 import { ActionIntent, BrainHook, HookContext, DEFAULT_SELECTION_WEIGHT } from 'game/Brain';
 
 import { SeededRandom, hashStringToSeed } from 'util/random';
-import { evaluatePredicate } from 'util/predicate';
+import { evaluatePredicateCached } from 'util/predicate';
 
 import { ActionDefinition, ActionManifest } from 'types/Action';
 
@@ -115,11 +115,11 @@ export const socialOpportunityHook: BrainHook = {
             if (def.selection?.cooldownTicks !== undefined && engine.hasAction(personId, actionId, deps.tick, { withinTicks: def.selection.cooldownTicks })) {
                 continue;
             }
-            if (def.requirements && !evaluatePredicate(def.requirements, context)) {
+            if (def.requirements && !evaluatePredicateCached(def.requirements, context)) {
                 continue; // e.g. nothing giftable carried → no gift intents
             }
             for (const modifier of def.selection?.modifiers ?? []) {
-                if (evaluatePredicate(modifier.when, context)) {
+                if (evaluatePredicateCached(modifier.when, context)) {
                     weight *= modifier.multiply;
                 }
             }

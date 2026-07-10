@@ -67,8 +67,18 @@ engine-level `objectAtLocation` query cache validated per location epoch, and a 
 memo (person/tick/backing/epoch-keyed, dropped at every mutation point). Regression tests cover the cache
 invalidation and memo semantics. Projected 1000/250 daily ≈ ~1.7 h.
 
+## Pass 3 (same session — planning doc §13)
+
+**Predicate precompilation.** `compilePredicate` (`util/predicate.ts`) resolves the JSON-AST structural
+dispatch into a closure tree once; `evaluatePredicateCached` memoizes it per predicate-object identity
+(WeakMap), and the hot selection paths call it instead of `evaluatePredicate`. Byte-identical by construction
+and cross-checked against the interpreter over every node kind (`test/predicate.test.ts`). ~53.6 → **~49.4 µs**
+(~8%) — smaller than expected because most of a predicate eval's cost is the context field access (already
+memoized in pass 2), not the AST dispatch. **Net over the whole task: 206 → ~49 µs, ~4.2×, byte-identical.**
+
 ## Follow-ups (not done here)
 
-Remaining cost is the predicate-interpreter floor over the free-time candidates (~17 µs) and few-µs hook
-residuals. The next lever, if ever needed: **predicate precompilation** (JSON AST → closures, once per
-manifest), est. ~2× on that slice. Profile first — this task went three-for-three on ranked guesses being wrong.
+Further gains would need to attack context field access itself (a positional attribute vector vs the
+string-keyed `getAttr` closure) — a deeper change to the Context contract, clearly diminishing returns. Stopped
+here. This task went **three-for-three** on ranked guesses being wrong (pass 2 even found a bug in pass 1's
+fix); the standing lesson is profile — with `--cpu-prof` under ~10 µs — and prove byte-identity by asset hash.
