@@ -27,7 +27,7 @@ import LogicalWorld, { LogicalWorldConfig } from 'game/LogicalWorld';
 import { runTick } from 'game/TickRunner';
 import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/Population';
 
-import { TICKS_PER_DAY } from 'util/time';
+import { TICKS_PER_DAY, DAYS_PER_WEEK, DAYS_PER_YEAR } from 'util/time';
 import { Predicate } from 'util/predicate';
 import { ageAt } from 'util/kinship';
 
@@ -161,6 +161,11 @@ export interface TickProfile {
     total: number;
     steps: number;
     agentSteps: number;
+    // Finer attribution (task 079): the `brain` bucket split per-hook + arbitration, and the `actions` bucket
+    // split per advance sub-phase. Present only under --profile; the CLI prints them beneath the coarse rows.
+    brainHooks?: Record<string, number>;
+    brainResolve?: number;
+    actionsAdvance?: Record<string, number>;
 }
 
 // The asset payload (pre-compression). Reuses the save's PopulationState + LifeEvent table shapes so the game
@@ -205,9 +210,14 @@ export type GenerationPhase = 'warmup' | 'recording';
 export interface GenerationProgress {
     phase: GenerationPhase;
     tick: number;
-    yearsDone: number;   // years into the current phase
+    yearsDone: number;    // years into the current phase
+    monthOfYear: number;  // month within `yearsDone` (0–11)
+    weekOfYear: number;   // week within `yearsDone` (0–51)
+    yearBoundary: boolean; // this is the first progress fire of a new year (the milestone line)
     living: number;
-    retained: number;
+    // O(whole-pool, incl. the dead) — computed ONLY on year-boundary fires (the only lines that display it),
+    // so the finer weekly fires stay O(1) and add no pool-scan cost. Absent on the intra-year weekly lines.
+    retained?: number;
 }
 
 // The set of event ids worth persisting in the asset's log: those that carry EFFECTS (the ~18 vital/
@@ -270,7 +280,7 @@ export class PopulationThermostat {
 }
 
 // Runs the full phased generation. Pure function of (params) apart from the wall-clock in `meta.createdAt` and
-// the optional `gitCommit`/runtime measurements the caller injects. `onProgress` reports per simulated year.
+// the optional `gitCommit`/runtime measurements the caller injects. `onProgress` reports per simulated month.
 export async function generateHistoryAsset(
     params: HistoryGeneratorParams = DEFAULT_GENERATOR_PARAMS,
     onProgress?: (progress: GenerationProgress) => void,
@@ -294,7 +304,9 @@ export async function generateHistoryAsset(
     const brain = new Brain(actionEngine);
 
     // Optional per-phase profiling accumulator (task 078 --profile).
-    const profiler = params.profile ? { actions: 0, events: 0, progression: 0, brain: 0 } : undefined;
+    const profiler = params.profile
+        ? { actions: 0, events: 0, progression: 0, brain: 0, sub: { brainHooks: {}, brainResolve: 0, actionsAdvance: {} } }
+        : undefined;
     const profile: TickProfile | undefined = params.profile
         ? { actions: 0, events: 0, progression: 0, brain: 0, runDaily: 0, snapshot: 0, other: 0, total: 0, steps: 0, agentSteps: 0 }
         : undefined;
@@ -378,6 +390,7 @@ export async function generateHistoryAsset(
     };
     const trajectory: { year: number; living: number }[] = [];
     let lastDecadeSampled = -1;
+    let lastReportedWeek = -1;
     let lastReportedYear = -1;
 
     const applyResult = (result: TickResult, tick: number): void => {
@@ -468,18 +481,31 @@ export async function generateHistoryAsset(
             }
         }
 
-        // Per-decade trajectory sample + per-year progress.
+        // Per-decade trajectory sample + per-WEEK progress (task 079 follow-up: weekly granularity within the
+        // yearly milestones the CLI surfaces separately). The finer weekly fires stay O(1) — only the
+        // year-boundary line pays the O(pool) `retained` scan, so weekly logging adds no generation cost.
         const phase: GenerationPhase = inRecording ? 'recording' : 'warmup';
         const phaseStartTick = inRecording ? epochTick! : 0;
-        const yearsDone = Math.floor((tick - phaseStartTick) / tpy);
+        const ticksIntoPhase = tick - phaseStartTick;
+        const ticksPerWeek = tpy * DAYS_PER_WEEK / DAYS_PER_YEAR;
+        const yearsDone = Math.floor(ticksIntoPhase / tpy);
+        const weeksDone = Math.floor(ticksIntoPhase / ticksPerWeek);
         const decade = Math.floor(tick / tpy / 10);
         if (decade !== lastDecadeSampled) {
             lastDecadeSampled = decade;
             trajectory.push({ year: Math.floor(tick / tpy), living: living.size });
         }
-        if (onProgress && yearsDone !== lastReportedYear) {
+        if (onProgress && weeksDone !== lastReportedWeek) {
+            lastReportedWeek = weeksDone;
+            const yearBoundary = yearsDone !== lastReportedYear; // robust under any stride (may skip exact tpy)
             lastReportedYear = yearsDone;
-            onProgress({ phase, tick, yearsDone, living: living.size, retained: Object.keys(state.people).length });
+            const withinYear = ((ticksIntoPhase % tpy) + tpy) % tpy;
+            const monthOfYear = Math.floor(withinYear / (tpy / 12));
+            const weekOfYear = Math.floor(withinYear / ticksPerWeek);
+            onProgress({
+                phase, tick, yearsDone, monthOfYear, weekOfYear, yearBoundary, living: living.size,
+                ...(yearBoundary ? { retained: Object.keys(state.people).length } : {}),
+            });
         }
 
         tick += step;
@@ -492,6 +518,9 @@ export async function generateHistoryAsset(
         profile.events = profiler.events;
         profile.progression = profiler.progression;
         profile.brain = profiler.brain;
+        profile.brainHooks = profiler.sub.brainHooks;
+        profile.brainResolve = profiler.sub.brainResolve;
+        profile.actionsAdvance = profiler.sub.actionsAdvance;
         profile.other = Math.max(0, profile.total
             - profile.actions - profile.events - profile.progression - profile.brain - profile.runDaily - profile.snapshot);
     }

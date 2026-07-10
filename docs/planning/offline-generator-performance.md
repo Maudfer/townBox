@@ -355,3 +355,162 @@ Landed after 078; **not** part of per-agent cost, listed so the picture is compl
   flush holds hundreds of thousands of entries, and spreading that many args **overflows the call stack**. Use a
   running-loop min/max (or chunk) for any large array — never spread it into function args. (`util/compress`
   already chunks `String.fromCharCode` at 32 KB for the same reason.)
+
+---
+
+## 11. Task 079 results — what the finer profiler found (and the fixes)
+
+Written 2026-07-10 at the end of task 079 (PR TBD). Following §10's mandate, the **first** change was making
+`--profile` finer: `TickProfiler` now carries an optional `SubProfiler` (`types/Execution.ts`) that Brain and
+the ActionEngine accumulate into — **per-Brain-hook** wall-clock (+ `resolveIntents`) and **per-advance-sub-phase**
+(materialize/pool/sequence/completeWhen), with `finish()` split internally (consequence-plan / log / onComplete
+event). Zero overhead when off (a null clock). Again **the §10 hypotheses were mostly wrong** — the profiler
+found two costs neither §10 bullet named as the top item:
+
+### The two real bottlenecks
+
+Finer `--profile` (250 agents, 360 daily steps, reduced manifest, no action log):
+
+| sub-phase | before | after | what it was |
+|---|---|---|---|
+| **`advance:finish:onCompleteEvent`** | **72.0 µs** | **~10.6 µs** | a free-time action completes every step (a day-long step finishes the few-hour action) → fires its `onComplete` **manual event via `EventEngine.invoke`**, whose per-call cost was dominated by `Object.keys(state.people).filter(isAliveAt).sort()` — the **whole pool incl. the dead**, rebuilt every call, **growing over the run** — plus a `fakerPT_BR.seed()` every call |
+| **`hook:idleFallback` + `hook:wokeUp`** | **86.7 µs** | **~40 µs** | both call `selectFreeTimeAction` for the *same idle-just-woken person the same step*, computing the **identical** deterministic pick twice |
+
+So the top cost wasn't the free-time predicate scan (§10's lead suspect) or the pool children (§10's actions
+suspect) — it was **`invoke` rebuilding an O(whole-pool) agent list on the action-completion path** (a
+078-style unbounded/growing scan, hidden one layer down in an *event* call the `actions` bucket paid for) and a
+**doubled free-time selection**.
+
+### Fixes (all byte-identical — verified: a fixed-seed asset hashes identically to `main`)
+
+1. **`invoke` fast paths (`EventEngine`).** Precompute per event (at construction) `invokeNeedsCandidateSearch`
+   (has a role with a `where` search) and `invokeUsesFaker` (has a `birth` effect). Build the sorted living-agent
+   list **only** for candidate-search events (subject-only events — nearly all action `onComplete`/`onStart` and
+   most manual events — skip the O(whole-pool) filter+sort); seed faker **only** for birth events. Both are
+   invisible: unused agents were never iterated, and faker is drawn only by birth (which still reseeds
+   identically). *This is the headline win, and it also removes the run-growth term.*
+2. **Per-(person, tick) free-time memo (`Brain`).** `selectFreeTimeAction` is a pure function of
+   (worldSeed, tick, personId, context), and within one tick's proposal phase a person's context is stable
+   (hooks only propose; actions start later). A transient memo (keyed by the tick, cleared on advance) returns
+   the same pick the second caller asks for. Not serialized → Brain stays stateless across saves.
+3. **Per-context memos (`ActionEngine.contextFor`).** One context is reused across a whole candidate loop, and
+   the person is immutable for its life — so cache `getAttr` results, the objects-here list, and the carried
+   list per context instead of recomputing per candidate.
+4. **Social candidate precompute (`SocialOpportunity`).** Mirror `Brain.freeTimeCandidates`: cache (per manifest,
+   via a `WeakMap`) the ~19 person-targeted actions so the hook stops re-scanning all ~260 actions each eligible tick.
+
+### Net result (µs/agent-step, daily, logical world on, 250 agents)
+
+| bucket | before (§10) | after |
+|---|---|---|
+| actions | 75.60 | ~15.2 |
+| brain | 124.37 | ~76 |
+| **TOTAL** | **206.35** | **~98** |
+
+**~54% faster** (0.21 → ~0.10 ms/agent-step), and the removed `invoke` agent-list build means the completion
+path no longer **grows** with the accumulating deceased pool — so a long run gains more than this 1-year
+snapshot shows. Determinism proven two ways: all 637 unit tests pass (incl. the `arcScenarios` live↔bootstrap
+keystone and the `eventEligibility` bit-identical invariant), and a fixed-seed generated asset is **byte-identical**
+to `main`. `generatorVersion` is **unchanged** (078.0) precisely because the asset didn't change.
+
+### Takeaway for the next pass
+Remaining per-agent cost is honest work with no single dominant term: `brain` ~76 µs (free-time selection compute
+~40 µs in whichever of wokeUp/idleFallback runs first; `socialOpportunity` ~18 µs dominated by `peopleAt`+filter
+for *every* idle person; `inventoryOpportunity` ~11 µs), and `actions` ~15 µs (the residual `invoke` cost of the
+onComplete commit, now cheap). Candidate levers if more is wanted: share ONE context per (person, tick) across
+hooks (so the attr memo spans them), a cheap early-out before `socialOpportunity`'s `peopleAt`, or (bigger) cache
+the free-time *filtered candidate set* across ticks while the person's context signature is unchanged. Profile
+first — the record here is two-for-two that the ranked guesses were wrong.
+
+---
+
+## 12. Task 079 pass 2 — hook-internal profiling, the V8 ground truth, and another ~1.8×
+
+Written 2026-07-10, same session as §11, immediately after. §11 ended at ~98 µs/agent-step; this pass ends at
+**~54 µs** (4× under the §10 baseline). Everything remains **byte-identical** (fixed-seed asset hash == `main`,
+`generatorVersion` still 078.0); all 639 tests green.
+
+### Method upgrades (both mattered)
+
+- **Hook-internal segment timers.** `HookContext` gained an optional `sub` (the SubProfiler), and the hooks +
+  `computeFreeTimeAction` + `invoke`/`attemptCommit` time their internal segments (`social:company`,
+  `freeTime:requirements`, `invoke:pre`, …). This is what localized the real costs below.
+- **V8 `--cpu-prof` as ground truth.** When a bracket read ~11 µs for code that micro-benched at 0.0095 µs, the
+  next step was `NODE_OPTIONS=--cpu-prof` + a script summing self-time per function — NOT more guessing. Lesson:
+  **bracket timers lie at fine granularity** (V8 attributes inlined callees to the caller; bracket boundaries
+  catch work that "belongs" elsewhere). The CPU profile named `peopleAt` (10.1%!), `invoke` (7%), and
+  `contentsOf` (~5%) — none of which §11's takeaway had ranked first.
+
+### What was actually wrong (three finds)
+
+1. **A real bug in the §11 fix.** `invokeNeedsCandidateSearch` was computed over ALL roles — **including the
+   subject**, whose `where` (the alive check) nearly every event has. So the set contained ~everything and the
+   O(whole-pool) agent build still ran on every invoke; the §11 speedup had actually come from the faker gate
+   (faker's Mersenne-twister reseed was the hidden heavyweight). Excluding the subject (only non-subject roles
+   consume `agents`) made the set = {marriage} → `invoke:pre` fell 9.2 → 0.14 µs and `actions` 16 → ~6 µs.
+2. **`peopleAt` before the RNG gate.** `socialOpportunityHook` computed the co-located company (sorted copy per
+   idle person per tick — the single hottest function of the run) BEFORE its 15%-per-tick roll. Rolling first is
+   byte-identical (the RNG fork is private and discarded; empty-company people return `[]` either way; with-company
+   people consume the same draw sequence) and skips 85% of the queries. `social:company` 15.5 → 2.9 µs.
+3. **Repeated pure reads.** Three cache layers, all invalidation-correct and byte-identical:
+   - `Inventory.contentsOf` / `carriedInstances` results cached, invalidated per-containerKey on containment
+     mutation (`invalidateReadCaches(key)`; a global clear churned too often to hit) + a **mutation epoch** and
+     **per-container epochs** exposed for external caches. `transformInstance`'s in-place archetype swap also
+     invalidates (query-visible without a containment change — easy to miss).
+   - An engine-level **objectAtLocation query cache** (`WeakMap<Inventory, Map<locKey|sig, {epoch, result}>>`)
+     validated against the location's container epoch — free-time selection asks the same ~20 queries for every
+     idle person at the same location every tick.
+   - A one-entry **proposal-phase context memo** in `contextFor` keyed (person, tick, world, inventory,
+     inventory-epoch), served only to param-less callers (executing paths pass params and always rebuild), and
+     dropped at every mutation point (startAction/interrupt/finish). Covered by regression tests
+     (`test/actionEngine.test.ts`: query-cache invalidation; memo share/drop semantics).
+
+### Net (µs/agent-step, daily, 250 agents, reduced manifest, no action log)
+
+| bucket | §10 baseline | §11 (PR #91 v1) | pass 2 |
+|---|---|---|---|
+| actions | 75.60 | ~15.2 | **5.7** |
+| brain | 124.37 | ~76 | **41.8** |
+| events | 3.03 | ~3 | 2.9 |
+| **TOTAL** | **206.35** | **~98** | **~53.6** |
+
+Projected 1000/250 daily ≈ **~1.7 h** (was ~7 h post-078, ~7–8 days pre-078). Remaining cost is now dominated by
+free-time predicate evaluation itself (`freeTime:requirements` ~10 µs + `modifiers` ~7 µs — the AST interpreter
+floor over ~60 candidates) and per-hook residuals of a few µs each. The next lever, if ever needed, is predicate
+**precompilation** (compile the JSON AST to closures once per manifest) — broader change, est. ~2× on that slice.
+
+### Lessons added to the record
+- **Three-for-three: every ranked guess was wrong until profiled.** This pass's own §11 fix contained a bug that
+  a bracket + a micro-bench + a CPU profile were needed to find.
+- **Verify fixes with the profiler, not just the outcome metric** — §11's headline number improved for a
+  different reason than claimed (faker, not the agent list).
+- **Micro-bench + CPU profile beat bracket timers** once you're under ~10 µs.
+- **Global cache epochs churn to death in an interleaved sim** — invalidate at the finest natural key
+  (per-container here) or the cache never survives one person's resolution phase.
+
+---
+
+## 13. Task 079 pass 3 — predicate precompilation (~53.6 → ~49.4 µs)
+
+Written 2026-07-10, same session. The §12 takeaway named the predicate interpreter as the remaining floor;
+this pass cashes part of it. `evaluatePredicate` re-walks the JSON AST on every call — the `'x' in pred`
+structural dispatch plus recursion. `compilePredicate` (`util/predicate.ts`) resolves that dispatch ONCE into a
+closure tree; `evaluatePredicateCached` memoizes the compiled closure per predicate-object identity (a WeakMap
+— manifest predicates are stable references), and the hot selection paths (Brain free-time
+requirements/modifiers, the social hook, ActionEngine requirement/`completeWhen`/pool checks) call it instead
+of the interpreter.
+
+**Byte-identical by construction** — the compiled form is a mechanical mirror of the interpreter (same
+short-circuit order, same `compareValues`, same query shapes), and `test/predicate.test.ts` cross-checks
+`compilePredicate`/`evaluatePredicateCached` against `evaluatePredicate` over every node kind × combinator in
+both a rich and a sparse context. Fixed-seed asset hash still == `main`; all 641 tests green.
+
+**Result:** `freeTime:modifiers` 7.0 → 4.9 µs, `freeTime:requirements` 10.1 → 8.9 µs; TOTAL ~53.6 → **~49.4 µs**
+(~8%). Smaller than the earlier passes — because most of a predicate eval's cost is the *context field access*
+(`getAttr`/`hasEvent` closures, already memoized in pass 2), not the AST dispatch the compiler removes. The
+interpreter floor is real but shallow once the data access underneath it is cached. Net over the whole task:
+**206 → ~49 µs, ~4.2×, byte-identical, `generatorVersion` unchanged.**
+
+Further gains would need to attack the field access itself (e.g. a positional attribute vector instead of the
+`getAttr(name)` string-keyed closure) — a deeper change to the Context contract, clearly diminishing returns.
+This is a natural place to stop.

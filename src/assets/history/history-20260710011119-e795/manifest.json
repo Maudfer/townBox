@@ -1,0 +1,148 @@
+{
+  "generatedAt": "2026-07-10T04:11:19.302Z",
+  "serial": "20260710011119",
+  "hash": "e795",
+  "dir": "history-20260710011119-e795",
+  "generator": {
+    "version": "078.0",
+    "script": "scripts/generateHistoryAsset.ts"
+  },
+  "gitCommit": "92690cc",
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32/x64",
+    "host": "MAURICIO-PC"
+  },
+  "invocation": {
+    "argv": [],
+    "flags": {}
+  },
+  "params": {
+    "seed": 1337,
+    "founderCount": 100,
+    "recordThreshold": 250,
+    "recordYears": 100,
+    "ticksPerYear": 8640,
+    "daysPerStep": 1,
+    "warmMarginYears": 40,
+    "maxWarmupYears": 400,
+    "keepActionLog": true,
+    "reducedEventManifest": true,
+    "profile": false,
+    "skillSnapshotYears": 1,
+    "flushIntervalYears": 5,
+    "populationControl": {
+      "enabled": true,
+      "target": 250,
+      "band": 0.05,
+      "suppressLevel": 0.1,
+      "allowLevel": 1
+    },
+    "logicalWorld": {
+      "enabled": true,
+      "homes": true,
+      "schools": true,
+      "jobs": true,
+      "objects": true
+    },
+    "safety": {
+      "maxRuntimeMs": 0,
+      "maxPeople": 0
+    }
+  },
+  "seed": 1337,
+  "assetMeta": {
+    "formatVersion": 1,
+    "generatorVersion": "078.0",
+    "epochTick": 363048,
+    "endTick": 1227048,
+    "ticksPerYear": 8640,
+    "createdAt": "2026-07-10T06:40:47.374Z"
+  },
+  "stats": {
+    "retainedPeople": 540,
+    "livingAtEnd": 205,
+    "births": 477,
+    "deaths": 372,
+    "medianHistoryLen": 51094,
+    "trajectory": [
+      {
+        "year": 0,
+        "living": 100
+      },
+      {
+        "year": 10,
+        "living": 173
+      },
+      {
+        "year": 20,
+        "living": 190
+      },
+      {
+        "year": 30,
+        "living": 205
+      },
+      {
+        "year": 40,
+        "living": 241
+      },
+      {
+        "year": 50,
+        "living": 249
+      },
+      {
+        "year": 60,
+        "living": 238
+      },
+      {
+        "year": 70,
+        "living": 241
+      },
+      {
+        "year": 80,
+        "living": 231
+      },
+      {
+        "year": 90,
+        "living": 207
+      },
+      {
+        "year": 100,
+        "living": 206
+      },
+      {
+        "year": 110,
+        "living": 207
+      },
+      {
+        "year": 120,
+        "living": 215
+      },
+      {
+        "year": 130,
+        "living": 195
+      },
+      {
+        "year": 140,
+        "living": 200
+      }
+    ],
+    "runtimeMs": 8968040,
+    "rawBytes": 0,
+    "compressedBytes": 555490853
+  },
+  "files": {
+    "sections": {
+      "population": "population.tbz",
+      "objects": "objects.tbz",
+      "eventHistory": "eventHistory.tbz"
+    },
+    "logShards": 29,
+    "skillShards": 29
+  },
+  "sizes": {
+    "shardBytes": 553914650,
+    "sectionBytes": 1576203,
+    "totalCompressedBytes": 555490853
+  }
+}

@@ -52,6 +52,22 @@ export default class Inventory {
     private state: InventoryState;
     // Derived index: containerKey -> instance ids, rebuilt on load, maintained on mutation.
     private byContainer: Map<string, Set<ObjectInstanceId>>;
+    // Read caches (task 079 pass 2): `contentsOf` re-did [...set].sort()+map per call, and it is the primitive
+    // under every hot query (objectsAt, carriedInstances, requirement predicates) — the V8 profile put it at
+    // ~5% of a generator run. Containment membership only changes through indexInstance/unindexInstance, so
+    // both caches are cleared there (and on load); reads between mutations return the same array instance.
+    // CONTRACT: callers must not mutate the returned arrays (all shipped call sites are read-only — they map/
+    // filter/find into new arrays). Instance objects inside are live references, exactly as before.
+    private contentsCache = new Map<string, ObjectInstance[]>();
+    private carriedCache = new Map<PersonId, ObjectInstance[]>();
+    // Monotonic containment-mutation counter (task 079 pass 2): lets external caches (the ActionEngine's
+    // object-query cache) key their validity on "has the inventory changed since I computed this".
+    private mutationEpoch = 0;
+    // Per-containerKey mutation epochs (task 079 pass 2): a grab at one house must not invalidate every other
+    // location's cached query answers — with ~hundreds of people resolving actions each tick, a global epoch
+    // churns so often the external query cache never survives. Bumped alongside the global epoch for exactly
+    // the containerKey whose membership (or member archetype) changed.
+    private containerEpochs = new Map<string, number>();
 
     constructor(archetypes: ObjectArchetypeTable = DEFAULT_OBJECT_ARCHETYPES) {
         this.archetypes = archetypes;
@@ -99,9 +115,30 @@ export default class Inventory {
     loadState(state: InventoryState): void {
         this.state = state ?? { instances: {}, nextInstanceSeq: 0 };
         this.byContainer = new Map();
+        this.contentsCache.clear();
+        this.carriedCache.clear();
+        this.mutationEpoch++;
         for (const instance of Object.values(this.state.instances)) {
             this.indexInstance(instance);
         }
+    }
+
+    // Containment of `key` changed — drop the affected read caches (see the field docs). The contents cache
+    // and container epoch are per-key; the carried cache clears globally (mapping a nested container back to
+    // its carrier is not worth the bookkeeping — carried sets are tiny to rebuild).
+    private invalidateReadCaches(key: string): void {
+        this.contentsCache.delete(key);
+        this.carriedCache.clear();
+        this.mutationEpoch++;
+        this.containerEpochs.set(key, (this.containerEpochs.get(key) ?? 0) + 1);
+    }
+
+    getMutationEpoch(): number {
+        return this.mutationEpoch;
+    }
+
+    getContainerEpoch(key: string): number {
+        return this.containerEpochs.get(key) ?? 0;
     }
 
     getArchetype(archetypeId: string): ObjectArchetype | null {
@@ -117,10 +154,13 @@ export default class Inventory {
         const set = this.byContainer.get(key) ?? new Set<ObjectInstanceId>();
         set.add(instance.id);
         this.byContainer.set(key, set);
+        this.invalidateReadCaches(key);
     }
 
     private unindexInstance(instance: ObjectInstance): void {
-        this.byContainer.get(containerKey(instance.container))?.delete(instance.id);
+        const key = containerKey(instance.container);
+        this.byContainer.get(key)?.delete(instance.id);
+        this.invalidateReadCaches(key);
     }
 
     // --- Creation & stacking ------------------------------------------------
@@ -284,6 +324,9 @@ export default class Inventory {
         } else {
             delete instance.state;
         }
+        // No containment change, but the in-place archetype swap changes what archetype/tag/flag queries see —
+        // external epoch-keyed query caches must observe it (task 079 pass 2).
+        this.invalidateReadCaches(containerKey(instance.container));
         return instance;
     }
 
@@ -300,8 +343,15 @@ export default class Inventory {
     // --- Queries --------------------------------------------------------------
 
     contentsOf(container: ObjectContainerRef): ObjectInstance[] {
-        const ids = [...(this.byContainer.get(containerKey(container)) ?? [])].sort();
-        return ids.map(id => this.state.instances[id]!).filter(Boolean);
+        const key = containerKey(container);
+        const cached = this.contentsCache.get(key);
+        if (cached) {
+            return cached;
+        }
+        const ids = [...(this.byContainer.get(key) ?? [])].sort();
+        const result = ids.map(id => this.state.instances[id]!).filter(Boolean);
+        this.contentsCache.set(key, result);
+        return result;
     }
 
     // A person's Possessions: what they actively carry (top level only; look inside containers explicitly).
@@ -333,6 +383,10 @@ export default class Inventory {
 
     // Everything a person carries, including instances nested inside carried containers.
     carriedInstances(personId: PersonId): ObjectInstance[] {
+        const cached = this.carriedCache.get(personId);
+        if (cached) {
+            return cached;
+        }
         const result: ObjectInstance[] = [];
         const walk = (container: ObjectContainerRef): void => {
             for (const instance of this.contentsOf(container)) {
@@ -341,6 +395,7 @@ export default class Inventory {
             }
         };
         walk({ kind: 'possessions', personId });
+        this.carriedCache.set(personId, result);
         return result;
     }
 

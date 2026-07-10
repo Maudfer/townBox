@@ -20,7 +20,7 @@ import { evaluateConsent } from 'game/Consent';
 import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/Consequences';
 
 import { SeededRandom } from 'util/random';
-import { evaluatePredicate } from 'util/predicate';
+import { evaluatePredicateCached } from 'util/predicate';
 import { isAliveAt } from 'util/kinship';
 
 import { EventLink,
@@ -38,7 +38,7 @@ import { EventLink,
 } from 'types/Action';
 import { TickResult } from 'types/LifeEvent';
 import { PersonId, PopulationState } from 'types/Genealogy';
-import { ExecutionContext, TransitionHandle } from 'types/Execution';
+import { ExecutionContext, SubProfiler, TransitionHandle } from 'types/Execution';
 import { SimulationContext, HasEventQuery, ObjectQuery, Value } from 'types/Simulation';
 import { locationKey, parseLocationKey } from 'types/Objects';
 import { hourOfTick } from 'util/time';
@@ -86,6 +86,23 @@ export default class ActionEngine {
     // discrete, the one-active-continuous rule blocks a second, and history lives in the LifeLog), so both the
     // scan set and memory stay bounded over a centuries-long run.
     private activeByPerson: Map<PersonId, Set<ActionInstanceId>>;
+    // Transient --profile sub-timer (task 079), set for the duration of an advance() call so finish() can
+    // attribute its internal cost (consequence planning / log append / onComplete event fire) without every
+    // caller threading it. Undefined outside profiled advances (finish from interrupt etc. isn't sub-timed).
+    private advanceSub: SubProfiler | undefined;
+    // Object-query result cache (task 079 pass 2): objectAtLocation answers are a pure function of
+    // (inventory contents at the location, query signature) — and free-time selection asks the SAME ~20
+    // queries for every idle person at the same location every tick, each a scan of ~40 instances. Keyed per
+    // Inventory (WeakMap — separate inventories never share entries); each entry validates against the
+    // inventory's PER-CONTAINER epoch, so a grab in one house invalidates only that house's answers instead
+    // of the whole cache (a global epoch churned too often to ever hit). Byte-identical: pure reads, cached.
+    private objectQueryCache = new WeakMap<Inventory, Map<string, { epoch: number; result: boolean }>>();
+    // Shared requirement-context memo (task 079 pass 2): within one person's PROPOSAL phase (Brain hooks only
+    // propose — nothing mutates until resolveIntents executes), the same param-less context is built 2–3×
+    // (free-time selection, the inventory hook, the social hook). One entry, keyed (person, tick), served only
+    // to param-less callers (executing paths pass params — even {} — and always rebuild), and dropped at every
+    // mutation point (startAction/interrupt/finish), so an execution can never read pre-mutation memos.
+    private ctxMemo: { personId: PersonId; tick: number; world: unknown; inventory: unknown; epoch: number; context: SimulationContext } | null = null;
 
     constructor(manifest: ActionManifest = DEFAULT_ACTION_MANIFEST, lifeLog: LifeLog = new LifeLog(), oar: OARTable = DEFAULT_OAR_TABLE) {
         this.manifest = manifest;
@@ -219,6 +236,15 @@ export default class ActionEngine {
     }
 
     contextFor(personId: PersonId, deps: ActionDeps, params?: Record<string, Value>): SimulationContext {
+        // Serve the shared proposal-phase context when valid (see the ctxMemo field docs). Keyed on the deps'
+        // world/inventory identities (same-tick calls against different backings — tests, other hosts — never
+        // share) AND the inventory's mutation epoch, so object mutations from OUTSIDE the engine's own
+        // execution paths (placement generation, teardown, direct moves) also invalidate it.
+        if (params === undefined && this.ctxMemo && this.ctxMemo.personId === personId && this.ctxMemo.tick === deps.tick
+            && this.ctxMemo.world === (deps.ctx.world ?? null) && this.ctxMemo.inventory === (deps.inventory ?? null)
+            && this.ctxMemo.epoch === (deps.inventory?.getMutationEpoch() ?? -1)) {
+            return this.ctxMemo.context;
+        }
         const base = deps.eventEngine.contextFor(deps.state, personId, deps.tick, deps.ticksPerYear);
         const world = deps.ctx.world ?? null;
         const inventory = deps.inventory ?? null;
@@ -239,15 +265,42 @@ export default class ActionEngine {
             }
             return true;
         };
-        return {
+        // Per-context memos (task 079): a single context is reused across an entire candidate loop (free-time
+        // selection scans ~all leisure actions; the social hook scans the person-targeted repertoire), and the
+        // person's state is immutable for that context's life. So the same attribute / objects-here list /
+        // carried list would otherwise be recomputed once per candidate — cache them per context instead.
+        // Byte-identical: same reads, just not repeated.
+        const attrMemo = new Map<string, Value | Value[] | undefined>();
+        let objectsHere: string[] | null = null;
+        const objectsHereList = (): string[] => {
+            if (objectsHere === null) {
+                objectsHere = world ? world.objectsAt(world.objectLocationOf(personId)) : [];
+            }
+            return objectsHere;
+        };
+        let carriedHere: ReturnType<Inventory['carriedInstances']> | null = null;
+        const carriedList = (): ReturnType<Inventory['carriedInstances']> => {
+            if (carriedHere === null) {
+                carriedHere = inventory ? inventory.carriedInstances(personId) : [];
+            }
+            return carriedHere;
+        };
+        const context: SimulationContext = {
             getAttr: (name: string) => {
+                const cached = attrMemo.get(name);
+                if (cached !== undefined || attrMemo.has(name)) {
+                    return cached;
+                }
+                let value: Value | Value[] | undefined;
                 if (name === 'locationKey') {
-                    return world ? locationKey(world.locationOf(personId)) : undefined;
+                    value = world ? locationKey(world.locationOf(personId)) : undefined;
+                } else if (name === 'hourOfDay') {
+                    value = hourOfTick(deps.tick);
+                } else {
+                    value = base.getAttr(name);
                 }
-                if (name === 'hourOfDay') {
-                    return hourOfTick(deps.tick);
-                }
-                return base.getAttr(name);
+                attrMemo.set(name, value);
+                return value;
             },
             hasEvent: (eventId, query) => base.hasEvent(eventId, query),
             role: name => base.role(name),
@@ -260,16 +313,37 @@ export default class ActionEngine {
                 if (query.archetype !== undefined && !query.tag && !query.flag) {
                     return inventory.carriesArchetype(personId, query.archetype);
                 }
-                return inventory.carriedInstances(personId).some(instance => matches(instance.id, query));
+                return carriedList().some(instance => matches(instance.id, query));
             },
             objectAtLocation: rawQuery => {
                 const query = ActionEngine.resolveQuery(rawQuery, params);
                 if (!world || !inventory || !query) {
                     return false;
                 }
-                return world.objectsAt(world.objectLocationOf(personId)).some(id => matches(id, query));
+                // Cross-person, cross-tick query cache (see the objectQueryCache field docs): the answer is a
+                // pure function of (inventory contents at the location, query), validated per entry against
+                // the location's container epoch instead of rescanned per candidate per person.
+                let cache = this.objectQueryCache.get(inventory);
+                if (!cache) {
+                    cache = new Map();
+                    this.objectQueryCache.set(inventory, cache);
+                }
+                const locKey = locationKey(world.objectLocationOf(personId));
+                const epoch = inventory.getContainerEpoch(`location:${locKey}`);
+                const key = `${locKey}|${query.archetype ?? ''}|${query.tag ?? ''}|${query.flag ?? ''}`;
+                const cached = cache.get(key);
+                if (cached && cached.epoch === epoch) {
+                    return cached.result;
+                }
+                const result = objectsHereList().some(id => matches(id, query));
+                cache.set(key, { epoch, result });
+                return result;
             },
         };
+        if (params === undefined) {
+            this.ctxMemo = { personId, tick: deps.tick, world, inventory, epoch: inventory?.getMutationEpoch() ?? -1, context };
+        }
+        return context;
     }
 
     private recordAction(personId: PersonId, actionId: string, tick: number): void {
@@ -302,6 +376,10 @@ export default class ActionEngine {
                 }
             }
         }
+        // --profile plumbing (task 079 pass 2): let invoke attribute its internal cost during profiled advances.
+        if (this.advanceSub) {
+            deps.eventEngine.setProfileSub(this.advanceSub);
+        }
         const { result: eventResult } = deps.eventEngine.invoke(
             deps.state, eventId, personId, deps.tick, deps.ticksPerYear,
             { source: 'action', causationId: causationSeq },  // triggerSource 'action', causation = lifecycle log seq
@@ -309,6 +387,9 @@ export default class ActionEngine {
             deps.ctx,
             payload                                            // the mapped event payload (067)
         );
+        if (this.advanceSub) {
+            deps.eventEngine.setProfileSub(null);
+        }
         result.died.push(...eventResult.died);
         result.born.push(...eventResult.born);
         result.signals.push(...eventResult.signals);
@@ -320,6 +401,7 @@ export default class ActionEngine {
     // Starts an action for a person. Discrete actions commit immediately ('performed'); continuous actions
     // materialize an instance, requesting a location transition through the boundary when needed.
     startAction(personId: PersonId, actionId: string, params: Record<string, Value>, cause: ActionCause, deps: ActionDeps, result: TickResult, parentInstanceId: ActionInstanceId | null = null, onOutputs?: (outputs: Record<string, string>) => void, locationOverride?: string): ActionStartOutcome {
+        this.ctxMemo = null; // execution may mutate (consequences, history, events) — drop the proposal memo
         const def = this.manifest[actionId];
         if (!def) {
             return { ok: false, reason: 'unknownAction' };
@@ -378,7 +460,7 @@ export default class ActionEngine {
                 }
             }
         }
-        if (def.requirements && !evaluatePredicate(def.requirements, this.contextFor(personId, deps, params))) {
+        if (def.requirements && !evaluatePredicateCached(def.requirements, this.contextFor(personId, deps, params))) {
             return { ok: false, reason: 'requirementsUnmet' };
         }
 
@@ -501,11 +583,21 @@ export default class ActionEngine {
 
     // Advances every active instance one tick: waiting instances re-check their transition, running ones
     // process children and completion conditions. Returns the world changes (events fired by lifecycles).
-    advance(deps: ActionDeps): TickResult {
+    advance(deps: ActionDeps, sub?: SubProfiler): TickResult {
         const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(0xac7);
+        // Optional --profile sub-timing (task 079): attribute advance cost to materialize/pool/sequence/
+        // completeWhen. `clock` null (branches skipped) when no SubProfiler is threaded → live play pays nothing.
+        const clock = sub ? () => performance.now() : null;
+        const addSub = (phase: string, t0: number): void => {
+            if (sub && clock) {
+                sub.actionsAdvance[phase] = (sub.actionsAdvance[phase] ?? 0) + (clock() - t0);
+            }
+        };
+        this.advanceSub = sub;
         // Iterate the active index (task 078) instead of scanning every instance ever created. Snapshotted to
         // an array first so finishes/starts during the loop don't mutate what we're iterating.
+        const tScan = clock ? clock() : 0;
         const active: ActionInstance[] = [];
         for (const set of this.activeByPerson.values()) {
             for (const id of set) {
@@ -516,49 +608,72 @@ export default class ActionEngine {
             }
         }
         active.sort((a, b) => a.id.localeCompare(b.id));
+        addSub('scan', tScan);
 
         for (const instance of active) {
+            const tAlive = clock ? clock() : 0;
             const person = deps.state.people[instance.personId];
             if (!person || !isAliveAt(person, deps.tick)) {
                 this.finish(instance, 'interrupted', { source: 'system', causationId: null }, deps, result);
+                addSub('aliveOrDead', tAlive);
                 continue;
             }
+            addSub('aliveOrDead', tAlive);
             if (instance.status === 'pending' || instance.status === 'waiting_for_materialization') {
+                const tMat = clock ? clock() : 0;
                 this.materialize(instance, { source: 'system', causationId: instance.causationId }, deps, result);
+                addSub('materialize', tMat);
                 continue; // materializing consumes the tick; children start next tick
             }
 
+            const tSpine = clock ? clock() : 0;
             instance.ticksRun += Math.max(1, deps.ticksPerStep ?? 1);
             instance.lastPoolChild = null;
             const def = this.manifest[instance.defId]!;
+            addSub('spine', tSpine);
 
             if (def.children?.mode === 'pool') {
+                const tPool = clock ? clock() : 0;
                 this.runPool(instance, def.children.entries, rng, deps, result);
+                addSub('pool', tPool);
             } else if (def.children?.mode === 'sequence') {
+                const tSeq = clock ? clock() : 0;
                 const finished = this.runSequenceStep(instance, def.children.steps, def.children.onStepFailure ?? 'blockParent', deps, result);
                 if (finished !== null) {
                     this.finish(instance, finished, { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                    addSub('sequence', tSeq);
                     continue;
                 }
                 if (instance.sequenceIndex >= def.children.steps.length) {
                     this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                    addSub('sequence', tSeq);
                     continue;
                 }
+                addSub('sequence', tSeq);
             }
 
             if (def.durationTicks !== undefined && instance.ticksRun >= def.durationTicks) {
+                const tDur = clock ? clock() : 0;
                 this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                addSub('durationFinish', tDur);
                 continue;
             }
-            if (def.completeWhen && evaluatePredicate(def.completeWhen, this.contextFor(instance.personId, deps, instance.params))) {
-                this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+            if (def.completeWhen) {
+                const tComplete = clock ? clock() : 0;
+                const done = evaluatePredicateCached(def.completeWhen, this.contextFor(instance.personId, deps, instance.params));
+                if (done) {
+                    this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                }
+                addSub('completeWhen', tComplete);
             }
         }
+        this.advanceSub = undefined;
         return result;
     }
 
     // External interruption (Brain arbitration, shift obligations, death reconciliation).
     interrupt(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult): boolean {
+        this.ctxMemo = null; // finishing may mutate — drop the proposal memo
         const instance = this.state.instances[instanceId];
         if (!instance || !ACTIVE_STATUSES.has(instance.status)) {
             return false;
@@ -568,38 +683,54 @@ export default class ActionEngine {
     }
 
     private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {
+        this.ctxMemo = null; // completion consequences/events mutate — drop the proposal memo
         const def = this.manifest[instance.defId]!;
         let failureReason: import('types/LifeEvent').ActionFailureReason | undefined;
 
         // Completion consequences (task 044): planned before the outcome is logged — an unsatisfiable plan
         // turns the completion into a failure with zero mutations. Outputs are seeded from the sequence's
         // bound outputs, so the parent can validate/transfer the final child output WITHOUT duplicating it.
+        // --profile finish-internal sub-timers (task 079): only when inside a profiled advance().
+        const fsub = this.advanceSub;
+        const fclock = fsub ? () => performance.now() : null;
+        const addF = (phase: string, t0: number): void => {
+            if (fsub && fclock) {
+                fsub.actionsAdvance[phase] = (fsub.actionsAdvance[phase] ?? 0) + (fclock() - t0);
+            }
+        };
+
         let completionCtx: CommitContext | null = null;
         let completionPlan: { steps: (() => void)[] } | null = null;
         if (outcome === 'completed' && def.consequences) {
+            const tPlan = fclock ? fclock() : 0;
             completionCtx = { personId: instance.personId, params: instance.params, outputs: { ...instance.previousOutputs }, causationId: instance.startLogSeq, deps, result };
             completionPlan = planConsequences(def.consequences, completionCtx, new Set());
             if (!completionPlan) {
                 outcome = 'failed';
                 failureReason = 'inputs_unavailable';
             }
+            addF('finish:consequencePlan', tPlan);
         }
 
         instance.status = outcome;
         instance.outcome = outcome;
         instance.endedTick = deps.tick;
         this.handles.delete(instance.id);
+        const tLog = fclock ? fclock() : 0;
         const seq = this.lifeLog.append(instance.personId, {
             tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: outcome,
             params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
             ...(failureReason ? { failureReason } : {}),
         });
+        addF('finish:log', tLog);
         if (outcome === 'completed') {
             if (completionCtx && completionPlan) {
                 completionCtx.causationId = seq;
                 applyPlan(completionPlan);
             }
+            const tEvent = fclock ? fclock() : 0;
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
+            addF('finish:onCompleteEvent', tEvent);
         } else if (outcome === 'interrupted') {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
         }
@@ -627,7 +758,7 @@ export default class ActionEngine {
             if (entry.cooldownTicks !== undefined && deps.tick - bookkeeping.lastTick < entry.cooldownTicks) {
                 continue;
             }
-            if (entry.requirements && !evaluatePredicate(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
+            if (entry.requirements && !evaluatePredicateCached(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
                 continue;
             }
             const slots = Math.max(1, entry.maxPerTick ?? 1);

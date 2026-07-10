@@ -26,6 +26,99 @@ export type Predicate =
     | { objectAtLocation: ObjectQuery }
     | { role: string; where: Predicate };
 
+// A predicate compiled to a closure (task 079 pass 3). `evaluatePredicate` re-walks the JSON AST on every
+// call — the `'x' in pred` structural dispatch plus recursion — and over the free-time candidate loop that
+// interpreter overhead is the per-agent floor. `compilePredicate` resolves the dispatch ONCE into a closure
+// tree; the returned function is a mechanical mirror of `evaluatePredicate` (same short-circuit order, same
+// `compareValues`, same query shapes), so it returns identical results — verified against the interpreter over
+// every fixture in test/predicate.test.ts.
+export type CompiledPredicate = (ctx: SimulationContext) => boolean;
+
+export function compilePredicate(pred: Predicate): CompiledPredicate {
+    if ('all' in pred) {
+        const children = pred.all.map(compilePredicate);
+        return ctx => children.every(child => child(ctx));
+    }
+    if ('any' in pred) {
+        const children = pred.any.map(compilePredicate);
+        return ctx => children.some(child => child(ctx));
+    }
+    if ('not' in pred) {
+        const child = compilePredicate(pred.not);
+        return ctx => !child(ctx);
+    }
+    if ('hasEvent' in pred) {
+        const eventId = pred.hasEvent;
+        const role = pred.role;
+        const query: { withinTicks?: number; minCount?: number } = {};
+        if (pred.withinTicks !== undefined) {
+            query.withinTicks = pred.withinTicks;
+        }
+        if (pred.minCount !== undefined) {
+            query.minCount = pred.minCount;
+        }
+        return ctx => {
+            const target = role ? ctx.role(role) : ctx;
+            if (!target) {
+                return false;
+            }
+            return target.hasEvent(eventId, query);
+        };
+    }
+    if ('hasAction' in pred) {
+        const actionId = pred.hasAction;
+        const role = pred.role;
+        const query: { withinTicks?: number; minCount?: number } = {};
+        if (pred.withinTicks !== undefined) {
+            query.withinTicks = pred.withinTicks;
+        }
+        if (pred.minCount !== undefined) {
+            query.minCount = pred.minCount;
+        }
+        return ctx => {
+            const target = role ? ctx.role(role) : ctx;
+            if (!target || !target.hasAction) {
+                return false;
+            }
+            return target.hasAction(actionId, query);
+        };
+    }
+    if ('carries' in pred) {
+        const query = pred.carries;
+        return ctx => ctx.carries ? ctx.carries(query) : false;
+    }
+    if ('objectAtLocation' in pred) {
+        const query = pred.objectAtLocation;
+        return ctx => ctx.objectAtLocation ? ctx.objectAtLocation(query) : false;
+    }
+    if ('where' in pred) {
+        const role = pred.role;
+        const child = compilePredicate(pred.where);
+        return ctx => {
+            const sub = ctx.role(role);
+            return sub ? child(sub) : false;
+        };
+    }
+    const { attr, op, value } = pred;
+    return ctx => compareValues(ctx.getAttr(attr), op, value);
+}
+
+// Compile-once cache keyed on the predicate object identity (task 079 pass 3). Manifest predicates are stable
+// references (loaded from JSON once), so the first evaluation compiles and every later one reuses the closure.
+// Byte-identical to `evaluatePredicate` for any given (pred, ctx); use it on the hot repeated-evaluation paths
+// (free-time/social selection, action requirement/completeWhen checks). One-shot predicates still work — they
+// just compile then evaluate once (cheap).
+const compiledCache = new WeakMap<Predicate, CompiledPredicate>();
+
+export function evaluatePredicateCached(pred: Predicate, ctx: SimulationContext): boolean {
+    let compiled = compiledCache.get(pred);
+    if (compiled === undefined) {
+        compiled = compilePredicate(pred);
+        compiledCache.set(pred, compiled);
+    }
+    return compiled(ctx);
+}
+
 export function evaluatePredicate(pred: Predicate, ctx: SimulationContext): boolean {
     if ('all' in pred) {
         return pred.all.every(child => evaluatePredicate(child, ctx));

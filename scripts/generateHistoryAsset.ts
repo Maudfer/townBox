@@ -26,6 +26,7 @@ import { hostname } from 'node:os';
 import process from 'node:process';
 
 import { compress } from 'util/compress';
+import { formatDuration } from 'util/time';
 import {
     generateHistoryAsset,
     DEFAULT_GENERATOR_PARAMS,
@@ -188,11 +189,19 @@ async function main(): Promise<void> {
 
     let lastLog = Date.now();
     const onProgress = (progress: GenerationProgress): void => {
-        if (Date.now() - lastLog < 1000) {
+        // Year milestones always print; the finer weekly lines within them are rate-limited so a fast run
+        // (many weeks per real second) doesn't flood the console.
+        if (!progress.yearBoundary && Date.now() - lastLog < 1000) {
             return;
         }
         lastLog = Date.now();
-        console.log(`  [${progress.phase}] year ${progress.yearsDone} · living ${progress.living} · retained ${progress.retained}`);
+        if (progress.yearBoundary) {
+            console.log(`  [${progress.phase}] year ${progress.yearsDone} · living ${progress.living} · retained ${progress.retained}`);
+        } else {
+            const month = String(progress.monthOfYear + 1).padStart(2, '0');
+            const week = String(progress.weekOfYear + 1).padStart(2, '0');
+            console.log(`  [${progress.phase}] year ${progress.yearsDone} · month ${month} · week ${week} · living ${progress.living}`);
+        }
     };
 
     const asset = await generateHistoryAsset(params, onProgress, gitCommit(), sink);
@@ -238,6 +247,7 @@ async function main(): Promise<void> {
             createdAt: asset.meta.createdAt,
         },
         stats: asset.meta.stats,
+        runtime: formatDuration(asset.meta.stats.runtimeMs),
         files: {
             sections: header.sections,
             logShards: header.logShards.length,
@@ -276,7 +286,7 @@ async function main(): Promise<void> {
     console.log(`  log shards:          ${header.logShards.length}   skill shards: ${header.skillShards.length}`);
     console.log(`  shard bytes:         ${mb(shardBytes)} MB   section bytes: ${mb(sectionBytes)} MB`);
     console.log(`  TOTAL on disk:       ${mb(totalCompressed)} MB`);
-    console.log(`  runtime:             ${(stats.runtimeMs / 1000).toFixed(1)}s`);
+    console.log(`  runtime:             ${formatDuration(stats.runtimeMs)}`);
     if (stats.profile) {
         const p = stats.profile;
         const perAgentUs = (ms: number) => p.agentSteps > 0 ? ((ms * 1000) / p.agentSteps).toFixed(2) : '0';
@@ -291,6 +301,24 @@ async function main(): Promise<void> {
         row('snapshot', p.snapshot);
         row('other', p.other);
         console.log(`    ${'TOTAL'.padEnd(12)} ${perAgentUs(p.total).padStart(8)} µs   ${(stats.profile.total / 1000).toFixed(1)}s`);
+
+        // Finer attribution (task 079): the brain bucket split per-hook + arbitration, and the actions bucket
+        // split per advance sub-phase. Sorted heaviest-first so the dominant cost is obvious at a glance.
+        const subRow = (label: string, ms: number) => console.log(`      ${label.padEnd(20)} ${perAgentUs(ms).padStart(8)} µs   ${pct(ms).padStart(5)}%`);
+        const sortedEntries = (record: Record<string, number>) => Object.entries(record).sort((a, b) => b[1] - a[1]);
+        if (p.brainHooks) {
+            console.log(`\n    brain breakdown (µs/agent-step, share of TOTAL):`);
+            for (const [hook, ms] of sortedEntries(p.brainHooks)) {
+                subRow(`hook:${hook}`, ms);
+            }
+            subRow('resolveIntents', p.brainResolve ?? 0);
+        }
+        if (p.actionsAdvance) {
+            console.log(`\n    actions breakdown (µs/agent-step, share of TOTAL):`);
+            for (const [phase, ms] of sortedEntries(p.actionsAdvance)) {
+                subRow(`advance:${phase}`, ms);
+            }
+        }
     }
     console.log('  population trajectory (per decade):');
     for (const point of stats.trajectory) {
