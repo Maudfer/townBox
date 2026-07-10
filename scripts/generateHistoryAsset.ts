@@ -189,18 +189,18 @@ async function main(): Promise<void> {
 
     let lastLog = Date.now();
     const onProgress = (progress: GenerationProgress): void => {
-        const yearBoundary = progress.monthOfYear === 0;
-        // Year milestones always print; the finer monthly lines within them are rate-limited so a fast run
-        // (many months per real second) doesn't flood the console.
-        if (!yearBoundary && Date.now() - lastLog < 1000) {
+        // Year milestones always print; the finer weekly lines within them are rate-limited so a fast run
+        // (many weeks per real second) doesn't flood the console.
+        if (!progress.yearBoundary && Date.now() - lastLog < 1000) {
             return;
         }
         lastLog = Date.now();
-        if (yearBoundary) {
+        if (progress.yearBoundary) {
             console.log(`  [${progress.phase}] year ${progress.yearsDone} · living ${progress.living} · retained ${progress.retained}`);
         } else {
             const month = String(progress.monthOfYear + 1).padStart(2, '0');
-            console.log(`  [${progress.phase}] year ${progress.yearsDone} · month ${month} · living ${progress.living}`);
+            const week = String(progress.weekOfYear + 1).padStart(2, '0');
+            console.log(`  [${progress.phase}] year ${progress.yearsDone} · month ${month} · week ${week} · living ${progress.living}`);
         }
     };
 

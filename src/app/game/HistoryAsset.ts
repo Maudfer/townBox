@@ -27,7 +27,7 @@ import LogicalWorld, { LogicalWorldConfig } from 'game/LogicalWorld';
 import { runTick } from 'game/TickRunner';
 import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/Population';
 
-import { TICKS_PER_DAY } from 'util/time';
+import { TICKS_PER_DAY, DAYS_PER_WEEK, DAYS_PER_YEAR } from 'util/time';
 import { Predicate } from 'util/predicate';
 import { ageAt } from 'util/kinship';
 
@@ -210,10 +210,14 @@ export type GenerationPhase = 'warmup' | 'recording';
 export interface GenerationProgress {
     phase: GenerationPhase;
     tick: number;
-    yearsDone: number;   // years into the current phase
-    monthOfYear: number; // month within `yearsDone` (0–11); 0 marks a year boundary
+    yearsDone: number;    // years into the current phase
+    monthOfYear: number;  // month within `yearsDone` (0–11)
+    weekOfYear: number;   // week within `yearsDone` (0–51)
+    yearBoundary: boolean; // this is the first progress fire of a new year (the milestone line)
     living: number;
-    retained: number;
+    // O(whole-pool, incl. the dead) — computed ONLY on year-boundary fires (the only lines that display it),
+    // so the finer weekly fires stay O(1) and add no pool-scan cost. Absent on the intra-year weekly lines.
+    retained?: number;
 }
 
 // The set of event ids worth persisting in the asset's log: those that carry EFFECTS (the ~18 vital/
@@ -386,7 +390,8 @@ export async function generateHistoryAsset(
     };
     const trajectory: { year: number; living: number }[] = [];
     let lastDecadeSampled = -1;
-    let lastReportedMonth = -1;
+    let lastReportedWeek = -1;
+    let lastReportedYear = -1;
 
     const applyResult = (result: TickResult, tick: number): void => {
         for (const birth of result.born) {
@@ -476,22 +481,31 @@ export async function generateHistoryAsset(
             }
         }
 
-        // Per-decade trajectory sample + per-MONTH progress (task 079 follow-up: monthly granularity within
-        // the yearly milestones the CLI still surfaces separately).
+        // Per-decade trajectory sample + per-WEEK progress (task 079 follow-up: weekly granularity within the
+        // yearly milestones the CLI surfaces separately). The finer weekly fires stay O(1) — only the
+        // year-boundary line pays the O(pool) `retained` scan, so weekly logging adds no generation cost.
         const phase: GenerationPhase = inRecording ? 'recording' : 'warmup';
         const phaseStartTick = inRecording ? epochTick! : 0;
         const ticksIntoPhase = tick - phaseStartTick;
+        const ticksPerWeek = tpy * DAYS_PER_WEEK / DAYS_PER_YEAR;
         const yearsDone = Math.floor(ticksIntoPhase / tpy);
-        const monthsDone = Math.floor(ticksIntoPhase / (tpy / 12));
+        const weeksDone = Math.floor(ticksIntoPhase / ticksPerWeek);
         const decade = Math.floor(tick / tpy / 10);
         if (decade !== lastDecadeSampled) {
             lastDecadeSampled = decade;
             trajectory.push({ year: Math.floor(tick / tpy), living: living.size });
         }
-        if (onProgress && monthsDone !== lastReportedMonth) {
-            lastReportedMonth = monthsDone;
-            const monthOfYear = ((monthsDone % 12) + 12) % 12;
-            onProgress({ phase, tick, yearsDone, monthOfYear, living: living.size, retained: Object.keys(state.people).length });
+        if (onProgress && weeksDone !== lastReportedWeek) {
+            lastReportedWeek = weeksDone;
+            const yearBoundary = yearsDone !== lastReportedYear; // robust under any stride (may skip exact tpy)
+            lastReportedYear = yearsDone;
+            const withinYear = ((ticksIntoPhase % tpy) + tpy) % tpy;
+            const monthOfYear = Math.floor(withinYear / (tpy / 12));
+            const weekOfYear = Math.floor(withinYear / ticksPerWeek);
+            onProgress({
+                phase, tick, yearsDone, monthOfYear, weekOfYear, yearBoundary, living: living.size,
+                ...(yearBoundary ? { retained: Object.keys(state.people).length } : {}),
+            });
         }
 
         tick += step;
