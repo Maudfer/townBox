@@ -290,3 +290,68 @@ wall that would have OOM'd the big assets is gone.
 **Takeaway for the next pass:** the remaining per-agent cost is now split between `brain` (free-time selection +
 hooks, ~130 µs) and `actions` (`advance` child/sequence processing, ~65–110 µs). Both are honest work over the
 full spine; there is no longer a single dominant O(n²)/unbounded term. Profile before chasing further.
+
+---
+
+## 10. Fresh baseline for the next per-agent pass (post-078)
+
+Added 2026-07-10, after the asset naming/manifest/**runtime-loading** work landed (see below). A current
+`--profile` run — daily, logical world on, **reduced manifest on** (the default), no action log, **250 agents,
+360 steps** (founders = threshold = 250 → epoch at tick 0, no warm-up), writing to a temp dir:
+
+```
+profile (360 steps, 94,402 agent-steps; µs/agent-step, share of total):
+  actions         75.60 µs   36.6%
+  events           3.03 µs    1.5%
+  progression      0.00 µs    0.0%
+  brain          124.37 µs   60.3%
+  runDaily         3.21 µs    1.6%
+  snapshot         0.04 µs    0.0%
+  other            0.10 µs    0.0%
+  TOTAL          206.35 µs   (0.21 ms/agent-step)
+```
+
+So **~97% of per-agent cost is now `brain` (60%) + `actions` (37%)**; events / runDaily / snapshot / other are
+rounding errors. This is the target surface for any further optimization. **First step of the next pass: make
+`--profile` finer** — sub-time the Brain per-hook and the ActionEngine per sub-phase — because we don't yet know
+*which part* of brain/actions dominates. Hypotheses to test (do not assume; profile):
+
+### Where `brain` (~124 µs) likely goes
+`Brain.processTick` runs all built-in hooks for every agent every tick, then arbitrates. Suspects:
+- **Free-time selection** (`selectFreeTimeAction`): even with the 078 precomputed static candidate list, it
+  still evaluates each candidate's requirement predicate + selection modifiers and does a seeded weighted pick,
+  **per idle person per tick**. Idle people are often idle for many consecutive ticks in the *same context* —
+  **cache the selection** (or the candidate+weight vector) until the person's context signature changes or the
+  chosen action ends. Determinism: the pick is seeded per (tick, person), so a cache must reproduce the same
+  choice — key it so a cache hit is provably identical, or only cache the *filtered candidate set* (context-
+  independent gates) and still do the seeded pick.
+- **Per-hook fixed overhead**: 7 hooks × every agent × every tick. Several do real work even when they return no
+  intent — `socialOpportunityHook` (RNG roll + `peopleAt` + co-located candidate scan), `inventoryOpportunityHook`
+  (`objectsAt` + carried-instance scan). Consider gating hooks earlier (cheap pre-checks) or skipping hooks for
+  agents in a known-inert state (e.g. sleeping, mid-obligation).
+- **Context construction**: `contextFor` / `makeContext` builds `getAttr`/`hasEvent` closures; if it is rebuilt
+  per hook call, build it once per (agent, tick) and share.
+
+### Where `actions` (~76 µs) likely goes
+`ActionEngine.advance` (now bounded to *active* instances after the 078 index) still, per active instance per
+tick: rolls the discrete work **pool** children (per-child RNG + requirement checks — heaviest for on-duty work
+actions with rich flavor pools), resolves **sequence** steps, and applies **consequences** (object create/
+consume/move). Suspects: the pool-child requirement evaluation and consequence planning. Sub-profile advance to
+see whether pools, sequences, or consequences dominate.
+
+### Determinism reminder (unchanged)
+Any change that alters *which RNG draws happen or their order* changes the asset (fine for the generator-only
+path — bump `generatorVersion` — but keep live play + the `arcScenarios` keystone on the full behavior). Caching
+must return provably-identical results, not merely "close enough."
+
+### Non-perf work since §9 (context, not optimization targets)
+Landed after 078; **not** part of per-agent cost, listed so the picture is complete:
+- **Asset naming/provenance:** dirs are `history-<YYYYMMDDHHMMSS>-<hash>` (monotonic "latest = highest", never
+  overwritten); each carries an exhaustive `manifest.json`; a `latest.json` pointer names the newest run.
+- **Runtime loading:** `GameManager.startNewGameWorld` → `loadSelectedWorldFromHttp` fetches `latest.json` → the
+  newest asset's `meta.json` → only the shards the window needs, then `selectStartingWorldFromShards`. A
+  `copy-history` build step copies the newest asset into the served output (`./dist` dev, `./bin` prod).
+- **Gotcha fixed:** the CLI shard-writer used `Math.min(...ticks)` / `Math.max(...ticks)`; with the action log a
+  flush holds hundreds of thousands of entries, and spreading that many args **overflows the call stack**. Use a
+  running-loop min/max (or chunk) for any large array — never spread it into function args. (`util/compress`
+  already chunks `String.fromCharCode` at 32 KB for the same reason.)
