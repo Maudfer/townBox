@@ -161,6 +161,11 @@ export interface TickProfile {
     total: number;
     steps: number;
     agentSteps: number;
+    // Finer attribution (task 079): the `brain` bucket split per-hook + arbitration, and the `actions` bucket
+    // split per advance sub-phase. Present only under --profile; the CLI prints them beneath the coarse rows.
+    brainHooks?: Record<string, number>;
+    brainResolve?: number;
+    actionsAdvance?: Record<string, number>;
 }
 
 // The asset payload (pre-compression). Reuses the save's PopulationState + LifeEvent table shapes so the game
@@ -294,7 +299,9 @@ export async function generateHistoryAsset(
     const brain = new Brain(actionEngine);
 
     // Optional per-phase profiling accumulator (task 078 --profile).
-    const profiler = params.profile ? { actions: 0, events: 0, progression: 0, brain: 0 } : undefined;
+    const profiler = params.profile
+        ? { actions: 0, events: 0, progression: 0, brain: 0, sub: { brainHooks: {}, brainResolve: 0, actionsAdvance: {} } }
+        : undefined;
     const profile: TickProfile | undefined = params.profile
         ? { actions: 0, events: 0, progression: 0, brain: 0, runDaily: 0, snapshot: 0, other: 0, total: 0, steps: 0, agentSteps: 0 }
         : undefined;
@@ -492,6 +499,9 @@ export async function generateHistoryAsset(
         profile.events = profiler.events;
         profile.progression = profiler.progression;
         profile.brain = profiler.brain;
+        profile.brainHooks = profiler.sub.brainHooks;
+        profile.brainResolve = profiler.sub.brainResolve;
+        profile.actionsAdvance = profiler.sub.actionsAdvance;
         profile.other = Math.max(0, profile.total
             - profile.actions - profile.events - profile.progression - profile.brain - profile.runDaily - profile.snapshot);
     }

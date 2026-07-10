@@ -64,6 +64,10 @@ export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as 
 
 const ROLE_SUBJECT = 'subject';
 
+// Shared empty agent list for invoke() on events with no candidate-search role (task 079). resolveRoles only
+// reads agentIds (never mutates), so a single shared instance is safe and avoids a per-call allocation.
+const EMPTY_AGENTS: PersonId[] = [];
+
 // An emit effect captured while an event's effects apply; flushed into the TickResult (with the commit seq
 // as causation) only if the event commits.
 interface PendingSignal {
@@ -117,6 +121,15 @@ export default class EventEngine {
     private schedule: ScheduleState;
     private afterEventRules: Map<string, { eventId: string; delayTicks: number }[]>;
     private atHourRules: Map<number, string[]>;
+    // Per-event invoke fast-path flags (task 079), precomputed from the manifest. `invokeNeedsCandidateSearch`:
+    // the event has a non-subject role with a `where` candidate search, so `invoke` must build the sorted
+    // living-agent list; the ~overwhelming majority (action onComplete/onStart, most manual events) have only
+    // a subject, so invoke skips an O(whole-pool) filter+sort that otherwise runs — and GROWS — on every call.
+    // `invokeUsesFaker`: the event has a `birth` effect (the only faker consumer), so invoke seeds faker; every
+    // other invoke skips the reseed. Neither changes observable output (unused agents were never iterated;
+    // faker is only drawn by birth, which still reseeds identically) — so the asset stays byte-identical.
+    private invokeNeedsCandidateSearch: Set<string>;
+    private invokeUsesFaker: Set<string>;
     // The precompiled probabilistic walk plan (task 052 perf + the eligibility index): flat, in topo order,
     // with parsed factors, discriminant gates, and per-event excludes/limit resolved once.
     private probPlan: ProbPlanEntry[];
@@ -154,7 +167,15 @@ export default class EventEngine {
         this.schedule = { queue: [], nextScheduleSeq: 0 };
         this.afterEventRules = new Map();
         this.atHourRules = new Map();
+        this.invokeNeedsCandidateSearch = new Set();
+        this.invokeUsesFaker = new Set();
         for (const [eventId, definition] of Object.entries(manifest)) {
+            if (Object.values(definition.roles).some(role => role.where !== undefined)) {
+                this.invokeNeedsCandidateSearch.add(eventId);
+            }
+            if (definition.effects.some(effect => effect.type === 'birth')) {
+                this.invokeUsesFaker.add(eventId);
+            }
             for (const rule of definition.triggers?.automated?.rules ?? []) {
                 if ('afterEvent' in rule) {
                     const dependents = this.afterEventRules.get(rule.afterEvent) ?? [];
@@ -950,9 +971,19 @@ export default class EventEngine {
             this.bindMarkets(ctx);
         }
         const rng = new SeededRandom(state.worldSeed).fork(tick).fork(0x51ed);
-        fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1) ^ 0x51ed) >>> 0);
-
-        const agents = Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort();
+        // Seed faker only for events that actually draw from it (birth). The seed is a pure function of
+        // (worldSeed, tick), so a birth invoke reseeds identically to before; non-birth invokes never touched
+        // faker, so skipping the reseed is invisible (task 079).
+        if (this.invokeUsesFaker.has(eventId)) {
+            fakerPT_BR.seed((state.worldSeed ^ (tick * 0x9e3779b1) ^ 0x51ed) >>> 0);
+        }
+        // Build the sorted living-agent list only for events whose roles need a candidate search — otherwise
+        // it is never iterated. This avoids an O(whole-pool, incl. the dead) filter+sort on every invoke (task
+        // 079); with ~one action onComplete invoke per agent per step it was the bulk of `advance` cost, and it
+        // grew as the deceased pool accumulated over a long run.
+        const agents = this.invokeNeedsCandidateSearch.has(eventId)
+            ? Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort()
+            : EMPTY_AGENTS;
         const outcome = this.attemptCommit(state, eventId, subjectId, agents, tick, ticksPerYear, result, rng, cause.source, cause.causationId, bindings, params);
 
         this.jobMarket = previous.jobMarket;

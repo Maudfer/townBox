@@ -22,7 +22,7 @@ import SkillProgression from 'game/SkillProgression';
 
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
-import { ExecutionContext } from 'types/Execution';
+import { ExecutionContext, SubProfiler } from 'types/Execution';
 import { SchoolFacts } from 'types/School';
 import { JobPosition } from 'types/Work';
 
@@ -35,6 +35,9 @@ export interface TickProfiler {
     events: number;
     progression: number;
     brain: number;
+    // Optional finer attribution (task 079): per-Brain-hook and per-advance-sub-phase breakdown of the
+    // `brain`/`actions` buckets. When present, the ActionEngine and Brain accumulate into it.
+    sub?: SubProfiler;
 }
 
 export interface TickPlan {
@@ -90,7 +93,7 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             eventEngine: plan.engine,
             inventory: plan.inventory ?? null,
             ...(plan.employerKeyOf ? { employerKeyOf: plan.employerKeyOf } : {}),
-        }));
+        }, profiler?.sub));
         if (profiler && clock) {
             profiler.actions += clock() - t0;
         }
@@ -138,7 +141,7 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             ...(plan.employerKeyOf ? { employerKeyOf: plan.employerKeyOf } : {}),
             ...(plan.jobOf ? { jobOf: plan.jobOf } : {}),
             ...(plan.schoolOf ? { schoolOf: plan.schoolOf } : {}),
-        }, result.committed, result);
+        }, result.committed, result, profiler?.sub);
         plan.engine.unbindMarkets();
         if (profiler && clock) {
             profiler.brain += clock() - t0;

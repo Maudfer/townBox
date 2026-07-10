@@ -308,6 +308,31 @@ describe('shared requirements & determinism', () => {
         expect(actions.startAction('a', 'needs_history', {}, cause, deps, emptyResult()).ok).toBe(true);
     });
 
+    // The per-context memo (task 079): a single context caches its attribute / objects-here / carried-list
+    // reads so a candidate loop doesn't recompute them per candidate. It must be per-context — a FRESH context
+    // reflects current state (no global leak) — and stable WITHIN a context.
+    test('contextFor memo: stable within a context, fresh across contexts (no leak)', () => {
+        const state = pool(1000);
+        const inventory = new Inventory();
+        const world = new BootstrapWorld(inventory);
+        inventory.createInstance({ archetypeId: 'pencil', owner: { kind: 'world' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        const { deps, actions } = makeDeps(state, 1000, world, inventory);
+
+        const ctx1 = actions.contextFor('a', deps);
+        // Repeated identical queries are stable within one context (the memo path).
+        expect(ctx1.objectAtLocation!({ archetype: 'pencil' })).toBe(true);
+        expect(ctx1.objectAtLocation!({ archetype: 'pencil' })).toBe(true);
+        expect(ctx1.getAttr('age')).toBe(ctx1.getAttr('age'));
+        expect(ctx1.getAttr('age')).toBe(30);
+
+        // A different backing (no pencil) → a fresh context sees the new state; the earlier memo never leaks.
+        const emptyInv = new Inventory();
+        const emptyDeps = makeDeps(state, 1000, new BootstrapWorld(emptyInv), emptyInv).deps;
+        expect(actions.contextFor('a', emptyDeps).objectAtLocation!({ archetype: 'pencil' })).toBe(false);
+        // And the original context still reads its own (memoized) backing — proving isolation, not mutation.
+        expect(ctx1.objectAtLocation!({ archetype: 'pencil' })).toBe(true);
+    });
+
     test('same seed → identical logs; state round-trips and the instance counter continues', () => {
         const run = () => {
             const state = pool(1000);

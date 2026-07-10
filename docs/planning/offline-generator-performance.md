@@ -355,3 +355,69 @@ Landed after 078; **not** part of per-agent cost, listed so the picture is compl
   flush holds hundreds of thousands of entries, and spreading that many args **overflows the call stack**. Use a
   running-loop min/max (or chunk) for any large array — never spread it into function args. (`util/compress`
   already chunks `String.fromCharCode` at 32 KB for the same reason.)
+
+---
+
+## 11. Task 079 results — what the finer profiler found (and the fixes)
+
+Written 2026-07-10 at the end of task 079 (PR TBD). Following §10's mandate, the **first** change was making
+`--profile` finer: `TickProfiler` now carries an optional `SubProfiler` (`types/Execution.ts`) that Brain and
+the ActionEngine accumulate into — **per-Brain-hook** wall-clock (+ `resolveIntents`) and **per-advance-sub-phase**
+(materialize/pool/sequence/completeWhen), with `finish()` split internally (consequence-plan / log / onComplete
+event). Zero overhead when off (a null clock). Again **the §10 hypotheses were mostly wrong** — the profiler
+found two costs neither §10 bullet named as the top item:
+
+### The two real bottlenecks
+
+Finer `--profile` (250 agents, 360 daily steps, reduced manifest, no action log):
+
+| sub-phase | before | after | what it was |
+|---|---|---|---|
+| **`advance:finish:onCompleteEvent`** | **72.0 µs** | **~10.6 µs** | a free-time action completes every step (a day-long step finishes the few-hour action) → fires its `onComplete` **manual event via `EventEngine.invoke`**, whose per-call cost was dominated by `Object.keys(state.people).filter(isAliveAt).sort()` — the **whole pool incl. the dead**, rebuilt every call, **growing over the run** — plus a `fakerPT_BR.seed()` every call |
+| **`hook:idleFallback` + `hook:wokeUp`** | **86.7 µs** | **~40 µs** | both call `selectFreeTimeAction` for the *same idle-just-woken person the same step*, computing the **identical** deterministic pick twice |
+
+So the top cost wasn't the free-time predicate scan (§10's lead suspect) or the pool children (§10's actions
+suspect) — it was **`invoke` rebuilding an O(whole-pool) agent list on the action-completion path** (a
+078-style unbounded/growing scan, hidden one layer down in an *event* call the `actions` bucket paid for) and a
+**doubled free-time selection**.
+
+### Fixes (all byte-identical — verified: a fixed-seed asset hashes identically to `main`)
+
+1. **`invoke` fast paths (`EventEngine`).** Precompute per event (at construction) `invokeNeedsCandidateSearch`
+   (has a role with a `where` search) and `invokeUsesFaker` (has a `birth` effect). Build the sorted living-agent
+   list **only** for candidate-search events (subject-only events — nearly all action `onComplete`/`onStart` and
+   most manual events — skip the O(whole-pool) filter+sort); seed faker **only** for birth events. Both are
+   invisible: unused agents were never iterated, and faker is drawn only by birth (which still reseeds
+   identically). *This is the headline win, and it also removes the run-growth term.*
+2. **Per-(person, tick) free-time memo (`Brain`).** `selectFreeTimeAction` is a pure function of
+   (worldSeed, tick, personId, context), and within one tick's proposal phase a person's context is stable
+   (hooks only propose; actions start later). A transient memo (keyed by the tick, cleared on advance) returns
+   the same pick the second caller asks for. Not serialized → Brain stays stateless across saves.
+3. **Per-context memos (`ActionEngine.contextFor`).** One context is reused across a whole candidate loop, and
+   the person is immutable for its life — so cache `getAttr` results, the objects-here list, and the carried
+   list per context instead of recomputing per candidate.
+4. **Social candidate precompute (`SocialOpportunity`).** Mirror `Brain.freeTimeCandidates`: cache (per manifest,
+   via a `WeakMap`) the ~19 person-targeted actions so the hook stops re-scanning all ~260 actions each eligible tick.
+
+### Net result (µs/agent-step, daily, logical world on, 250 agents)
+
+| bucket | before (§10) | after |
+|---|---|---|
+| actions | 75.60 | ~15.2 |
+| brain | 124.37 | ~76 |
+| **TOTAL** | **206.35** | **~98** |
+
+**~54% faster** (0.21 → ~0.10 ms/agent-step), and the removed `invoke` agent-list build means the completion
+path no longer **grows** with the accumulating deceased pool — so a long run gains more than this 1-year
+snapshot shows. Determinism proven two ways: all 637 unit tests pass (incl. the `arcScenarios` live↔bootstrap
+keystone and the `eventEligibility` bit-identical invariant), and a fixed-seed generated asset is **byte-identical**
+to `main`. `generatorVersion` is **unchanged** (078.0) precisely because the asset didn't change.
+
+### Takeaway for the next pass
+Remaining per-agent cost is honest work with no single dominant term: `brain` ~76 µs (free-time selection compute
+~40 µs in whichever of wokeUp/idleFallback runs first; `socialOpportunity` ~18 µs dominated by `peopleAt`+filter
+for *every* idle person; `inventoryOpportunity` ~11 µs), and `actions` ~15 µs (the residual `invoke` cost of the
+onComplete commit, now cheap). Candidate levers if more is wanted: share ONE context per (person, tick) across
+hooks (so the attr memo spans them), a cheap early-out before `socialOpportunity`'s `peopleAt`, or (bigger) cache
+the free-time *filtered candidate set* across ticks while the person's context signature is unchanged. Profile
+first — the record here is two-for-two that the ranked guesses were wrong.

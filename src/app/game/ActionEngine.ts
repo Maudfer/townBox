@@ -38,7 +38,7 @@ import { EventLink,
 } from 'types/Action';
 import { TickResult } from 'types/LifeEvent';
 import { PersonId, PopulationState } from 'types/Genealogy';
-import { ExecutionContext, TransitionHandle } from 'types/Execution';
+import { ExecutionContext, SubProfiler, TransitionHandle } from 'types/Execution';
 import { SimulationContext, HasEventQuery, ObjectQuery, Value } from 'types/Simulation';
 import { locationKey, parseLocationKey } from 'types/Objects';
 import { hourOfTick } from 'util/time';
@@ -86,6 +86,10 @@ export default class ActionEngine {
     // discrete, the one-active-continuous rule blocks a second, and history lives in the LifeLog), so both the
     // scan set and memory stay bounded over a centuries-long run.
     private activeByPerson: Map<PersonId, Set<ActionInstanceId>>;
+    // Transient --profile sub-timer (task 079), set for the duration of an advance() call so finish() can
+    // attribute its internal cost (consequence planning / log append / onComplete event fire) without every
+    // caller threading it. Undefined outside profiled advances (finish from interrupt etc. isn't sub-timed).
+    private advanceSub: SubProfiler | undefined;
 
     constructor(manifest: ActionManifest = DEFAULT_ACTION_MANIFEST, lifeLog: LifeLog = new LifeLog(), oar: OARTable = DEFAULT_OAR_TABLE) {
         this.manifest = manifest;
@@ -239,15 +243,42 @@ export default class ActionEngine {
             }
             return true;
         };
+        // Per-context memos (task 079): a single context is reused across an entire candidate loop (free-time
+        // selection scans ~all leisure actions; the social hook scans the person-targeted repertoire), and the
+        // person's state is immutable for that context's life. So the same attribute / objects-here list /
+        // carried list would otherwise be recomputed once per candidate — cache them per context instead.
+        // Byte-identical: same reads, just not repeated.
+        const attrMemo = new Map<string, Value | Value[] | undefined>();
+        let objectsHere: string[] | null = null;
+        const objectsHereList = (): string[] => {
+            if (objectsHere === null) {
+                objectsHere = world ? world.objectsAt(world.objectLocationOf(personId)) : [];
+            }
+            return objectsHere;
+        };
+        let carriedHere: ReturnType<Inventory['carriedInstances']> | null = null;
+        const carriedList = (): ReturnType<Inventory['carriedInstances']> => {
+            if (carriedHere === null) {
+                carriedHere = inventory ? inventory.carriedInstances(personId) : [];
+            }
+            return carriedHere;
+        };
         return {
             getAttr: (name: string) => {
+                const cached = attrMemo.get(name);
+                if (cached !== undefined || attrMemo.has(name)) {
+                    return cached;
+                }
+                let value: Value | Value[] | undefined;
                 if (name === 'locationKey') {
-                    return world ? locationKey(world.locationOf(personId)) : undefined;
+                    value = world ? locationKey(world.locationOf(personId)) : undefined;
+                } else if (name === 'hourOfDay') {
+                    value = hourOfTick(deps.tick);
+                } else {
+                    value = base.getAttr(name);
                 }
-                if (name === 'hourOfDay') {
-                    return hourOfTick(deps.tick);
-                }
-                return base.getAttr(name);
+                attrMemo.set(name, value);
+                return value;
             },
             hasEvent: (eventId, query) => base.hasEvent(eventId, query),
             role: name => base.role(name),
@@ -260,14 +291,14 @@ export default class ActionEngine {
                 if (query.archetype !== undefined && !query.tag && !query.flag) {
                     return inventory.carriesArchetype(personId, query.archetype);
                 }
-                return inventory.carriedInstances(personId).some(instance => matches(instance.id, query));
+                return carriedList().some(instance => matches(instance.id, query));
             },
             objectAtLocation: rawQuery => {
                 const query = ActionEngine.resolveQuery(rawQuery, params);
                 if (!world || !inventory || !query) {
                     return false;
                 }
-                return world.objectsAt(world.objectLocationOf(personId)).some(id => matches(id, query));
+                return objectsHereList().some(id => matches(id, query));
             },
         };
     }
@@ -501,11 +532,21 @@ export default class ActionEngine {
 
     // Advances every active instance one tick: waiting instances re-check their transition, running ones
     // process children and completion conditions. Returns the world changes (events fired by lifecycles).
-    advance(deps: ActionDeps): TickResult {
+    advance(deps: ActionDeps, sub?: SubProfiler): TickResult {
         const result: TickResult = { died: [], born: [], signals: [], committed: [] };
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(0xac7);
+        // Optional --profile sub-timing (task 079): attribute advance cost to materialize/pool/sequence/
+        // completeWhen. `clock` null (branches skipped) when no SubProfiler is threaded → live play pays nothing.
+        const clock = sub ? () => performance.now() : null;
+        const addSub = (phase: string, t0: number): void => {
+            if (sub && clock) {
+                sub.actionsAdvance[phase] = (sub.actionsAdvance[phase] ?? 0) + (clock() - t0);
+            }
+        };
+        this.advanceSub = sub;
         // Iterate the active index (task 078) instead of scanning every instance ever created. Snapshotted to
         // an array first so finishes/starts during the loop don't mutate what we're iterating.
+        const tScan = clock ? clock() : 0;
         const active: ActionInstance[] = [];
         for (const set of this.activeByPerson.values()) {
             for (const id of set) {
@@ -516,44 +557,66 @@ export default class ActionEngine {
             }
         }
         active.sort((a, b) => a.id.localeCompare(b.id));
+        addSub('scan', tScan);
 
         for (const instance of active) {
+            const tAlive = clock ? clock() : 0;
             const person = deps.state.people[instance.personId];
             if (!person || !isAliveAt(person, deps.tick)) {
                 this.finish(instance, 'interrupted', { source: 'system', causationId: null }, deps, result);
+                addSub('aliveOrDead', tAlive);
                 continue;
             }
+            addSub('aliveOrDead', tAlive);
             if (instance.status === 'pending' || instance.status === 'waiting_for_materialization') {
+                const tMat = clock ? clock() : 0;
                 this.materialize(instance, { source: 'system', causationId: instance.causationId }, deps, result);
+                addSub('materialize', tMat);
                 continue; // materializing consumes the tick; children start next tick
             }
 
+            const tSpine = clock ? clock() : 0;
             instance.ticksRun += Math.max(1, deps.ticksPerStep ?? 1);
             instance.lastPoolChild = null;
             const def = this.manifest[instance.defId]!;
+            addSub('spine', tSpine);
 
             if (def.children?.mode === 'pool') {
+                const tPool = clock ? clock() : 0;
                 this.runPool(instance, def.children.entries, rng, deps, result);
+                addSub('pool', tPool);
             } else if (def.children?.mode === 'sequence') {
+                const tSeq = clock ? clock() : 0;
                 const finished = this.runSequenceStep(instance, def.children.steps, def.children.onStepFailure ?? 'blockParent', deps, result);
                 if (finished !== null) {
                     this.finish(instance, finished, { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                    addSub('sequence', tSeq);
                     continue;
                 }
                 if (instance.sequenceIndex >= def.children.steps.length) {
                     this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                    addSub('sequence', tSeq);
                     continue;
                 }
+                addSub('sequence', tSeq);
             }
 
             if (def.durationTicks !== undefined && instance.ticksRun >= def.durationTicks) {
+                const tDur = clock ? clock() : 0;
                 this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                addSub('durationFinish', tDur);
                 continue;
             }
-            if (def.completeWhen && evaluatePredicate(def.completeWhen, this.contextFor(instance.personId, deps, instance.params))) {
-                this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+            if (def.completeWhen) {
+                const tComplete = clock ? clock() : 0;
+                const done = evaluatePredicate(def.completeWhen, this.contextFor(instance.personId, deps, instance.params));
+                if (done) {
+                    this.finish(instance, 'completed', { source: 'system', causationId: instance.startLogSeq }, deps, result);
+                }
+                addSub('completeWhen', tComplete);
             }
         }
+        this.advanceSub = undefined;
         return result;
     }
 
@@ -574,32 +637,47 @@ export default class ActionEngine {
         // Completion consequences (task 044): planned before the outcome is logged — an unsatisfiable plan
         // turns the completion into a failure with zero mutations. Outputs are seeded from the sequence's
         // bound outputs, so the parent can validate/transfer the final child output WITHOUT duplicating it.
+        // --profile finish-internal sub-timers (task 079): only when inside a profiled advance().
+        const fsub = this.advanceSub;
+        const fclock = fsub ? () => performance.now() : null;
+        const addF = (phase: string, t0: number): void => {
+            if (fsub && fclock) {
+                fsub.actionsAdvance[phase] = (fsub.actionsAdvance[phase] ?? 0) + (fclock() - t0);
+            }
+        };
+
         let completionCtx: CommitContext | null = null;
         let completionPlan: { steps: (() => void)[] } | null = null;
         if (outcome === 'completed' && def.consequences) {
+            const tPlan = fclock ? fclock() : 0;
             completionCtx = { personId: instance.personId, params: instance.params, outputs: { ...instance.previousOutputs }, causationId: instance.startLogSeq, deps, result };
             completionPlan = planConsequences(def.consequences, completionCtx, new Set());
             if (!completionPlan) {
                 outcome = 'failed';
                 failureReason = 'inputs_unavailable';
             }
+            addF('finish:consequencePlan', tPlan);
         }
 
         instance.status = outcome;
         instance.outcome = outcome;
         instance.endedTick = deps.tick;
         this.handles.delete(instance.id);
+        const tLog = fclock ? fclock() : 0;
         const seq = this.lifeLog.append(instance.personId, {
             tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: outcome,
             params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
             ...(failureReason ? { failureReason } : {}),
         });
+        addF('finish:log', tLog);
         if (outcome === 'completed') {
             if (completionCtx && completionPlan) {
                 completionCtx.causationId = seq;
                 applyPlan(completionPlan);
             }
+            const tEvent = fclock ? fclock() : 0;
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
+            addF('finish:onCompleteEvent', tEvent);
         } else if (outcome === 'interrupted') {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
         }

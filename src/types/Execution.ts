@@ -59,3 +59,21 @@ export interface ExecutionContext {
     world: WorldAdapter;
     markets: SimulationMarkets;
 }
+
+// Optional finer per-phase attribution for the offline generator's --profile mode (task 079). The coarse
+// TickProfiler (game/TickRunner) buckets to actions/events/progression/brain; when a SubProfiler is threaded
+// through, Brain and the Action engine additionally accumulate per-hook and per-advance-sub-phase wall-clock
+// so the dominant part of `brain` (~60%) and `actions` (~37%) can be pinpointed. Purely diagnostic — reading
+// the clock never affects logic or the RNG stream, so determinism is untouched. Lives here (a neutral types
+// home) so Brain/ActionEngine don't take a type-only import cycle on TickRunner.
+export interface SubProfiler {
+    // Per-Brain-hook propose() wall-clock, keyed by hook id (jobOrchestrator/schoolObligation/wokeUp/
+    // socialOpportunity/inventoryOpportunity/idleFallback). idleFallback ≈ free-time selection cost;
+    // inventoryOpportunity ≈ context build + object scans; socialOpportunity ≈ the 15%-gated manifest scan.
+    brainHooks: Record<string, number>;
+    // Intent arbitration + execution (resolveIntents → startAction/interrupt), incl. discrete-action
+    // consequence planning and the consent-decline dispatch.
+    brainResolve: number;
+    // ActionEngine.advance sub-phases, keyed by phase (materialize/pool/sequence/completeWhen).
+    actionsAdvance: Record<string, number>;
+}

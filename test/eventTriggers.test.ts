@@ -46,6 +46,14 @@ const MANIFEST: EventManifest = {
         triggers: { manual: { requiredBindings: ['recipient'] } },
         effects: [],
     },
+    // Manual event with an UNPINNED co-participant `where` role — invoke must build the living-agent list and
+    // resolve the friend via candidate search (task 079: the fast-path skips that build only for subject-only
+    // events; a where-role event must still search).
+    found_friend: {
+        roles: { subject: alive, friend: { where: { attr: 'alive', op: '==', value: true } } },
+        triggers: { manual: {} },
+        effects: [{ type: 'emit', signal: 'befriended', target: 'friend' }],
+    },
     // Automated atHour rule: fires daily at 07:00 for every eligible subject, limited to once per day.
     woke_up: {
         roles: { subject: alive },
@@ -100,6 +108,20 @@ describe('manual invocation (task 042)', () => {
         // A dead pinned target fails role resolution.
         state.people['b']!.deathTick = 900;
         expect(engine.invoke(state, 'gave_gift', 'a', 1001, TPY, { source: 'brain', causationId: null }, { recipient: 'b' }).outcome).toEqual({ ok: false, reason: 'rolesUnresolved' });
+    });
+
+    test('an unpinned where-role is resolved by candidate search (invoke builds the agent list)', () => {
+        const engine = new EventEngine(MANIFEST);
+        const state = pool(1000);
+        const { outcome, result } = engine.invoke(state, 'found_friend', 'a', 1000, TPY, { source: 'brain', causationId: null });
+        expect(outcome.ok).toBe(true);
+        // 'b' is the only other living candidate → the search binds it (fails to 'rolesUnresolved' if the
+        // living-agent list weren't built for this where-role event).
+        expect((engine.getPersonLog('a')[0] as EventLogEntry).roles).toEqual({ subject: 'a', friend: 'b' });
+        expect(result.signals[0]).toMatchObject({ signal: 'befriended' });
+        // With no other living candidate, the same search finds nobody → typed rejection.
+        state.people['b']!.deathTick = 900;
+        expect(engine.invoke(state, 'found_friend', 'a', 1001, TPY, { source: 'brain', causationId: null }).outcome).toEqual({ ok: false, reason: 'rolesUnresolved' });
     });
 });
 

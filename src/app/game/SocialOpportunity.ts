@@ -13,8 +13,30 @@ import { ActionIntent, BrainHook, HookContext, DEFAULT_SELECTION_WEIGHT } from '
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { evaluatePredicate } from 'util/predicate';
 
+import { ActionDefinition, ActionManifest } from 'types/Action';
+
 export const SOCIAL_SALT = 0x50c;
 const SOCIAL_CHANCE_PER_TICK = 0.15;
+
+// The person-targeted candidate set (task 079): which actions the social hook can even consider — an
+// `interaction` block and a positive base weight — depends only on the manifest, so it is computed once per
+// manifest instead of re-scanning all ~260 actions (mostly non-interaction) on every eligible tick. The
+// per-call work (target/object binding, cooldown, requirements, modifiers, the seeded pick) is unchanged, so
+// selection stays byte-identical. A WeakMap keys on the manifest so tests with custom manifests stay correct.
+const socialCandidateCache = new WeakMap<ActionManifest, { actionId: string; def: ActionDefinition }[]>();
+function socialCandidates(manifest: ActionManifest): { actionId: string; def: ActionDefinition }[] {
+    let cached = socialCandidateCache.get(manifest);
+    if (!cached) {
+        cached = [];
+        for (const [actionId, def] of Object.entries(manifest)) {
+            if (def.interaction && (def.selection?.weight ?? DEFAULT_SELECTION_WEIGHT) > 0) {
+                cached.push({ actionId, def });
+            }
+        }
+        socialCandidateCache.set(manifest, cached);
+    }
+    return cached;
+}
 
 export const socialOpportunityHook: BrainHook = {
     id: 'socialOpportunity',
@@ -49,16 +71,13 @@ export const socialOpportunityHook: BrainHook = {
             .sort((a, b) => a.id.localeCompare(b.id));
 
         const candidates: { actionId: string; weight: number; objectParam: string | null }[] = [];
-        for (const [actionId, def] of Object.entries(engine.getManifest())) {
-            if (!def.interaction) {
-                continue;
-            }
+        for (const { actionId, def } of socialCandidates(engine.getManifest())) {
             // The hook can bind the target and (for return-style actions) ONE borrowed object instance;
             // any other required parameter is unbindable here — never propose an unstartable intent.
             let objectParam: string | null = null;
             let bindable = true;
             for (const [name, spec] of Object.entries(def.parameters ?? {})) {
-                if (!spec.required || name === def.interaction.targetParam) {
+                if (!spec.required || name === def.interaction!.targetParam) {
                     continue;
                 }
                 if (spec.type === 'objectInstance' && objectParam === null && borrowed.length > 0) {
@@ -71,9 +90,6 @@ export const socialOpportunityHook: BrainHook = {
                 continue;
             }
             let weight = def.selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
-            if (weight <= 0) {
-                continue;
-            }
             if (def.selection?.cooldownTicks !== undefined && engine.hasAction(personId, actionId, deps.tick, { withinTicks: def.selection.cooldownTicks })) {
                 continue;
             }

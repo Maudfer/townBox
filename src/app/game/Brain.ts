@@ -24,6 +24,7 @@ import { isOnShiftAtTick } from 'util/shifts';
 
 import { TickResult } from 'types/LifeEvent';
 import { ActionDefinition } from 'types/Action';
+import { SubProfiler } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
 import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
@@ -107,6 +108,14 @@ export default class Brain {
     // work) per idle person per tick. The per-call work (cooldown, requirement predicate, dynamic modifiers,
     // the seeded weighted pick) is unchanged, so selection stays byte-identical.
     private freeTimeCandidates: { actionId: string; def: ActionDefinition; baseWeight: number }[] | null = null;
+    // Per-(person, tick) free-time selection memo (task 079). `selectFreeTimeAction` is a pure function of
+    // (worldSeed, tick, personId, context), and within one tick's proposal phase a person's context is stable
+    // (hooks only PROPOSE; actions start later in resolveIntents). Both wokeUp and idleFallback call it for the
+    // same idle-just-woken person each step, so it was computed twice identically — this cache returns the same
+    // pick the second time. TRANSIENT: keyed by the tick it was built for, cleared when the tick advances, so
+    // nothing new serializes (Brain stays stateless across saves) and the result is byte-identical in both modes.
+    private freeTimeMemo = new Map<PersonId, string | null>();
+    private freeTimeMemoTick: number | null = null;
 
     constructor(actionEngine: ActionEngine) {
         this.actionEngine = actionEngine;
@@ -156,7 +165,7 @@ export default class Brain {
 
     // Lifecycle phase 7 (038 §3.1): run hooks for every agent, resolve intents, and execute through the
     // Action engine (phase 8). `committed` carries the tick's event commits for onEventCommitted hooks.
-    processTick(agentIds: PersonId[], deps: BrainDeps, committed: TickResult['committed'], result: TickResult): void {
+    processTick(agentIds: PersonId[], deps: BrainDeps, committed: TickResult['committed'], result: TickResult, sub?: SubProfiler): void {
         const committedByPerson = new Map<PersonId, { eventId: string; seq: number }[]>();
         for (const commit of committed) {
             const list = committedByPerson.get(commit.personId) ?? [];
@@ -164,9 +173,13 @@ export default class Brain {
             committedByPerson.set(commit.personId, list);
         }
 
+        // Optional --profile sub-timing (task 079): per-hook + arbitration wall-clock. `clock` is null (and the
+        // per-hook branches skipped) when no SubProfiler is threaded, so live play pays nothing.
+        const clock = sub ? () => performance.now() : null;
         for (const personId of [...agentIds].sort()) {
             const intents: ActionIntent[] = [];
             for (const hook of this.hooks) {
+                const t0 = clock ? clock() : 0;
                 if (hook.kind === 'onTick') {
                     intents.push(...hook.propose({ personId, deps, brain: this }));
                 } else if (hook.kind === 'onEventCommitted') {
@@ -177,8 +190,15 @@ export default class Brain {
                 // onActionFailed is dispatched separately by the decline path (resolveIntents, task 073); the
                 // remaining reserved kinds have no producer yet (see the HookKind note). idleFallback (onTick)
                 // covers post-completion selection here, so no completion dispatch is needed.
+                if (sub && clock) {
+                    sub.brainHooks[hook.id] = (sub.brainHooks[hook.id] ?? 0) + (clock() - t0);
+                }
             }
+            const tResolve = clock ? clock() : 0;
             this.resolveIntents(personId, intents, deps, result);
+            if (sub && clock) {
+                sub.brainResolve += clock() - tResolve;
+            }
         }
     }
 
@@ -269,6 +289,21 @@ export default class Brain {
     }
 
     selectFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
+        // Serve from the per-tick memo when this person's pick was already computed this tick (see field docs).
+        if (this.freeTimeMemoTick !== deps.tick) {
+            this.freeTimeMemo.clear();
+            this.freeTimeMemoTick = deps.tick;
+        }
+        const memoized = this.freeTimeMemo.get(personId);
+        if (memoized !== undefined) {
+            return memoized;
+        }
+        const pick = this.computeFreeTimeAction(personId, deps);
+        this.freeTimeMemo.set(personId, pick);
+        return pick;
+    }
+
+    private computeFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
         const context = this.actionEngine.contextFor(personId, deps);
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {

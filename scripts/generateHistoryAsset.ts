@@ -291,6 +291,24 @@ async function main(): Promise<void> {
         row('snapshot', p.snapshot);
         row('other', p.other);
         console.log(`    ${'TOTAL'.padEnd(12)} ${perAgentUs(p.total).padStart(8)} µs   ${(stats.profile.total / 1000).toFixed(1)}s`);
+
+        // Finer attribution (task 079): the brain bucket split per-hook + arbitration, and the actions bucket
+        // split per advance sub-phase. Sorted heaviest-first so the dominant cost is obvious at a glance.
+        const subRow = (label: string, ms: number) => console.log(`      ${label.padEnd(20)} ${perAgentUs(ms).padStart(8)} µs   ${pct(ms).padStart(5)}%`);
+        const sortedEntries = (record: Record<string, number>) => Object.entries(record).sort((a, b) => b[1] - a[1]);
+        if (p.brainHooks) {
+            console.log(`\n    brain breakdown (µs/agent-step, share of TOTAL):`);
+            for (const [hook, ms] of sortedEntries(p.brainHooks)) {
+                subRow(`hook:${hook}`, ms);
+            }
+            subRow('resolveIntents', p.brainResolve ?? 0);
+        }
+        if (p.actionsAdvance) {
+            console.log(`\n    actions breakdown (µs/agent-step, share of TOTAL):`);
+            for (const [phase, ms] of sortedEntries(p.actionsAdvance)) {
+                subRow(`advance:${phase}`, ms);
+            }
+        }
     }
     console.log('  population trajectory (per decade):');
     for (const point of stats.trajectory) {
