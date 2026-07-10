@@ -16,8 +16,8 @@ import SchoolRegistry from 'game/SchoolRegistry';
 import SkillBook from 'game/SkillBook';
 import SocialLife from 'game/SocialLife';
 import SaveManager from 'game/save/SaveManager';
-import { loadCommittedAsset } from 'game/HistoryAssetSource';
-import { selectStartingWorld } from 'game/HistoryAssetSelection';
+import { loadCommittedAsset, loadSelectedWorldFromHttp } from 'game/HistoryAssetSource';
+import { selectStartingWorld, SelectedWorld } from 'game/HistoryAssetSelection';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';
@@ -214,7 +214,7 @@ export default class GameManager {
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.
             // Skipped on load (the saved pool + history already carry it).
             if (this.pendingLoad === null) {
-                this.startNewGameWorld();
+                await this.startNewGameWorld();
             }
 
             this.emit("gameInitialized", this);
@@ -228,42 +228,48 @@ export default class GameManager {
         this.on("update", { callback: this.advanceTime, context: this });
     }
 
-    // Sets up a fresh game's world (task 055 Part B). Picks a random per-game seed and, if a committed history
-    // asset is present, SELECTS a window from it (rebased to tick 0, identities re-randomized) and installs the
-    // sliced pool + event history/log. If no compatible asset is committed, cold-starts a plain generated pool
-    // with empty histories (§3.7). Fast either way — the retired 036 loading-screen bootstrap is gone.
-    private startNewGameWorld(): void {
+    // Sets up a fresh game's world (task 055/077 Part B). Picks a random per-game seed and SELECTS a window
+    // from a committed history asset (rebased to tick 0, identities re-randomized), installing the sliced pool
+    // + histories/skills/possessions. Source order: the newest SHARDED asset served over HTTP (the generator's
+    // default output, fetched chunk-wise), then a small inline single-file asset, then a cold-start plain pool
+    // if neither is present (§3.7). Async because the sharded path fetches only the shards the window needs.
+    private async startNewGameWorld(): Promise<void> {
         const population = this.population;
         if (!population) {
             return;
         }
         const worldSeed = (Math.random() * 0x100000000) >>> 0;
 
-        const asset = loadCommittedAsset();
-        const selected = asset ? selectStartingWorld(asset, worldSeed) : null;
+        // 1) The sharded asset served over HTTP (loads only the shards up to the chosen window).
+        let selected = await loadSelectedWorldFromHttp(worldSeed);
+        // 2) Fallback: a committed single-file asset (small assets / fixtures).
+        if (!selected) {
+            const asset = loadCommittedAsset();
+            selected = asset ? selectStartingWorld(asset, worldSeed) : null;
+        }
         if (selected) {
-            population.loadState(selected.population);
-            this.eventEngine?.loadHistory(selected.eventHistory);
-            this.eventEngine?.loadLog(selected.eventLog, selected.eventLogSeq);
-            // Lived skills + carried possessions (task 077), when the asset carries them. Installing the
-            // SkillBook (with its `initialized` set) makes City.setupHousehold's initialize() a no-op for these
-            // people, so their real proficiency survives materialization instead of being re-synthesized.
-            if (selected.skillBook) {
-                this.skillBook?.loadState(selected.skillBook);
-            }
-            if (selected.objects) {
-                this.inventory?.loadState(selected.objects);
-            }
+            this.installSelectedWorld(selected);
             return;
         }
 
-        // Fallback: no committed asset (or an incompatible one) — cold-start (the pre-036 behaviour).
-        if (!asset) {
-            console.info("[GameManager] No committed history asset; starting from a cold-start pool.");
-        } else {
-            console.warn("[GameManager] History asset incompatible; starting from a cold-start pool.");
-        }
+        // 3) No committed asset — cold-start a plain generated pool (the pre-036 behaviour).
+        console.info("[GameManager] No committed history asset; starting from a cold-start pool.");
         population.generate(worldSeed);
+    }
+
+    // Installs a selected asset window into the live systems. Installing the SkillBook (with its `initialized`
+    // set) makes City.setupHousehold's initialize() a no-op for these people, so their real proficiency
+    // survives materialization instead of being re-synthesized (task 077).
+    private installSelectedWorld(selected: SelectedWorld): void {
+        this.population?.loadState(selected.population);
+        this.eventEngine?.loadHistory(selected.eventHistory);
+        this.eventEngine?.loadLog(selected.eventLog, selected.eventLogSeq);
+        if (selected.skillBook) {
+            this.skillBook?.loadState(selected.skillBook);
+        }
+        if (selected.objects) {
+            this.inventory?.loadState(selected.objects);
+        }
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:
