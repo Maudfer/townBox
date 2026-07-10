@@ -20,6 +20,7 @@ import {
     isWeekendTick,
     formatTimestamp,
     formatTick,
+    formatDuration,
 } from '../src/util/time';
 import Clock from '../src/app/game/Clock';
 import { DEFAULT_POPULATION_PARAMS } from '../src/app/game/Population';
@@ -212,5 +213,28 @@ describe('Clock', () => {
         const ticksPerYear = clock.getTicksPerYear();
         expect(tick).toBe(100 * DAYS_PER_YEAR * 24);
         expect(Math.floor((tick - 0) / ticksPerYear)).toBe(100);
+    });
+});
+
+describe('formatDuration — human runtime readout', () => {
+    const S = 1000, M = 60 * S, H = 60 * M, D = 24 * H;
+
+    test('drops leading zero units left to right but always keeps seconds', () => {
+        expect(formatDuration(4 * M)).toBe('4 min 0 s');       // the requested example
+        expect(formatDuration(0)).toBe('0 s');
+        expect(formatDuration(400)).toBe('0 s');               // sub-second rounds down to 0 s
+        expect(formatDuration(43 * S)).toBe('43 s');
+        expect(formatDuration(90 * M)).toBe('1 h 30 min 0 s'); // hours shown → lower units kept incl. zeros
+    });
+
+    test('keeps every lower unit once a higher one is shown (interior zeros stay)', () => {
+        expect(formatDuration(2 * D + 5 * M + 3 * S)).toBe('2 d 0 h 5 min 3 s'); // zero hours retained
+        expect(formatDuration(D + H + M + S)).toBe('1 d 1 h 1 min 1 s');
+        expect(formatDuration(3 * H)).toBe('3 h 0 min 0 s');
+    });
+
+    test('rounds to whole seconds and never emits negatives', () => {
+        expect(formatDuration(1500)).toBe('2 s'); // 1.5 s rounds to 2
+        expect(formatDuration(-5000)).toBe('0 s');
     });
 });

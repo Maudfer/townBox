@@ -211,6 +211,7 @@ export interface GenerationProgress {
     phase: GenerationPhase;
     tick: number;
     yearsDone: number;   // years into the current phase
+    monthOfYear: number; // month within `yearsDone` (0–11); 0 marks a year boundary
     living: number;
     retained: number;
 }
@@ -275,7 +276,7 @@ export class PopulationThermostat {
 }
 
 // Runs the full phased generation. Pure function of (params) apart from the wall-clock in `meta.createdAt` and
-// the optional `gitCommit`/runtime measurements the caller injects. `onProgress` reports per simulated year.
+// the optional `gitCommit`/runtime measurements the caller injects. `onProgress` reports per simulated month.
 export async function generateHistoryAsset(
     params: HistoryGeneratorParams = DEFAULT_GENERATOR_PARAMS,
     onProgress?: (progress: GenerationProgress) => void,
@@ -385,7 +386,7 @@ export async function generateHistoryAsset(
     };
     const trajectory: { year: number; living: number }[] = [];
     let lastDecadeSampled = -1;
-    let lastReportedYear = -1;
+    let lastReportedMonth = -1;
 
     const applyResult = (result: TickResult, tick: number): void => {
         for (const birth of result.born) {
@@ -475,18 +476,22 @@ export async function generateHistoryAsset(
             }
         }
 
-        // Per-decade trajectory sample + per-year progress.
+        // Per-decade trajectory sample + per-MONTH progress (task 079 follow-up: monthly granularity within
+        // the yearly milestones the CLI still surfaces separately).
         const phase: GenerationPhase = inRecording ? 'recording' : 'warmup';
         const phaseStartTick = inRecording ? epochTick! : 0;
-        const yearsDone = Math.floor((tick - phaseStartTick) / tpy);
+        const ticksIntoPhase = tick - phaseStartTick;
+        const yearsDone = Math.floor(ticksIntoPhase / tpy);
+        const monthsDone = Math.floor(ticksIntoPhase / (tpy / 12));
         const decade = Math.floor(tick / tpy / 10);
         if (decade !== lastDecadeSampled) {
             lastDecadeSampled = decade;
             trajectory.push({ year: Math.floor(tick / tpy), living: living.size });
         }
-        if (onProgress && yearsDone !== lastReportedYear) {
-            lastReportedYear = yearsDone;
-            onProgress({ phase, tick, yearsDone, living: living.size, retained: Object.keys(state.people).length });
+        if (onProgress && monthsDone !== lastReportedMonth) {
+            lastReportedMonth = monthsDone;
+            const monthOfYear = ((monthsDone % 12) + 12) % 12;
+            onProgress({ phase, tick, yearsDone, monthOfYear, living: living.size, retained: Object.keys(state.people).length });
         }
 
         tick += step;
