@@ -2,12 +2,12 @@
 // distribution mounds on 2–4; and both the coarse off-map sim and (via wantsMoreChildren) the event engine
 // respect the cap.
 
-import { sampleMaxChildren, maxChildrenForPerson, DEFAULT_CHILDREN_WILLINGNESS } from 'util/fertility';
-import { SeededRandom } from 'util/random';
 import { simulatePopulation, DEFAULT_SIMULATION_PARAMS } from 'game/population/Population';
-import { childrenOf } from 'util/kinship';
 import { PopulationState } from 'types/Genealogy';
 import { Genders } from 'types/Social';
+import { sampleMaxChildren, maxChildrenForPerson, DEFAULT_CHILDREN_WILLINGNESS } from 'util/fertility';
+import { childrenOf } from 'util/kinship';
+import { SeededRandom } from 'util/random';
 import { TICKS_PER_YEAR } from 'util/time';
 
 describe('sampleMaxChildren distribution', () => {

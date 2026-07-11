@@ -1,17 +1,16 @@
 import ActionEngine, { ActionDeps, DEFAULT_ACTION_MANIFEST } from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
-import Brain from 'game/actions/Brain';
-import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import { runTick } from 'game/execution/TickRunner';
-
-import { OARTable } from 'types/Action';
-import { TickResult, ActionLogEntry } from 'types/LifeEvent';
-import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders } from 'types/Social';
-import oarConfig from 'json/object-action-relationships.json';
+import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import jobsConfig from 'json/jobs.json';
+import oarConfig from 'json/object-action-relationships.json';
+import { OARTable } from 'types/Action';
 import { JobTable } from 'types/Business';
+import { PopulationState, GenPerson } from 'types/Genealogy';
+import { TickResult, ActionLogEntry } from 'types/LifeEvent';
+import { Genders } from 'types/Social';
 
 // The object-action-relationships backfill (task 053): catalog floors, reachability, and the real chains —
 // cooking alternatives, consumption depletion, tool-mediated repair, and per-job production into the

@@ -1,14 +1,13 @@
-import Field from 'game/world/Field';
-import House from 'game/world/House';
-import Workplace from 'game/world/Workplace';
+import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
 import JobMarket from 'game/economy/JobMarket';
 import SkillBook from 'game/skills/SkillBook';
-import GameManager from 'game/GameManager';
-
+import Field from 'game/world/Field';
+import House from 'game/world/House';
+import Workplace from 'game/world/Workplace';
+import { PersonId } from 'types/Genealogy';
 import { PixelPosition, TilePosition } from 'types/Position';
 import {JobPosition} from 'types/Work';
-import { PersonId } from 'types/Genealogy';
 
 function makeField(rows: number, cols: number): Field {
     const game = {

@@ -1,6 +1,6 @@
 import EventEngine from 'game/events/EventEngine';
-import { EventManifest, EventLogEntry } from 'types/LifeEvent';
 import { PopulationState, GenPerson } from 'types/Genealogy';
+import { EventManifest, EventLogEntry } from 'types/LifeEvent';
 import { Genders, Gender } from 'types/Social';
 
 // Event triggers (task 042): manual invocation, automated schedule rules (afterEvent delays, atHour sweeps),

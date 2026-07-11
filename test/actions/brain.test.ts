@@ -1,12 +1,11 @@
-import Brain, { BrainDeps, JobFacts } from 'game/actions/Brain';
 import ActionEngine from 'game/actions/ActionEngine';
+import Brain, { BrainDeps, JobFacts } from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
-import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import { runTick } from 'game/execution/TickRunner';
-
-import { TickResult, ActionLogEntry } from 'types/LifeEvent';
+import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import { PopulationState, GenPerson } from 'types/Genealogy';
+import { TickResult, ActionLogEntry } from 'types/LifeEvent';
 import { Genders } from 'types/Social';
 
 // The Brain (task 046): obligation intents, the woke-up flow, deterministic free-time selection, intent

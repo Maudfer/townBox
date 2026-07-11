@@ -1,6 +1,7 @@
 import { SchemaRegistration, ValidationIssue, assertValid, formatIssues, validateRegistrations, IssueCollector } from 'game/data/registry';
+import { allRegistrations, validateAllData } from 'game/data/schemas';
 import { validateCurve, validatePredicate } from 'game/data/substrate';
-import { validateEventsSemantics, validateEventsStructure } from 'game/data/validators/events';
+import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
 import {
     validateBusinessesSemantics,
     validateBusinessesStructure,
@@ -8,29 +9,27 @@ import {
     validateJobsSemantics,
     validateJobsStructure,
 } from 'game/data/validators/economyContent';
+import { validateEventsSemantics, validateEventsStructure } from 'game/data/validators/events';
+import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
+import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
+import { validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
+import { validatePlacementSemantics } from 'game/data/validators/placement';
+import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
     validateSkillInitStructure,
     validateSkillsSemantics,
     validateSkillsStructure,
 } from 'game/data/validators/skills';
-import { validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
-import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
-import { validatePlacementSemantics } from 'game/data/validators/placement';
-import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
-import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from 'game/data/validators/ui';
-import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
-import { allRegistrations, validateAllData } from 'game/data/schemas';
-
 import businessesConfig from 'json/businesses.json';
-import schoolsConfig from 'json/schools.json';
-import residencesConfig from 'json/residences.json';
-import objectsConfig from 'json/objects.json';
 import demandConfig from 'json/demand.json';
 import jobsConfig from 'json/jobs.json';
+import objectsConfig from 'json/objects.json';
 import populationConfig from 'json/population.json';
-import skillsConfig from 'json/skills.json';
+import residencesConfig from 'json/residences.json';
+import schoolsConfig from 'json/schools.json';
 import skillInitConfig from 'json/skillInit.json';
+import skillsConfig from 'json/skills.json';
 
 // ---------- harness ----------
 

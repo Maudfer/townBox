@@ -1,19 +1,18 @@
-import Field from 'game/world/Field';
-import House from 'game/world/House';
 import City from 'game/City';
-import Population from 'game/population/Population';
 import Clock from 'game/Clock';
-import Economy from 'game/economy/Economy';
-import EventEngine from 'game/events/EventEngine';
-import SaveManager from 'game/save/SaveManager';
 import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
-
+import Economy from 'game/economy/Economy';
+import EventEngine from 'game/events/EventEngine';
+import Population from 'game/population/Population';
+import SaveManager from 'game/save/SaveManager';
 import { SaveProvider } from 'game/save/SaveProvider';
+import Field from 'game/world/Field';
+import House from 'game/world/House';
 import { GenPerson, PersonId, PersonTable, PopulationState } from 'types/Genealogy';
 import { HouseholdArrangements } from 'types/Household';
-import { Genders, Gender } from 'types/Social';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { Genders, Gender } from 'types/Social';
 
 const TPY = 360;
 const HOUR_MS = 3_600_000;

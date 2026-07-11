@@ -1,6 +1,6 @@
-import { Predicate, ComparisonOp } from 'util/predicate';
-import { Value } from 'types/Simulation';
 import { EventManifest, EventDefinition, Effect } from 'types/LifeEvent';
+import { Value } from 'types/Simulation';
+import { Predicate, ComparisonOp } from 'util/predicate';
 
 // Engine B — the load-time event compiler (docs/tasks/013 §5.2). Like an NPM resolver, it takes events that
 // declare only their own requirements + effects and derives the whole dependency/conflict structure:

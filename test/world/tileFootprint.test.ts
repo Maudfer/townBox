@@ -1,16 +1,15 @@
-import Tile from 'game/world/Tile';
-import Soil from 'game/world/Soil';
-import Road from 'game/world/Road';
-import Building from 'game/world/Building';
-import House from 'game/world/House';
-import Person from 'game/agents/Person';
-import PathFinder from 'game/agents/PathFinder';
-import Field from 'game/world/Field';
 import GameManager from 'game/GameManager';
-
+import PathFinder from 'game/agents/PathFinder';
+import Person from 'game/agents/Person';
+import Building from 'game/world/Building';
+import Field from 'game/world/Field';
+import House from 'game/world/House';
+import Road from 'game/world/Road';
+import Soil from 'game/world/Soil';
+import Tile from 'game/world/Tile';
+import { Tool } from 'types/Cursor';
 import { CellParams } from 'types/Grid';
 import { TilePosition } from 'types/Position';
-import { Tool } from 'types/Cursor';
 
 const FOOTPRINT_TILES = 3;
 const FOOTPRINT: CellParams = { width: 48, height: 48 };

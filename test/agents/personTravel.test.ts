@@ -1,10 +1,10 @@
+import GameManager from 'game/GameManager';
+import PathFinder from 'game/agents/PathFinder';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
 import Building from 'game/world/Building';
 import Road from 'game/world/Road';
 import { TravelStep } from 'types/Travel';
-import GameManager from 'game/GameManager';
-import PathFinder from 'game/agents/PathFinder';
 
 describe('Person travel flow', () => {
   test('state machine advances', () => {

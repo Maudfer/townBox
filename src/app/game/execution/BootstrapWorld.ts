@@ -3,10 +3,10 @@
 // IMMEDIATELY — same request, same handle lifecycle, no materialization wait. Deterministic: handle ids are
 // a simple counter and no RNG is consumed.
 
-import { PersonId } from 'types/Genealogy';
-import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
-import { locationKey } from 'types/Objects';
 import Inventory from 'game/objects/Inventory';
+import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
+import { PersonId } from 'types/Genealogy';
+import { locationKey } from 'types/Objects';
 
 export default class BootstrapWorld implements WorldAdapter {
     readonly mode: SimulationMode = 'bootstrap';

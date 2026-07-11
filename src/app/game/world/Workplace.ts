@@ -1,10 +1,9 @@
-import Building from 'game/world/Building';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
-
+import Building from 'game/world/Building';
+import { BusinessInstance } from 'types/Business';
 import { WorkplaceOverview } from 'types/Social';
 import { JobPosition } from 'types/Work';
-import { BusinessInstance } from 'types/Business';
 
 const MAX_OCCUPANTS = 100;
 const MAX_VEHICLES = 40;

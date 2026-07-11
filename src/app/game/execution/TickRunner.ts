@@ -14,15 +14,14 @@
 //  9. Persist logs & deferred materialization       — logs persist via the save cadence; pending transitions
 //                                                     live in the WorldAdapter
 
-import EventEngine from 'game/events/EventEngine';
 import ActionEngine from 'game/actions/ActionEngine';
 import Brain, { JobFacts } from 'game/actions/Brain';
+import EventEngine from 'game/events/EventEngine';
 import Inventory from 'game/objects/Inventory';
 import SkillProgression from 'game/skills/SkillProgression';
-
+import { ExecutionContext, SubProfiler } from 'types/Execution';
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
-import { ExecutionContext, SubProfiler } from 'types/Execution';
 import { SchoolFacts } from 'types/School';
 import { JobPosition } from 'types/Work';
 

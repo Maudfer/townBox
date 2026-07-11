@@ -1,16 +1,13 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
-import { SeededRandom } from 'util/random';
-import { isAliveAt, spouseAt, childrenOf } from 'util/kinship';
-import { sampleMaxChildren } from 'util/fertility';
-
 import { selectHousehold, HouseholdSelection } from 'game/population/HouseholdDraw';
-
-import { Genders, Gender } from 'types/Social';
-import { GenPerson, PersonId, PersonTable, PopulationState, PopulationParams, SimulationParams, SimulationResult } from 'types/Genealogy';
-
-import populationConfig from 'json/population.json';
 import lifeSimulationConfig from 'json/lifeSimulation.json';
+import populationConfig from 'json/population.json';
+import { GenPerson, PersonId, PersonTable, PopulationState, PopulationParams, SimulationParams, SimulationResult } from 'types/Genealogy';
+import { Genders, Gender } from 'types/Social';
+import { sampleMaxChildren } from 'util/fertility';
+import { isAliveAt, spouseAt, childrenOf } from 'util/kinship';
+import { SeededRandom } from 'util/random';
 
 export const DEFAULT_POPULATION_PARAMS: PopulationParams = populationConfig as PopulationParams;
 export const DEFAULT_SIMULATION_PARAMS: SimulationParams = lifeSimulationConfig as SimulationParams;

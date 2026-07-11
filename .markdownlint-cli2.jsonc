@@ -9,7 +9,10 @@
     // Inline HTML: the docs use <HUD>, <br/>, alignment tags deliberately.
     "MD033": false,
     // First-line-heading: some docs open with a blockquote/badge.
-    "MD041": false
+    "MD041": false,
+    // Table pipe alignment: a very new, purely-cosmetic rule (not in most editor extensions). The tables
+    // here use compact/unpadded pipes deliberately — enforcing column alignment is churn with no value.
+    "MD060": false
   },
   "globs": ["**/*.md"],
   "ignores": [
@@ -19,6 +22,9 @@
     "coverage",
     "coverage-artifacts",
     // Generated docs are produced by the doc generators, not hand-edited — fix the generator, not the output.
-    "docs/generated"
+    "docs/generated",
+    // The task backlog is a frozen historical record (each file is a completed/archived ticket); not worth
+    // reformatting to lint rules.
+    "docs/tasks"
   ]
 }

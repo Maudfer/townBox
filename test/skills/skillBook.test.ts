@@ -1,12 +1,11 @@
 import SkillBook, { DEFAULT_SKILL_MANIFEST } from 'game/skills/SkillBook';
-import { compileSkills } from 'util/skillGraph';
-import { schoolDailyGain, totalEligibleSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
-import { TICKS_PER_YEAR } from 'util/time';
-import { SkillManifest } from 'types/Skill';
-import { SchoolConfig } from 'types/School';
-
 import jobsConfig from 'json/jobs.json';
 import schoolsConfig from 'json/schools.json';
+import { SchoolConfig } from 'types/School';
+import { SkillManifest } from 'types/Skill';
+import { schoolDailyGain, totalEligibleSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
+import { compileSkills } from 'util/skillGraph';
+import { TICKS_PER_YEAR } from 'util/time';
 
 // The skill model (tasks 059–062): the dependency-graph compiler, the SkillBook store (grants, gating,
 // atomic closures), and deterministic age-appropriate initialization — over the REAL 335-skill manifest.

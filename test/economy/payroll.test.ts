@@ -1,9 +1,8 @@
+import City from 'game/City';
+import GameManager from 'game/GameManager';
+import Economy from 'game/economy/Economy';
 import Field from 'game/world/Field';
 import Workplace from 'game/world/Workplace';
-import City from 'game/City';
-import Economy from 'game/economy/Economy';
-import GameManager from 'game/GameManager';
-
 import { PixelPosition, TilePosition } from 'types/Position';
 import {JobPosition} from 'types/Work';
 

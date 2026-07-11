@@ -1,7 +1,7 @@
 import EventEngine from 'game/events/EventEngine';
 import { PopulationState, GenPerson, PersonTable } from 'types/Genealogy';
-import { Genders, Gender } from 'types/Social';
 import { EventManifest } from 'types/LifeEvent';
+import { Genders, Gender } from 'types/Social';
 import { TICKS_PER_YEAR } from 'util/time';
 
 // The eligibility index (the runtime realization of the compiler's discriminant gates — the "indexKeys"
@@ -133,7 +133,7 @@ describe('eligibility index — tick cost at content scale (tasks 052/055)', () 
         }
         const perTick = (performance.now() - began) / ticks;
 
-        // eslint-disable-next-line no-console
+         
         console.info(`[eligibility-index bench] ${perTick.toFixed(2)}ms per tick (300 agents, full manifest)`);
         // Task 052 measured ~99ms/tick before the index; this landed at ~4ms plain / ~5ms under coverage
         // instrumentation locally. Shared CI runners under coverage instrumentation have been observed at

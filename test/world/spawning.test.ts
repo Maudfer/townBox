@@ -1,6 +1,6 @@
+import PathFinder from 'game/agents/PathFinder';
 import Person from 'game/agents/Person';
 import Road from 'game/world/Road';
-import PathFinder from 'game/agents/PathFinder';
 
 // Person.updateDestination uses the global Phaser.Math.RND; stub it so the wander path is exercisable in node.
 beforeAll(() => {

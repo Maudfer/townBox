@@ -5,18 +5,17 @@
 // is the plan: two ops in one set contending for the same instance is an authoring conflict that throws
 // loudly at apply time rather than corrupting silently.
 
-import Inventory from 'game/objects/Inventory';
 import { ActionDeps } from 'game/actions/ActionEngine';
-
+import Inventory from 'game/objects/Inventory';
 import {
     ConsequenceOp,
     OAREntry,
     ObjectRef,
     OwnershipTarget,
 } from 'types/Action';
-import { ObjectContainerRef, ObjectInstanceId, ObjectOwner, locationKey } from 'types/Objects';
-import { TickResult } from 'types/LifeEvent';
 import { PersonId } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
+import { ObjectContainerRef, ObjectInstanceId, ObjectOwner, locationKey } from 'types/Objects';
 import { ObjectQuery, Value } from 'types/Simulation';
 
 export interface CommitContext {

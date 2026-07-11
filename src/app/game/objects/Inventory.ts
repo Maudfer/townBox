@@ -9,6 +9,8 @@
 // through the methods below — they maintain the container index and enforce the containment invariants
 // (containers must be container archetypes; containment cycles are rejected).
 
+import objectsConfig from 'json/objects.json';
+import { PersonId } from 'types/Genealogy';
 import {
     ObjectArchetype,
     ObjectArchetypeTable,
@@ -18,10 +20,7 @@ import {
     ObjectOwner,
     InventoryState,
 } from 'types/Objects';
-import { PersonId } from 'types/Genealogy';
 import { ObjectQuery, Value } from 'types/Simulation';
-
-import objectsConfig from 'json/objects.json';
 
 export const DEFAULT_OBJECT_ARCHETYPES: ObjectArchetypeTable = objectsConfig as unknown as ObjectArchetypeTable;
 

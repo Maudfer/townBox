@@ -2,13 +2,12 @@ import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory from 'game/objects/Inventory';
-import { notificationForSignal } from 'util/notifications';
-
 import { ActionManifest } from 'types/Action';
-import { EventManifest, TickResult, EventLogEntry } from 'types/LifeEvent';
 import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders } from 'types/Social';
+import { EventManifest, TickResult, EventLogEntry } from 'types/LifeEvent';
 import { ObjectArchetype } from 'types/Objects';
+import { Genders } from 'types/Social';
+import { notificationForSignal } from 'util/notifications';
 
 // Parameterized requirements & event payloads (task 067): archetypeParam object queries, the typed event
 // payload channel (invoke → log entry → signals → feed), and the action→event payload bridge.

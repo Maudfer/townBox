@@ -1,15 +1,13 @@
-import Field from 'game/world/Field';
 import Person from 'game/agents/Person';
-import Workplace from 'game/world/Workplace';
 import SkillBook from 'game/skills/SkillBook';
-
+import Field from 'game/world/Field';
+import Workplace from 'game/world/Workplace';
+import jobsConfig from 'json/jobs.json';
+import { JobDefinition, JobRank, JobTable } from 'types/Business';
 import { PersonId } from 'types/Genealogy';
 import { JobMarket as IJobMarket } from 'types/LifeEvent';
-import { JobDefinition, JobRank, JobTable } from 'types/Business';
-import { JobPosition } from 'types/Work';
 import { SkillGrant } from 'types/Skill';
-
-import jobsConfig from 'json/jobs.json';
+import { JobPosition } from 'types/Work';
 
 // Concrete employment adapter (task 015; rank-aware since 064): the bridge between the pure event engine
 // and the materialized Workplace/Field layer. The engine consults it to derive `employed`/`canBeHired` and

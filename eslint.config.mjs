@@ -48,14 +48,33 @@ export default tseslint.config(
     },
     rules: {
       // Import hygiene (the "import problems"). TS itself already flags unresolved modules, so leave
-      // import/no-unresolved off and focus on ordering/duplication that tsc doesn't cover.
+      // import/no-unresolved off and focus on ordering/duplication that tsc doesn't cover. Enforce
+      // group order (builtin -> external -> internal) but NOT within-group alphabetization or blank
+      // lines — the codebase groups aliased imports by subsystem (game/types/json) with intentional
+      // spacing, which reads better than a flat alphabetical list.
       'import/no-unresolved': 'off',
       'import/no-duplicates': 'error',
-      'import/order': ['warn', { 'newlines-between': 'always', alphabetize: { order: 'asc' } }],
+      'import/order': ['warn', { 'newlines-between': 'ignore' }],
+      // Match the tsconfig convention: a leading underscore marks an intentionally-unused binding.
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
       // React (tsx). jsx-runtime disables the legacy "React must be in scope" rule (React 18 automatic runtime).
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
+    },
+  },
+
+  // Tests: allow `require()` (jest lazy/isolated module loading in describe blocks) and `any` (mocks
+  // and partial fixtures) — patterns that are idiomatic in the suite and not worth typing around.
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 

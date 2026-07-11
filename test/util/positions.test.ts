@@ -1,5 +1,5 @@
-import { summarizePositions } from 'util/positions';
 import {JobPosition} from 'types/Work';
+import { summarizePositions } from 'util/positions';
 
 function position(title: string, skill: string): JobPosition {
     return { title, salary: 1000, requirements: [skill], shiftStart: 540, shiftEnd: 1020 };

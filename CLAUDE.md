@@ -58,13 +58,13 @@ What does **not** exist yet: business **product output** into downstream industr
 - `npm run lint` — the broad "problems" check: `lint:md` (markdownlint, `.markdownlint-cli2.jsonc`) then `lint:js` (ESLint, `eslint.config.mjs`, `--max-warnings 0`). Reproduces the VS Code Problems panel; a forcing function (red today — fix over time, don't weaken rules). The committed configs + devDeps mean `npm install` makes the VS Code ESLint/markdownlint extensions use the SAME rules, so local and CI agree.
 - `npm run docs:sim` — regenerates `docs/generated/simulation-relationships.md` from the manifests (task 054; a checked-diff test in `npm test` fails when it's stale).
 - `npm run docs:events` — regenerates `docs/generated/event-classification.md` from the manifests (task 068; checked-diff gated).
-- **CI:** `.github/workflows/ci.yml` runs, as **separate concurrent checks**, the type check, the production build, and one `test (<module>)` job per affected module (a `changes` job path-filters which modules a PR touched — foundational/shared changes fan out to all). Each `test` job emits its own coverage report; a `coverage` job then reads them all and fails if any module is below the threshold. A broad `lint` job (ESLint + markdownlint) reproduces the VS Code Problems panel. Both `coverage` and `lint` are **advisory forcing functions** (not in `ci-success`, so they don't block merges — see §5.3). A single stable `ci-success` job aggregates the required checks — **make it the required status check** (it replaces the old monolithic `build-and-test`).
+- **CI:** `.github/workflows/ci.yml` runs, as **separate concurrent checks**, the type check, the production build, and one `test (<module>)` job per affected module (a `changes` job path-filters which modules a PR touched — foundational/shared changes fan out to all). Each `test` job emits its own coverage report; a `coverage` job then reads them all and fails if any module is below the threshold. A broad `lint` job (ESLint + markdownlint) reproduces the VS Code Problems panel and is a **blocking** required check; `coverage` remains an **advisory forcing function** (not in `ci-success` — see §5.3). A single stable `ci-success` job aggregates the required checks — **make it the required status check** (it replaces the old monolithic `build-and-test`).
 
 ### Path aliases
 
 Both `tsconfig.json` and `jest.config.js` define matching aliases. **Always import via these aliases, never via long relative paths:**
 
-```
+```text
 game/*  -> src/app/game/*
 hud/*   -> src/app/hud/*
 util/*  -> src/util/*
@@ -81,7 +81,7 @@ TypeScript is configured strictly: `strict`, `noImplicitAny`, `strictNullChecks`
 
 ## 3. Project structure
 
-```
+```text
 src/
   app/
     main.tsx              # React entrypoint; boots GameManager, mounts <HUD> on "gameInitialized"
@@ -386,7 +386,7 @@ These rules are binding for every contributor (human or AI agent).
 - **Put a test in the module folder that mirrors the code it exercises** (`test/<module>/` ↔ `src/app/game/<group>/`; `test/util/` for pure utilities). Each folder is a jest `project` and a concurrent CI check.
 - Coverage is a **per-module forcing function**: each `test (<module>)` CI job emits its own report (the module measured by its OWN tests) and the `coverage` job fails if any module is under `COVERAGE_THRESHOLD` (a single number in `jest.config.js`, currently 72% statements) via `scripts/coverage-gate.mjs`. Because the suite is integration-heavy, most modules are far below 72% in isolation today — that's deliberate pressure to grow each module's unit tests. The `coverage` check is **advisory** (not in `ci-success`, so it doesn't block merges) until modules climb; make it blocking by adding `coverage` to `ci-success`'s `needs`. Never lower `COVERAGE_THRESHOLD` to go green — write tests.
 - Code must compile cleanly under the strict `tsconfig.json` settings — no new type errors, unused locals/parameters, or implicit `any`.
-- **Lint (`npm run lint`) is a second forcing function** alongside coverage: ESLint (TS/React/import hygiene) + markdownlint reproduce the VS Code Problems panel. It's **advisory** (not in `ci-success`) today because there's a backlog; **don't add new lint problems**, chip away at the existing ones, and make `lint` blocking (add it to `ci-success`'s `needs`) once cleared. Never weaken a rule to go green.
+- **Lint (`npm run lint`) is a blocking gate**: ESLint (TS/React/import hygiene) + markdownlint reproduce the VS Code Problems panel, and `lint` is in `ci-success`'s `needs` — **keep it green** (run `npm run lint` before pushing; `eslint . --fix` handles most auto-fixables). Never weaken a rule to go green; if a rule genuinely doesn't fit, adjust it in `eslint.config.mjs`/`.markdownlint-cli2.jsonc` with a comment explaining why. Coverage stays the remaining **advisory** forcing function.
 - Do not weaken or bypass quality gates (lint, types, coverage, CI) to land a change.
 
 ### 5.4 Authoring tasks

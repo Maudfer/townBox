@@ -3,8 +3,8 @@
 // that closes the day at exactly dayEndMinutes, and the school-day lifecycle events must exist with the
 // right triggers/limits — so the schedule and the action manifest can never drift apart silently.
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkEnum, checkNumber, checkRecord, checkUnknownKeys, isRecord } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 import { validateCurve } from 'game/data/substrate';
 import { WEEKDAY_NAMES, MINUTES_PER_DAY, isWeekendDay } from 'util/time';
 

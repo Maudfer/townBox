@@ -1,5 +1,5 @@
-import { Predicate, evaluatePredicate, evaluatePredicateCached, compilePredicate } from 'util/predicate';
 import { SimulationContext, Value, HasEventQuery, ObjectQuery } from 'types/Simulation';
+import { Predicate, evaluatePredicate, evaluatePredicateCached, compilePredicate } from 'util/predicate';
 
 // A minimal fixture Context: a bag of attributes, a set of past events, and optional bound roles. Stands in
 // for the materialized-person Context that phase 013d will implement.

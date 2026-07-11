@@ -1,6 +1,6 @@
 import { generatePopulation } from 'game/population/Population';
-import { isAliveAt, ageAt, parentsOf, siblingsOf } from 'util/kinship';
 import { GenPerson, PopulationParams } from 'types/Genealogy';
+import { isAliveAt, ageAt, parentsOf, siblingsOf } from 'util/kinship';
 
 const PARAMS: PopulationParams = {
     ticksPerYear: 360,

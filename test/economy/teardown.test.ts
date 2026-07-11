@@ -1,19 +1,18 @@
-import Field from 'game/world/Field';
-import House from 'game/world/House';
-import Workplace from 'game/world/Workplace';
-import Soil from 'game/world/Soil';
 import City from 'game/City';
-import Population from 'game/population/Population';
 import Clock from 'game/Clock';
-import Economy from 'game/economy/Economy';
 import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
-
+import Economy from 'game/economy/Economy';
+import Population from 'game/population/Population';
+import Field from 'game/world/Field';
+import House from 'game/world/House';
+import Soil from 'game/world/Soil';
+import Workplace from 'game/world/Workplace';
+import { Tool } from 'types/Cursor';
 import { GenPerson, PersonId, PersonTable } from 'types/Genealogy';
 import { HouseholdArrangements } from 'types/Household';
-import { Genders, Gender } from 'types/Social';
-import { Tool } from 'types/Cursor';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { Genders, Gender } from 'types/Social';
 
 const TPY = 360;
 const HOUR_MS = 3_600_000;

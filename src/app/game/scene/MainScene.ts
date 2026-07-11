@@ -1,22 +1,20 @@
 import Phaser from 'phaser';
 
 import GameManager from 'game/GameManager';
-import Tile from 'game/world/Tile';
-import Soil from 'game/world/Soil';
-import House from 'game/world/House';
-import Workplace from 'game/world/Workplace';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
-import { directionToRadianRotation } from 'util/tools';
-
-import { PixelPosition, TilePosition } from 'types/Position';
+import House from 'game/world/House';
+import Soil from 'game/world/Soil';
+import Tile from 'game/world/Tile';
+import Workplace from 'game/world/Workplace';
+import assetManifest from 'json/assets.json';
+import config from 'json/config.json';
+import inputConfig from 'json/input.json';
+import { AssetManifest } from 'types/Assets';
 import { Cursor, Tool } from 'types/Cursor';
 import { Image, SceneConfig } from 'types/Phaser';
-import { AssetManifest } from 'types/Assets';
-
-import assetManifest from 'json/assets.json';
-import inputConfig from 'json/input.json';
-import config from 'json/config.json';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { directionToRadianRotation } from 'util/tools';
 
 type Pointer = Phaser.Input.Pointer;
 type CameraControl = Phaser.Cameras.Controls.SmoothedKeyControl | null;
@@ -45,17 +43,16 @@ export default class MainScene extends Phaser.Scene {
         Game.on("personSpawned", { callback: this.drawPerson, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
 
-        let game = this;
-        Game.on("windowDragStart", { callback: function(){
-            game.cursorActive = false;
+        Game.on("windowDragStart", { callback: () => {
+            this.cursorActive = false;
         }, context: this });
 
-        Game.on("windowDragStop", { callback: function(){
-            game.cursorActive = true;
+        Game.on("windowDragStop", { callback: () => {
+            this.cursorActive = true;
         }, context: this });
     }
 
-    init(_: any): void { }
+    init(): void { }
 
     preload(): void {
         const assets: AssetManifest = assetManifest;

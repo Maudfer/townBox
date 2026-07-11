@@ -6,9 +6,9 @@
 import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAssetSink, ShardRef, HistoryAsset } from 'game/history/HistoryAsset';
 import { selectStartingWorld, AssetHeader } from 'game/history/HistoryAssetSelection';
 import { loadSelectedWorldFromHttp } from 'game/history/HistoryAssetSource';
-import { compress } from 'util/compress';
 import { EventLogTable } from 'types/LifeEvent';
 import { SkillTimeline } from 'types/Skill';
+import { compress } from 'util/compress';
 
 const PARAMS: HistoryGeneratorParams = {
     ...DEFAULT_GENERATOR_PARAMS,

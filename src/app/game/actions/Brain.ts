@@ -12,22 +12,19 @@
 // the free-time weighted pick forks the world-seed RNG per (tick, person).
 
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
-
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
-import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
-
-import { SeededRandom, hashStringToSeed } from 'util/random';
-import { evaluatePredicateCached } from 'util/predicate';
-import { isOnShiftAtTick } from 'util/shifts';
-
-import { TickResult } from 'types/LifeEvent';
+import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import { ActionDefinition } from 'types/Action';
 import { SubProfiler } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
 import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
+import { evaluatePredicateCached } from 'util/predicate';
+import { SeededRandom, hashStringToSeed } from 'util/random';
+import { isOnShiftAtTick } from 'util/shifts';
 
 // The selection weight assumed when an action declares none (task 076/L2). One shared convention across every
 // selection path (free-time and the social hook) so a weightless action is treated identically everywhere.

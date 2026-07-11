@@ -1,8 +1,7 @@
 import { generateBusiness } from 'game/economy/BusinessGen';
-import { BusinessBlueprint, BusinessBlueprintTable, JobTable } from 'types/Business';
-
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
+import { BusinessBlueprint, BusinessBlueprintTable, JobTable } from 'types/Business';
 
 const REAL_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const REAL_JOBS = jobsConfig as unknown as JobTable;

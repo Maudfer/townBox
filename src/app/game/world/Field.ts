@@ -1,18 +1,17 @@
 import GameManager from 'game/GameManager';
-import Tile from 'game/world/Tile';
-import Soil from 'game/world/Soil';
-import Road from 'game/world/Road';
-import Building from 'game/world/Building';
-import House from 'game/world/House';
-import Workplace from 'game/world/Workplace';
+import PathFinder from 'game/agents/PathFinder';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
-import PathFinder from 'game/agents/PathFinder';
-
-import { PixelPosition, TilePosition } from 'types/Position';
+import Building from 'game/world/Building';
+import House from 'game/world/House';
+import Road from 'game/world/Road';
+import Soil from 'game/world/Soil';
+import Tile from 'game/world/Tile';
+import Workplace from 'game/world/Workplace';
+import { Tool } from 'types/Cursor';
 import { UpdateEvent, BuildEvent } from 'types/Events';
 import { NeighborMap } from 'types/Neighbor';
-import { Tool } from 'types/Cursor';
+import { PixelPosition, TilePosition } from 'types/Position';
 
 type TileMatrix = {
     [row: number]: {
@@ -294,10 +293,10 @@ export default class Field {
 
         // Re-evaluate the neighbouring footprints so adjacent roads update their auto-tiling.
         const neighbors = this.getNeighbors(newTile);
-        neighbors.top && this.refreshFootprint(neighbors.top);
-        neighbors.bottom && this.refreshFootprint(neighbors.bottom);
-        neighbors.left && this.refreshFootprint(neighbors.left);
-        neighbors.right && this.refreshFootprint(neighbors.right);
+        if (neighbors.top) this.refreshFootprint(neighbors.top);
+        if (neighbors.bottom) this.refreshFootprint(neighbors.bottom);
+        if (neighbors.left) this.refreshFootprint(neighbors.left);
+        if (neighbors.right) this.refreshFootprint(neighbors.right);
 
         if (newTile instanceof Road) {
             Game.emit("roadBuilt", newTile);

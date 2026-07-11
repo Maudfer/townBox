@@ -1,9 +1,8 @@
+import Clock from 'game/Clock';
 import Person from 'game/agents/Person';
 import House from 'game/world/House';
-import Clock from 'game/Clock';
-
-import { Gender, Genders, Relationship, Relationships, RelationshipMap, SocialInfo } from 'types/Social';
 import { PersonId } from 'types/Genealogy';
+import { Gender, Genders, Relationship, Relationships, RelationshipMap, SocialInfo } from 'types/Social';
 
 type Home = House | null;
 

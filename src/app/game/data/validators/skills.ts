@@ -5,10 +5,10 @@
 // the ORPHAN RULE (task 061): every non-basic skill must be consumed — referenced by a job requirement, an
 // event grant, a dependency of a consumed skill, or explicitly tagged 'flavor' (initialization variety pool).
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkBoolean, checkNumber, checkRecord, checkString, checkUnknownKeys, isRecord } from 'game/data/checks';
-import { compileSkills } from 'util/skillGraph';
+import { IssueCollector } from 'game/data/registry';
 import { SkillManifest } from 'types/Skill';
+import { compileSkills } from 'util/skillGraph';
 
 const SKILL_KEYS = ['label', 'basic', 'dependencies', 'tags'];
 const DEPENDENCY_KEYS = ['skill', 'minProficiency'];

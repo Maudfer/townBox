@@ -1,9 +1,8 @@
 import Tile from 'game/world/Tile';
-
-import { NeighborMap } from 'types/Neighbor';
-import { PixelPosition } from 'types/Position';
 import { CellParams } from 'types/Grid';
 import { Curb, Lane, Direction } from 'types/Movement';
+import { NeighborMap } from 'types/Neighbor';
+import { PixelPosition } from 'types/Position';
 export default class Road extends Tile {
     private curb: Curb;
     private lane: Lane;
@@ -159,7 +158,7 @@ export default class Road extends Tile {
     }
 
     getConnectingRoads(neighbors: NeighborMap): Tile[] {
-        let connectingRoads: Tile[] = [];
+        const connectingRoads: Tile[] = [];
 
         Object.values(neighbors).forEach(tile => {
             if (tile instanceof Road) {

@@ -12,12 +12,9 @@
 // a house; 'none' marks free-to-take loose items. Containment is always the building's location key.
 
 import Inventory from 'game/objects/Inventory';
-
-import { SeededRandom, hashStringToSeed } from 'util/random';
-
-import { ObjectArchetype, ObjectOwner } from 'types/Objects';
-
 import objectGenerationConfig from 'json/objectGeneration.json';
+import { ObjectArchetype, ObjectOwner } from 'types/Objects';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 
 export interface ObjectGenerationParams {
     perBuildingCap: number;

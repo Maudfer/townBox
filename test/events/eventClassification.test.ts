@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { generateEventClassification, classifyEvent, actionInvokers } from 'util/eventClassification';
 
-import { ActionManifest } from 'types/Action';
-import { EventManifest } from 'types/LifeEvent';
 import actionsConfig from 'json/actions.json';
 import eventsConfig from 'json/events.json';
+import { ActionManifest } from 'types/Action';
+import { EventManifest } from 'types/LifeEvent';
+import { generateEventClassification, classifyEvent, actionInvokers } from 'util/eventClassification';
 
 // The event-classification artifact (task 068): every event has a deliberate disposition, and the generated
 // docs/event-classification.md matches the shipped manifests. Regenerate with `npm run docs:events`.

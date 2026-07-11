@@ -1,3 +1,5 @@
+import Clock from 'game/Clock';
+import { DEFAULT_POPULATION_PARAMS } from 'game/population/Population';
 import {
     MS_PER_IN_GAME_DAY,
     MS_PER_TICK,
@@ -22,8 +24,6 @@ import {
     formatTick,
     formatDuration,
 } from 'util/time';
-import Clock from 'game/Clock';
-import { DEFAULT_POPULATION_PARAMS } from 'game/population/Population';
 
 const HOUR_MS = 3_600_000;
 

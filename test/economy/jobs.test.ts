@@ -1,6 +1,6 @@
-import Workplace from 'game/world/Workplace';
 import Person from 'game/agents/Person';
 import { generateBusiness } from 'game/economy/BusinessGen';
+import Workplace from 'game/world/Workplace';
 import { BusinessBlueprint, JobTable } from 'types/Business';
 import {DEFAULT_SHIFT_START, DEFAULT_SHIFT_END} from 'types/Work';
 
@@ -43,9 +43,9 @@ describe('workplace hiring against a generated business', () => {
 // it's inert data on Person records (a proficiency number nothing gates or grows). The inverse of the CI
 // 18-year-old reachability rule.
 describe('skill consumption over the real manifests (task 076/M1)', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const realSkills = require('json/skills.json') as Record<string, { basic?: boolean }>;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const realJobs = require('json/jobs.json') as Record<string, { ranks?: { requires?: { skill: string }[]; progresses?: { skill: string }[]; entryTrainingGrant?: { grants?: { skill: string }[] } }[] }>;
 
     test('every non-basic skill is required or progressed by at least one job rank', () => {

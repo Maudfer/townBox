@@ -9,11 +9,9 @@
 // Modest by design — social actions season free time (a per-tick chance), they don't dominate it.
 
 import { ActionIntent, BrainHook, HookContext, DEFAULT_SELECTION_WEIGHT } from 'game/actions/Brain';
-
-import { SeededRandom, hashStringToSeed } from 'util/random';
-import { evaluatePredicateCached } from 'util/predicate';
-
 import { ActionDefinition, ActionManifest } from 'types/Action';
+import { evaluatePredicateCached } from 'util/predicate';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 
 export const SOCIAL_SALT = 0x50c;
 const SOCIAL_CHANCE_PER_TICK = 0.15;

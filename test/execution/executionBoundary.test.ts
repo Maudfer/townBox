@@ -1,11 +1,10 @@
+import Person from 'game/agents/Person';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import LiveWorld from 'game/execution/LiveWorld';
-import Person from 'game/agents/Person';
 import Building from 'game/world/Building';
-
-import { EventManifest } from 'types/LifeEvent';
 import { PopulationState, GenPerson } from 'types/Genealogy';
+import { EventManifest } from 'types/LifeEvent';
 import { Genders, Gender } from 'types/Social';
 
 // The simulation execution boundary (task 040): live and bootstrap run the same engine and data; the world
@@ -161,15 +160,15 @@ describe('engine under the boundary (roll-before-resolve)', () => {
 // social-opportunity hook fires in bootstrap mode; separated, it does not. (The remaining logical-world plan
 // inputs — jobs/economy/school/skillProgression/onCommitted — are the documented 055 build-out.)
 describe('off-map co-location seam (task 076/H2)', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const ActionEngine = require('game/actions/ActionEngine').default;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const { DEFAULT_ACTION_MANIFEST } = require('game/actions/ActionEngine');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const Brain = require('game/actions/Brain').default;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const { socialOpportunityHook } = require('game/actions/SocialOpportunity');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const Inventory = require('game/objects/Inventory').default;
 
     function socialProposalsOver(ticks: number, coLocated: boolean): number {

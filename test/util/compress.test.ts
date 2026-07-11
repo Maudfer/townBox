@@ -1,5 +1,5 @@
-import { compress, decompress } from 'util/compress';
 import { encodeBase64 } from 'util/base64';
+import { compress, decompress } from 'util/compress';
 
 describe('compress / decompress', () => {
     test('round-trips unicode JSON', () => {

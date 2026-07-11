@@ -64,7 +64,7 @@ life stories, then surfacing them.
 Three cleanly separated layers, plus persistence. The hard rule: **the simulation core never imports React, and
 the GUI never reaches into simulation internals** — they communicate *only* through a custom event bus.
 
-```
+```text
 ┌───────────────────────────────────────────────────────────────────────┐
 │  React HUD  (src/app/hud/)                                             │
 │  windows · inspectors · toolbar · clock · city feed · overview        │
@@ -203,6 +203,7 @@ for the materials/B2B layer that exists, and the roadmap for where it goes next)
 ## Simulated systems in detail
 
 ### Population & genealogy
+
 A pure `generatePopulation(seed, params)` forward-simulates founders → generations of intertwined families →
 lifespans, producing a flat, serializable table of people (deceased ancestors + a living cohort). **Kinship and
 age are never stored** — siblings, grandparents, cousins, and current age are derived on demand from the graph
@@ -211,6 +212,7 @@ and fertility for people who aren't on the map. Population is kept **stable, not
 carries an innate maximum number of children they are willing to have (a distribution mounding on 2–4).
 
 ### Offline history & new-game world
+
 Rather than simulate a starting world on every new game, the deep simulation runs **once, offline**
 (`npm run generate-history`) and is captured as a versioned **history asset**. A new game then *selects* a slice
 of it — a random present-tick window, rebased to tick 0, with re-randomized (lineage-coherent) identities — so
@@ -225,6 +227,7 @@ generation an AC-style **thermostat** on a global fertility multiplier holds the
 headcount. This retires the earlier per-load history bootstrap.
 
 ### Life events (Engine B)
+
 `json/events.json` is a flat manifest: each event declares its **roles** (a subject plus co-participants bound by
 relation or found by a candidate search), a per-year **probability** with `Curve` factors (e.g. mortality rises
 with age; a `health` attribute raises death probability), and a closed, typed **effects** vocabulary
@@ -235,6 +238,7 @@ and feed entries. Adding an event is **pure data**; adding a new attribute or ef
 tested code change.
 
 ### Skills, jobs & businesses (Engine A)
+
 Skills (335 — 15 basics + 320 specific abilities on a dependency DAG, each held as a 0–100 **proficiency** with
 provenance) and jobs (≈33, each with a full authored **rank ladder** and an explicit entry training grant) are
 JSON reference tables kept internally consistent by validators — including the CI-enforced reachability rule (a
@@ -249,6 +253,7 @@ home↔work distance and hires into the highest rank strictly met (else the entr
 education and work experience genuinely unlock better jobs and promotions.
 
 ### Money & the economy
+
 A serializable `Economy` holds per-person and per-business balances behind one ledger primitive (`transfer`). A
 monthly tick runs **wages** (businesses → employees), **cost of living** (households → suppliers, accruing
 `arrears` when they can't pay), and **demand-driven P&L**: `revenue = unitsSold × price` (units capped by
@@ -261,6 +266,7 @@ Every one-sided flow (revenue, cost of living, materials, starting capital, writ
 neither mints nor burns money.
 
 ### Materials & the B2B supply chain
+
 A business's input **materials** become demand on local **producers** whose `products` are those materials —
 farms produce food, factories produce building/hardware/electronics stock, warehouses produce retail/office
 goods (and medical/school supplies and auto parts). The same demand-resolution machinery runs a second time
@@ -269,6 +275,7 @@ consumed material is produced by some blueprint. (Deeper multi-tier product chai
 beyond raw materials are future work.)
 
 ### Household lifecycle dynamics
+
 Households aren't frozen at placement. Death re-houses orphaned minors with a living relative; marriage triggers
 **cohabitation** (newlyweds move in together); grown, employed adults **move out** into a vacant home to start
 their own household; insolvency drives **eviction → homelessness**, with recovery once funds return — into a
@@ -276,6 +283,7 @@ vacant home, or, if the town is full, in with a relative or as roommates in any 
 runs through one shared relocation helper.
 
 ### Movement & commute
+
 A shared A\* pathfinder routes people over sidewalks/crosswalks and cars in their lanes. Employed residents run a
 daily **commute** state machine: exit home → walk to car → drive → walk to work → enter, and back at shift end.
 
@@ -325,15 +333,15 @@ CI (`.github/workflows/ci.yml`) splits the checks into **separate concurrent job
 production build, and one `test (<module>)` job per affected module (a `changes` job path-filters which modules a
 PR touched; foundational/shared changes fan out to all). Each `test` job emits its own coverage report, and a
 `coverage` job reads them all and fails if any module is under the threshold. A broad `lint` job (ESLint +
-markdownlint) reproduces the VS Code Problems panel. Both `coverage` and `lint` are **advisory** forcing
-functions today (visible red, but not blocking) — pressure to grow tests and clear the lint backlog. A single
-`ci-success` job aggregates the required checks — make that the required status check.
+markdownlint) reproduces the VS Code Problems panel and is a **blocking** required check. `coverage` stays an
+**advisory** forcing function today (visible red, but not blocking) — pressure to grow each module's tests. A
+single `ci-success` job aggregates the required checks — make that the required status check.
 
 ---
 
 ## Project layout
 
-```
+```text
 src/
   app/
     main.tsx            # React entry; boots GameManager, mounts <HUD>

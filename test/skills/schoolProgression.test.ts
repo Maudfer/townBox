@@ -1,20 +1,17 @@
-import SkillBook, { DEFAULT_SKILL_MANIFEST } from 'game/skills/SkillBook';
-import SkillProgression from 'game/skills/SkillProgression';
-import Brain from 'game/actions/Brain';
 import ActionEngine from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
-import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import { runTick } from 'game/execution/TickRunner';
-
+import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
+import SkillBook, { DEFAULT_SKILL_MANIFEST } from 'game/skills/SkillBook';
+import SkillProgression from 'game/skills/SkillProgression';
+import schoolsConfig from 'json/schools.json';
+import { GenPerson, PopulationState } from 'types/Genealogy';
+import { SchoolConfig } from 'types/School';
+import { Genders } from 'types/Social';
 import { countSchoolDays, isSchoolDay, schoolDailyGain, schoolFactsFor, totalEligibleSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
 import { dayOfTick, TICKS_PER_DAY, TICKS_PER_YEAR } from 'util/time';
-
-import { SchoolConfig } from 'types/School';
-import { GenPerson, PopulationState } from 'types/Genealogy';
-import { Genders } from 'types/Social';
-
-import schoolsConfig from 'json/schools.json';
 
 // School-day skill progression (task 063): the calendar-exact 60-at-18 contract, the once-per-day credit,
 // the school cap, and the shared-spine integration (attend_school completing → basics gaining, both modes).

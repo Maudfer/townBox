@@ -17,18 +17,14 @@
 
 import { fakerPT_BR } from '@faker-js/faker';
 
-import { SeededRandom } from 'util/random';
-
+import { HistoryAsset, HistoryAssetMeta, ShardRef, HISTORY_ASSET_FORMAT_VERSION } from 'game/history/HistoryAsset';
 import { PopulationState, PersonId, GenPerson } from 'types/Genealogy';
 import { EventHistoryTable, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
-import { Genders } from 'types/Social';
-import { SkillBookState, PersonSkills, SkillSnapshot } from 'types/Skill';
 import { InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
-
+import { SkillBookState, PersonSkills, SkillSnapshot , SkillTimeline } from 'types/Skill';
+import { Genders } from 'types/Social';
 import { decompress } from 'util/compress';
-
-import { HistoryAsset, HistoryAssetMeta, ShardRef, HISTORY_ASSET_FORMAT_VERSION } from 'game/history/HistoryAsset';
-import { SkillTimeline } from 'types/Skill';
+import { SeededRandom } from 'util/random';
 
 export interface SelectedWorld {
     population: PopulationState;

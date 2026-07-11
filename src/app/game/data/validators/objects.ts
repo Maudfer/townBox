@@ -1,8 +1,8 @@
 // Validator for the object-archetype manifest (src/json/objects.json, task 041). Archetypes only — runtime
 // instances are engine state, validated by the Inventory's invariants, not here.
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkBoolean, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 
 // The category vocabulary, aligned with the content-planning master list (docs/planning/objects-master-list.md)
 // so the 050 backfill drops in without a remap. Extending it is a deliberate one-line change here.

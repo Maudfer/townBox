@@ -1,17 +1,16 @@
-import Field from 'game/world/Field';
-import House from 'game/world/House';
 import City from 'game/City';
-import Population from 'game/population/Population';
 import Clock from 'game/Clock';
-import EventEngine from 'game/events/EventEngine';
-import HousingMarket from 'game/economy/HousingMarket';
 import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
-
+import HousingMarket from 'game/economy/HousingMarket';
+import EventEngine from 'game/events/EventEngine';
+import Population from 'game/population/Population';
+import Field from 'game/world/Field';
+import House from 'game/world/House';
 import { GenPerson, PersonId, PersonTable, PopulationState } from 'types/Genealogy';
 import { HouseholdArrangements } from 'types/Household';
-import { Genders, Gender } from 'types/Social';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { Genders, Gender } from 'types/Social';
 
 const TPY = 360;
 const HOUR_MS = 3_600_000;

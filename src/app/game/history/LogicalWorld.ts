@@ -12,32 +12,29 @@
 // No engine/TickRunner change is needed — those seams already exist (task 040/046/047/058/063/065). Scene-free,
 // deterministic (seeded from the world seed; its RNG is forked so it never perturbs the event/action streams).
 
-import Inventory from 'game/objects/Inventory';
-import SkillBook from 'game/skills/SkillBook';
-import SkillRegistry from 'game/skills/SkillRegistry';
-import SchoolRegistry, { SchoolSeat, SchoolCandidate } from 'game/skills/SchoolRegistry';
-import EventEngine from 'game/events/EventEngine';
-import { WORK_DAILY_GAIN, PROMOTION_EVENT } from 'game/skills/SkillProgression';
 import { generateBusiness } from 'game/economy/BusinessGen';
+import EventEngine from 'game/events/EventEngine';
+import Inventory from 'game/objects/Inventory';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
-
-import { SeededRandom } from 'util/random';
+import SchoolRegistry, { SchoolSeat, SchoolCandidate } from 'game/skills/SchoolRegistry';
+import SkillBook from 'game/skills/SkillBook';
+import { WORK_DAILY_GAIN, PROMOTION_EVENT } from 'game/skills/SkillProgression';
+import SkillRegistry from 'game/skills/SkillRegistry';
+import businessesConfig from 'json/businesses.json';
+import jobsConfig from 'json/jobs.json';
+import schoolsConfig from 'json/schools.json';
+import { JobTable, JobDefinition, JobRank, BusinessBlueprintTable } from 'types/Business';
+import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
+import { PersonId, PopulationState } from 'types/Genealogy';
+import { locationKey, InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
+import { SchoolConfig } from 'types/School';
 import { evaluateCurve } from 'util/curve';
+import { SeededRandom } from 'util/random';
 import { ageAt, isAliveAt } from 'util/kinship';
 import { schoolDailyGain, countSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
 import { dayOfTick, dayOfWeekOfDay, WEEKDAY_NAMES } from 'util/time';
-
-import { PersonId, PopulationState } from 'types/Genealogy';
-import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
-import { locationKey, InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
-import { SchoolConfig } from 'types/School';
 import { JobPosition } from 'types/Work';
-import { JobTable, JobDefinition, JobRank, BusinessBlueprintTable } from 'types/Business';
 import { SkillTimeline, SkillSnapshot, PersonSkills } from 'types/Skill';
-
-import jobsConfig from 'json/jobs.json';
-import businessesConfig from 'json/businesses.json';
-import schoolsConfig from 'json/schools.json';
 import residencesConfig from 'json/residences.json';
 
 const JOBS = jobsConfig as unknown as JobTable;

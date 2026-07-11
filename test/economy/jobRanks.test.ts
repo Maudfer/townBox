@@ -1,29 +1,24 @@
+import GameManager from 'game/GameManager';
+import Person from 'game/agents/Person';
+import { IssueCollector, SchemaRegistration, ValidationIssue } from 'game/data/registry';
+import { validateJobsSemantics, validateJobsStructure } from 'game/data/validators/economyContent';
+import JobMarket from 'game/economy/JobMarket';
+import EventEngine from 'game/events/EventEngine';
+import { migrateSnapshot } from 'game/save/migrations';
+import SkillBook from 'game/skills/SkillBook';
+import SkillProgression from 'game/skills/SkillProgression';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
 import Workplace from 'game/world/Workplace';
-import Person from 'game/agents/Person';
-import JobMarket from 'game/economy/JobMarket';
-import SkillBook from 'game/skills/SkillBook';
-import GameManager from 'game/GameManager';
-import { migrateSnapshot } from 'game/save/migrations';
-
-import { validateJobsSemantics, validateJobsStructure } from 'game/data/validators/economyContent';
-import { IssueCollector, SchemaRegistration, ValidationIssue } from 'game/data/registry';
-
-import { PersonId } from 'types/Genealogy';
-import { JobPosition } from 'types/Work';
-import { WorldSnapshot } from 'types/Save';
-import { PixelPosition, TilePosition } from 'types/Position';
-
-import SkillProgression from 'game/skills/SkillProgression';
-import EventEngine from 'game/events/EventEngine';
-import { TICKS_PER_DAY, TICKS_PER_YEAR } from 'util/time';
-import { PopulationState } from 'types/Genealogy';
-import { Genders } from 'types/Social';
-import { JobTable } from 'types/Business';
-
 import jobsConfig from 'json/jobs.json';
 import skillsConfig from 'json/skills.json';
+import { JobTable } from 'types/Business';
+import { PersonId , PopulationState } from 'types/Genealogy';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { WorldSnapshot } from 'types/Save';
+import { Genders } from 'types/Social';
+import { JobPosition } from 'types/Work';
+import { TICKS_PER_DAY, TICKS_PER_YEAR } from 'util/time';
 
 function structure(validate: SchemaRegistration['validateStructure'], data: unknown): ValidationIssue[] {
     const issues: ValidationIssue[] = [];

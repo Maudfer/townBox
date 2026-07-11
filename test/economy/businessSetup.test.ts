@@ -1,12 +1,11 @@
-import Field from 'game/world/Field';
 import City from 'game/City';
-import Workplace from 'game/world/Workplace';
-import Population from 'game/population/Population';
-import Inventory from 'game/objects/Inventory';
 import GameManager from 'game/GameManager';
-
-import { PixelPosition, TilePosition } from 'types/Position';
+import Inventory from 'game/objects/Inventory';
+import Population from 'game/population/Population';
+import Field from 'game/world/Field';
+import Workplace from 'game/world/Workplace';
 import { PopulationState } from 'types/Genealogy';
+import { PixelPosition, TilePosition } from 'types/Position';
 
 function makeWorld(worldSeed: number, inventory: Inventory | null = null): { city: City; field: Field } {
     const rows = 30;

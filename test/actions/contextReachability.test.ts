@@ -1,21 +1,19 @@
-import Brain, { BrainDeps } from 'game/actions/Brain';
 import ActionEngine from 'game/actions/ActionEngine';
+import Brain, { BrainDeps } from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory from 'game/objects/Inventory';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
-
+import actionsConfig from 'json/actions.json';
+import businessesConfig from 'json/businesses.json';
+import objectsConfig from 'json/objects.json';
+import residencesConfig from 'json/residences.json';
 import { ActionManifest } from 'types/Action';
+import { PopulationState, GenPerson } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
 import { ObjectArchetype } from 'types/Objects';
 import { ObjectQuery } from 'types/Simulation';
-import { PopulationState, GenPerson } from 'types/Genealogy';
 import { Genders } from 'types/Social';
-import { TickResult } from 'types/LifeEvent';
-
-import actionsConfig from 'json/actions.json';
-import objectsConfig from 'json/objects.json';
-import businessesConfig from 'json/businesses.json';
-import residencesConfig from 'json/residences.json';
 
 // World-aware reachability (task 071): no action requirement may be dead-on-arrival — every object query in
 // the manifest must be satisfiable by SOME plausibly generated building (statically: a matching archetype

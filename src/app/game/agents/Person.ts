@@ -1,18 +1,17 @@
-import Road from 'game/world/Road';
-import Tile from 'game/world/Tile';
-import Building from 'game/world/Building';
+import GameManager from 'game/GameManager';
 import PathFinder from 'game/agents/PathFinder';
+import Vehicle from 'game/agents/Vehicle';
 import SocialLife from 'game/population/SocialLife';
 import WorkLife from 'game/population/WorkLife';
-import Vehicle from 'game/agents/Vehicle';
-import GameManager from 'game/GameManager';
-import { TravelStep } from 'types/Travel';
-
-import { TilePosition, PixelPosition } from 'types/Position';
-import { Image } from 'types/Phaser';
-import { Direction, Axis } from 'types/Movement';
+import Building from 'game/world/Building';
+import Road from 'game/world/Road';
+import Tile from 'game/world/Tile';
 import { FamilyTree, Node, Link } from 'types/FamilyTree';
+import { Direction, Axis } from 'types/Movement';
+import { Image } from 'types/Phaser';
+import { TilePosition, PixelPosition } from 'types/Position';
 import { Gender, RelationshipMap, PersonOverview, RelationshipMapOverview } from 'types/Social';
+import { TravelStep } from 'types/Travel';
 
 let Game: GameManager;
 
@@ -419,7 +418,6 @@ export default class Person {
     }
 
     getFamilyTree(): FamilyTree {
-        const person: Person = this;
         const nodes: Node[] = [];
         const links: Link[] = [];
         const personIndexMap = new Map<Person, number>();
@@ -470,7 +468,7 @@ export default class Person {
             }
         }
     
-        processPerson(person);
+        processPerson(this);
         return { nodes, links };
     }
 

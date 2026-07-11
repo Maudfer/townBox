@@ -3,8 +3,8 @@
 // ordered and causation chains cross system boundaries (an Action's 'started' entry is the causation of the
 // Event it triggers, and vice versa). Both engines hold a reference to the same instance.
 
-import { ActionLogEntry, EventLogEntry, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
 import { PersonId } from 'types/Genealogy';
+import { ActionLogEntry, EventLogEntry, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
 
 export default class LifeLog {
     private table: EventLogTable;

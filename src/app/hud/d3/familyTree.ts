@@ -78,6 +78,7 @@ function updateNodes(nodesTag: d3Tag, nodes: Node[], dragHandler: DragBehavior) 
         .attr('font-style', function (d: Node) {
             return d.alive === false ? 'italic' : 'normal';
         })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- d3 .call() typing friction with the DragBehavior overload
         .call(dragHandler as any);
 }
 

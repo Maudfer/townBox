@@ -13,16 +13,13 @@
 // Determinism: instance ids are a serialized counter (`a<n>`); the per-tick RNG forks off the world seed
 // with a fixed salt so action rolls never perturb the event streams; instances advance in sorted-id order.
 
+import { evaluateConsent } from 'game/actions/Consent';
+import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/events/Consequences';
 import EventEngine from 'game/events/EventEngine';
 import LifeLog from 'game/events/LifeLog';
 import Inventory from 'game/objects/Inventory';
-import { evaluateConsent } from 'game/actions/Consent';
-import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/events/Consequences';
-
-import { SeededRandom } from 'util/random';
-import { evaluatePredicateCached } from 'util/predicate';
-import { isAliveAt } from 'util/kinship';
-
+import actionsConfig from 'json/actions.json';
+import oarConfig from 'json/object-action-relationships.json';
 import { EventLink,
     ActionCause,
     ActionDefinition,
@@ -36,15 +33,15 @@ import { EventLink,
     PoolChildSpec,
     SequenceStepSpec,
 } from 'types/Action';
-import { TickResult } from 'types/LifeEvent';
-import { PersonId, PopulationState } from 'types/Genealogy';
 import { ExecutionContext, SubProfiler, TransitionHandle } from 'types/Execution';
+import { PersonId, PopulationState } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
+import { isAliveAt } from 'util/kinship';
+import { evaluatePredicateCached } from 'util/predicate';
+import { SeededRandom } from 'util/random';
 import { SimulationContext, HasEventQuery, ObjectQuery, Value } from 'types/Simulation';
 import { locationKey, parseLocationKey } from 'types/Objects';
 import { hourOfTick } from 'util/time';
-
-import actionsConfig from 'json/actions.json';
-import oarConfig from 'json/object-action-relationships.json';
 
 export const DEFAULT_ACTION_MANIFEST: ActionManifest = actionsConfig as unknown as ActionManifest;
 export const DEFAULT_OAR_TABLE: OARTable = oarConfig as unknown as OARTable;

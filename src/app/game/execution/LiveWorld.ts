@@ -8,13 +8,12 @@
 // whose person has reached the target building. Task 046 refines this into onLocationArrived hooks.
 
 import Person from 'game/agents/Person';
-import House from 'game/world/House';
-import Building from 'game/world/Building';
-
-import { PersonId } from 'types/Genealogy';
-import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
-import { locationKey } from 'types/Objects';
 import Inventory from 'game/objects/Inventory';
+import Building from 'game/world/Building';
+import House from 'game/world/House';
+import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
+import { PersonId } from 'types/Genealogy';
+import { locationKey } from 'types/Objects';
 
 export interface LiveWorldDeps {
     getPeople(): Person[];

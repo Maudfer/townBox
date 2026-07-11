@@ -1,7 +1,6 @@
 import GameManager from 'game/GameManager';
-import Tile from 'game/world/Tile';
 import Road from 'game/world/Road';
-
+import Tile from 'game/world/Tile';
 import config from 'json/config.json';
 
 export default class DebugTools {

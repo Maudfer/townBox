@@ -2,12 +2,11 @@ import ActionEngine, { ActionDeps, interleave } from 'game/actions/ActionEngine'
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory from 'game/objects/Inventory';
-
 import { ActionManifest } from 'types/Action';
-import { EventManifest, TickResult, ActionLogEntry } from 'types/LifeEvent';
-import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders, Gender } from 'types/Social';
 import { WorldAdapter, TransitionHandle, LogicalLocation } from 'types/Execution';
+import { PopulationState, GenPerson } from 'types/Genealogy';
+import { EventManifest, TickResult, ActionLogEntry } from 'types/LifeEvent';
+import { Genders, Gender } from 'types/Social';
 
 // The Action engine (task 043): discrete commits, the continuous lifecycle (incl. the materialization wait
 // behind the execution boundary), pool/sequence children, lifecycle-fired manual Events, and determinism.

@@ -1,5 +1,5 @@
-import { PersonId, PersonTable } from 'types/Genealogy';
 import { FamilyTree, Node, Link } from 'types/FamilyTree';
+import { PersonId, PersonTable } from 'types/Genealogy';
 import { Genders, Relationships } from 'types/Social';
 import { isAliveAt, parentsOf, childrenOf, siblingsOf } from 'util/kinship';
 

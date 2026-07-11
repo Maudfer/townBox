@@ -1,10 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 
-import Window from 'hud/Window';
 import Workplace from 'game/world/Workplace';
-
-import { summarizePositions } from 'util/positions';
+import Window from 'hud/Window';
 import { DetailsWindowProps } from 'types/HUD';
+import { summarizePositions } from 'util/positions';
 
 const INITIAL_SIZE = { width: 360, height: 440 };
 const REFRESH_MS = 1500;

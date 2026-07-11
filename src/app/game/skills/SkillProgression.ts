@@ -23,20 +23,18 @@
 // Double-credit protection is layered: each event's `once: perDay` limit is the primary gate, and this
 // service keeps last-credited-day guards as belt-and-braces invariants.
 
-import SkillBook from 'game/skills/SkillBook';
 import EventEngine from 'game/events/EventEngine';
-
+import SkillBook from 'game/skills/SkillBook';
+import jobsConfig from 'json/jobs.json';
+import schoolsConfig from 'json/schools.json';
+import { JobTable } from 'types/Business';
+import { PersonId, PopulationState } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
+import { SchoolConfig } from 'types/School';
+import { JobPosition } from 'types/Work';
 import { schoolDailyGain, SCHOOL_BASIC_CAP } from 'util/school';
 import { dayOfTick } from 'util/time';
 
-import { PersonId, PopulationState } from 'types/Genealogy';
-import { SchoolConfig } from 'types/School';
-import { TickResult } from 'types/LifeEvent';
-import { JobPosition } from 'types/Work';
-import { JobTable } from 'types/Business';
-
-import schoolsConfig from 'json/schools.json';
-import jobsConfig from 'json/jobs.json';
 
 export const COMPLETED_SCHOOL_DAY_EVENT = 'completed_school_day';
 export const COMPLETED_WORK_DAY_EVENT = 'stopped_working';

@@ -1,26 +1,26 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+
+import actionsConfig from 'json/actions.json';
+import businessesConfig from 'json/businesses.json';
+import eventsConfig from 'json/events.json';
+import jobsConfig from 'json/jobs.json';
+import oarConfig from 'json/object-action-relationships.json';
+import objectsConfig from 'json/objects.json';
+import placementConfig from 'json/placement.json';
+import residencesConfig from 'json/residences.json';
+import skillsConfig from 'json/skills.json';
+import { ActionManifest, OARTable } from 'types/Action';
+import { EventManifest } from 'types/LifeEvent';
 import {
+    ArcManifests,
     extractLifecycleLinks,
     extractConsequenceEventLinks,
     triggerKindsOf,
     triggerMixCounts,
     generateRelationshipDocs,
 } from 'util/simulationDocs';
-
-import { ActionManifest, OARTable } from 'types/Action';
-import { EventManifest } from 'types/LifeEvent';
-import { ArcManifests } from 'util/simulationDocs';
-import actionsConfig from 'json/actions.json';
-import eventsConfig from 'json/events.json';
-import oarConfig from 'json/object-action-relationships.json';
-import skillsConfig from 'json/skills.json';
-import jobsConfig from 'json/jobs.json';
-import placementConfig from 'json/placement.json';
-import businessesConfig from 'json/businesses.json';
-import residencesConfig from 'json/residences.json';
-import objectsConfig from 'json/objects.json';
 
 // The Action <-> Event relationship documentation (task 054): the generator's extraction logic, and the
 // checked-diff gate — docs/simulation-relationships.md must match what the shipped manifests derive.

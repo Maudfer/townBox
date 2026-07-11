@@ -11,10 +11,10 @@
 // target) on its own salted RNG stream — independent of execution order, identical in live and bootstrap,
 // and never perturbing the event/action/brain streams (the JobOrchestrator salt convention).
 
-import { SeededRandom, hashStringToSeed } from 'util/random';
 
 import { PersonId } from 'types/Genealogy';
 import { Value } from 'types/Simulation';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 
 export const CONSENT_SALT = 0xc0;
 const PLACEHOLDER_ACCEPT_PROBABILITY = 0.8;

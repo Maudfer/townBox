@@ -1,15 +1,14 @@
+import City from 'game/City';
+import Clock from 'game/Clock';
+import GameManager from 'game/GameManager';
+import EventEngine from 'game/events/EventEngine';
+import Population from 'game/population/Population';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
-import City from 'game/City';
-import Population from 'game/population/Population';
-import Clock from 'game/Clock';
-import EventEngine from 'game/events/EventEngine';
-import GameManager from 'game/GameManager';
-
 import { GenPerson, PersonTable, PopulationState } from 'types/Genealogy';
 import { HouseholdArrangements } from 'types/Household';
-import { Genders, Gender } from 'types/Social';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { Genders, Gender } from 'types/Social';
 
 const TPY = 8640; // hour ticks (task 040)
 const MS_PER_TICK = 150_000; // one hour tick of real time

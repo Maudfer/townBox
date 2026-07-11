@@ -1,7 +1,7 @@
+import economyConfig from 'json/economy.json';
 import { EconomyState, EconomyParams, Account } from 'types/Economy';
 import { MoneyLedger } from 'types/LifeEvent';
 
-import economyConfig from 'json/economy.json';
 
 export const DEFAULT_ECONOMY_PARAMS: EconomyParams = economyConfig as EconomyParams;
 

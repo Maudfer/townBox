@@ -2,10 +2,9 @@ import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
-
 import { ActionManifest } from 'types/Action';
-import { EventManifest, TickResult, ActionLogEntry } from 'types/LifeEvent';
 import { PopulationState, GenPerson } from 'types/Genealogy';
+import { EventManifest, TickResult, ActionLogEntry } from 'types/LifeEvent';
 import { Genders } from 'types/Social';
 
 // Action consequences & object-action relationships (task 044): the bounded DSL, atomic application, the

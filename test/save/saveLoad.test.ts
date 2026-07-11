@@ -1,21 +1,19 @@
+import City from 'game/City';
+import Clock from 'game/Clock';
+import GameManager from 'game/GameManager';
+import Population from 'game/population/Population';
 import SaveManager from 'game/save/SaveManager';
+import { SaveProvider } from 'game/save/SaveProvider';
+import SkillBook from 'game/skills/SkillBook';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
 import Road from 'game/world/Road';
 import Workplace from 'game/world/Workplace';
-import GameManager from 'game/GameManager';
-import City from 'game/City';
-import Population from 'game/population/Population';
-import SkillBook from 'game/skills/SkillBook';
-import Clock from 'game/Clock';
-
 import { HouseholdArrangements } from 'types/Household';
-
-import { SaveProvider } from 'game/save/SaveProvider';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { Genders, Relationships } from 'types/Social';
 import { encodeBase64, decodeBase64 } from 'util/base64';
 import { compress, decompress } from 'util/compress';
-import { Genders, Relationships } from 'types/Social';
-import { PixelPosition, TilePosition } from 'types/Position';
 
 // A provider backed by an in-memory map. Using it in tests proves the SaveProvider abstraction is the only
 // thing SaveManager depends on (no localStorage required).

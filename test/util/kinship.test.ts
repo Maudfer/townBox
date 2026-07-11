@@ -1,3 +1,5 @@
+import { GenPerson, PersonTable, Partnership } from 'types/Genealogy';
+import { Genders, Relationships } from 'types/Social';
 import {
     parentsOf,
     childrenOf,
@@ -12,8 +14,6 @@ import {
     spouseAt,
     relationshipLabel,
 } from 'util/kinship';
-import { GenPerson, PersonTable, Partnership } from 'types/Genealogy';
-import { Genders, Relationships } from 'types/Social';
 
 const TICKS_PER_YEAR = 10;
 

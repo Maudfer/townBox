@@ -14,10 +14,9 @@
 //     payload; `loadCommittedAsset` decodes it and the caller runs selectStartingWorld. Kept as a bundle-time
 //     fallback for a tiny committed asset.
 
-import { decompress } from 'util/compress';
-
 import { HistoryAsset } from 'game/history/HistoryAsset';
 import { AssetHeader, SelectedWorld, pickWindow, selectStartingWorldFromShards, validateAsset } from 'game/history/HistoryAssetSelection';
+import { decompress } from 'util/compress';
 
 // The base URL the sharded asset is served from (relative to the app root). Overridable for tests.
 export const HISTORY_ASSET_BASE_URL = 'history';

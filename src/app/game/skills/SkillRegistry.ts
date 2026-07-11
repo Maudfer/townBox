@@ -1,5 +1,4 @@
 import SkillBook from 'game/skills/SkillBook';
-
 import { PersonId } from 'types/Genealogy';
 import { SkillRegistry as ISkillRegistry } from 'types/LifeEvent';
 

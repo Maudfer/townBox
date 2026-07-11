@@ -1,20 +1,18 @@
-import Brain, { BrainDeps } from 'game/actions/Brain';
 import ActionEngine from 'game/actions/ActionEngine';
+import Brain, { BrainDeps } from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
+import { runTick } from 'game/execution/TickRunner';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import SchoolRegistry, { SchoolCandidate, SchoolSeat } from 'game/skills/SchoolRegistry';
-import { runTick } from 'game/execution/TickRunner';
-
+import schoolsConfig from 'json/schools.json';
+import { PopulationState, GenPerson } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
+import { SchoolConfig, SchoolFacts } from 'types/School';
+import { Genders } from 'types/Social';
 import { isSchoolAge, isSchoolDay, isSchoolInSession, schoolFactsFor } from 'util/school';
 import { TICKS_PER_DAY } from 'util/time';
 
-import { SchoolConfig, SchoolFacts } from 'types/School';
-import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders } from 'types/Social';
-import { TickResult } from 'types/LifeEvent';
-
-import schoolsConfig from 'json/schools.json';
 
 // School scheduling (task 058): the pure schedule math, the deterministic enrollment sweep, the Brain
 // school-obligation hook (over the REAL manifests — attend_school and the school-day events are shipped

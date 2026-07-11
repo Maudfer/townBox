@@ -1,17 +1,15 @@
+import EventEngine from 'game/events/EventEngine';
 import SkillBook from 'game/skills/SkillBook';
 import SkillProgression, { WORK_DAILY_GAIN } from 'game/skills/SkillProgression';
-import EventEngine from 'game/events/EventEngine';
-
-import { TICKS_PER_DAY, TICKS_PER_YEAR } from 'util/time';
-
+import schoolsConfig from 'json/schools.json';
+import { JobTable } from 'types/Business';
 import { GenPerson, PopulationState } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
+import { SchoolConfig } from 'types/School';
 import { Genders } from 'types/Social';
 import { JobPosition } from 'types/Work';
-import { JobTable } from 'types/Business';
-import { TickResult } from 'types/LifeEvent';
+import { TICKS_PER_DAY, TICKS_PER_YEAR } from 'util/time';
 
-import schoolsConfig from 'json/schools.json';
-import { SchoolConfig } from 'types/School';
 
 // Job skill progression & rank promotion (task 065): the 100/3650 per-work-day rate, secondary multipliers,
 // once-per-day credit (never per child action), the deterministic promotion cadence, and rank consumption.

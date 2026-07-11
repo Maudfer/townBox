@@ -1,18 +1,16 @@
-import Brain, { BrainDeps } from 'game/actions/Brain';
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
+import Brain, { BrainDeps } from 'game/actions/Brain';
+import { IssueCollector, ValidationIssue } from 'game/data/registry';
+import { validateActionsStructure } from 'game/data/validators/actions';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
-
-import { validateActionsStructure } from 'game/data/validators/actions';
-import { IssueCollector, ValidationIssue } from 'game/data/registry';
-
+import actionsConfig from 'json/actions.json';
 import { ActionManifest } from 'types/Action';
 import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders } from 'types/Social';
 import { TickResult } from 'types/LifeEvent';
+import { Genders } from 'types/Social';
 
-import actionsConfig from 'json/actions.json';
 
 // Person-targeted interaction contracts (task 072): the schema teeth, same-building enforcement, self/dead
 // target rejection, and the social-opportunity hook that finally binds targets — over the REAL manifests.

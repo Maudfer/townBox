@@ -1,7 +1,7 @@
 import EventEngine from 'game/events/EventEngine';
-import { Genders, Gender } from 'types/Social';
 import { GenPerson, PersonTable, PopulationState } from 'types/Genealogy';
 import { EventManifest } from 'types/LifeEvent';
+import { Genders, Gender } from 'types/Social';
 
 const TPY = 360;
 

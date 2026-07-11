@@ -1,9 +1,8 @@
-import Building from 'game/world/Building';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
-
-import { Household } from 'types/Household';
+import Building from 'game/world/Building';
 import { FamilyTree, Node, Link } from 'types/FamilyTree';
+import { Household } from 'types/Household';
 import { HouseOverview, RelationshipMap } from 'types/Social';
 
 const MAX_RESIDENTS = 8;

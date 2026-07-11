@@ -1,14 +1,12 @@
+import PathFinder from 'game/agents/PathFinder';
+import Building from 'game/world/Building';
 import Road from 'game/world/Road';
 import Tile from 'game/world/Tile';
-import Building from 'game/world/Building';
-import PathFinder from 'game/agents/PathFinder';
-
+import { Direction, Axis } from 'types/Movement';
+import { Image } from 'types/Phaser';
+import { TilePosition, PixelPosition } from 'types/Position';
 import { radiansToDegrees } from 'util/Math';
 import { directionToRadianRotation } from 'util/tools';
-
-import { TilePosition, PixelPosition } from 'types/Position';
-import { Image } from 'types/Phaser';
-import { Direction, Axis } from 'types/Movement';
 
 // Constants
 const NORMAL_ACCELERATION = 0.001;

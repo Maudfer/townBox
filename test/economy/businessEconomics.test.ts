@@ -1,21 +1,19 @@
+import City from 'game/City';
+import GameManager from 'game/GameManager';
+import Person from 'game/agents/Person';
+import Economy from 'game/economy/Economy';
 import Field from 'game/world/Field';
 import Workplace from 'game/world/Workplace';
-import Person from 'game/agents/Person';
-import City from 'game/City';
-import Economy from 'game/economy/Economy';
-import GameManager from 'game/GameManager';
-
+import businessesConfig from 'json/businesses.json';
+import demandConfig from 'json/demand.json';
+import materialsConfig from 'json/materials.json';
+import { BusinessBlueprint, BusinessBlueprintTable } from 'types/Business';
+import { DemandTable } from 'types/Demand';
+import { PixelPosition, TilePosition } from 'types/Position';
+import {JobPosition} from 'types/Work';
 import { unitMaterialCost } from 'util/businessFinance';
 import { evaluateCurve } from 'util/curve';
 import { TICKS_PER_MONTH } from 'util/time';
-import { BusinessBlueprint, BusinessBlueprintTable } from 'types/Business';
-import { DemandTable } from 'types/Demand';
-import {JobPosition} from 'types/Work';
-import { PixelPosition, TilePosition } from 'types/Position';
-
-import businessesConfig from 'json/businesses.json';
-import materialsConfig from 'json/materials.json';
-import demandConfig from 'json/demand.json';
 
 const BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const DEMAND = demandConfig as unknown as DemandTable;

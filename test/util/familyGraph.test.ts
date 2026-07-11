@@ -1,7 +1,7 @@
-import { buildGenealogyTree } from 'util/familyGraph';
-import { GenPerson, PersonTable } from 'types/Genealogy';
 import { Node } from 'types/FamilyTree';
+import { GenPerson, PersonTable } from 'types/Genealogy';
 import { Genders, Gender, Relationships } from 'types/Social';
+import { buildGenealogyTree } from 'util/familyGraph';
 
 const NOW = 0;
 const TPY = 360;

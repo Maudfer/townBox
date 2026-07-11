@@ -1,6 +1,6 @@
 import EventEngine from 'game/events/EventEngine';
-import { EventManifest, EventLogEntry } from 'types/LifeEvent';
 import { PopulationState, GenPerson } from 'types/Genealogy';
+import { EventManifest, EventLogEntry } from 'types/LifeEvent';
 import { Genders, Gender } from 'types/Social';
 
 // The append-only event log (task 040): every commit gets a globally monotonic seq, a tick, roles, a trigger

@@ -1,7 +1,7 @@
 import { generatePopulation, simulatePopulation, annualMortality, DEFAULT_SIMULATION_PARAMS } from 'game/population/Population';
-import { isAliveAt } from 'util/kinship';
 import { GenPerson, PersonTable, PopulationState, PopulationParams, SimulationParams } from 'types/Genealogy';
 import { Genders, Gender } from 'types/Social';
+import { isAliveAt } from 'util/kinship';
 
 const TPY = 360;
 

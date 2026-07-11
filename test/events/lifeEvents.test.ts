@@ -1,10 +1,9 @@
 import EventEngine from 'game/events/EventEngine';
-import SkillRegistry from 'game/skills/SkillRegistry';
 import SkillBook from 'game/skills/SkillBook';
-
-import { Genders, Gender } from 'types/Social';
+import SkillRegistry from 'game/skills/SkillRegistry';
 import { GenPerson, PersonTable, PopulationState } from 'types/Genealogy';
 import { EventManifest, JobMarket } from 'types/LifeEvent';
+import { Genders, Gender } from 'types/Social';
 
 const TPY = 360;
 

@@ -1,7 +1,6 @@
+import Person from 'game/agents/Person';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
-import Person from 'game/agents/Person';
-
 import { PersonId } from 'types/Genealogy';
 import { HousingMarket as IHousingMarket } from 'types/LifeEvent';
 

@@ -1,18 +1,15 @@
-import Brain, { BrainDeps } from 'game/actions/Brain';
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
+import Brain, { BrainDeps } from 'game/actions/Brain';
+import { evaluateConsent } from 'game/actions/Consent';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
-import { evaluateConsent } from 'game/actions/Consent';
-
-import { actionInvokers } from 'util/eventClassification';
-
+import actionsConfig from 'json/actions.json';
 import { ActionManifest } from 'types/Action';
 import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders } from 'types/Social';
 import { TickResult, ActionLogEntry } from 'types/LifeEvent';
-
-import actionsConfig from 'json/actions.json';
+import { Genders } from 'types/Social';
+import { actionInvokers } from 'util/eventClassification';
 
 // The person-targeted backfill (task 074): curated askFirst postures + onDecline policies across the whole
 // social repertoire, the curated action_declined wiring (object transfers only), the return-side binding

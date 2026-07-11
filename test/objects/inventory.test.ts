@@ -1,5 +1,5 @@
-import Inventory from 'game/objects/Inventory';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
+import Inventory from 'game/objects/Inventory';
 import { ObjectContainerRef } from 'types/Objects';
 
 // The object system (task 041): archetypes vs instances, ownership vs containment as independent axes,

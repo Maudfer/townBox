@@ -1,10 +1,9 @@
+import City from 'game/City';
+import GameManager from 'game/GameManager';
+import Person from 'game/agents/Person';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
 import Workplace from 'game/world/Workplace';
-import City from 'game/City';
-import Person from 'game/agents/Person';
-import GameManager from 'game/GameManager';
-
 import { PixelPosition, TilePosition } from 'types/Position';
 import { TimeChangedEvent } from 'types/Time';
 

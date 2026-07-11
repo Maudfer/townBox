@@ -4,8 +4,8 @@
 // age band) rather than stored. Scene-free and RNG-free: the sweep is a pure function of its inputs —
 // children sorted by id, schools scored nearest-first with anchor-key tie-breaks (the JobMarket pattern).
 
-import { SchoolAssignment, SchoolConfig, SchoolRegistryState } from 'types/School';
 import { PersonId } from 'types/Genealogy';
+import { SchoolAssignment, SchoolConfig, SchoolRegistryState } from 'types/School';
 import { isSchoolAge } from 'util/school';
 
 // A school the sweep can enroll into: the building's anchor key, its seat count (capacity curve evaluated

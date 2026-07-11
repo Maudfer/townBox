@@ -1,13 +1,12 @@
-import Brain, { BrainDeps, JobFacts } from 'game/actions/Brain';
 import ActionEngine from 'game/actions/ActionEngine';
+import Brain, { BrainDeps, JobFacts } from 'game/actions/Brain';
+import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
-import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
-
 import { ActionManifest } from 'types/Action';
-import { TickResult, ActionLogEntry } from 'types/LifeEvent';
 import { PopulationState, GenPerson } from 'types/Genealogy';
+import { TickResult, ActionLogEntry } from 'types/LifeEvent';
 import { Genders } from 'types/Social';
 
 // The Job Orchestrator (task 047): the job-context action source — continuous rotation, the on-duty discrete

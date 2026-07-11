@@ -1,14 +1,12 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
-import { SeededRandom } from 'util/random';
-import { isAliveAt, ageAt, spouseAt, parentsOf, childrenOf, siblingsOf, unclesAuntsOf, relationshipLabel } from 'util/kinship';
-import { sampleMaxChildren } from 'util/fertility';
-
-import { Genders, Gender } from 'types/Social';
+import drawConfig from 'json/householdDraw.json';
 import { GenPerson, PersonId, PopulationState } from 'types/Genealogy';
 import { HouseholdArrangement, HouseholdArrangements, DrawParams } from 'types/Household';
-
-import drawConfig from 'json/householdDraw.json';
+import { Genders, Gender } from 'types/Social';
+import { sampleMaxChildren } from 'util/fertility';
+import { isAliveAt, ageAt, spouseAt, parentsOf, childrenOf, siblingsOf, unclesAuntsOf, relationshipLabel } from 'util/kinship';
+import { SeededRandom } from 'util/random';
 
 export const DEFAULT_DRAW_PARAMS: DrawParams = drawConfig as DrawParams;
 

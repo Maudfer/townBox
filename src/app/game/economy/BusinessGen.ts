@@ -1,6 +1,6 @@
-import { evaluateCurve } from 'util/curve';
-import { JobPosition, DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from 'types/Work';
 import { BusinessBlueprint, BusinessInstance, JobDefinition, JobTable } from 'types/Business';
+import { JobPosition, DEFAULT_SHIFT_START, DEFAULT_SHIFT_END } from 'types/Work';
+import { evaluateCurve } from 'util/curve';
 
 // Engine A — generative business blueprints (docs/tasks/013 §4). generateBusiness is a pure function of its
 // inputs: given a blueprint, the job reference table, a (pre-generated) name and a size, it expands each

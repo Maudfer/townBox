@@ -1,34 +1,32 @@
-import SkillBook, { DEFAULT_SKILL_MANIFEST } from 'game/skills/SkillBook';
-import SkillProgression from 'game/skills/SkillProgression';
-import JobMarket from 'game/economy/JobMarket';
-import Brain from 'game/actions/Brain';
+import GameManager from 'game/GameManager';
 import ActionEngine from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
+import Person from 'game/agents/Person';
+import JobMarket from 'game/economy/JobMarket';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import LiveWorld from 'game/execution/LiveWorld';
-import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
-import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
 import { runTick } from 'game/execution/TickRunner';
+import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
+import SkillBook, { DEFAULT_SKILL_MANIFEST } from 'game/skills/SkillBook';
+import SkillProgression from 'game/skills/SkillProgression';
+import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
+import Building from 'game/world/Building';
 import Field from 'game/world/Field';
-import GameManager from 'game/GameManager';
 import House from 'game/world/House';
 import Workplace from 'game/world/Workplace';
-import Person from 'game/agents/Person';
-import Building from 'game/world/Building';
-
+import jobsConfig from 'json/jobs.json';
+import residencesConfig from 'json/residences.json';
+import schoolsConfig from 'json/schools.json';
+import { GenPerson, PopulationState } from 'types/Genealogy';
+import { TickResult } from 'types/LifeEvent';
+import { TilePosition, PixelPosition } from 'types/Position';
+import { SchoolConfig } from 'types/School';
+import { Genders } from 'types/Social';
+import { JobPosition } from 'types/Work';
 import { isSchoolDay, schoolFactsFor, totalEligibleSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
 import { dayOfTick, TICKS_PER_DAY, TICKS_PER_YEAR } from 'util/time';
 
-import { SchoolConfig } from 'types/School';
-import { GenPerson, PopulationState } from 'types/Genealogy';
-import { Genders } from 'types/Social';
-import { JobPosition } from 'types/Work';
-import { TickResult } from 'types/LifeEvent';
-import { TilePosition, PixelPosition } from 'types/Position';
-
-import schoolsConfig from 'json/schools.json';
-import jobsConfig from 'json/jobs.json';
-import residencesConfig from 'json/residences.json';
 
 // The progression & context arc, end to end (task 075): the per-task suites prove each loop alone; THIS
 // suite runs them together on one seeded fixture, catching cross-system interference — school → skills →

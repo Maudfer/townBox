@@ -1,6 +1,6 @@
-import { computeBusinessPnl, unitMaterialCost, resolveDemand, aggregateMaterialDemand, positionDelta, DemandBusiness } from 'util/businessFinance';
 import { BusinessBlueprint } from 'types/Business';
 import {JobPosition} from 'types/Work';
+import { computeBusinessPnl, unitMaterialCost, resolveDemand, aggregateMaterialDemand, positionDelta, DemandBusiness } from 'util/businessFinance';
 
 function pos(title: string): JobPosition {
     return { title, salary: 0, requirements: ['assist_customers'], shiftStart: 0, shiftEnd: 0 };

@@ -1,6 +1,6 @@
 import { migrateSnapshot } from 'game/save/migrations';
-import { SAVE_VERSION, WorldSnapshot } from 'types/Save';
 import { EventLogEntry } from 'types/LifeEvent';
+import { SAVE_VERSION, WorldSnapshot } from 'types/Save';
 import { TICKS_PER_YEAR, DAYS_PER_YEAR } from 'util/time';
 
 // v7 → v8 (task 040): day ticks become hour ticks; every persisted tick scales by 24 so derived ages and

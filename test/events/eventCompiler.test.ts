@@ -1,7 +1,7 @@
 import { compileEvents } from 'game/events/EventCompiler';
+import eventsConfig from 'json/events.json';
 import { EventManifest } from 'types/LifeEvent';
 
-import eventsConfig from 'json/events.json';
 
 const REAL_EVENTS = eventsConfig as unknown as EventManifest;
 

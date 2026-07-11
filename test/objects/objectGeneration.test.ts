@@ -1,10 +1,8 @@
 import Inventory from 'game/objects/Inventory';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
-
-import { ObjectArchetype } from 'types/Objects';
-
-import residencesConfig from 'json/residences.json';
 import businessesConfig from 'json/businesses.json';
+import residencesConfig from 'json/residences.json';
+import { ObjectArchetype } from 'types/Objects';
 
 // Deterministic contextual object generation (task 070): tag-intersection candidates, guaranteed essentials,
 // caps/uniqueness, ownership resolution, teardown symmetry, and determinism — over the REAL manifests.
@@ -123,13 +121,13 @@ describe('consumption proof (the 071 seam)', () => {
 // action/OAR/event. Before this task ~581 objects sat behind deferred venues and 11 seed objects had no
 // placement at all, so they could never spawn.
 describe('object reachability (task 076/M2)', () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const objects = require('json/objects.json') as Record<string, { placement?: string[] }>;
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const actions = require('json/actions.json');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const oar = require('json/object-action-relationships.json');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const events = require('json/events.json');
 
     test('every object archetype can enter the world', () => {

@@ -13,10 +13,10 @@ import {
 } from 'game/history/HistoryAsset';
 import { sliceAndRebase, reidentify, pickWindow, selectStartingWorld, validateAsset } from 'game/history/HistoryAssetSelection';
 import { decodeAsset } from 'game/history/HistoryAssetSource';
-import { compress } from 'util/compress';
-import { Genders } from 'types/Social';
 import { PopulationState } from 'types/Genealogy';
 import { EventLogTable } from 'types/LifeEvent';
+import { Genders } from 'types/Social';
+import { compress } from 'util/compress';
 
 const TINY: HistoryGeneratorParams = {
     ...DEFAULT_GENERATOR_PARAMS,

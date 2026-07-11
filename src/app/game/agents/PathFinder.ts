@@ -1,7 +1,6 @@
 import Field from 'game/world/Field';
-import Tile from 'game/world/Tile';
 import Road from 'game/world/Road';
-
+import Tile from 'game/world/Tile';
 import { TilePosition } from 'types/Position';
 
 export default class PathFinder {

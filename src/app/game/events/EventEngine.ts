@@ -1,14 +1,13 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
-import { SeededRandom } from 'util/random';
-import { dayOfTick, hourOfTick } from 'util/time';
-import { evaluateCurve, Curve } from 'util/curve';
-import { evaluatePredicate, compareValues } from 'util/predicate';
-import { isAliveAt, ageAt, spouseAt, childrenOf } from 'util/kinship';
-import { sampleMaxChildren } from 'util/fertility';
 
-import { SimulationContext, Value, HasEventQuery } from 'types/Simulation';
-import { Genders, Gender } from 'types/Social';
+
+import { compileEvents, EventGraph, GateComparison } from 'game/events/EventCompiler';
+import LifeLog from 'game/events/LifeLog';
+
+import { ExecutionContext } from 'types/Execution';
+
+import eventsConfig from 'json/events.json';
 import { PersonId, PopulationState } from 'types/Genealogy';
 import {
     EventManifest,
@@ -28,13 +27,14 @@ import {
     HousingMarket,
     SkillRegistry,
 } from 'types/LifeEvent';
-
-import { compileEvents, EventGraph, GateComparison } from 'game/events/EventCompiler';
-import LifeLog from 'game/events/LifeLog';
-
-import { ExecutionContext } from 'types/Execution';
-
-import eventsConfig from 'json/events.json';
+import { SimulationContext, Value, HasEventQuery } from 'types/Simulation';
+import { Genders, Gender } from 'types/Social';
+import { evaluateCurve, Curve } from 'util/curve';
+import { sampleMaxChildren } from 'util/fertility';
+import { isAliveAt, ageAt, spouseAt, childrenOf } from 'util/kinship';
+import { evaluatePredicate, compareValues } from 'util/predicate';
+import { SeededRandom } from 'util/random';
+import { dayOfTick, hourOfTick } from 'util/time';
 
 export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as EventManifest;
 

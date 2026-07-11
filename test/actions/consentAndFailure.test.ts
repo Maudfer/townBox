@@ -1,17 +1,15 @@
-import Brain, { BrainDeps, BrainHook, ActionIntent } from 'game/actions/Brain';
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
+import Brain, { BrainDeps, BrainHook, ActionIntent } from 'game/actions/Brain';
+import { evaluateConsent } from 'game/actions/Consent';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
-import { evaluateConsent } from 'game/actions/Consent';
-
-import { ActionManifest } from 'types/Action';
-import { PopulationState, GenPerson } from 'types/Genealogy';
-import { Genders } from 'types/Social';
-import { TickResult, ActionLogEntry } from 'types/LifeEvent';
-
 import actionsConfig from 'json/actions.json';
 import eventsConfig from 'json/events.json';
+import { ActionManifest } from 'types/Action';
+import { PopulationState, GenPerson } from 'types/Genealogy';
+import { TickResult, ActionLogEntry } from 'types/LifeEvent';
+import { Genders } from 'types/Social';
 
 // Consent evaluation & typed action failure (task 073): the placeholder 80%-yes policy is deterministic and
 // stream-isolated; a decline is a zero-mutation, fully-logged 'failed' outcome that Brain consumes without

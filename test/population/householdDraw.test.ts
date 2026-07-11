@@ -1,10 +1,10 @@
 import { selectHousehold } from 'game/population/HouseholdDraw';
 import { generatePopulation } from 'game/population/Population';
-import { SeededRandom } from 'util/random';
-import { isAliveAt, ageAt, relationshipLabel } from 'util/kinship';
 import { GenPerson, PersonTable, PopulationState, PopulationParams } from 'types/Genealogy';
 import { DrawParams, HouseholdArrangements } from 'types/Household';
 import { Genders, Gender } from 'types/Social';
+import { isAliveAt, ageAt, relationshipLabel } from 'util/kinship';
+import { SeededRandom } from 'util/random';
 
 const TICKS_PER_YEAR = 360;
 const NOW = 0;

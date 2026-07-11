@@ -2,17 +2,17 @@
 // WorldAdapter surface, direct school accrual, carried-inventory filtering) plus one end-to-end integration
 // run proving the generator carries lived skills/careers/possessions into the asset.
 
-import LogicalWorld from 'game/history/LogicalWorld';
-import SkillBook from 'game/skills/SkillBook';
 import EventEngine from 'game/events/EventEngine';
 import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAsset, HistoryAssetSink, ShardRef } from 'game/history/HistoryAsset';
 import { sliceAndRebase, selectStartingWorld, selectStartingWorldFromShards, AssetHeader } from 'game/history/HistoryAssetSelection';
-import { compress } from 'util/compress';
+import LogicalWorld from 'game/history/LogicalWorld';
+import SkillBook from 'game/skills/SkillBook';
+import { PopulationState } from 'types/Genealogy';
 import { EventLogTable } from 'types/LifeEvent';
 import { SkillTimeline } from 'types/Skill';
-import { TICKS_PER_YEAR } from 'util/time';
 import { Genders } from 'types/Social';
-import { PopulationState } from 'types/Genealogy';
+import { compress } from 'util/compress';
+import { TICKS_PER_YEAR } from 'util/time';
 
 function poolWith(records: PopulationState['people']): PopulationState {
     return { worldSeed: 1, people: records, drawSeed: 0, placedIds: [], nextSeq: 100, lastSimulatedYear: 0 };

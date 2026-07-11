@@ -1,11 +1,10 @@
+import City from 'game/City';
+import GameManager from 'game/GameManager';
+import Economy from 'game/economy/Economy';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
-import City from 'game/City';
-import Economy from 'game/economy/Economy';
-import GameManager from 'game/GameManager';
-
-import { PixelPosition, TilePosition } from 'types/Position';
 import { HouseholdArrangements } from 'types/Household';
+import { PixelPosition, TilePosition } from 'types/Position';
 
 // Mirrors src/json/economy.json.
 const HOUSING = 800;

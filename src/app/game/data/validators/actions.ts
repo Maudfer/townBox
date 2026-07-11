@@ -3,11 +3,11 @@
 // lifecycle event links must reference events that declare a `manual` trigger (the action↔event coupling is
 // managed data, 038 §7), and sequence bindings must reference declared parent parameters.
 
-import { IssueCollector } from 'game/data/registry';
 import { checkBoolean, checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 import { validatePredicate } from 'game/data/substrate';
-import { ActionManifest } from 'types/Action';
 import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/data/validators/oar';
+import { ActionManifest } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 
 const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences'];

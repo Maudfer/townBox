@@ -1,17 +1,16 @@
+import City from 'game/City';
+import Clock from 'game/Clock';
+import GameManager from 'game/GameManager';
+import Person from 'game/agents/Person';
+import Economy from 'game/economy/Economy';
+import Population from 'game/population/Population';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
 import Workplace from 'game/world/Workplace';
-import City from 'game/City';
-import Population from 'game/population/Population';
-import Clock from 'game/Clock';
-import Economy from 'game/economy/Economy';
-import GameManager from 'game/GameManager';
-import Person from 'game/agents/Person';
-
 import { GenPerson, PersonTable } from 'types/Genealogy';
 import { HouseholdArrangements } from 'types/Household';
-import { Genders, Gender } from 'types/Social';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { Genders, Gender } from 'types/Social';
 
 function gen(id: string, gender: Gender): GenPerson {
     return { id, firstName: id, familyName: 'Fam', gender, birthTick: 0, deathTick: null, fatherId: null, motherId: null, partnerships: [] };

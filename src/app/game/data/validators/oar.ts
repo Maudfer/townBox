@@ -3,8 +3,8 @@
 // and archetype references must exist; transformed inputs need transformTo; triggered/scheduled events must
 // exist and (for triggerEvent) declare a manual trigger.
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 import { ActionManifest, OARTable } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 

@@ -13,7 +13,6 @@
 
 import { interleave } from 'game/actions/ActionEngine';
 import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
-
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isOnShiftAtTick } from 'util/shifts';
 

@@ -1,18 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
 
 import GameManager from 'game/GameManager';
-import Tile from 'game/world/Tile';
-import Road from 'game/world/Road';
-import House from 'game/world/House';
-import Workplace from 'game/world/Workplace';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
-
-import { SaveProvider } from 'game/save/SaveProvider';
-import LocalStorageProvider from 'game/save/LocalStorageProvider';
-import { migrateSnapshot } from 'game/save/migrations';
-import { applyLegacySkills } from 'game/save/legacySkills';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
+import LocalStorageProvider from 'game/save/LocalStorageProvider';
+import { SaveProvider } from 'game/save/SaveProvider';
+import { applyLegacySkills } from 'game/save/legacySkills';
+import { migrateSnapshot } from 'game/save/migrations';
+import House from 'game/world/House';
+import Road from 'game/world/Road';
+import Tile from 'game/world/Tile';
+import Workplace from 'game/world/Workplace';
 import businessesConfig from 'json/businesses.json';
 import residencesConfig from 'json/residences.json';
 
@@ -25,8 +24,6 @@ const JOB_CORE_SKILL_IDS: ReadonlySet<string> = new Set(
     Object.values(jobsConfig as Record<string, { requiredSkills?: string[] }>).flatMap(job => job.requiredSkills ?? [])
 );
 
-import { compress, decompress } from 'util/compress';
-import { Relationships } from 'types/Social';
 import { Household } from 'types/Household';
 import {
     SAVE_VERSION,
@@ -37,6 +34,8 @@ import {
     VehicleSnapshot,
     RelationshipSnapshot,
 } from 'types/Save';
+import { Relationships } from 'types/Social';
+import { compress, decompress } from 'util/compress';
 
 // Orchestrates capturing and restoring the entire game state. The snapshot is an id-based normalized model
 // (people/vehicles get stable ids, structures/houses are referenced by their anchor key) so the cyclic

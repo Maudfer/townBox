@@ -1,7 +1,7 @@
-import Field from 'game/world/Field';
 import GameManager from 'game/GameManager';
-import { formatDay } from 'util/time';
+import Field from 'game/world/Field';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { formatDay } from 'util/time';
 
 function makeField(rows: number, cols: number): Field {
     const game = {

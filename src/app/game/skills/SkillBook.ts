@@ -12,11 +12,11 @@
 // basics at 60 plus a deterministic contextual assortment. Idempotent via the serialized `initialized` set.
 // Determinism: seeded from (worldSeed ^ hash(personId)) — the assignSkills convention it replaces.
 
-import { SeededRandom, hashStringToSeed } from 'util/random';
-import { compileSkills, CompiledSkills } from 'util/skillGraph';
-import { schoolDailyGain, countSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
-import { dayOfTick, TICKS_PER_YEAR } from 'util/time';
-
+import schoolsConfig from 'json/schools.json';
+import skillInitConfig from 'json/skillInit.json';
+import skillsConfig from 'json/skills.json';
+import { PersonId } from 'types/Genealogy';
+import { SchoolConfig } from 'types/School';
 import {
     PersonSkillRecord,
     PersonSkills,
@@ -27,12 +27,11 @@ import {
     SkillManifest,
     SkillRequirement,
 } from 'types/Skill';
-import { PersonId } from 'types/Genealogy';
-import { SchoolConfig } from 'types/School';
+import { SeededRandom, hashStringToSeed } from 'util/random';
+import { schoolDailyGain, countSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
+import { compileSkills, CompiledSkills } from 'util/skillGraph';
+import { dayOfTick, TICKS_PER_YEAR } from 'util/time';
 
-import skillsConfig from 'json/skills.json';
-import skillInitConfig from 'json/skillInit.json';
-import schoolsConfig from 'json/schools.json';
 
 export const DEFAULT_SKILL_MANIFEST = skillsConfig as unknown as SkillManifest;
 export const DEFAULT_SKILL_INIT_PARAMS = skillInitConfig as unknown as SkillInitParams;
