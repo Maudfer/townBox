@@ -18,15 +18,15 @@
 //   --full-manifest (run the full event manifest — texture events included; slower, for correctness runs)
 //   --reduced-manifest (force the reduced walk on)  --profile (per-phase timing attribution → printed at end)
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join, resolve, basename } from 'node:path';
+import { writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { hostname } from 'node:os';
 import process from 'node:process';
 
 import { compress } from 'util/compress';
-import { formatDuration } from 'util/time';
+import { formatDuration, DAYS_PER_YEAR, DAYS_PER_MONTH, DAYS_PER_WEEK } from 'util/time';
 import {
     generateHistoryAsset,
     DEFAULT_GENERATOR_PARAMS,
@@ -111,35 +111,61 @@ async function main(): Promise<void> {
         },
     };
 
-    // Naming (never overwrites, "latest" = numerically highest): history-<serial>-<hash>. `serial` is a
-    // 14-digit sortable timestamp (YYYYMMDDHHMMSS) — monotonic and scalable to unlimited runs; a later run is
-    // always a higher number. `hash` is 4 hex chars over (argv, seed, params, hrtime) for uniqueness/provenance
-    // and to disambiguate two runs in the same second. A committed `latest.json` pointer (below) then makes
-    // "load the newest asset" a one-file lookup.
-    const historyRoot = resolve(process.cwd(), 'src/assets/history');
+    // Asset identity: history-<serial>-<hash>. `serial` is a 14-digit sortable timestamp (YYYYMMDDHHMMSS);
+    // `hash` is 4 hex chars over (argv, seed, params, hrtime) for uniqueness/provenance. Used to name --dev
+    // subfolders and stamped into manifest.json.
+    const historyRoot = resolve(process.cwd(), 'src/history');
     const now = new Date();
     const p2 = (n: number) => String(n).padStart(2, '0');
     const serial = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
     const hash = createHash('sha1')
         .update(JSON.stringify({ argv: process.argv.slice(2), seed: params.seed, params }) + process.hrtime.bigint().toString())
         .digest('hex').slice(0, 4);
+    const assetName = `history-${serial}-${hash}`;
 
-    let outDir = typeof flags.out === 'string' ? resolve(flags.out) : join(historyRoot, `history-${serial}-${hash}`);
-    // Never overwrite: if the target somehow already exists, bump a suffix instead of wiping it.
-    if (existsSync(outDir)) {
-        let suffix = 2;
-        while (existsSync(`${outDir}-${suffix}`)) {
-            suffix++;
+    // Output location + pointer mode (the asset is versioned as ONE committed copy, not an accumulating pile):
+    //   --out DIR : explicit dir, no pointer, no clear (tests / throwaway runs).
+    //   --dev     : src/history/dev/<assetName>/ (gitignored) + the gitignored asset.local.json override —
+    //               iterate on assets without touching or risking a commit of the real pointer.
+    //   default   : src/history/ root (the single committed asset). Clears the previous default IN PLACE
+    //               (keeping the dev/ subtree) and writes asset.json → "./" (dropping any dev override).
+    const explicitOut = typeof flags.out === 'string';
+    const devMode = !explicitOut && !!flags.dev;
+    const defaultMode = !explicitOut && !flags.dev;
+    const outDir = explicitOut ? resolve(flags.out as string)
+        : devMode ? join(historyRoot, 'dev', assetName)
+        : historyRoot;
+
+    if (defaultMode && existsSync(historyRoot)) {
+        // Overwrite the previous default in place: remove top-level files (old asset + asset.json +
+        // asset.local.json), but leave dev/ (accumulated dev generations) alone.
+        for (const entry of readdirSync(historyRoot, { withFileTypes: true })) {
+            if (entry.isFile()) {
+                rmSync(join(historyRoot, entry.name), { force: true });
+            }
         }
-        outDir = `${outDir}-${suffix}`;
+    }
+    if (devMode && existsSync(outDir)) {
+        rmSync(outDir, { recursive: true, force: true }); // a same-name dev run overwrites its own subfolder
     }
     mkdirSync(outDir, { recursive: true });
 
     console.log(`[generate-history] generator v${HISTORY_GENERATOR_VERSION}, seed ${params.seed} → ${outDir}`);
-    console.log(`[generate-history] founders ${params.founderCount} → threshold ${params.recordThreshold} → +${params.recordYears}y`
-        + `, ${params.daysPerStep}d/step, target ${params.populationControl.enabled ? params.populationControl.target : 'off'}`
-        + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`
-        + `, manifest ${params.reducedEventManifest ? 'reduced' : 'full'}${params.profile ? ', profile ON' : ''}`);
+    // Human-readable generation plan: granularity, expected log cadence per period, and (from the step size)
+    // what week/month skips to expect. Printed once, up front, so the progress stream below reads in context.
+    const stepDays = Math.max(1, Math.floor(params.daysPerStep));
+    const weekLogsPerYear = stepDays <= DAYS_PER_WEEK ? 52 : Math.ceil(DAYS_PER_YEAR / stepDays);
+    const monthLogsPerYear = stepDays <= DAYS_PER_MONTH ? 12 : Math.ceil(DAYS_PER_YEAR / stepDays);
+    const stepDesc = stepDays === 1 ? 'daily — every day simulated'
+        : stepDays <= DAYS_PER_WEEK ? `${stepDays} days/step — every week boundary hit`
+        : `${stepDays} days/step — weeks jumped ${stepDays} days at a time (see "N days simulated")`;
+    console.log(`[generate-history] plan:`);
+    console.log(`  stepping   : ${stepDesc}`);
+    console.log(`  logs / year: ~${weekLogsPerYear} weeks, ${monthLogsPerYear} months, 1 year (logged at each period's end)`);
+    console.log(`  warmup     : grow ${params.founderCount} → ${params.recordThreshold} living, then record ${params.recordYears} years`);
+    console.log(`  event walk : ${params.reducedEventManifest ? 'reduced' : 'full'} manifest · action log ${params.keepActionLog ? 'kept' : 'off'}`
+        + `, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`);
+    console.log(`  console    : progress batched once/sec, all lines kept${params.profile ? ' · profile ON' : ''}`);
 
     // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk. min/max ticks
     // are accumulated in a running loop — NOT `Math.min(...ticks)` — because an action-log shard can hold
@@ -187,24 +213,86 @@ async function main(): Promise<void> {
         },
     };
 
-    let lastLog = Date.now();
-    const onProgress = (progress: GenerationProgress): void => {
-        // Year milestones always print; the finer weekly lines within them are rate-limited so a fast run
-        // (many weeks per real second) doesn't flood the console.
-        if (!progress.yearBoundary && Date.now() - lastLog < 1000) {
+    // --- Sequential period-end progress, batched to the console once per second ---------------------------
+    // The generator fires per step; here we detect week/month/year ENDS (phase-relative — recording years count
+    // from 0) and roll them up finest→coarsest. Lines accumulate in `logBuffer` and flush in ONE write at most
+    // once per real second, so completeness never costs the loop more than a single synchronous TTY write/sec
+    // (simulation performance stays the priority). A per-second buffer is memory-bounded (≤1s of lines).
+    const ticksPerDay = params.ticksPerYear / DAYS_PER_YEAR;
+    const pad2 = (n: number): string => String(n).padStart(2, '0');
+    const logBuffer: string[] = [];
+    let lastFlush = Date.now();
+    const flushLog = (force: boolean): void => {
+        if (logBuffer.length === 0 || (!force && Date.now() - lastFlush < 1000)) {
             return;
         }
-        lastLog = Date.now();
-        if (progress.yearBoundary) {
-            console.log(`  [${progress.phase}] year ${progress.yearsDone} · living ${progress.living} · retained ${progress.retained}`);
-        } else {
-            const month = String(progress.monthOfYear + 1).padStart(2, '0');
-            const week = String(progress.weekOfYear + 1).padStart(2, '0');
-            console.log(`  [${progress.phase}] year ${progress.yearsDone} · month ${month} · week ${week} · living ${progress.living}`);
+        process.stdout.write(logBuffer.join('\n') + '\n');
+        logBuffer.length = 0;
+        lastFlush = Date.now();
+    };
+
+    // Period trackers (the CURRENTLY in-progress period; a period is logged when the NEXT one begins).
+    let logPhase: GenerationProgress['phase'] | null = null;
+    let pWeek = -1, pWeekYear = -1, weekStartDay = 0;
+    let pMonth = -1, pMonthYear = -1;
+    let pYear = -1;
+    let lastDay = -1, lastLiving = 0; // captured for the trailing partials (the run stops mid-period)
+
+    const onProgress = (p: GenerationProgress): void => {
+        const tag = p.phase === 'warmup' ? '[warmup] ' : '';
+        // Phase change → flush, banner, reset trackers (recording restarts the year count at 0).
+        if (p.phase !== logPhase) {
+            flushLog(true);
+            if (p.phase === 'recording') {
+                logBuffer.push(`── recording window begins · ${params.recordYears} years ──`);
+            }
+            logPhase = p.phase;
+            pWeek = pMonth = pYear = -1;
+            pWeekYear = pMonthYear = -1;
+            weekStartDay = 0;
         }
+        const day = Math.floor(p.ticksIntoPhase / ticksPerDay);
+        const dayOfYear = ((day % DAYS_PER_YEAR) + DAYS_PER_YEAR) % DAYS_PER_YEAR;
+        const week = Math.floor(dayOfYear / DAYS_PER_WEEK);   // 0..51 (week 51 = the 3-day year-end stub)
+        const month = Math.floor(dayOfYear / DAYS_PER_MONTH); // 0..11
+        const year = Math.floor(day / DAYS_PER_YEAR);
+        lastDay = day;
+        lastLiving = p.living;
+        // First fire of the phase: seed the trackers, emit nothing (no period has completed yet).
+        if (pYear === -1) {
+            pWeek = week; pWeekYear = year; pMonth = month; pMonthYear = year; pYear = year; weekStartDay = day;
+            return;
+        }
+        // Week ended → the PREVIOUS week completed; "N days simulated" reports the days actually stepped in it
+        // (7 for a full week, 3 for the year-end stub, or the whole jump under coarse stepping).
+        if (year !== pWeekYear || week !== pWeek) {
+            logBuffer.push(`${tag}Simulated week ${pad2(pWeek + 1)} · ${day - weekStartDay} days simulated · ${p.living} living`);
+            pWeek = week; pWeekYear = year; weekStartDay = day;
+        }
+        if (year !== pMonthYear || month !== pMonth) {
+            logBuffer.push(`${tag}Simulated month ${pad2(pMonth + 1)} of year ${pMonthYear} · ${p.living} living`);
+            pMonth = month; pMonthYear = year;
+        }
+        if (year !== pYear) {
+            logBuffer.push(`${tag}Simulated year ${pYear}`);
+            pYear = year;
+        }
+        flushLog(false);
     };
 
     const asset = await generateHistoryAsset(params, onProgress, gitCommit(), sink);
+
+    // Trailing partials: termination breaks BEFORE the final period boundary fires, so emit the still-in-progress
+    // week/month/year — otherwise the last simulated year would never print. Then flush the batch unconditionally.
+    if (logPhase !== null && lastDay >= 0) {
+        const tag = logPhase === 'warmup' ? '[warmup] ' : '';
+        // Inclusive day count (lastDay is the last day reached, vs the normal path's exclusive day-after-end),
+        // so the trailing stub week matches the count a fully-completed one would show.
+        logBuffer.push(`${tag}Simulated week ${pad2(pWeek + 1)} · ${lastDay - weekStartDay + 1} days simulated · ${lastLiving} living`);
+        logBuffer.push(`${tag}Simulated month ${pad2(pMonth + 1)} of year ${pMonthYear} · ${lastLiving} living`);
+        logBuffer.push(`${tag}Simulated year ${pYear}`);
+    }
+    flushLog(true);
 
     // Write the section files (small, held in RAM) + the header.
     let sectionBytes = 0;
@@ -224,54 +312,40 @@ async function main(): Promise<void> {
     };
     writeFileSync(join(outDir, 'meta.json'), JSON.stringify(header, null, 2), 'utf8');
 
-    // Exhaustive provenance manifest (human/tooling-facing; the loader only needs meta.json). Everything we
-    // know about how this asset was produced: when, on what, with which flags/params, and its measured stats.
+    // Run-provenance card (human/tooling-facing). It records ONLY what meta.json does not already carry — the
+    // where/how/when of the run and the on-disk size breakdown. All asset identity, config, ticks and measured
+    // stats are the machine source of truth in meta.json (which the loader reads), so they are NOT echoed here:
+    //   params / seed → meta.meta.params (+ .params.seed)      gitCommit → meta.meta.gitCommit
+    //   formatVersion/generatorVersion/epochTick/endTick/      stats (trajectory/births/deaths/runtimeMs/…)
+    //     ticksPerYear/createdAt → meta.meta.*                   → meta.meta.stats
+    //   sections + per-shard tick ranges → meta.sections/logShards/skillShards
+    // Read meta.json for any of the above; this file adds environment, invocation, naming, a human runtime,
+    // and the size split (total = shardBytes + sectionBytes = meta.meta.stats.compressedBytes).
     const generatedAt = now.toISOString();
     const manifest = {
         generatedAt,
         serial,
         hash,
-        dir: basename(outDir),
-        generator: { version: HISTORY_GENERATOR_VERSION, script: 'scripts/generateHistoryAsset.ts' },
-        gitCommit: asset.meta.gitCommit,
+        name: assetName,
+        generator: { script: 'scripts/generateHistoryAsset.ts' },
         environment: { node: process.version, platform: `${process.platform}/${process.arch}`, host: hostname() },
         invocation: { argv: process.argv.slice(2), flags },
-        params,
-        seed: params.seed,
-        assetMeta: {
-            formatVersion: asset.meta.formatVersion,
-            generatorVersion: asset.meta.generatorVersion,
-            epochTick: asset.meta.epochTick,
-            endTick: asset.meta.endTick,
-            ticksPerYear: asset.meta.ticksPerYear,
-            createdAt: asset.meta.createdAt,
-        },
-        stats: asset.meta.stats,
         runtime: formatDuration(asset.meta.stats.runtimeMs),
-        files: {
-            sections: header.sections,
-            logShards: header.logShards.length,
-            skillShards: header.skillShards.length,
-        },
-        sizes: { shardBytes, sectionBytes, totalCompressedBytes: totalCompressed },
+        shards: { logShards: header.logShards.length, skillShards: header.skillShards.length },
+        sizes: { shardBytes, sectionBytes },
     };
     writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
 
-    // "Latest" pointer (default-located assets only): a one-file lookup so the game/tooling can resolve the
-    // newest asset without listing the directory. `serial` is monotonic, so this always points at the newest.
-    if (typeof flags.out !== 'string') {
-        const latest = {
-            dir: basename(outDir),
-            serial,
-            hash,
-            generatedAt,
-            generatorVersion: HISTORY_GENERATOR_VERSION,
-            seed: params.seed,
-            livingAtEnd: asset.meta.stats.livingAtEnd,
-            retainedPeople: asset.meta.stats.retainedPeople,
-            totalCompressedBytes: totalCompressed,
-        };
-        writeFileSync(join(historyRoot, 'latest.json'), JSON.stringify(latest, null, 2), 'utf8');
+    // Asset pointer — a one-property file naming which asset dir to load ({ "dir": "./" } for the committed
+    // default, "./dev/<assetName>/" for a dev build). It carries nothing else: everything latest.json used to
+    // duplicate (serial/hash/generatedAt live in manifest.json; generatorVersion/seed/livingAtEnd/
+    // retainedPeople/compressedBytes live in meta.json) is already in those files. Default → the committed
+    // `asset.json`; --dev → the GITIGNORED `asset.local.json` override (preferred over asset.json by
+    // copy-history + the runtime), so a dev pointer can never be committed. Explicit --out writes no pointer.
+    if (defaultMode) {
+        writeFileSync(join(historyRoot, 'asset.json'), JSON.stringify({ dir: './' }, null, 2), 'utf8');
+    } else if (devMode) {
+        writeFileSync(join(historyRoot, 'asset.local.json'), JSON.stringify({ dir: `./dev/${assetName}/` }, null, 2), 'utf8');
     }
 
     const { stats } = asset.meta;
@@ -325,9 +399,11 @@ async function main(): Promise<void> {
         console.log(`    year ${String(point.year).padStart(4)} · living ${point.living}`);
     }
     console.log(`\n[generate-history] wrote ${outDir}`);
-    console.log(`[generate-history]   + manifest.json (exhaustive provenance)`);
-    if (typeof flags.out !== 'string') {
-        console.log(`[generate-history]   + latest.json → ${basename(outDir)} (newest asset pointer)`);
+    console.log(`[generate-history]   + manifest.json (run provenance: env/invocation/naming/sizes)`);
+    if (defaultMode) {
+        console.log(`[generate-history]   + asset.json → ./ (committed default pointer)`);
+    } else if (devMode) {
+        console.log(`[generate-history]   + asset.local.json → ./dev/${assetName}/ (gitignored dev override)`);
     }
 }
 

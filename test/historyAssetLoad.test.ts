@@ -1,4 +1,4 @@
-// Runtime asset loading (task 077 Part B). `loadSelectedWorldFromHttp` fetches latest.json → the newest
+// Runtime asset loading (task 077 Part B). `loadSelectedWorldFromHttp` fetches asset.json → the pointed
 // asset's meta.json → and only the shards the window needs, then selects a starting world. Here we generate a
 // small sharded asset, serve it through a fake `fetchText` over an in-memory URL→payload map, and assert the
 // HTTP-loaded world is identical to selecting from the equivalent in-memory asset — plus the fallbacks.
@@ -21,7 +21,7 @@ const PARAMS: HistoryGeneratorParams = {
 const BASE = 'history';
 const DIR = 'history-20260101000000-abcd';
 
-// Builds an in-memory "server": a URL→payload map mirroring what the CLI writes to disk (latest.json, the
+// Builds an in-memory "server": a URL→payload map mirroring what the CLI writes to disk (asset.json, the
 // asset's meta.json header, the section files, and the shards). Returns the store + the equivalent in-memory
 // asset (for the equality assertion) + a matching fetchText.
 async function buildServer(): Promise<{ store: Map<string, string>; inMem: HistoryAsset; fetchText: (url: string) => Promise<string | null> }> {
@@ -64,7 +64,8 @@ async function buildServer(): Promise<{ store: Map<string, string>; inMem: Histo
 
     // Assemble the served URL map.
     const store = new Map<string, string>();
-    store.set(`${BASE}/latest.json`, JSON.stringify({ dir: DIR }));
+    // The pointer uses the "./<dir>/" form the generator writes, so the loader's dir normalization is exercised.
+    store.set(`${BASE}/asset.json`, JSON.stringify({ dir: `./${DIR}/` }));
     store.set(`${BASE}/${DIR}/meta.json`, JSON.stringify(header));
     store.set(`${BASE}/${DIR}/population.tbz`, compress(JSON.stringify(streamed.population)));
     store.set(`${BASE}/${DIR}/objects.tbz`, compress(JSON.stringify(streamed.objects)));
@@ -80,7 +81,7 @@ async function buildServer(): Promise<{ store: Map<string, string>; inMem: Histo
 describe('loadSelectedWorldFromHttp', () => {
     jest.setTimeout(180000);
 
-    test('HTTP-loaded world equals in-memory selection (fetches latest → meta → shards)', async () => {
+    test('HTTP-loaded world equals in-memory selection (fetches asset.json → meta → shards)', async () => {
         const { inMem, fetchText } = await buildServer();
         for (const seed of [1, 99, 40404]) {
             const overHttp = await loadSelectedWorldFromHttp(seed, BASE, fetchText);
