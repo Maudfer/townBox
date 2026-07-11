@@ -301,7 +301,7 @@ carry old saves forward), deflated with `pako` and base64-encoded behind a plugg
 | Tests       | Jest `^30` + `ts-jest` (unit); Playwright integration is planned |
 | Data viz    | D3 `^7` (family-tree graph) |
 | Fake data   | `@faker-js/faker` (`pt_BR` locale) |
-| CI          | GitHub Actions — typecheck, per-module concurrent test checks, production build, per-module coverage gate |
+| CI          | GitHub Actions — typecheck, per-module concurrent test checks, production build, per-module coverage gate, ESLint + markdownlint |
 
 ---
 
@@ -324,9 +324,10 @@ npm run build-prod     # production Parcel build
 CI (`.github/workflows/ci.yml`) splits the checks into **separate concurrent jobs**: the type check, the
 production build, and one `test (<module>)` job per affected module (a `changes` job path-filters which modules a
 PR touched; foundational/shared changes fan out to all). Each `test` job emits its own coverage report, and a
-`coverage` job reads them all and fails if any module is under the threshold — an **advisory** per-module gate
-today (a forcing function to grow each module's own unit tests). A single `ci-success` job aggregates the
-required checks — make that the required status check.
+`coverage` job reads them all and fails if any module is under the threshold. A broad `lint` job (ESLint +
+markdownlint) reproduces the VS Code Problems panel. Both `coverage` and `lint` are **advisory** forcing
+functions today (visible red, but not blocking) — pressure to grow tests and clear the lint backlog. A single
+`ci-success` job aggregates the required checks — make that the required status check.
 
 ---
 

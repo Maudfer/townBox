@@ -100,6 +100,28 @@ jobs:
       - run: npm ci
       - run: npm run build-prod
 
+  # Broad "lint & problems" check — reproduces the VS Code Problems panel (ESLint for TS/React/import
+  # hygiene, markdownlint for docs). Both linters run even if the first fails, so all problems surface.
+  #
+  # ADVISORY FOR NOW: intentionally NOT in `ci-success`'s needs, so a red lint check does not block
+  # merges — it's a forcing function to fix the existing backlog. Make it blocking by adding `lint` to
+  # `ci-success`'s `needs` (or mark the `CI / lint` check required) once the backlog is cleared.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Markdown lint
+        run: npm run lint:md
+      - name: ESLint
+        if: always()
+        run: npm run lint:js
+
   # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs
   # with --coverage and uploads its own per-module coverage report (measured by its own tests) for the
   # `coverage` job to gate.

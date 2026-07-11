@@ -1,0 +1,9 @@
+{
+  // Recommended extensions so the VS Code "Problems" panel matches CI's `lint` job. After `npm install`
+  // these use the repo's eslint.config.mjs and .markdownlint-cli2.jsonc, so local and CI report the same
+  // problems (no more local-only lint findings).
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "DavidAnson.vscode-markdownlint"
+  ]
+}

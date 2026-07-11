@@ -18,6 +18,9 @@
     "test:coverage": "jest --coverage",
     "validate-data": "jest --selectProjects data",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "npm run lint:md && npm run lint:js",
+    "lint:js": "eslint . --max-warnings 0",
+    "lint:md": "markdownlint-cli2",
     "coverage-gate": "node scripts/coverage-gate.mjs",
     "docs:sim": "UPDATE_SIM_DOCS=1 jest test/util/simulationDocs.test.ts",
     "docs:events": "UPDATE_EVENT_DOCS=1 jest test/events/eventClassification.test.ts",
@@ -52,6 +55,7 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/d3": "^7.4.3",
     "@types/jest": "^29.5.14",
     "@types/pako": "^2.0.4",
@@ -61,12 +65,20 @@
     "concurrently": "^8.2.2",
     "cpy-cli": "^5.0.0",
     "cross-env": "^7.0.3",
+    "eslint": "^9.39.5",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.7.0",
     "istanbul-lib-coverage": "^3.2.2",
     "jest": "^30.0.0",
+    "markdownlint-cli2": "^0.23.0",
     "parcel": "^2.12.0",
     "process": "^0.11.10",
     "ts-jest": "^29.4.0",
     "tsx": "^4.23.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.63.0"
   }
 }
