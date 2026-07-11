@@ -108,3 +108,8 @@ typings/
 # Build
 dist/
 bin/
+
+# Offline history assets (generate-history): the committed default lives at src/history/ (asset.json +
+# meta.json/manifest.json/shards). Dev generations (--dev) and the local dev pointer are never committed.
+src/history/dev/
+src/history/asset.local.json

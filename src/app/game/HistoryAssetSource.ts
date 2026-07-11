@@ -2,13 +2,14 @@
 // committed asset; when none is present it cold-starts (a plain generated pool — the §3.7 fallback).
 //
 // TWO source paths:
-//   - SHARDED over HTTP (the generator's default output — the primary path). The generator writes a directory
-//     under src/assets/history/<name>/ (a meta.json header + compressed section/shard files) plus a
-//     latest.json pointer at the folder root. `loadSelectedWorldFromHttp` fetches latest.json → the newest
-//     asset's meta.json → and ONLY the section + shard files the chosen window needs (chunked load, so browser
-//     memory stays bounded), then runs `selectStartingWorldFromShards`. The `copy-history` build step copies the
-//     newest asset (per latest.json) into the served output as `<served>/history/`, so both `npm run dev`
-//     (./dist) and `npm run build-prod` (./bin) load it from the same `/history` path.
+//   - SHARDED over HTTP (the generator's default output — the primary path). The generator writes the asset
+//     (a meta.json header + compressed section/shard files) under src/history/ (the committed default) or
+//     src/history/dev/<name>/ (a --dev build), plus an `asset.json` pointer naming the dir. `copy-history`
+//     mirrors the pointed asset into `<served>/history/` and writes one `<served>/history/asset.json` with the
+//     effective dir. `loadSelectedWorldFromHttp` fetches `<served>/history/asset.json` → `<dir>/meta.json` →
+//     and ONLY the section + shard files the chosen window needs (chunked load, so browser memory stays
+//     bounded), then runs `selectStartingWorldFromShards`. Both `npm run dev` (./dist) and `npm run build-prod`
+//     (./bin) load from the same `/history` path.
 //   - SINGLE-FILE constant (small assets / fixtures): set COMMITTED_HISTORY_ASSET to a compressed HistoryAsset
 //     payload; `loadCommittedAsset` decodes it and the caller runs selectStartingWorld. Kept as a bundle-time
 //     fallback for a tiny committed asset.
@@ -54,26 +55,28 @@ const httpFetchText: FetchText = async (url: string): Promise<string | null> => 
     }
 };
 
-// Loads the newest committed SHARDED asset over HTTP and selects a starting world from it. Fetches
-// latest.json → the pointed-at asset's meta.json header → and only the section + shard files the chosen
-// window `w` needs (chunked, memory-bounded). Returns null (→ the caller cold-starts) if there is no asset,
-// it is incompatible, or any required file fails to load — never a half-built world.
+// Loads the committed SHARDED asset over HTTP and selects a starting world from it. Fetches asset.json → the
+// pointed-at asset's meta.json header → and only the section + shard files the chosen window `w` needs
+// (chunked, memory-bounded). Returns null (→ the caller cold-starts) if there is no asset, it is incompatible,
+// or any required file fails to load — never a half-built world.
 export async function loadSelectedWorldFromHttp(
     gameSeed: number,
     baseUrl: string = HISTORY_ASSET_BASE_URL,
     fetchText: FetchText = httpFetchText,
 ): Promise<SelectedWorld | null> {
     try {
-        const latestRaw = await fetchText(`${baseUrl}/latest.json`);
-        if (!latestRaw) {
+        const pointerRaw = await fetchText(`${baseUrl}/asset.json`);
+        if (!pointerRaw) {
             return null;
         }
-        const dir = (JSON.parse(latestRaw) as { dir?: string }).dir;
+        const dir = (JSON.parse(pointerRaw) as { dir?: string }).dir;
         if (!dir) {
             return null;
         }
 
-        const assetBase = `${baseUrl}/${dir}`;
+        // Resolve the dir against the base URL: "./" → the history root; "./dev/history-x/" → history/dev/history-x.
+        const cleanDir = dir.replace(/^\.?\/+/, '').replace(/\/+$/, '');
+        const assetBase = cleanDir ? `${baseUrl}/${cleanDir}` : baseUrl;
         const metaRaw = await fetchText(`${assetBase}/meta.json`);
         if (!metaRaw) {
             return null;

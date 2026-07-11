@@ -18,8 +18,8 @@
 //   --full-manifest (run the full event manifest — texture events included; slower, for correctness runs)
 //   --reduced-manifest (force the reduced walk on)  --profile (per-phase timing attribution → printed at end)
 
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join, resolve, basename } from 'node:path';
+import { writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { hostname } from 'node:os';
@@ -111,27 +111,42 @@ async function main(): Promise<void> {
         },
     };
 
-    // Naming (never overwrites, "latest" = numerically highest): history-<serial>-<hash>. `serial` is a
-    // 14-digit sortable timestamp (YYYYMMDDHHMMSS) — monotonic and scalable to unlimited runs; a later run is
-    // always a higher number. `hash` is 4 hex chars over (argv, seed, params, hrtime) for uniqueness/provenance
-    // and to disambiguate two runs in the same second. A committed `latest.json` pointer (below) then makes
-    // "load the newest asset" a one-file lookup.
-    const historyRoot = resolve(process.cwd(), 'src/assets/history');
+    // Asset identity: history-<serial>-<hash>. `serial` is a 14-digit sortable timestamp (YYYYMMDDHHMMSS);
+    // `hash` is 4 hex chars over (argv, seed, params, hrtime) for uniqueness/provenance. Used to name --dev
+    // subfolders and stamped into manifest.json.
+    const historyRoot = resolve(process.cwd(), 'src/history');
     const now = new Date();
     const p2 = (n: number) => String(n).padStart(2, '0');
     const serial = `${now.getFullYear()}${p2(now.getMonth() + 1)}${p2(now.getDate())}${p2(now.getHours())}${p2(now.getMinutes())}${p2(now.getSeconds())}`;
     const hash = createHash('sha1')
         .update(JSON.stringify({ argv: process.argv.slice(2), seed: params.seed, params }) + process.hrtime.bigint().toString())
         .digest('hex').slice(0, 4);
+    const assetName = `history-${serial}-${hash}`;
 
-    let outDir = typeof flags.out === 'string' ? resolve(flags.out) : join(historyRoot, `history-${serial}-${hash}`);
-    // Never overwrite: if the target somehow already exists, bump a suffix instead of wiping it.
-    if (existsSync(outDir)) {
-        let suffix = 2;
-        while (existsSync(`${outDir}-${suffix}`)) {
-            suffix++;
+    // Output location + pointer mode (the asset is versioned as ONE committed copy, not an accumulating pile):
+    //   --out DIR : explicit dir, no pointer, no clear (tests / throwaway runs).
+    //   --dev     : src/history/dev/<assetName>/ (gitignored) + the gitignored asset.local.json override —
+    //               iterate on assets without touching or risking a commit of the real pointer.
+    //   default   : src/history/ root (the single committed asset). Clears the previous default IN PLACE
+    //               (keeping the dev/ subtree) and writes asset.json → "./" (dropping any dev override).
+    const explicitOut = typeof flags.out === 'string';
+    const devMode = !explicitOut && !!flags.dev;
+    const defaultMode = !explicitOut && !flags.dev;
+    const outDir = explicitOut ? resolve(flags.out as string)
+        : devMode ? join(historyRoot, 'dev', assetName)
+        : historyRoot;
+
+    if (defaultMode && existsSync(historyRoot)) {
+        // Overwrite the previous default in place: remove top-level files (old asset + asset.json +
+        // asset.local.json), but leave dev/ (accumulated dev generations) alone.
+        for (const entry of readdirSync(historyRoot, { withFileTypes: true })) {
+            if (entry.isFile()) {
+                rmSync(join(historyRoot, entry.name), { force: true });
+            }
         }
-        outDir = `${outDir}-${suffix}`;
+    }
+    if (devMode && existsSync(outDir)) {
+        rmSync(outDir, { recursive: true, force: true }); // a same-name dev run overwrites its own subfolder
     }
     mkdirSync(outDir, { recursive: true });
 
@@ -311,7 +326,7 @@ async function main(): Promise<void> {
         generatedAt,
         serial,
         hash,
-        dir: basename(outDir),
+        name: assetName,
         generator: { script: 'scripts/generateHistoryAsset.ts' },
         environment: { node: process.version, platform: `${process.platform}/${process.arch}`, host: hostname() },
         invocation: { argv: process.argv.slice(2), flags },
@@ -321,21 +336,16 @@ async function main(): Promise<void> {
     };
     writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
 
-    // "Latest" pointer (default-located assets only): a one-file lookup so the game/tooling can resolve the
-    // newest asset without listing the directory. `serial` is monotonic, so this always points at the newest.
-    if (typeof flags.out !== 'string') {
-        const latest = {
-            dir: basename(outDir),
-            serial,
-            hash,
-            generatedAt,
-            generatorVersion: HISTORY_GENERATOR_VERSION,
-            seed: params.seed,
-            livingAtEnd: asset.meta.stats.livingAtEnd,
-            retainedPeople: asset.meta.stats.retainedPeople,
-            totalCompressedBytes: totalCompressed,
-        };
-        writeFileSync(join(historyRoot, 'latest.json'), JSON.stringify(latest, null, 2), 'utf8');
+    // Asset pointer — a one-property file naming which asset dir to load ({ "dir": "./" } for the committed
+    // default, "./dev/<assetName>/" for a dev build). It carries nothing else: everything latest.json used to
+    // duplicate (serial/hash/generatedAt live in manifest.json; generatorVersion/seed/livingAtEnd/
+    // retainedPeople/compressedBytes live in meta.json) is already in those files. Default → the committed
+    // `asset.json`; --dev → the GITIGNORED `asset.local.json` override (preferred over asset.json by
+    // copy-history + the runtime), so a dev pointer can never be committed. Explicit --out writes no pointer.
+    if (defaultMode) {
+        writeFileSync(join(historyRoot, 'asset.json'), JSON.stringify({ dir: './' }, null, 2), 'utf8');
+    } else if (devMode) {
+        writeFileSync(join(historyRoot, 'asset.local.json'), JSON.stringify({ dir: `./dev/${assetName}/` }, null, 2), 'utf8');
     }
 
     const { stats } = asset.meta;
@@ -390,8 +400,10 @@ async function main(): Promise<void> {
     }
     console.log(`\n[generate-history] wrote ${outDir}`);
     console.log(`[generate-history]   + manifest.json (run provenance: env/invocation/naming/sizes)`);
-    if (typeof flags.out !== 'string') {
-        console.log(`[generate-history]   + latest.json → ${basename(outDir)} (newest asset pointer)`);
+    if (defaultMode) {
+        console.log(`[generate-history]   + asset.json → ./ (committed default pointer)`);
+    } else if (devMode) {
+        console.log(`[generate-history]   + asset.local.json → ./dev/${assetName}/ (gitignored dev override)`);
     }
 }
 
