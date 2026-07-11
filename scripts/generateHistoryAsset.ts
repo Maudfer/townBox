@@ -26,7 +26,7 @@ import { hostname } from 'node:os';
 import process from 'node:process';
 
 import { compress } from 'util/compress';
-import { formatDuration } from 'util/time';
+import { formatDuration, DAYS_PER_YEAR, DAYS_PER_MONTH, DAYS_PER_WEEK } from 'util/time';
 import {
     generateHistoryAsset,
     DEFAULT_GENERATOR_PARAMS,
@@ -136,10 +136,21 @@ async function main(): Promise<void> {
     mkdirSync(outDir, { recursive: true });
 
     console.log(`[generate-history] generator v${HISTORY_GENERATOR_VERSION}, seed ${params.seed} → ${outDir}`);
-    console.log(`[generate-history] founders ${params.founderCount} → threshold ${params.recordThreshold} → +${params.recordYears}y`
-        + `, ${params.daysPerStep}d/step, target ${params.populationControl.enabled ? params.populationControl.target : 'off'}`
-        + `, actionLog ${params.keepActionLog}, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`
-        + `, manifest ${params.reducedEventManifest ? 'reduced' : 'full'}${params.profile ? ', profile ON' : ''}`);
+    // Human-readable generation plan: granularity, expected log cadence per period, and (from the step size)
+    // what week/month skips to expect. Printed once, up front, so the progress stream below reads in context.
+    const stepDays = Math.max(1, Math.floor(params.daysPerStep));
+    const weekLogsPerYear = stepDays <= DAYS_PER_WEEK ? 52 : Math.ceil(DAYS_PER_YEAR / stepDays);
+    const monthLogsPerYear = stepDays <= DAYS_PER_MONTH ? 12 : Math.ceil(DAYS_PER_YEAR / stepDays);
+    const stepDesc = stepDays === 1 ? 'daily — every day simulated'
+        : stepDays <= DAYS_PER_WEEK ? `${stepDays} days/step — every week boundary hit`
+        : `${stepDays} days/step — weeks jumped ${stepDays} days at a time (see "N days simulated")`;
+    console.log(`[generate-history] plan:`);
+    console.log(`  stepping   : ${stepDesc}`);
+    console.log(`  logs / year: ~${weekLogsPerYear} weeks, ${monthLogsPerYear} months, 1 year (logged at each period's end)`);
+    console.log(`  warmup     : grow ${params.founderCount} → ${params.recordThreshold} living, then record ${params.recordYears} years`);
+    console.log(`  event walk : ${params.reducedEventManifest ? 'reduced' : 'full'} manifest · action log ${params.keepActionLog ? 'kept' : 'off'}`
+        + `, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`);
+    console.log(`  console    : progress batched once/sec, all lines kept${params.profile ? ' · profile ON' : ''}`);
 
     // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk. min/max ticks
     // are accumulated in a running loop — NOT `Math.min(...ticks)` — because an action-log shard can hold
@@ -187,24 +198,86 @@ async function main(): Promise<void> {
         },
     };
 
-    let lastLog = Date.now();
-    const onProgress = (progress: GenerationProgress): void => {
-        // Year milestones always print; the finer weekly lines within them are rate-limited so a fast run
-        // (many weeks per real second) doesn't flood the console.
-        if (!progress.yearBoundary && Date.now() - lastLog < 1000) {
+    // --- Sequential period-end progress, batched to the console once per second ---------------------------
+    // The generator fires per step; here we detect week/month/year ENDS (phase-relative — recording years count
+    // from 0) and roll them up finest→coarsest. Lines accumulate in `logBuffer` and flush in ONE write at most
+    // once per real second, so completeness never costs the loop more than a single synchronous TTY write/sec
+    // (simulation performance stays the priority). A per-second buffer is memory-bounded (≤1s of lines).
+    const ticksPerDay = params.ticksPerYear / DAYS_PER_YEAR;
+    const pad2 = (n: number): string => String(n).padStart(2, '0');
+    const logBuffer: string[] = [];
+    let lastFlush = Date.now();
+    const flushLog = (force: boolean): void => {
+        if (logBuffer.length === 0 || (!force && Date.now() - lastFlush < 1000)) {
             return;
         }
-        lastLog = Date.now();
-        if (progress.yearBoundary) {
-            console.log(`  [${progress.phase}] year ${progress.yearsDone} · living ${progress.living} · retained ${progress.retained}`);
-        } else {
-            const month = String(progress.monthOfYear + 1).padStart(2, '0');
-            const week = String(progress.weekOfYear + 1).padStart(2, '0');
-            console.log(`  [${progress.phase}] year ${progress.yearsDone} · month ${month} · week ${week} · living ${progress.living}`);
+        process.stdout.write(logBuffer.join('\n') + '\n');
+        logBuffer.length = 0;
+        lastFlush = Date.now();
+    };
+
+    // Period trackers (the CURRENTLY in-progress period; a period is logged when the NEXT one begins).
+    let logPhase: GenerationProgress['phase'] | null = null;
+    let pWeek = -1, pWeekYear = -1, weekStartDay = 0;
+    let pMonth = -1, pMonthYear = -1;
+    let pYear = -1;
+    let lastDay = -1, lastLiving = 0; // captured for the trailing partials (the run stops mid-period)
+
+    const onProgress = (p: GenerationProgress): void => {
+        const tag = p.phase === 'warmup' ? '[warmup] ' : '';
+        // Phase change → flush, banner, reset trackers (recording restarts the year count at 0).
+        if (p.phase !== logPhase) {
+            flushLog(true);
+            if (p.phase === 'recording') {
+                logBuffer.push(`── recording window begins · ${params.recordYears} years ──`);
+            }
+            logPhase = p.phase;
+            pWeek = pMonth = pYear = -1;
+            pWeekYear = pMonthYear = -1;
+            weekStartDay = 0;
         }
+        const day = Math.floor(p.ticksIntoPhase / ticksPerDay);
+        const dayOfYear = ((day % DAYS_PER_YEAR) + DAYS_PER_YEAR) % DAYS_PER_YEAR;
+        const week = Math.floor(dayOfYear / DAYS_PER_WEEK);   // 0..51 (week 51 = the 3-day year-end stub)
+        const month = Math.floor(dayOfYear / DAYS_PER_MONTH); // 0..11
+        const year = Math.floor(day / DAYS_PER_YEAR);
+        lastDay = day;
+        lastLiving = p.living;
+        // First fire of the phase: seed the trackers, emit nothing (no period has completed yet).
+        if (pYear === -1) {
+            pWeek = week; pWeekYear = year; pMonth = month; pMonthYear = year; pYear = year; weekStartDay = day;
+            return;
+        }
+        // Week ended → the PREVIOUS week completed; "N days simulated" reports the days actually stepped in it
+        // (7 for a full week, 3 for the year-end stub, or the whole jump under coarse stepping).
+        if (year !== pWeekYear || week !== pWeek) {
+            logBuffer.push(`${tag}Simulated week ${pad2(pWeek + 1)} · ${day - weekStartDay} days simulated · ${p.living} living`);
+            pWeek = week; pWeekYear = year; weekStartDay = day;
+        }
+        if (year !== pMonthYear || month !== pMonth) {
+            logBuffer.push(`${tag}Simulated month ${pad2(pMonth + 1)} of year ${pMonthYear} · ${p.living} living`);
+            pMonth = month; pMonthYear = year;
+        }
+        if (year !== pYear) {
+            logBuffer.push(`${tag}Simulated year ${pYear}`);
+            pYear = year;
+        }
+        flushLog(false);
     };
 
     const asset = await generateHistoryAsset(params, onProgress, gitCommit(), sink);
+
+    // Trailing partials: termination breaks BEFORE the final period boundary fires, so emit the still-in-progress
+    // week/month/year — otherwise the last simulated year would never print. Then flush the batch unconditionally.
+    if (logPhase !== null && lastDay >= 0) {
+        const tag = logPhase === 'warmup' ? '[warmup] ' : '';
+        // Inclusive day count (lastDay is the last day reached, vs the normal path's exclusive day-after-end),
+        // so the trailing stub week matches the count a fully-completed one would show.
+        logBuffer.push(`${tag}Simulated week ${pad2(pWeek + 1)} · ${lastDay - weekStartDay + 1} days simulated · ${lastLiving} living`);
+        logBuffer.push(`${tag}Simulated month ${pad2(pMonth + 1)} of year ${pMonthYear} · ${lastLiving} living`);
+        logBuffer.push(`${tag}Simulated year ${pYear}`);
+    }
+    flushLog(true);
 
     // Write the section files (small, held in RAM) + the header.
     let sectionBytes = 0;
