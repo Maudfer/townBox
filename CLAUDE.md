@@ -38,7 +38,7 @@ What does **not** exist yet: business **product output** into downstream industr
 | ----------- | ------ |
 | Engine      | Phaser `^4.1.0` |
 | UI          | React `^18.3.1` + `react-dom`, windows via `react-rnd` |
-| Language    | TypeScript `^5.4.5` (strict mode, see `tsconfig.json`) |
+| Language    | TypeScript `^6.0.3` (strict mode, see `tsconfig.json`) |
 | Bundler     | Parcel `^2.12.0` |
 | Dev server  | `browser-sync` |
 | Test runner | Jest `^30` with `ts-jest`, `testEnvironment: node` |

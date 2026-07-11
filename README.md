@@ -304,7 +304,7 @@ carry old saves forward), deflated with `pako` and base64-encoded behind a plugg
 | ----------- | ------ |
 | Engine      | Phaser `^4.1` |
 | UI          | React `^18` + `react-dom`, windows via `react-rnd` |
-| Language    | TypeScript `^5.4` (strict) |
+| Language    | TypeScript `^6.0` (strict) |
 | Bundler     | Parcel `^2.12` |
 | Tests       | Jest `^30` + `ts-jest` (unit); Playwright integration is planned |
 | Data viz    | D3 `^7` (family-tree graph) |

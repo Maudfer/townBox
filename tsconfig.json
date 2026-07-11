@@ -4,7 +4,13 @@
         "ESNext",
         "dom"
       ],
-      
+      // Ambient global type packages. TS 6.0 no longer auto-includes every @types/* package into the
+      // global scope, so name the ones that provide GLOBALS explicitly: node (Buffer, node: builtins in
+      // scripts/) and jest (describe/expect/test in tests). Imported types (d3, pako, uuid, react) resolve
+      // through their import statements and don't need listing here. This also keeps editors (pinned to
+      // the workspace TS) resolving node globals in scripts/ — no more "Cannot find name 'node:fs'".
+      "types": ["node", "jest"],
+
       "jsx": "react-jsx",
       "outDir": "dist",
       "removeComments": false, // Strips all comments from TypeScript files when converting into JavaScript
