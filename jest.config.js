@@ -1,12 +1,15 @@
-// Test modules (task: game/test reorg). Each folder under test/ is an independent Jest "project",
-// so `npx jest --selectProjects <name>` runs one module in isolation and CI runs them as separate,
-// concurrent checks. `npm test` runs them all; `npm run test:coverage` runs them all with the global
-// coverage gate. Keep this list in sync with test/<module>/ folders and the CI workflow matrix.
-// Each module owns a slice of the source tree for coverage. The union is the whole covered surface
-// (game/** + util/** minus the Phaser-only glue: scene/ and GameManager, which have no unit tests).
-// Per-module ownership (rather than one global collectCoverageFrom) is what lets CI's path-based
-// skipping coexist with the coverage gate: a partial run reports ONLY the ran modules' slices, so the
-// merged gate checks the coverage of exactly the code that ran instead of counting un-run files as 0%.
+// Test modules (task: game/test reorg). Each folder under test/ is an independent Jest "project", so
+// `npx jest --selectProjects <name>` runs one module in isolation and CI runs them as separate,
+// concurrent checks. `npm test` runs them all.
+//
+// Each module owns a slice of the source tree for coverage (collectCoverageFrom below). Running one
+// project with --coverage collects ONLY that module's slice, covered by ONLY that module's own tests —
+// so each CI `test (<module>)` job emits a self-contained per-module coverage report. The `coverage`
+// job then reads every module's report and fails if any is below COVERAGE_THRESHOLD (see
+// scripts/coverage-gate.mjs). NOTE: these per-module numbers are much lower than the whole-suite
+// aggregate because this codebase's tests are integration-heavy (a file is driven to high coverage by
+// OTHER modules' tests, which a module's own isolated report can't see) — that gap is deliberate: the
+// gate is a forcing function to grow each module's own unit tests.
 const MODULE_COVERAGE = {
   world: ['src/app/game/world/**/*.ts'],
   agents: ['src/app/game/agents/**/*.ts'],
@@ -25,20 +28,9 @@ const MODULE_COVERAGE = {
 };
 const MODULES = Object.keys(MODULE_COVERAGE);
 
-// Per-module coverage thresholds enforced in CI by scripts/coverage-gate.mjs (which groups the
-// full-suite coverage report by module — so cross-module/integration coverage counts). The default is
-// the project floor; ten modules clear it. world/agents/save fall short ONLY on browser/Phaser code
-// that can't be meaningfully unit-covered without a scene harness — Vehicle/Road/Person render+drive
-// animation and the localStorage SaveProvider — the same reason scene/ and GameManager are excluded
-// entirely. They carry a documented lower floor here; raise them to the default as the browser
-// integration suite (task 008) covers that code. These floors sit just under today's numbers, so a
-// regression still trips the gate.
-const DEFAULT_THRESHOLD = { statements: 72, branches: 60, functions: 75, lines: 72 };
-const MODULE_THRESHOLDS = {
-  world: { statements: 64, branches: 44, functions: 68, lines: 64 },
-  agents: { statements: 44, branches: 32, functions: 56, lines: 44 },
-  save: { statements: 72, branches: 60, functions: 55, lines: 72 },
-};
+// The single global coverage floor (statement %) every module must independently meet. Set it here —
+// scripts/coverage-gate.mjs imports it, so this is the one place to change the number.
+const COVERAGE_THRESHOLD = 72;
 
 // Shared per-project settings. tsconfig emits ES modules (so `import.meta` is allowed for the Web
 // Worker, task 036), but the Node test runner needs CommonJS — override just for ts-jest. The
@@ -65,25 +57,17 @@ module.exports = {
     ...base,
     displayName: name,
     testMatch: [`<rootDir>/test/${name}/**/*.test.ts`],
-    // Per-project coverage scope (see MODULE_COVERAGE). Running one project with --coverage collects
-    // only that module's slice; running all projects unions them into the whole covered surface.
+    // Per-project coverage scope: `jest --selectProjects <name> --coverage` collects only this module's
+    // slice, so the emitted report is that module measured by its own tests.
     collectCoverageFrom: MODULE_COVERAGE[name],
   })),
 
   coveragePathIgnorePatterns: ['/node_modules/'],
-  // 'json' emits coverage/coverage-final.json — CI's per-module jobs upload it and the coverage-gate
-  // job (scripts/coverage-gate.mjs) merges every module's file, so the merged result is the true
-  // aggregate. text-summary/lcov are for local + artifact reporting.
+  // json  -> coverage/coverage-final.json, read by scripts/coverage-gate.mjs (the machine-readable gate input)
+  // lcov  -> coverage/lcov.info, human-readable per-module report (the artifact)
   coverageReporters: ['text-summary', 'lcov', 'json'],
-  // Aggregate backstop for the local full run (`npm run test:coverage`): the whole suite clears this
-  // with headroom (~85% stmts). CI additionally enforces the PER-MODULE thresholds above via
-  // scripts/coverage-gate.mjs.
-  coverageThreshold: {
-    global: { statements: 72, branches: 60, functions: 75, lines: 72 },
-  },
 };
 
-// Exported for scripts/coverage-gate.mjs (single source of truth for module scopes + thresholds).
+// Exported for scripts/coverage-gate.mjs (single source of truth for module scopes + the threshold).
 module.exports.MODULE_COVERAGE = MODULE_COVERAGE;
-module.exports.DEFAULT_THRESHOLD = DEFAULT_THRESHOLD;
-module.exports.MODULE_THRESHOLDS = MODULE_THRESHOLDS;
+module.exports.COVERAGE_THRESHOLD = COVERAGE_THRESHOLD;

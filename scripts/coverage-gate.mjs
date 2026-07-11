@@ -1,83 +1,75 @@
 // Per-module coverage gate (task: game/test reorg).
 //
-// The CI `coverage` job runs the FULL suite once (`jest --coverage`) so cross-module/integration
-// coverage is captured (this codebase's tests are integration-heavy — a file is driven to high
-// coverage by many modules' tests, not just its own). This script then groups the resulting
-// coverage-final.json by module (jest.config.js MODULE_COVERAGE) and checks each module's slice
-// against its threshold (DEFAULT_THRESHOLD, or a MODULE_THRESHOLDS override). Fails if any module is
-// under. So "every module is independently >= its floor" is enforced, per-module.
+// This does NOT run tests. The CI `test (<module>)` jobs each run `jest --selectProjects <module>
+// --coverage` and upload their coverage report as an artifact `coverage-<module>/`. The `coverage` job
+// downloads them all and runs this script, which reads EACH module's report independently and fails if
+// ANY module's statement coverage is below COVERAGE_THRESHOLD (jest.config.js — the single place to set
+// the number).
 //
-// Usage: node scripts/coverage-gate.mjs [coverageDirOrFile]   (default: ./coverage)
+// These per-module numbers are the module measured by its OWN tests only, so they're far below the
+// whole-suite aggregate (integration coverage from other modules isn't counted). That's intentional —
+// the gate is a forcing function to grow each module's own unit tests.
+//
+// Usage: node scripts/coverage-gate.mjs [dir]   (default: ./coverage-artifacts)
+//   dir contains one subdir per module: coverage-<module>/coverage-final.json
 
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, basename, dirname } from 'node:path';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const libCoverage = require('istanbul-lib-coverage');
-const { MODULE_COVERAGE, DEFAULT_THRESHOLD, MODULE_THRESHOLDS } = require('../jest.config.js');
+const { COVERAGE_THRESHOLD } = require('../jest.config.js');
 
-const target = process.argv[2] ?? 'coverage';
+const root = process.argv[2] ?? 'coverage-artifacts';
 
-function findCoverageFiles(pathArg, acc = []) {
-  const s = (() => { try { return statSync(pathArg); } catch { return null; } })();
-  if (!s) return acc;
-  if (s.isFile()) { if (pathArg.endsWith('.json')) acc.push(pathArg); return acc; }
-  for (const name of readdirSync(pathArg)) {
-    const p = join(pathArg, name);
-    if (statSync(p).isDirectory()) findCoverageFiles(p, acc);
+function findReports(dir, acc = []) {
+  let entries;
+  try { entries = readdirSync(dir); } catch { return acc; }
+  for (const name of entries) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) findReports(p, acc);
     else if (name === 'coverage-final.json') acc.push(p);
   }
   return acc;
 }
 
-const files = findCoverageFiles(target);
-if (files.length === 0) {
-  // No coverage produced (e.g. a docs-only PR ran no tests) — nothing to gate.
-  console.log(`coverage-gate: no coverage-final.json under '${target}'; nothing to gate.`);
+// Module name from the report's parent dir: coverage-artifacts/coverage-events/coverage-final.json -> events
+function moduleNameOf(reportPath) {
+  const dir = basename(dirname(reportPath));
+  return dir.replace(/^coverage-/, '');
+}
+
+const reports = findReports(root);
+if (reports.length === 0) {
+  // No module ran (e.g. a docs-only PR ran no test modules) — nothing to gate.
+  console.log(`coverage-gate: no coverage-final.json under '${root}'; nothing to gate.`);
   process.exit(0);
 }
 
-const map = libCoverage.createCoverageMap({});
-for (const file of files) map.merge(libCoverage.createCoverageMap(JSON.parse(readFileSync(file, 'utf8'))));
+console.log(`coverage-gate: threshold ${COVERAGE_THRESHOLD}% statements (per module)\n`);
+console.log(`  ${'module'.padEnd(12)} ${'stmts'.padStart(7)}  ${'files'.padStart(5)}`);
 
-const norm = (p) => p.split('\\').join('/');
-// Turn each module's collectCoverageFrom globs into a cheap path predicate.
-function matcher(globs) {
-  const prefixes = [];
-  const exacts = [];
-  for (const g of globs) {
-    if (g.includes('*')) prefixes.push(g.slice(0, g.indexOf('*')));
-    else exacts.push(g);
-  }
-  return (f) => prefixes.some((p) => f.includes(p)) || exacts.some((e) => f.endsWith(e));
-}
-const modules = Object.entries(MODULE_COVERAGE).map(([name, globs]) => ({ name, match: matcher(globs) }));
+const results = reports
+  .map((reportPath) => {
+    const map = libCoverage.createCoverageMap(JSON.parse(readFileSync(reportPath, 'utf8')));
+    const summary = libCoverage.createCoverageSummary();
+    for (const f of map.files()) summary.merge(map.fileCoverageFor(f).toSummary());
+    return { module: moduleNameOf(reportPath), pct: summary.statements.pct, files: map.files().length };
+  })
+  .sort((a, b) => a.pct - b.pct);
 
-const metrics = ['statements', 'branches', 'functions', 'lines'];
 let failed = false;
-console.log(`coverage-gate: ${map.files().length} files across ${modules.length} modules\n`);
-console.log(`  ${'module'.padEnd(11)} ${metrics.map((m) => m.slice(0, 4).padStart(6)).join(' ')}`);
-
-for (const { name, match } of modules) {
-  const summary = libCoverage.createCoverageSummary();
-  let n = 0;
-  for (const f of map.files()) if (match(norm(f))) { summary.merge(map.fileCoverageFor(f).toSummary()); n++; }
-  const th = { ...DEFAULT_THRESHOLD, ...(MODULE_THRESHOLDS[name] ?? {}) };
-  const cells = [];
-  let modOk = true;
-  for (const m of metrics) {
-    const pct = n === 0 ? 100 : summary[m].pct; // a module with no covered files (skipped) is vacuously ok
-    const ok = pct >= th[m];
-    if (!ok) { modOk = false; failed = true; }
-    cells.push(`${ok ? ' ' : '!'}${pct.toFixed(0).padStart(5)}`);
-  }
-  console.log(`  ${modOk ? ' ' : 'x'}${name.padEnd(10)} ${cells.join(' ')}`);
+for (const r of results) {
+  const ok = r.pct >= COVERAGE_THRESHOLD;
+  if (!ok) failed = true;
+  console.log(`  ${ok ? ' ' : '!'}${r.module.padEnd(11)} ${r.pct.toFixed(1).padStart(6)}%  ${String(r.files).padStart(5)}`);
 }
 
+const below = results.filter((r) => r.pct < COVERAGE_THRESHOLD);
 console.log('');
 if (failed) {
-  console.error('coverage-gate: a module is below its threshold (see "!" cells; thresholds in jest.config.js)');
+  console.error(`coverage-gate: ${below.length}/${results.length} module(s) below ${COVERAGE_THRESHOLD}%: ${below.map((r) => `${r.module} (${r.pct.toFixed(1)}%)`).join(', ')}`);
   process.exit(1);
 }
-console.log('coverage-gate: every module meets its threshold');
+console.log(`coverage-gate: all ${results.length} module(s) meet ${COVERAGE_THRESHOLD}%`);

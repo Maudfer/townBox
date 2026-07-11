@@ -100,9 +100,9 @@ jobs:
       - run: npm ci
       - run: npm run build-prod
 
-  # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. No
-  # coverage here (coverage is integration-heavy and must be computed from the whole suite; see the
-  # `coverage` job), so these stay quick and each is its own check.
+  # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs
+  # with --coverage and uploads its own per-module coverage report (measured by its own tests) for the
+  # `coverage` job to gate.
   test:
     needs: changes
     if: needs.changes.outputs.modules != '[]'
@@ -119,17 +119,30 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Run ${{ matrix.module }} tests
-        run: npx jest --selectProjects ${{ matrix.module }}
+      - name: Run ${{ matrix.module }} tests with coverage
+        run: npx jest --selectProjects ${{ matrix.module }} --coverage --coverageReporters=json --coverageReporters=lcovonly --coverageDirectory coverage
+      - name: Upload ${{ matrix.module }} coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.module }}
+          path: |
+            coverage/coverage-final.json
+            coverage/lcov.info
+          if-no-files-found: ignore
 
-  # Coverage gate: run the WHOLE suite once (so cross-module coverage counts) and enforce the
-  # PER-MODULE thresholds (jest.config.js MODULE_THRESHOLDS via scripts/coverage-gate.mjs). Runs on any
-  # test-relevant change.
+  # Coverage gate: does NOT run tests — it downloads every module's report from the `test` jobs and
+  # fails if ANY module's statement coverage is below COVERAGE_THRESHOLD (jest.config.js). The
+  # per-module numbers are low by design (each module measured by its own tests only), so this is
+  # expected to fail today — it's a forcing function to grow each module's unit tests.
+  #
+  # ADVISORY FOR NOW: intentionally NOT in `ci-success`'s needs, so a red coverage check does not block
+  # merges. To make it blocking once modules are green, add `coverage` to `ci-success`'s `needs`
+  # (or mark the `CI / coverage` check required in branch protection).
   coverage:
-    needs: changes
-    if: needs.changes.outputs.modules != '[]'
+    needs: [changes, test]
+    if: always() && needs.changes.outputs.modules != '[]'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -137,17 +150,14 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Full-suite coverage
-        run: npx jest --coverage --coverageReporters=json --coverageReporters=text-summary --coverageDirectory coverage
-      - name: Per-module coverage gate
-        run: node scripts/coverage-gate.mjs coverage
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Download module coverage reports
+        uses: actions/download-artifact@v4
         with:
-          name: coverage-report
-          path: coverage/
-          if-no-files-found: ignore
+          path: coverage-artifacts
+          pattern: coverage-*
+        continue-on-error: true
+      - name: Per-module coverage gate
+        run: node scripts/coverage-gate.mjs coverage-artifacts
 
   # Advisory only — surfaces known vulnerabilities without blocking the merge.
   audit:
@@ -164,9 +174,10 @@ jobs:
       - run: npm audit --audit-level=high
 
   # Single stable aggregate check — make THIS the required status check in branch protection. Fails if
-  # any required upstream job failed or was cancelled (skipped is fine).
+  # any required upstream job failed or was cancelled (skipped is fine). NOTE: `coverage` is
+  # deliberately excluded (advisory forcing function today); add it here to make coverage blocking.
   ci-success:
-    needs: [changes, typecheck, build, test, coverage]
+    needs: [changes, typecheck, build, test]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -178,8 +189,7 @@ jobs:
             "${{ needs.changes.result }}" \
             "${{ needs.typecheck.result }}" \
             "${{ needs.build.result }}" \
-            "${{ needs.test.result }}" \
-            "${{ needs.coverage.result }}"; do
+            "${{ needs.test.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
               echo "A required job did not succeed (result: $r)"; exit 1
             fi

@@ -322,9 +322,11 @@ npm run build-prod     # production Parcel build
 ```
 
 CI (`.github/workflows/ci.yml`) splits the checks into **separate concurrent jobs**: the type check, the
-production build, one `test (<module>)` job per affected module (a `changes` job path-filters which modules a
-PR touched; foundational/shared changes fan out to all), and a full-suite `coverage` job that enforces
-**per-module** thresholds. A single `ci-success` job aggregates them — make that the required status check.
+production build, and one `test (<module>)` job per affected module (a `changes` job path-filters which modules a
+PR touched; foundational/shared changes fan out to all). Each `test` job emits its own coverage report, and a
+`coverage` job reads them all and fails if any module is under the threshold — an **advisory** per-module gate
+today (a forcing function to grow each module's own unit tests). A single `ci-success` job aggregates the
+required checks — make that the required status check.
 
 ---
 
