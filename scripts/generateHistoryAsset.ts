@@ -35,10 +35,10 @@ import {
     GenerationProgress,
     HistoryAssetSink,
     ShardRef,
-} from 'game/HistoryAsset';
+} from 'game/history/HistoryAsset';
 import { EventLogTable } from 'types/LifeEvent';
 import { SkillTimeline } from 'types/Skill';
-import { AssetHeader } from 'game/HistoryAssetSelection';
+import { AssetHeader } from 'game/history/HistoryAssetSelection';
 
 function parseFlags(argv: string[]): Record<string, string | boolean> {
     const flags: Record<string, string | boolean> = {};

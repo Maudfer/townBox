@@ -1,4 +1,4 @@
-import Person from 'game/Person';
+import Person from 'game/agents/Person';
 
 export enum Genders {
     Male = 'male',

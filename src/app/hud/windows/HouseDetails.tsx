@@ -2,7 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { RndResizeCallback } from 'react-rnd';
 import * as d3 from 'd3';
 
-import House from 'game/House';
+import House from 'game/world/House';
 import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
 import { buildGenealogyTree } from 'util/familyGraph';

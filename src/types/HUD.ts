@@ -1,10 +1,10 @@
 import { RndResizeCallback } from 'react-rnd';
 
 import GameManager from "game/GameManager";
-import House from 'game/House';
-import Workplace from 'game/Workplace';
-import Person from 'game/Person';
-import Vehicle from 'game/Vehicle';
+import House from 'game/world/House';
+import Workplace from 'game/world/Workplace';
+import Person from 'game/agents/Person';
+import Vehicle from 'game/agents/Vehicle';
 import City from 'game/City';
 
 export interface HUDProps {

@@ -1,9 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 
 import Window from 'hud/Window';
-import Person from 'game/Person';
-import Workplace from 'game/Workplace';
-import { sortedSkillEntries } from 'game/SkillBook';
+import Person from 'game/agents/Person';
+import Workplace from 'game/world/Workplace';
+import { sortedSkillEntries } from 'game/skills/SkillBook';
 
 import { formatTick } from 'util/time';
 import { JobTable } from 'types/Business';

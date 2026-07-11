@@ -9,9 +9,9 @@ import HouseDetails from 'hud/windows/HouseDetails';
 import PersonDetails from 'hud/windows/PersonDetails';
 import WorkplaceDetails from 'hud/windows/WorkplaceDetails';
 import CityDetails from 'hud/windows/CityDetails';
-import House from 'game/House';
-import Person from 'game/Person';
-import Workplace from 'game/Workplace';
+import House from 'game/world/House';
+import Person from 'game/agents/Person';
+import Workplace from 'game/world/Workplace';
 import City from 'game/City';
 
 import { HUDProps, WindowData, WindowTypes, WindowPayload } from 'types/HUD';

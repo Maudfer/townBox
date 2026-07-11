@@ -1,4 +1,5 @@
-# Generated files are compared byte-for-byte by checked-diff tests (test/simulationDocs.test.ts);
-# keep them LF on every platform so local runs match CI and the generator output.
-docs/simulation-relationships.md text eol=lf
-docs/event-classification.md text eol=lf
+# Generated files are compared byte-for-byte by checked-diff tests (test/util/simulationDocs.test.ts,
+# test/events/eventClassification.test.ts); keep them LF on every platform so local runs match CI and
+# the generator output.
+docs/generated/simulation-relationships.md text eol=lf
+docs/generated/event-classification.md text eol=lf

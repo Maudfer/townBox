@@ -7,7 +7,7 @@
 import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
 import { validateCurve, validatePredicate } from 'game/data/substrate';
-import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/EventCompiler';
+import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/events/EventCompiler';
 import { EventManifest } from 'types/LifeEvent';
 import { KNOWN_SIGNALS } from 'util/notifications';
 

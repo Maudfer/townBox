@@ -301,7 +301,7 @@ carry old saves forward), deflated with `pako` and base64-encoded behind a plugg
 | Tests       | Jest `^30` + `ts-jest` (unit); Playwright integration is planned |
 | Data viz    | D3 `^7` (family-tree graph) |
 | Fake data   | `@faker-js/faker` (`pt_BR` locale) |
-| CI          | GitHub Actions — typecheck, coverage-gated unit suite, production build |
+| CI          | GitHub Actions — typecheck, per-module concurrent test checks, production build, per-module coverage gate |
 
 ---
 
@@ -321,8 +321,10 @@ npm run typecheck      # strict tsc --noEmit
 npm run build-prod     # production Parcel build
 ```
 
-CI (`.github/workflows/ci.yml`) runs the type check, the coverage-gated unit suite, and the production build on
-every PR to `main` and every push to `main`.
+CI (`.github/workflows/ci.yml`) splits the checks into **separate concurrent jobs**: the type check, the
+production build, one `test (<module>)` job per affected module (a `changes` job path-filters which modules a
+PR touched; foundational/shared changes fan out to all), and a full-suite `coverage` job that enforces
+**per-module** thresholds. A single `ci-success` job aggregates them — make that the required status check.
 
 ---
 
@@ -332,17 +334,32 @@ every PR to `main` and every push to `main`.
 src/
   app/
     main.tsx            # React entry; boots GameManager, mounts <HUD>
-    game/               # simulation core (no React): Field, Population, City, EventEngine,
-                        # BusinessGen, Economy, Clock, PathFinder, markets, save/
+    game/               # simulation core (no React), grouped by responsibility:
+      GameManager.ts    #   global orchestrators kept at the root (also City.ts, Clock.ts)
+      scene/            #   Phaser scene + render glue
+      world/            #   tile grid, structures, placement
+      agents/           #   people, vehicles, pathfinding
+      population/       #   genealogy pool, households, identity
+      events/           #   Engine B life events + shared log & consequences
+      actions/          #   Action system + Brain decision layer
+      execution/        #   shared tick spine + live/bootstrap boundary
+      economy/          #   money, markets, business generation
+      skills/           #   skills + school
+      objects/          #   object instances + building object generation
+      history/          #   offline history-asset pipeline
+      data/  save/      #   schema-validation registry; save/load
     hud/                # React GUI: window manager, toolbar, clock, feed, inspector windows
   json/                # tunable data: events, businesses, jobs, skills, demand, economy, …
   types/               # shared TypeScript types (Events, Genealogy, Business, LifeEvent, Save, …)
   util/                # curves, predicates, kinship, random, time, compression, …
-test/                  # Jest unit/integration suites
+test/<module>/         # Jest projects, one folder per module (mirrors src/app/game/<group>; util/ for
+                       # pure utils) — each an independent, concurrent CI check
+docs/generated/        # generated, checked-diff-gated docs (simulation-relationships, event-classification)
 docs/tasks/            # the JIRA-style backlog (each file is a self-contained, mergeable task)
 ```
 
-For a much deeper, source-verified walkthrough of every subsystem, read [`CLAUDE.md`](CLAUDE.md).
+For a much deeper, source-verified walkthrough of every subsystem — including the simulation flows and
+the module/CI layout — read [`CLAUDE.md`](CLAUDE.md).
 
 ---
 

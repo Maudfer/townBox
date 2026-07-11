@@ -5,7 +5,7 @@
 // whose basics are below the dependency thresholds (e.g. a school-age child) still ends up dependency-valid.
 // So a `MedicalSkill` person stays plausibly medical after the migration.
 
-import SkillBook from 'game/SkillBook';
+import SkillBook from 'game/skills/SkillBook';
 import { PersonId } from 'types/Genealogy';
 
 // Legacy enum value -> the specific skills it becomes, at this proficiency floor.

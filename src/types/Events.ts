@@ -1,9 +1,9 @@
-import Tile from 'game/Tile';
-import Road from 'game/Road';
-import House from 'game/House';
-import Workplace from 'game/Workplace';
-import Person from 'game/Person';
-import Vehicle from 'game/Vehicle';
+import Tile from 'game/world/Tile';
+import Road from 'game/world/Road';
+import House from 'game/world/House';
+import Workplace from 'game/world/Workplace';
+import Person from 'game/agents/Person';
+import Vehicle from 'game/agents/Vehicle';
 
 import { TilePosition, PixelPosition } from "types/Position";
 import { Tool } from "types/Cursor";

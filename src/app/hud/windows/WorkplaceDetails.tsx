@@ -1,7 +1,7 @@
 import { FC, useEffect, useState } from 'react';
 
 import Window from 'hud/Window';
-import Workplace from 'game/Workplace';
+import Workplace from 'game/world/Workplace';
 
 import { summarizePositions } from 'util/positions';
 import { DetailsWindowProps } from 'types/HUD';

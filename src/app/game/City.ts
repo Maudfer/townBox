@@ -1,22 +1,22 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
 import GameManager from 'game/GameManager';
-import House from 'game/House';
-import Workplace from 'game/Workplace';
-import Building from 'game/Building';
-import Person from 'game/Person';
-import Vehicle from 'game/Vehicle';
-import { DEFAULT_POPULATION_PARAMS } from 'game/Population';
-import { generateBusiness } from 'game/BusinessGen';
-import { generateBuildingObjects } from 'game/ObjectGeneration';
-import JobMarket from 'game/JobMarket';
-import HousingMarket from 'game/HousingMarket';
-import SkillRegistry from 'game/SkillRegistry';
-import { SchoolSeat } from 'game/SchoolRegistry';
-import SkillProgression from 'game/SkillProgression';
-import LiveWorld from 'game/LiveWorld';
-import { runTick } from 'game/TickRunner';
-import { DEFAULT_ECONOMY_PARAMS } from 'game/Economy';
+import House from 'game/world/House';
+import Workplace from 'game/world/Workplace';
+import Building from 'game/world/Building';
+import Person from 'game/agents/Person';
+import Vehicle from 'game/agents/Vehicle';
+import { DEFAULT_POPULATION_PARAMS } from 'game/population/Population';
+import { generateBusiness } from 'game/economy/BusinessGen';
+import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
+import JobMarket from 'game/economy/JobMarket';
+import HousingMarket from 'game/economy/HousingMarket';
+import SkillRegistry from 'game/skills/SkillRegistry';
+import { SchoolSeat } from 'game/skills/SchoolRegistry';
+import SkillProgression from 'game/skills/SkillProgression';
+import LiveWorld from 'game/execution/LiveWorld';
+import { runTick } from 'game/execution/TickRunner';
+import { DEFAULT_ECONOMY_PARAMS } from 'game/economy/Economy';
 
 import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandparentsOf, spouseAt, childrenOf, parentsOf } from 'util/kinship';
 import { SeededRandom, hashStringToSeed } from 'util/random';

@@ -1,23 +1,23 @@
 import Phaser from 'phaser';
-import Field from 'game/Field';
-import MainScene from 'game/MainScene';
-import TitleScene from 'game/TitleScene';
-import DebugTools from 'game/DebugTools';
+import Field from 'game/world/Field';
+import MainScene from 'game/scene/MainScene';
+import TitleScene from 'game/scene/TitleScene';
+import DebugTools from 'game/scene/DebugTools';
 
 import City from './City';
-import Population from 'game/Population';
+import Population from 'game/population/Population';
 import Clock from 'game/Clock';
-import EventEngine from 'game/EventEngine';
-import ActionEngine from 'game/ActionEngine';
-import Brain from 'game/Brain';
-import Economy from 'game/Economy';
-import Inventory from 'game/Inventory';
-import SchoolRegistry from 'game/SchoolRegistry';
-import SkillBook from 'game/SkillBook';
-import SocialLife from 'game/SocialLife';
+import EventEngine from 'game/events/EventEngine';
+import ActionEngine from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
+import Economy from 'game/economy/Economy';
+import Inventory from 'game/objects/Inventory';
+import SchoolRegistry from 'game/skills/SchoolRegistry';
+import SkillBook from 'game/skills/SkillBook';
+import SocialLife from 'game/population/SocialLife';
 import SaveManager from 'game/save/SaveManager';
-import { loadCommittedAsset, loadSelectedWorldFromHttp } from 'game/HistoryAssetSource';
-import { selectStartingWorld, SelectedWorld } from 'game/HistoryAssetSelection';
+import { loadCommittedAsset, loadSelectedWorldFromHttp } from 'game/history/HistoryAssetSource';
+import { selectStartingWorld, SelectedWorld } from 'game/history/HistoryAssetSelection';
 
 import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';

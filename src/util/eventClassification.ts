@@ -1,5 +1,5 @@
 // The event-classification generator (task 068): derives, from the shipped manifests, what every event in
-// events.json IS — the sweep's reviewable artifact. Regenerate docs/event-classification.md with
+// events.json IS — the sweep's reviewable artifact. Regenerate docs/generated/event-classification.md with
 // `npm run docs:events`; a checked-diff test fails when the manifests change without regenerating.
 //
 // Dispositions (mutually exclusive, in precedence order):

@@ -1,4 +1,4 @@
-// Generator for docs/simulation-relationships.md (task 054): derives the Action ↔ Event relationship
+// Generator for docs/generated/simulation-relationships.md (task 054): derives the Action ↔ Event relationship
 // tables from the validated JSON manifests so the documentation cannot silently drift from the data.
 // Pure string-in/string-out logic — the checked-diff test (test/simulationDocs.test.ts) regenerates the
 // artifact and fails CI when the committed file no longer matches the shipped manifests.
@@ -245,8 +245,8 @@ export function generateRelationshipDocs(actions: ActionManifest, events: EventM
     sections.push([
         '> **GENERATED — do not edit by hand.** Derived from `src/json/actions.json`, `src/json/events.json`',
         '> and `src/json/object-action-relationships.json` by `util/simulationDocs.ts`. The checked-diff test',
-        '> (`test/simulationDocs.test.ts`) fails when this file no longer matches the shipped data; regenerate',
-        '> with `npm run docs:sim`. The narrative companion is [simulation-flows.md](simulation-flows.md).',
+        '> (`test/util/simulationDocs.test.ts`) fails when this file no longer matches the shipped data; regenerate',
+        '> with `npm run docs:sim`. The narrative companion is the "Simulation flows" section of [CLAUDE.md](../../CLAUDE.md) §4.13.',
     ].join('\n'));
 
     // --- Overview counts ---

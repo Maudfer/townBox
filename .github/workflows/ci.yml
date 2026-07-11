@@ -1,8 +1,14 @@
 name: CI
 
-# Runs on every PR targeting main and on every push to main (post-merge validation), plus manual dispatch.
-# CI only — no deploy/publish steps. These checks are intended to be configured as required status checks on
-# `main` so PRs can't merge red (see docs/tasks/009-github-actions-ci_DONE.md for the branch-protection notes).
+# Runs on every PR targeting main and on every push to main (post-merge validation), plus manual
+# dispatch. CI only — no deploy/publish steps.
+#
+# The suite is split into concurrent, independently-reported checks: a `changes` job detects which
+# test modules a PR touched (path-based skipping), a dynamic `test` matrix runs one job per affected
+# module (each mirrors a src/app/game/<group> folder — see jest.config.js `projects`), a
+# `coverage-gate` merges every module's coverage and enforces the global threshold, and `ci-success`
+# is the single stable aggregate check. Point branch protection's required check at `ci-success`.
+
 on:
   pull_request:
     branches: [main]
@@ -10,50 +16,176 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Cancel superseded runs on the same ref (e.g. a new push to a PR branch).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+permissions:
+  contents: read
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+jobs:
+  # Detect which test modules this change affects. `shared` (foundational code imported everywhere)
+  # fans out to ALL modules — the sim is tightly coupled, so a change to types/util/json/the tick
+  # spine/root orchestrators must run everything. Otherwise a module runs when its own
+  # src/app/game/<group>/ or test/<module>/ changed. Output `modules` is a JSON array consumed by the
+  # dynamic test matrix.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      modules: ${{ steps.detect.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          MODULES="world agents population events actions execution economy skills objects history save data util"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then BASE="$PR_BASE_SHA"; else BASE="$PUSH_BEFORE_SHA"; fi
+          if [ -z "${BASE:-}" ] || ! git cat-file -e "$BASE" 2>/dev/null; then BASE="HEAD~1"; fi
+          CHANGED=$(git diff --name-only "$BASE" HEAD || true)
+          echo "changed files:"; echo "$CHANGED"
+
+          # Shared foundations → run everything. (Root config, shared types/util/json, the execution
+          # spine, and the root orchestrators GameManager/City/Clock are imported across all modules.)
+          SHARED_RE='^(src/types/|src/util/|src/json/|src/app/game/execution/|src/app/game/GameManager\.ts|src/app/game/City\.ts|src/app/game/Clock\.ts|package\.json|package-lock\.json|tsconfig\.json|jest\.config\.js|\.babelrc|babel\.config\.js|scripts/|\.github/workflows/)'
+
+          SELECTED=""
+          if echo "$CHANGED" | grep -qE "$SHARED_RE"; then
+            SELECTED="$MODULES"
+          else
+            for m in $MODULES; do
+              # util's source lives in the shared src/util (handled above); trigger it only on its tests.
+              if [ "$m" = "util" ]; then
+                echo "$CHANGED" | grep -qE "^test/util/" && SELECTED="$SELECTED $m" || true
+              else
+                echo "$CHANGED" | grep -qE "^(src/app/game/$m/|test/$m/)" && SELECTED="$SELECTED $m" || true
+              fi
+            done
+          fi
+
+          # Emit a JSON array (empty array when nothing test-relevant changed → the test job is skipped).
+          JSON=$(printf '%s\n' $SELECTED | grep -v '^$' | sort -u \
+                 | jq -R . | jq -cs .)
+          echo "selected modules: $JSON"
+          echo "modules=$JSON" >> "$GITHUB_OUTPUT"
+
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
 
-      - name: Install dependencies
-        run: npm ci
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build-prod
 
-      - name: Type check
-        run: npm run typecheck
+  # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. No
+  # coverage here (coverage is integration-heavy and must be computed from the whole suite; see the
+  # `coverage` job), so these stay quick and each is its own check.
+  test:
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.changes.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run ${{ matrix.module }} tests
+        run: npx jest --selectProjects ${{ matrix.module }}
 
-      - name: Unit tests + coverage gate
-        run: npm run test:coverage
-
-      - name: Production build
-        run: npm run build-prod
-
+  # Coverage gate: run the WHOLE suite once (so cross-module coverage counts) and enforce the
+  # PER-MODULE thresholds (jest.config.js MODULE_THRESHOLDS via scripts/coverage-gate.mjs). Runs on any
+  # test-relevant change.
+  coverage:
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Full-suite coverage
+        run: npx jest --coverage --coverageReporters=json --coverageReporters=text-summary --coverageDirectory coverage
+      - name: Per-module coverage gate
+        run: node scripts/coverage-gate.mjs coverage
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-lcov
+          name: coverage-report
           path: coverage/
           if-no-files-found: ignore
 
-      # Advisory only — surfaces known vulnerabilities without blocking the merge.
-      - name: Dependency audit (advisory)
-        if: always()
-        continue-on-error: true
-        run: npm audit --audit-level=high
+  # Advisory only — surfaces known vulnerabilities without blocking the merge.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=high
 
-  # The Playwright integration suite (task 008) is not implemented yet. When it lands, add a job here that
-  # installs Chromium (`npx playwright install --with-deps chromium`) and runs `npm run test:integration`,
-  # uploading the Playwright report/trace on failure. Kept out for now so CI stays green and fast.
+  # Single stable aggregate check — make THIS the required status check in branch protection. Fails if
+  # any required upstream job failed or was cancelled (skipped is fine).
+  ci-success:
+    needs: [changes, typecheck, build, test, coverage]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify no required job failed
+        run: |
+          set -euo pipefail
+          for r in \
+            "${{ needs.changes.result }}" \
+            "${{ needs.typecheck.result }}" \
+            "${{ needs.build.result }}" \
+            "${{ needs.test.result }}" \
+            "${{ needs.coverage.result }}"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "A required job did not succeed (result: $r)"; exit 1
+            fi
+          done
+          echo "All required jobs succeeded."
+
+  # The Playwright integration suite (task 008) is not implemented yet. When it lands, add a job here
+  # that installs Chromium (`npx playwright install --with-deps chromium`) and runs the integration
+  # suite, gated on `changes` and wired into `ci-success`'s needs.
