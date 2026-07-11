@@ -224,36 +224,27 @@ async function main(): Promise<void> {
     };
     writeFileSync(join(outDir, 'meta.json'), JSON.stringify(header, null, 2), 'utf8');
 
-    // Exhaustive provenance manifest (human/tooling-facing; the loader only needs meta.json). Everything we
-    // know about how this asset was produced: when, on what, with which flags/params, and its measured stats.
+    // Run-provenance card (human/tooling-facing). It records ONLY what meta.json does not already carry — the
+    // where/how/when of the run and the on-disk size breakdown. All asset identity, config, ticks and measured
+    // stats are the machine source of truth in meta.json (which the loader reads), so they are NOT echoed here:
+    //   params / seed → meta.meta.params (+ .params.seed)      gitCommit → meta.meta.gitCommit
+    //   formatVersion/generatorVersion/epochTick/endTick/      stats (trajectory/births/deaths/runtimeMs/…)
+    //     ticksPerYear/createdAt → meta.meta.*                   → meta.meta.stats
+    //   sections + per-shard tick ranges → meta.sections/logShards/skillShards
+    // Read meta.json for any of the above; this file adds environment, invocation, naming, a human runtime,
+    // and the size split (total = shardBytes + sectionBytes = meta.meta.stats.compressedBytes).
     const generatedAt = now.toISOString();
     const manifest = {
         generatedAt,
         serial,
         hash,
         dir: basename(outDir),
-        generator: { version: HISTORY_GENERATOR_VERSION, script: 'scripts/generateHistoryAsset.ts' },
-        gitCommit: asset.meta.gitCommit,
+        generator: { script: 'scripts/generateHistoryAsset.ts' },
         environment: { node: process.version, platform: `${process.platform}/${process.arch}`, host: hostname() },
         invocation: { argv: process.argv.slice(2), flags },
-        params,
-        seed: params.seed,
-        assetMeta: {
-            formatVersion: asset.meta.formatVersion,
-            generatorVersion: asset.meta.generatorVersion,
-            epochTick: asset.meta.epochTick,
-            endTick: asset.meta.endTick,
-            ticksPerYear: asset.meta.ticksPerYear,
-            createdAt: asset.meta.createdAt,
-        },
-        stats: asset.meta.stats,
         runtime: formatDuration(asset.meta.stats.runtimeMs),
-        files: {
-            sections: header.sections,
-            logShards: header.logShards.length,
-            skillShards: header.skillShards.length,
-        },
-        sizes: { shardBytes, sectionBytes, totalCompressedBytes: totalCompressed },
+        shards: { logShards: header.logShards.length, skillShards: header.skillShards.length },
+        sizes: { shardBytes, sectionBytes },
     };
     writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
 
@@ -325,7 +316,7 @@ async function main(): Promise<void> {
         console.log(`    year ${String(point.year).padStart(4)} · living ${point.living}`);
     }
     console.log(`\n[generate-history] wrote ${outDir}`);
-    console.log(`[generate-history]   + manifest.json (exhaustive provenance)`);
+    console.log(`[generate-history]   + manifest.json (run provenance: env/invocation/naming/sizes)`);
     if (typeof flags.out !== 'string') {
         console.log(`[generate-history]   + latest.json → ${basename(outDir)} (newest asset pointer)`);
     }
