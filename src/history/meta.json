@@ -1,0 +1,417 @@
+{
+  "meta": {
+    "formatVersion": 1,
+    "generatorVersion": "078.0",
+    "seed": 1337,
+    "params": {
+      "seed": 1337,
+      "founderCount": 100,
+      "recordThreshold": 250,
+      "recordYears": 100,
+      "ticksPerYear": 8640,
+      "daysPerStep": 1,
+      "warmMarginYears": 40,
+      "maxWarmupYears": 400,
+      "keepActionLog": true,
+      "reducedEventManifest": true,
+      "profile": false,
+      "skillSnapshotYears": 1,
+      "flushIntervalYears": 5,
+      "populationControl": {
+        "enabled": true,
+        "target": 250,
+        "band": 0.05,
+        "suppressLevel": 0.1,
+        "allowLevel": 1
+      },
+      "logicalWorld": {
+        "enabled": true,
+        "homes": true,
+        "schools": true,
+        "jobs": true,
+        "objects": true
+      },
+      "safety": {
+        "maxRuntimeMs": 0,
+        "maxPeople": 0
+      }
+    },
+    "createdAt": "2026-07-11T20:12:51.797Z",
+    "gitCommit": "d7480d4",
+    "epochTick": 363048,
+    "endTick": 1227048,
+    "ticksPerYear": 8640,
+    "stats": {
+      "retainedPeople": 540,
+      "livingAtEnd": 205,
+      "births": 477,
+      "deaths": 372,
+      "medianHistoryLen": 51094,
+      "trajectory": [
+        {
+          "year": 0,
+          "living": 100
+        },
+        {
+          "year": 10,
+          "living": 173
+        },
+        {
+          "year": 20,
+          "living": 190
+        },
+        {
+          "year": 30,
+          "living": 205
+        },
+        {
+          "year": 40,
+          "living": 241
+        },
+        {
+          "year": 50,
+          "living": 249
+        },
+        {
+          "year": 60,
+          "living": 238
+        },
+        {
+          "year": 70,
+          "living": 241
+        },
+        {
+          "year": 80,
+          "living": 231
+        },
+        {
+          "year": 90,
+          "living": 207
+        },
+        {
+          "year": 100,
+          "living": 206
+        },
+        {
+          "year": 110,
+          "living": 207
+        },
+        {
+          "year": 120,
+          "living": 215
+        },
+        {
+          "year": 130,
+          "living": 195
+        },
+        {
+          "year": 140,
+          "living": 200
+        }
+      ],
+      "runtimeMs": 1247927,
+      "rawBytes": 0,
+      "compressedBytes": 555490853
+    }
+  },
+  "eventLogSeq": 34781539,
+  "sections": {
+    "population": "population.tbz",
+    "objects": "objects.tbz",
+    "eventHistory": "eventHistory.tbz"
+  },
+  "logShards": [
+    {
+      "file": "log-0000.tbz",
+      "minTick": 0,
+      "maxTick": 43200
+    },
+    {
+      "file": "log-0001.tbz",
+      "minTick": 43224,
+      "maxTick": 86424
+    },
+    {
+      "file": "log-0002.tbz",
+      "minTick": 86424,
+      "maxTick": 129600
+    },
+    {
+      "file": "log-0003.tbz",
+      "minTick": 129624,
+      "maxTick": 172800
+    },
+    {
+      "file": "log-0004.tbz",
+      "minTick": 172824,
+      "maxTick": 216000
+    },
+    {
+      "file": "log-0005.tbz",
+      "minTick": 216024,
+      "maxTick": 259200
+    },
+    {
+      "file": "log-0006.tbz",
+      "minTick": 259224,
+      "maxTick": 302400
+    },
+    {
+      "file": "log-0007.tbz",
+      "minTick": 302424,
+      "maxTick": 345600
+    },
+    {
+      "file": "log-0008.tbz",
+      "minTick": 345624,
+      "maxTick": 388800
+    },
+    {
+      "file": "log-0009.tbz",
+      "minTick": 388824,
+      "maxTick": 432000
+    },
+    {
+      "file": "log-0010.tbz",
+      "minTick": 432024,
+      "maxTick": 475200
+    },
+    {
+      "file": "log-0011.tbz",
+      "minTick": 475224,
+      "maxTick": 518400
+    },
+    {
+      "file": "log-0012.tbz",
+      "minTick": 518424,
+      "maxTick": 561600
+    },
+    {
+      "file": "log-0013.tbz",
+      "minTick": 561624,
+      "maxTick": 604800
+    },
+    {
+      "file": "log-0014.tbz",
+      "minTick": 604824,
+      "maxTick": 648000
+    },
+    {
+      "file": "log-0015.tbz",
+      "minTick": 648024,
+      "maxTick": 691200
+    },
+    {
+      "file": "log-0016.tbz",
+      "minTick": 691224,
+      "maxTick": 734400
+    },
+    {
+      "file": "log-0017.tbz",
+      "minTick": 734424,
+      "maxTick": 777600
+    },
+    {
+      "file": "log-0018.tbz",
+      "minTick": 777624,
+      "maxTick": 820800
+    },
+    {
+      "file": "log-0019.tbz",
+      "minTick": 820824,
+      "maxTick": 864000
+    },
+    {
+      "file": "log-0020.tbz",
+      "minTick": 864024,
+      "maxTick": 907200
+    },
+    {
+      "file": "log-0021.tbz",
+      "minTick": 907224,
+      "maxTick": 950424
+    },
+    {
+      "file": "log-0022.tbz",
+      "minTick": 950424,
+      "maxTick": 993600
+    },
+    {
+      "file": "log-0023.tbz",
+      "minTick": 993624,
+      "maxTick": 1036800
+    },
+    {
+      "file": "log-0024.tbz",
+      "minTick": 1036824,
+      "maxTick": 1080000
+    },
+    {
+      "file": "log-0025.tbz",
+      "minTick": 1080024,
+      "maxTick": 1123200
+    },
+    {
+      "file": "log-0026.tbz",
+      "minTick": 1123224,
+      "maxTick": 1166400
+    },
+    {
+      "file": "log-0027.tbz",
+      "minTick": 1166424,
+      "maxTick": 1209600
+    },
+    {
+      "file": "log-0028.tbz",
+      "minTick": 1209624,
+      "maxTick": 1227024
+    }
+  ],
+  "skillShards": [
+    {
+      "file": "skills-0000.tbz",
+      "minTick": 0,
+      "maxTick": 43200
+    },
+    {
+      "file": "skills-0001.tbz",
+      "minTick": 51840,
+      "maxTick": 86400
+    },
+    {
+      "file": "skills-0002.tbz",
+      "minTick": 95040,
+      "maxTick": 129600
+    },
+    {
+      "file": "skills-0003.tbz",
+      "minTick": 138240,
+      "maxTick": 172800
+    },
+    {
+      "file": "skills-0004.tbz",
+      "minTick": 181440,
+      "maxTick": 216000
+    },
+    {
+      "file": "skills-0005.tbz",
+      "minTick": 224640,
+      "maxTick": 259200
+    },
+    {
+      "file": "skills-0006.tbz",
+      "minTick": 267840,
+      "maxTick": 302400
+    },
+    {
+      "file": "skills-0007.tbz",
+      "minTick": 311040,
+      "maxTick": 345600
+    },
+    {
+      "file": "skills-0008.tbz",
+      "minTick": 354240,
+      "maxTick": 388800
+    },
+    {
+      "file": "skills-0009.tbz",
+      "minTick": 397440,
+      "maxTick": 432000
+    },
+    {
+      "file": "skills-0010.tbz",
+      "minTick": 440640,
+      "maxTick": 475200
+    },
+    {
+      "file": "skills-0011.tbz",
+      "minTick": 483840,
+      "maxTick": 518400
+    },
+    {
+      "file": "skills-0012.tbz",
+      "minTick": 527040,
+      "maxTick": 561600
+    },
+    {
+      "file": "skills-0013.tbz",
+      "minTick": 570240,
+      "maxTick": 604800
+    },
+    {
+      "file": "skills-0014.tbz",
+      "minTick": 613440,
+      "maxTick": 648000
+    },
+    {
+      "file": "skills-0015.tbz",
+      "minTick": 656640,
+      "maxTick": 691200
+    },
+    {
+      "file": "skills-0016.tbz",
+      "minTick": 699840,
+      "maxTick": 734400
+    },
+    {
+      "file": "skills-0017.tbz",
+      "minTick": 743040,
+      "maxTick": 777600
+    },
+    {
+      "file": "skills-0018.tbz",
+      "minTick": 786240,
+      "maxTick": 820800
+    },
+    {
+      "file": "skills-0019.tbz",
+      "minTick": 829440,
+      "maxTick": 864000
+    },
+    {
+      "file": "skills-0020.tbz",
+      "minTick": 872640,
+      "maxTick": 907200
+    },
+    {
+      "file": "skills-0021.tbz",
+      "minTick": 915840,
+      "maxTick": 950400
+    },
+    {
+      "file": "skills-0022.tbz",
+      "minTick": 959040,
+      "maxTick": 993600
+    },
+    {
+      "file": "skills-0023.tbz",
+      "minTick": 1002240,
+      "maxTick": 1036800
+    },
+    {
+      "file": "skills-0024.tbz",
+      "minTick": 1045440,
+      "maxTick": 1080000
+    },
+    {
+      "file": "skills-0025.tbz",
+      "minTick": 1088640,
+      "maxTick": 1123200
+    },
+    {
+      "file": "skills-0026.tbz",
+      "minTick": 1131840,
+      "maxTick": 1166400
+    },
+    {
+      "file": "skills-0027.tbz",
+      "minTick": 1175040,
+      "maxTick": 1209600
+    },
+    {
+      "file": "skills-0028.tbz",
+      "minTick": 1218240,
+      "maxTick": 1227048
+    }
+  ]
+}

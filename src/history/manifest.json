@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-07-11T19:52:03.837Z",
+  "serial": "20260711165203",
+  "hash": "1c00",
+  "name": "history-20260711165203-1c00",
+  "generator": {
+    "script": "scripts/generateHistoryAsset.ts"
+  },
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32/x64",
+    "host": "MAURICIO-PC"
+  },
+  "invocation": {
+    "argv": [],
+    "flags": {}
+  },
+  "runtime": "20 min 48 s",
+  "shards": {
+    "logShards": 29,
+    "skillShards": 29
+  },
+  "sizes": {
+    "shardBytes": 553914650,
+    "sectionBytes": 1576203
+  }
+}
