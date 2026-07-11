@@ -75,6 +75,8 @@ css/*   -> src/css/*
 
 TypeScript is configured strictly: `strict`, `noImplicitAny`, `strictNullChecks`, `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `allowUnreachableCode: false`. New code must compile cleanly under these settings.
 
+**Editor TS version:** `.vscode/settings.json` pins the editor to the workspace TypeScript (`node_modules/typescript`, the version CI runs) via `typescript.tsdk` — `tsconfig.json` sets compiler *options*, not the *version*, and VS Code otherwise uses its own newer bundled TS, so the Problems panel could report deprecations/errors CI never emits. Accept the one-time "Use Workspace Version" prompt so the editor matches CI.
+
 ---
 
 ## 3. Project structure

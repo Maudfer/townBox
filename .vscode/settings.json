@@ -1,0 +1,10 @@
+{
+  // Use the project's own TypeScript (node_modules/typescript, currently 5.4.5) for the editor's
+  // language features — NOT the newer one VS Code bundles and self-updates. tsconfig.json only sets
+  // compiler *options*, not the compiler *version*, so without this the editor's Problems panel can
+  // report errors (e.g. deprecation warnings) that CI's pinned tsc never emits. This makes the editor
+  // match CI. VS Code prompts once to trust the workspace version — accept it (or run
+  // "TypeScript: Select TypeScript Version" -> "Use Workspace Version").
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
