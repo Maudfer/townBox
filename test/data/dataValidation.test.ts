@@ -77,7 +77,7 @@ describe('data validation (task 039)', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
             'actions', 'arbitration', 'assets', 'businesses', 'config', 'demand', 'economy',
-            'events', 'historyGenerator', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
+            'events', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials',
             'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'relationships', 'residences', 'routines', 'schools', 'skillInit', 'skills', 'toolAssets', 'traits',
         ]);
     });

@@ -27,7 +27,9 @@ import { plannerHook } from 'game/actions/Planner';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import arbitrationConfig from 'json/arbitration.json';
+import inventoryConfig from 'json/inventory.json';
 import { ActionDefinition, IntentBand } from 'types/Action';
+import { locationKey } from 'types/Objects';
 import { SubProfiler } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
@@ -68,6 +70,11 @@ export interface ActionIntent {
 const BAND_RANK: Record<IntentBand, number> = { survival: 0, obligation: 1, commitment: 2, need: 3, opportunity: 4, fallback: 5 };
 // The authored interruption thresholds (task 086 / L4, L6).
 export const ARBITRATION_CONFIG = arbitrationConfig as { sameBandUtilityDelta: number; decisionCooldownTicks: number };
+// Carry budgets + the acquisitive hook's chances (task 088 / F1–F2).
+export const INVENTORY_CONFIG = inventoryConfig as {
+    maxCarriedWeightGrams: number; maxBulkyItems: number; stowAboveFraction: number;
+    curiosityChancePerTick: number; fiddleChancePerTick: number; pantryFetchBelowFood: number;
+};
 
 // The band of an intent: explicit, else the mechanical necessity mapping (the L7 migration rule).
 export function bandOf(intent: ActionIntent): IntentBand {
@@ -610,40 +617,70 @@ const inventoryOpportunityHook: BrainHook = {
         const tScan = clock ? clock() : 0;
         const flagsOf = (archetypeId: string): Record<string, boolean> =>
             (inventory.getArchetype(archetypeId)?.flags as unknown as Record<string, boolean>) ?? {};
-        const carriedArchetypes = new Set(inventory.carriedInstances(personId).map(instance => instance.archetypeId));
+        const tagsOf = (archetypeId: string): readonly string[] =>
+            inventory.getArchetype(archetypeId)?.tags ?? [];
+        const carriedInstances = inventory.carriedInstances(personId);
+        const carriedArchetypes = new Set(carriedInstances.map(instance => instance.archetypeId));
+        const atHome = locationKey(world.locationOf(personId)) === 'home';
+        const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x0b1);
 
-        // Free-to-take, carryable (non-pocketable) loose objects here that they aren't already carrying → Grab X.
-        const grabbable = world.objectsAt(world.objectLocationOf(personId))
-            .map(id => inventory.getInstance(id))
-            .filter((instance): instance is NonNullable<typeof instance> => !!instance && instance.owner.kind === 'none')
-            .map(instance => instance.archetypeId)
-            .filter(archetypeId => {
-                const flags = flagsOf(archetypeId);
-                return flags.carryable && !flags.pocketable && !carriedArchetypes.has(archetypeId);
-            })
-            .sort();
-        addSeg('inv:grabScan', tScan);
-        if (grabbable.length > 0) {
-            return [intent('grab', grabbable[0])];
+        // Carry budgets (task 088 / F1): the audit's median-553-carried hoard ends here.
+        const carriedWeight = inventory.carriedWeightGrams(personId);
+        const bulkyCount = carriedInstances.filter(instance => {
+            const flags = flagsOf(instance.archetypeId);
+            return flags.carryable && !flags.pocketable;
+        }).length;
+        const overWeight = carriedWeight >= INVENTORY_CONFIG.maxCarriedWeightGrams;
+        const overBulk = bulkyCount >= INVENTORY_CONFIG.maxBulkyItems;
+
+        // STOW at home (task 088 / F2): over the stow threshold, deposit the heaviest non-essential — the
+        // homecoming sweep that turns the house into real storage (ingredients stay pocketed for cooking).
+        if (atHome && carriedWeight > INVENTORY_CONFIG.maxCarriedWeightGrams * INVENTORY_CONFIG.stowAboveFraction) {
+            const stowable = carriedInstances
+                .filter(instance => !tagsOf(instance.archetypeId).includes('ingredient'))
+                .sort((a, b) => (inventory.getArchetype(b.archetypeId)?.weightGrams ?? 0) - (inventory.getArchetype(a.archetypeId)?.weightGrams ?? 0)
+                    || a.archetypeId.localeCompare(b.archetypeId));
+            if (stowable.length > 0) {
+                addSeg('inv:grabScan', tScan);
+                return [intent('put_down', stowable[0]!.archetypeId)];
+            }
         }
 
-        // Small item lying around → pocket it (generic, unchanged behavior; self-limits as it's consumed).
-        const tPocket = clock ? clock() : 0;
-        const pocketable = context.objectAtLocation?.({ flag: 'pocketable' }) ?? false;
-        addSeg('inv:pocketScan', tPocket);
-        if (pocketable) {
-            return [intent('pocketed_small_object')];
+        // CURIOSITY pickups (task 088 / F1): the old always-grab becomes a rare, capacity-gated impulse —
+        // the pebble/seashell charm survives, the 6,709 wristwatches don't. Novelty-biased: only archetypes
+        // not already carried.
+        if (!overWeight && rng.next() < INVENTORY_CONFIG.curiosityChancePerTick) {
+            const grabbable = !overBulk ? world.objectsAt(world.objectLocationOf(personId))
+                .map(id => inventory.getInstance(id))
+                .filter((instance): instance is NonNullable<typeof instance> => !!instance && instance.owner.kind === 'none')
+                .map(instance => instance.archetypeId)
+                .filter(archetypeId => {
+                    const flags = flagsOf(archetypeId);
+                    return flags.carryable && !flags.pocketable && !carriedArchetypes.has(archetypeId);
+                })
+                .sort() : [];
+            addSeg('inv:grabScan', tScan);
+            if (grabbable.length > 0) {
+                return [intent('grab', grabbable[0])];
+            }
+            const pocketable = context.objectAtLocation?.({ flag: 'pocketable' }) ?? false;
+            if (pocketable) {
+                return [intent('pocketed_small_object')];
+            }
         }
 
         // Otherwise, occasionally use/put-down/discard something they carry. Gated so most idle ticks fall
-        // through to the free-time continuous action (idleFallback, lower priority).
+        // through to the free-time continuous action (idleFallback, lower priority). Dropping/discarding
+        // only happens at home or outside — nobody leaves their possessions strewn around someone's business
+        // (which also keeps workplace stock cleanly employer-owned, the 053 sanity invariant).
         const carried = [...carriedArchetypes].sort();
         if (carried.length > 0) {
-            const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x0b1);
-            if (rng.next() < 0.15) {
+            if (rng.next() < INVENTORY_CONFIG.fiddleChancePerTick) {
                 const object = carried[Math.floor(rng.next() * carried.length)]!;
                 const roll = rng.next();
-                const verb = roll < 0.7 ? 'use_object' : roll < 0.9 ? 'put_down' : 'discard_object';
+                const here = world.locationOf(personId).kind;
+                const mayDrop = atHome || here === 'outside';
+                const verb = roll < 0.7 || !mayDrop ? 'use_object' : roll < 0.9 ? 'put_down' : 'discard_object';
                 return [intent(verb, object)];
             }
         }
@@ -676,16 +713,49 @@ const needsHook: BrainHook = {
                 return [];
             }
         }
+        const intents: ActionIntent[] = [];
+        // PANTRY FETCH (task 088 / F2): a hungry person at home with ingredients in the house but none in
+        // hand picks them up FIRST — the fetch (a discrete, higher utility) commits and falls through to the
+        // eat/cook pick in the SAME tick, whose carries-ingredient requirement now passes. Plans and needs
+        // pull objects OUT of storage for a purpose.
+        const world = deps.ctx.world ?? null;
+        const inventory = deps.inventory ?? null;
+        if (need === 'food' && world && inventory
+            && ledger.levelOf(personId, 'food', deps.tick, deps.state.worldSeed) < INVENTORY_CONFIG.pantryFetchBelowFood
+            && locationKey(world.locationOf(personId)) === 'home'
+            && !inventory.carriedInstances(personId).some(instance => (inventory.getArchetype(instance.archetypeId)?.tags ?? []).includes('ingredient'))) {
+            const pantry = world.objectsAt(world.objectLocationOf(personId))
+                .map(id => inventory.getInstance(id))
+                .filter((instance): instance is NonNullable<typeof instance> => !!instance
+                    && (inventory.getArchetype(instance.archetypeId)?.tags ?? []).includes('ingredient'))
+                .map(instance => instance.archetypeId)
+                .sort();
+            if (pantry.length > 0) {
+                intents.push({
+                    actionId: 'grab',
+                    params: { object: pantry[0]! },
+                    sourceHook: 'needs',
+                    priority: 70,
+                    necessity: 'required',
+                    band: 'survival',
+                    mayInterrupt: true,
+                    causationId: null,
+                });
+            }
+        }
         const pick = brain.selectActionForNeed(personId, need, deps);
-        return pick ? [{
-            actionId: pick,
-            sourceHook: 'needs',
-            priority: 60,
-            necessity: 'required',
-            band: 'survival', // a critical meter outranks even the shift (lunch breaks are real — L2)
-            mayInterrupt: true,
-            causationId: null,
-        }] : [];
+        if (pick) {
+            intents.push({
+                actionId: pick,
+                sourceHook: 'needs',
+                priority: 60,
+                necessity: 'required',
+                band: 'survival', // a critical meter outranks even the shift (lunch breaks are real — L2)
+                mayInterrupt: true,
+                causationId: null,
+            });
+        }
+        return intents;
     },
 };
 

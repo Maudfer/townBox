@@ -168,3 +168,21 @@ export function validateArbitrationStructure(data: unknown, issues: IssueCollect
     checkNumber(issues, 'arbitration.decisionCooldownTicks', config['decisionCooldownTicks'], { min: 0, integer: true });
     checkNumber(issues, 'arbitration.resumeWindowTicks', config['resumeWindowTicks'], { min: 1, integer: true });
 }
+
+// json/inventory.json (task 088): carry budgets + the acquisitive hook's chances.
+export function validateInventoryTuningStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'inventory', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'inventory', config, ['maxCarriedWeightGrams', 'maxBulkyItems', 'stowAboveFraction', 'curiosityChancePerTick', 'fiddleChancePerTick', 'pantryFetchBelowFood']);
+    checkNumber(issues, 'inventory.maxCarriedWeightGrams', config['maxCarriedWeightGrams'], { min: 1 });
+    checkNumber(issues, 'inventory.maxBulkyItems', config['maxBulkyItems'], { min: 1, integer: true });
+    const fractions: [string, unknown][] = [['stowAboveFraction', config['stowAboveFraction']], ['curiosityChancePerTick', config['curiosityChancePerTick']], ['fiddleChancePerTick', config['fiddleChancePerTick']]];
+    for (const [key, value] of fractions) {
+        if (typeof value !== 'number' || value < 0 || value > 1) {
+            issues.add(`inventory.${key}`, 'expected a fraction in [0, 1]');
+        }
+    }
+    checkNumber(issues, 'inventory.pantryFetchBelowFood', config['pantryFetchBelowFood'], { min: 0 });
+}

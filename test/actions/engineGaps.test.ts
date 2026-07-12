@@ -280,10 +280,17 @@ describe('Brain arbitration gaps', () => {
         return { engine, actions, brain, inventory, makeDeps };
     }
 
-    test('inventoryOpportunity grabs a free loose carryable before pocketing or fiddling with carried items', () => {
+    test('inventoryOpportunity grabs a free loose carryable on a curiosity impulse (capacity-gated since 088)', () => {
         const { brain, inventory, engine, makeDeps } = inventoryHarness();
         inventory.createInstance({ archetypeId: 'umbrella', owner: { kind: 'none' }, container: { kind: 'location', key: 'home' }, tick: 0 });
-        brain.processTick(['a'], makeDeps(50), [], result());
+        // Pickups are a rare impulse now (INVENTORY_CONFIG.curiosityChancePerTick), not an every-tick hoover
+        // (task 088/F1) — walk ticks until the deterministic impulse lands.
+        for (let tick = 50; tick < 300; tick++) {
+            brain.processTick(['a'], makeDeps(tick), [], result());
+            if (engine.getPersonLog('a').some(e => e.kind === 'action' && e.defId === 'grab')) {
+                break;
+            }
+        }
         const grabbed = engine.getPersonLog('a').find(e => e.kind === 'action' && e.defId === 'grab');
         expect(grabbed).toBeDefined();
         expect((grabbed as unknown as { params: Record<string, string> }).params['object']).toBe('umbrella');
