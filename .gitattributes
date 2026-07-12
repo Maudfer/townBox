@@ -3,3 +3,8 @@
 # the generator output.
 docs/generated/simulation-relationships.md text eol=lf
 docs/generated/event-classification.md text eol=lf
+
+# Integration scenario fixtures are single-line base64 save payloads; never EOL-normalize them so the
+# committed bytes are identical on every platform.
+test/integration/fixtures/*.txt text eol=lf
+
