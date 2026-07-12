@@ -31,7 +31,20 @@ export default defineConfig({
         video: 'retain-on-failure',
     },
     projects: [
-        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        // The suite proper. Excludes the fixture recorder so `npm run test:integration` never regenerates
+        // committed fixtures.
+        {
+            name: 'chromium',
+            testMatch: /.*\.spec\.ts/,
+            use: { ...devices['Desktop Chrome'] },
+        },
+        // The scenario/fixture recorder — run on demand with `npm run generate-scenarios`. It drives the real
+        // app to build scenarios and writes committed fixtures under test/integration/fixtures/.
+        {
+            name: 'fixtures',
+            testMatch: /recordFixtures\.ts/,
+            use: { ...devices['Desktop Chrome'] },
+        },
     ],
     webServer: {
         // Build the production bundle, then serve ./bin. Reused across specs; rebuilt only when not already up.

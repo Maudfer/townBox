@@ -61,6 +61,8 @@ export interface TownboxTestApi {
     getDate(): string;
     focusTile(row: number, col: number): ScreenPoint | null;
     savePayload(): string;
+    build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number): Promise<string | null>;
+    bulldoze(row: number, col: number): Promise<void>;
     tileAt(row: number, col: number): TileInfo;
     structureCounts(): StructureCounts;
     people(): PersonInfo[];

@@ -7,6 +7,7 @@ import Road from 'game/world/Road';
 import Soil from 'game/world/Soil';
 import Workplace from 'game/world/Workplace';
 import { CityStats } from 'types/City';
+import { Tool } from 'types/Cursor';
 import { formatTimestamp } from 'util/time';
 
 // The integration-test determinism hook (task 008). Installed on `window.__townbox` ONLY in test mode
@@ -17,6 +18,14 @@ import { formatTimestamp } from 'util/time';
 // Time control: on install the RAF-driven clock is PAUSED, so in-game time only advances when a test calls
 // stepTicks(n). stepTicks drives the exact same newDay/newTick/timeChanged cadence the frame loop does, one
 // tick at a time and awaited, so `place → stepTicks(24) → assert arrived` has zero wall-clock flakiness.
+
+// Maps the harness's string tool names to the Tool enum used by the placement/build path.
+const BUILD_TOOLS: Record<'road' | 'soil' | 'house' | 'work', Tool> = {
+    road: Tool.Road,
+    soil: Tool.Soil,
+    house: Tool.House,
+    work: Tool.Work,
+};
 
 export interface TileInfo {
     type: 'road' | 'house' | 'work' | 'soil' | 'none';
@@ -74,6 +83,15 @@ export interface TownboxTestApi {
     // The current world serialized to the save-string format (compressed + base64). Used by the fixture
     // recorder to capture a built scenario without going through localStorage.
     savePayload(): string;
+
+    // --- Deterministic build controls (fixture recording) ---------------
+    // Places a structure via the SAME resolve-placement + `tileClicked` path a real click uses (roads snap to
+    // the supertile grid, buildings soft-snap to a road side), AWAITING the async household/business setup.
+    // Returns the resolved anchor "row-col", or null when the placement is invalid. `tool` is one of
+    // 'road' | 'soil' | 'house' | 'work'. (Real canvas clicks are still exercised by the canvas suite.)
+    build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number): Promise<string | null>;
+    // Bulldozes whatever occupies the tile (coherent teardown), awaiting eviction/closure side effects.
+    bulldoze(row: number, col: number): Promise<void>;
 
     // --- World reads ----------------------------------------------------
     tileAt(row: number, col: number): TileInfo;
@@ -142,6 +160,34 @@ export function createTestApi(game: GameManager): TownboxTestApi {
 
         savePayload(): string {
             return game.saveManager.serialize();
+        },
+
+        async build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number): Promise<string | null> {
+            const field = game.field;
+            if (!field) {
+                return null;
+            }
+            const toolEnum = BUILD_TOOLS[tool];
+            const placement = field.resolvePlacement(toolEnum, { row, col });
+            if (!placement.valid || !placement.position) {
+                return null;
+            }
+            await game.emit('tileClicked', { position: placement.position, tool: toolEnum });
+            // Field.build fires houseBuilt/workplaceBuilt fire-and-forget; its household/business setup runs on
+            // microtasks. Yield a macrotask so those complete before we return (materialized residents present).
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
+            return `${placement.position.row}-${placement.position.col}`;
+        },
+
+        async bulldoze(row: number, col: number): Promise<void> {
+            const field = game.field;
+            if (!field) {
+                return;
+            }
+            const placement = field.resolvePlacement(Tool.Bulldoze, { row, col });
+            const position = placement.valid && placement.position ? placement.position : { row, col };
+            await game.emit('tileClicked', { position, tool: Tool.Bulldoze });
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
         },
 
         tileAt(row: number, col: number): TileInfo {

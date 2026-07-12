@@ -43,11 +43,12 @@ export async function waitForHarness(page: Page): Promise<void> {
     await expect(page.getByTestId('toolbar')).toBeVisible();
 }
 
-// Boots straight into a fresh game (splash skipped) in test mode. The world is whatever the committed history
-// asset / cold-start pool produces; use bootFixture for a deterministic, known scenario.
-export async function bootNewGame(page: Page): Promise<void> {
+// Boots straight into a fresh game (splash skipped) in test mode. Pass a `seed` to pin the cold-start pool so a
+// scenario is reproducible (used by the fixture recorder); omit it for a fast, world-agnostic boot.
+export async function bootNewGame(page: Page, seed?: number): Promise<void> {
     await enableTestMode(page);
-    await page.goto('/?test=1&boot=new');
+    const seedParam = seed === undefined ? '' : `&seed=${seed}`;
+    await page.goto(`/?test=1&boot=new${seedParam}`);
     await waitForHarness(page);
 }
 
@@ -133,4 +134,20 @@ export async function clickTile(page: Page, row: number, col: number): Promise<v
 // Reads the current world as a save string (for the fixture recorder).
 export async function savePayload(page: Page): Promise<string> {
     return page.evaluate(() => window.__townbox!.savePayload());
+}
+
+// Deterministic build via the real tileClicked path (awaits async household/business setup). Returns the
+// resolved anchor "row-col" or null when the placement was invalid.
+export async function build(
+    page: Page,
+    tool: 'road' | 'soil' | 'house' | 'work',
+    row: number,
+    col: number,
+): Promise<string | null> {
+    return page.evaluate(([t, r, c]) => window.__townbox!.build(t as 'road' | 'soil' | 'house' | 'work', r as number, c as number),
+        [tool, row, col] as const);
+}
+
+export async function bulldoze(page: Page, row: number, col: number): Promise<void> {
+    await page.evaluate(([r, c]) => window.__townbox!.bulldoze(r, c), [row, col] as const);
 }

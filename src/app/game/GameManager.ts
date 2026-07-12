@@ -278,9 +278,10 @@ export default class GameManager {
 
         // Test mode (task 008): never fetch the multi-hundred-MB history asset — it is slow and its window is
         // non-deterministic. A `?boot=new` test gets a fast cold-start pool; deterministic scenarios come from
-        // committed save fixtures (`?boot=load`), which skip this method entirely (pendingLoad is set).
+        // committed save fixtures (`?boot=load`), which skip this method entirely (pendingLoad is set). A
+        // `?seed=N` param pins the pool so the fixture recorder can reproduce a world.
         if (this.testMode) {
-            population.generate(worldSeed);
+            population.generate(GameManager.testSeed() ?? worldSeed);
             return;
         }
 
@@ -372,6 +373,23 @@ export default class GameManager {
             return params.has('test');
         } catch {
             return false;
+        }
+    }
+
+    // Reads an optional `seed` URL param in test mode (a finite, non-negative integer), else null.
+    private static testSeed(): number | null {
+        try {
+            if (typeof window === 'undefined') {
+                return null;
+            }
+            const raw = new URLSearchParams(window.location.search).get('seed');
+            if (raw === null) {
+                return null;
+            }
+            const value = Number(raw);
+            return Number.isFinite(value) && value >= 0 ? (value >>> 0) : null;
+        } catch {
+            return null;
         }
     }
 
