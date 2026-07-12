@@ -99,6 +99,7 @@ export type EffectType =
     | 'releaseSlot'
     | 'adjustMoney'
     | 'acquireSkill'
+    | 'adjustRelationship'
     | 'emit';
 
 export interface Effect {
@@ -115,6 +116,11 @@ export interface Effect {
     // acquireSkill only (task 059): the proficiency floor the grant raises the skill to (grant-to-at-least).
     // Absent = the adapter's default.
     proficiency?: number;
+    // adjustRelationship only (task 083): the strength delta applied on the elective social graph between the
+    // subject and the person bound to `role`; `kind` seeds a NEW edge's kind (default acquaintance). No-op
+    // (still commits) without a bound graph or role — the graph is an adapter like the ledger.
+    delta?: number;
+    kind?: string;
 }
 
 // A typed, scalar event-payload parameter (task 067).

@@ -26,6 +26,7 @@ const EFFECT_RULES: Record<string, { required: readonly string[]; optional: read
     releaseSlot: { required: ['resource'], optional: [] },
     adjustMoney: { required: ['amount'], optional: [] },
     acquireSkill: { required: ['value'], optional: ['proficiency'] },
+    adjustRelationship: { required: ['role', 'delta'], optional: ['kind'] },
     emit: { required: ['signal'], optional: [] },
 };
 

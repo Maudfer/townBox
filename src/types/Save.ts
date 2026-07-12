@@ -6,6 +6,7 @@ import { Household } from 'types/Household';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { Direction } from 'types/Movement';
 import { InventoryState } from 'types/Objects';
+import { SocialGraphState } from 'types/Relationship';
 import { SchoolRegistryState } from 'types/School';
 import { SkillBookState } from 'types/Skill';
 import { Gender, Relationships } from 'types/Social';
@@ -39,7 +40,9 @@ import { JobPosition } from 'types/Work';
 //          game was selected from + who has already been hydrated, so households placed AFTER a load keep
 //          receiving pre-game histories. Additive optional field; older saves load with hydration disabled
 //          (people placed later simply arrive without pre-game logs — the sim itself never needed them).
-export const SAVE_VERSION = 14;
+// v14 → v15: the elective social graph (task 083). `socialGraph` carries friendship/rivalry/romance edges;
+//          additive — absent reads as an empty graph (edges regrow from real interactions).
+export const SAVE_VERSION = 15;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -149,6 +152,8 @@ export interface WorldSnapshot {
     // Lazy history hydration (v14, task 012 follow-up): the asset ref (dir/window/createdAt fingerprint) plus
     // who has already been hydrated. Optional: absent = hydration disabled (cold-start worlds, older saves).
     historyHydration?: HistoryHydrationSave;
+    // The elective social graph (v15, task 083). Optional so older saves load with an empty graph.
+    socialGraph?: SocialGraphState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

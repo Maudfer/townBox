@@ -15,6 +15,7 @@ import {
 } from 'types/Action';
 import { PersonId } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
+import { EdgeKind } from 'types/Relationship';
 import { ObjectContainerRef, ObjectInstanceId, ObjectOwner, locationKey } from 'types/Objects';
 import { ObjectQuery, Value } from 'types/Simulation';
 
@@ -351,6 +352,36 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 }
                 // Mirrors the event effect: a no-op without a ledger (money doesn't exist off-map).
                 steps.push(() => ctx.deps.ctx.markets?.ledger?.adjustPerson(target as string, op.amount));
+                break;
+            }
+            case 'adjustRelationship': {
+                // The elective social graph (task 083): actor ↔ the action's `target` parameter. Plan-time
+                // validation only needs a resolvable target; a missing graph is a benign no-op (pure tests).
+                const otherId = ctx.params['target'];
+                if (typeof otherId !== 'string') {
+                    return null;
+                }
+                steps.push(() => {
+                    const graph = ctx.deps.ctx.markets?.social ?? null;
+                    if (!graph || otherId === ctx.personId) {
+                        return;
+                    }
+                    const adjusted = graph.adjust(ctx.personId, otherId, op.delta, ctx.deps.tick,
+                        { ...(op.kind ? { kind: op.kind as EdgeKind } : {}), provenance: ctx.causationId });
+                    // A ladder promotion fires its authored event for BOTH sides, chained to this commit.
+                    if (adjusted.promoted?.onPromote) {
+                        for (const [subject, other] of [[ctx.personId, otherId], [otherId, ctx.personId]] as const) {
+                            const { result } = ctx.deps.eventEngine.invoke(
+                                ctx.deps.state, adjusted.promoted.onPromote, subject, ctx.deps.tick, ctx.deps.ticksPerYear,
+                                { source: 'action', causationId: ctx.causationId }, {}, ctx.deps.ctx, { with: other }
+                            );
+                            ctx.result.died.push(...result.died);
+                            ctx.result.born.push(...result.born);
+                            ctx.result.signals.push(...result.signals);
+                            ctx.result.committed.push(...result.committed);
+                        }
+                    }
+                });
                 break;
             }
             case 'triggerEvent': {

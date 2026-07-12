@@ -3200,6 +3200,10 @@
                     }
                 },
                 "target": "targetPerson"
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 2
             }
         ],
         "selection": {
@@ -3265,6 +3269,10 @@
                     "param": "object"
                 },
                 "target": "targetPerson"
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 2
             }
         ],
         "selection": {
@@ -3365,7 +3373,13 @@
         "selection": {
             "weight": 1.5,
             "cooldownTicks": 2
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 0.5
+            }
+        ]
     },
     "talked_to_person": {
         "label": "Talked to someone",
@@ -3385,7 +3399,13 @@
         "selection": {
             "weight": 1.2,
             "cooldownTicks": 2
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ]
     },
     "asked_for_help": {
         "label": "Asked for help",
@@ -3425,7 +3445,13 @@
         "selection": {
             "weight": 0.6,
             "cooldownTicks": 8
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2
+            }
+        ]
     },
     "apologized_to_person": {
         "label": "Apologized to someone",
@@ -3445,7 +3471,13 @@
         "selection": {
             "weight": 0.15,
             "cooldownTicks": 24
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 3
+            }
+        ]
     },
     "argued_with_person": {
         "label": "Argued with someone",
@@ -3468,7 +3500,13 @@
         },
         "events": {
             "onCompleteTarget": "argument"
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": -8
+            }
+        ]
     },
     "invited_person_over": {
         "label": "Invited someone over",
@@ -3489,7 +3527,13 @@
         "selection": {
             "weight": 0.2,
             "cooldownTicks": 48
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1.5
+            }
+        ]
     },
     "told_a_joke": {
         "label": "Told a joke",
@@ -3509,7 +3553,13 @@
         "selection": {
             "weight": 0.7,
             "cooldownTicks": 6
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ]
     },
     "asked_for_advice": {
         "label": "Asked for advice",
@@ -3529,7 +3579,13 @@
         "selection": {
             "weight": 0.4,
             "cooldownTicks": 12
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ]
     },
     "offered_job_lead": {
         "label": "Offered a job lead",
@@ -3569,7 +3625,13 @@
         "selection": {
             "weight": 0.3,
             "cooldownTicks": 24
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 3
+            }
+        ]
     },
     "consoled_person": {
         "label": "Consoled someone",
@@ -3589,7 +3651,13 @@
         "selection": {
             "weight": 0.2,
             "cooldownTicks": 24
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 3
+            }
+        ]
     },
     "played_with_person": {
         "label": "Played with someone",
@@ -3609,7 +3677,13 @@
         "selection": {
             "weight": 0.5,
             "cooldownTicks": 8
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2
+            }
+        ]
     },
     "taught_person_something": {
         "label": "Taught someone something",
@@ -3638,7 +3712,13 @@
                     "from": "$actor"
                 }
             }
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2.5
+            }
+        ]
     },
     "gave_object_to_person": {
         "label": "Gave an object to someone",
@@ -3670,6 +3750,10 @@
                     }
                 },
                 "owner": "targetPerson"
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 4
             }
         ],
         "events": {
@@ -3723,6 +3807,10 @@
                     }
                 },
                 "quantity": 1
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 2.5
             }
         ],
         "selection": {
@@ -4400,6 +4488,48 @@
                     "from": "$actor"
                 }
             }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2.5
+            }
+        ]
+    },
+    "kissed_partner": {
+        "label": "Kissed their partner",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "requirements": {
+            "relationship": {
+                "to": "target",
+                "kinds": [
+                    "dating",
+                    "spouse"
+                ]
+            }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2
+            }
+        ],
+        "selection": {
+            "weight": 0.8,
+            "cooldownTicks": 6
         }
     }
 }

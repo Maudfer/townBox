@@ -9,6 +9,7 @@ import { assertValidData } from 'game/data/schemas';
 import Economy from 'game/economy/Economy';
 import EventEngine from 'game/events/EventEngine';
 import Population from 'game/population/Population';
+import SocialGraph from 'game/population/SocialGraph';
 import DebugTools from 'game/scene/DebugTools';
 import MainScene from 'game/scene/MainScene';
 import Field from 'game/world/Field';
@@ -55,6 +56,7 @@ export default class GameManager {
     public inventory: Inventory | null;
     public schools: SchoolRegistry | null;
     public skillBook: SkillBook | null;
+    public socialGraph: SocialGraph | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -153,6 +155,7 @@ export default class GameManager {
         this.inventory = null;
         this.schools = null;
         this.skillBook = null;
+        this.socialGraph = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -257,6 +260,10 @@ export default class GameManager {
             // records during deserialize; people are otherwise seeded at materialization and progress
             // through school/work/education.
             this.skillBook = new SkillBook();
+
+            // The elective social graph (task 083): friendship/rivalry/romance edges, serialized (save v15).
+            // A load restores edges during deserialize; edges otherwise grow from real interactions.
+            this.socialGraph = new SocialGraph();
 
             // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.

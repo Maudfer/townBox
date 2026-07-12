@@ -156,6 +156,8 @@ export default class SaveManager {
             actions: this.game.actionEngine?.getState(),
             schools: this.game.schools?.getState(),
             skillBook: this.game.skillBook?.getState(),
+            // The elective social graph (v15, task 083).
+            socialGraph: this.game.socialGraph?.serialize(),
             // Lazy history hydration (v14): pin the asset ref + who is already hydrated, so households placed
             // after a load keep receiving pre-game histories. Absent for cold-start worlds.
             historyHydration: this.game.getHistoryHydrationState?.(),
@@ -360,6 +362,9 @@ export default class SaveManager {
         // Lazy history hydration (v14+, task 012 follow-up). Older saves carry none → hydration disabled
         // (people placed later arrive without pre-game histories; the sim itself never needed them).
         this.game.setHistoryHydrationState?.(snapshot.historyHydration);
+
+        // The elective social graph (v15, task 083). Absent (older saves) loads empty — edges regrow.
+        this.game.socialGraph?.loadState(snapshot.socialGraph);
 
         // Skill records (v10+, tasks 059-062). Pre-v10 saves carry none: every loaded person is
         // re-initialized deterministically (same seed convention as materialization) and their legacy

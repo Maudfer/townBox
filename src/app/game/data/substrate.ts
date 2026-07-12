@@ -128,6 +128,35 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
         }
         return;
     }
+    if ('relationship' in value) {
+        // v3 (task 083): relationship standing toward another participant.
+        checkUnknownKeys(issues, path, value, ['relationship']);
+        const query = value['relationship'];
+        if (!checkRecord(issues, `${path}.relationship`, query)) {
+            return;
+        }
+        const q = query as Record<string, unknown>;
+        checkUnknownKeys(issues, `${path}.relationship`, q, ['to', 'kinds', 'minStrength']);
+        if ('to' in q) {
+            checkString(issues, `${path}.relationship.to`, q['to']);
+        }
+        const STANDINGS = ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'ex_partner', 'spouse', 'family', 'none'];
+        if (checkArray(issues, `${path}.relationship.kinds`, q['kinds'])) {
+            const kinds = q['kinds'] as unknown[];
+            if (kinds.length === 0) {
+                issues.add(`${path}.relationship.kinds`, 'must name at least one standing');
+            }
+            kinds.forEach((kind, index) => {
+                if (typeof kind !== 'string' || !STANDINGS.includes(kind)) {
+                    issues.add(`${path}.relationship.kinds[${index}]`, `expected one of [${STANDINGS.join(', ')}]`);
+                }
+            });
+        }
+        if ('minStrength' in q) {
+            checkNumber(issues, `${path}.relationship.minStrength`, q['minStrength'], { min: 0 });
+        }
+        return;
+    }
     if ('where' in value) {
         checkUnknownKeys(issues, path, value, ['role', 'where']);
         if (checkString(issues, `${path}.role`, value['role'])) {

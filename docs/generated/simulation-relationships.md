@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 260 | 67 continuous / 193 discrete |
-| `events.json` | 708 | 174 probabilistic, 369 probabilistic + manual, 163 manual, 2 manual + automated |
+| `actions.json` | 261 | 67 continuous / 194 discrete |
+| `events.json` | 709 | 173 probabilistic, 165 manual, 369 probabilistic + manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -59,7 +59,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 534 manual-triggered events, 519 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 536 manual-triggered events, 521 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -73,15 +73,15 @@ Of the 534 manual-triggered events, 519 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 369 |
-| probabilistic | 174 |
-| manual | 163 |
+| probabilistic | 173 |
+| manual | 165 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
 |---|---|
 | cooldown window | 633 |
 | once: ever | 50 |
-| — | 21 |
+| — | 22 |
 | once: perDay | 4 |
 
 ## Object-action transformations
@@ -136,6 +136,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `greeted_person` | no consent | — | — | w 1.5, cd 2 |
 | `hugged_person` | ask first | skipStep | — | w 0.6, cd 8 |
 | `invited_person_over` | ask first | skipStep | — | w 0.2, cd 48 |
+| `kissed_partner` | ask first | skipStep | — | w 0.8, cd 6 |
 | `lent_an_object` | ask first | failParent | `action_declined` | w 0.2, cd 48 |
 | `offered_job_lead` | no consent | — | — | w 0.1, cd 48 |
 | `played_with_person` | no consent | — | — | w 0.5, cd 8 |

@@ -47,6 +47,11 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         // disabled for the loaded world (already-materialized people carry their logs in the save itself).
         snapshot.version = 14;
     }
+    if (snapshot.version < 15) {
+        // v14 → v15 (task 083): the elective social graph. Additive — absent reads as an empty graph; edges
+        // grow from real interactions after the load (rebuilding a friendship is one hello away).
+        snapshot.version = 15;
+    }
     return snapshot;
 }
 

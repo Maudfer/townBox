@@ -11,7 +11,7 @@ import { EventManifest } from 'types/LifeEvent';
 const DISPOSITIONS = ['consumed', 'retained', 'transformed', 'required'];
 const OWNERSHIP_TARGETS = ['person', 'targetPerson', 'employer', 'world', 'none'];
 const CONTAINERS = ['possessions', 'location'];
-const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'triggerEvent', 'scheduleEvent'];
+const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'triggerEvent', 'scheduleEvent'];
 
 function validateObjectQuery(issues: IssueCollector, path: string, query: unknown): void {
     if (!checkRecord(issues, path, query)) {
@@ -120,6 +120,14 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                     checkEnum(issues, `${opPath}.target`, op['target'], ['person', 'targetPerson']);
                 }
                 break;
+            case 'adjustRelationship':
+                // Task 083: the actor↔target edge delta. Kind seeds new edges only.
+                checkUnknownKeys(issues, opPath, op, ['op', 'delta', 'kind']);
+                checkNumber(issues, `${opPath}.delta`, op['delta']);
+                if ('kind' in op) {
+                    checkEnum(issues, `${opPath}.kind`, op['kind'], ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'ex_partner']);
+                }
+                break;
             case 'triggerEvent':
                 checkUnknownKeys(issues, opPath, op, ['op', 'event']);
                 checkString(issues, `${opPath}.event`, op['event']);
@@ -152,6 +160,10 @@ export function validateConsequenceOpsSemantics(issues: IssueCollector, path: st
         }
         if ((op.owner === 'targetPerson' || op.target === 'targetPerson') && !declaredParams.has('target')) {
             issues.add(opPath, `op references 'targetPerson' but the action declares no "target" parameter`);
+        }
+        if (op.op === 'adjustRelationship' && !declaredParams.has('target')) {
+            // Task 083: the edge is actor↔target; without a target parameter the op can never plan.
+            issues.add(opPath, `adjustRelationship requires the action to declare a "target" parameter`);
         }
     });
 }

@@ -9,6 +9,7 @@
 // Modest by design — social actions season free time (a per-tick chance), they don't dominate it.
 
 import { ActionIntent, BrainHook, HookContext, DEFAULT_SELECTION_WEIGHT } from 'game/actions/Brain';
+import { RELATIONSHIPS_CONFIG, resolveStanding } from 'game/population/SocialGraph';
 import { ActionDefinition, ActionManifest } from 'types/Action';
 import { evaluatePredicateCached } from 'util/predicate';
 import { SeededRandom, hashStringToSeed } from 'util/random';
@@ -79,12 +80,39 @@ export const socialOpportunityHook: BrainHook = {
         }
 
         const engine = brain.getActionEngine();
+
+        // Target FIRST (task 083 / proposal B): weight companions by relationship standing — a spouse or
+        // close friend is the likely counterpart, a stranger merely possible — so intimacy-gated actions
+        // evaluate their requirements against the actual would-be target. Deterministic: company arrives
+        // sorted from peopleAt, weights are pure functions of the graph.
+        const tTarget = clock ? clock() : 0;
+        const targeting = RELATIONSHIPS_CONFIG.socialTargeting;
+        const social = deps.ctx.markets?.social ?? null;
+        const weightedCompany = company.map(id => {
+            const view = resolveStanding(deps.state.people, social, personId, id, deps.tick);
+            const kindWeight = targeting.kindWeight[view?.kind ?? 'none'] ?? 1;
+            return { id, weight: Math.max(0.01, kindWeight + (view?.strength ?? 0) * targeting.strengthWeight) };
+        });
+        const totalTargetWeight = weightedCompany.reduce((sum, candidate) => sum + candidate.weight, 0);
+        let targetRoll = rng.next() * totalTargetWeight;
+        let pickedTarget = weightedCompany[weightedCompany.length - 1]!.id;
+        for (const candidate of weightedCompany) {
+            targetRoll -= candidate.weight;
+            if (targetRoll <= 0) {
+                pickedTarget = candidate.id;
+                break;
+            }
+        }
+        addSeg('social:target', tTarget);
+
         const tLoop = clock ? clock() : 0;
-        const context = engine.contextFor(personId, deps);
+        // Bind the picked target into the evaluation context so relationship-gated requirements resolve.
+        const context = engine.contextFor(personId, deps, { target: pickedTarget });
 
         // Return-side coherence (task 074): a carried instance OWNED by a co-located other person is a
         // borrowed object whose return-target is knowable — the ownership-vs-possession split identifies it.
-        // Deterministic: first by instance id.
+        // Deterministic: first by instance id. When a return-style action wins the pick, its target is the
+        // OWNER (overriding the weighted pick), so lending loops still genuinely close.
         const borrowed = (deps.inventory?.carriedInstances(personId) ?? [])
             .filter(instance => instance.owner.kind === 'person' && instance.owner.personId !== personId
                 && company.includes(instance.owner.personId))
@@ -141,14 +169,14 @@ export const socialOpportunityHook: BrainHook = {
             }
         }
         const targetParam = engine.getManifest()[picked.actionId]!.interaction!.targetParam;
-        // Return-style pick: the object names its own target (the owner). Otherwise: a random companion.
+        // Return-style pick: the object names its own target (the owner). Otherwise: the weighted pick.
         const params: Record<string, string> = {};
         if (picked.objectParam !== null) {
             const instance = borrowed[0]!;
             params[targetParam] = (instance.owner as { kind: 'person'; personId: string }).personId;
             params[picked.objectParam] = instance.id;
         } else {
-            params[targetParam] = company[rng.nextInt(0, company.length - 1)]!;
+            params[targetParam] = pickedTarget;
         }
         return [{
             actionId: picked.actionId,

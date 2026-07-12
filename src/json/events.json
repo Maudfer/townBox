@@ -800,31 +800,7 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 5,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 8,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 20,
-                                    "value": 0.5
-                                }
-                            ]
-                        }
-                    }
-                ]
-            }
+            "manual": {}
         },
         "effects": [
             {
@@ -832,7 +808,12 @@
                 "signal": "madeFriend",
                 "target": "subject"
             }
-        ]
+        ],
+        "parameters": {
+            "with": {
+                "type": "string"
+            }
+        }
     },
     "argument": {
         "label": "Had a falling-out",
@@ -25466,5 +25447,33 @@
             }
         },
         "effects": []
+    },
+    "became_close_friends": {
+        "label": "Became close friends",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "with": {
+                "type": "string"
+            }
+        },
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "madeFriend",
+                "target": "subject"
+            }
+        ]
     }
 }

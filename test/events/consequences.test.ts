@@ -77,6 +77,21 @@ function harness(inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES), employerK
 const result = (): TickResult => ({ died: [], born: [], signals: [], committed: [] });
 const cause = { source: 'system' as const, causationId: null };
 
+// Consent v2 (task 083): askFirst interactions between graph-strangers accept ~35% per attempt. These are
+// consequence-MECHANICS tests, so walk deterministic ticks until one accepts rather than pinning a roll.
+function startAccepted(actions: ActionEngine, personId: string, actionId: string, params: Record<string, string>, deps: ActionDeps): boolean {
+    for (let tick = deps.tick; tick < deps.tick + 80; tick++) {
+        const outcome = actions.startAction(personId, actionId, params, cause, { ...deps, tick }, result());
+        if (outcome.ok) {
+            return true;
+        }
+        if (outcome.reason !== 'consentDeclined') {
+            return false; // a non-consent failure is a real failure
+        }
+    }
+    return false;
+}
+
 describe('consequence ops', () => {
     test('createObject binds provenance to the committing log entry', () => {
         const { engine, actions, deps, inventory } = harness();
@@ -107,7 +122,7 @@ describe('consequence ops', () => {
     test('moveObjectToPerson lends a carried object: possession moves, ownership stays (lent_an_object)', () => {
         const { actions, deps, inventory } = harness();
         const book = inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
-        expect(actions.startAction('a', 'lent_an_object', { target: 'b' }, cause, deps, result()).ok).toBe(true);
+        expect(startAccepted(actions, 'a', 'lent_an_object', { target: 'b' }, deps)).toBe(true);
         expect(book.container).toEqual({ kind: 'possessions', personId: 'b' }); // b now carries it
         expect(book.owner).toEqual({ kind: 'person', personId: 'a' }); // a still owns it
     });
@@ -116,7 +131,7 @@ describe('consequence ops', () => {
         const { actions, deps, inventory } = harness();
         // b lent a book to a earlier: b owns it, a carries it.
         const book = inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'b' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
-        expect(actions.startAction('a', 'returned_borrowed_object', { target: 'b', object: book.id }, cause, deps, result()).ok).toBe(true);
+        expect(startAccepted(actions, 'a', 'returned_borrowed_object', { target: 'b', object: book.id }, deps)).toBe(true);
         expect(book.container).toEqual({ kind: 'possessions', personId: 'b' });
         expect(book.owner).toEqual({ kind: 'person', personId: 'b' });
     });

@@ -4,6 +4,8 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { compileEvents, EventGraph, GateComparison } from 'game/events/EventCompiler';
 import LifeLog from 'game/events/LifeLog';
+import { resolveStanding } from 'game/population/SocialGraph';
+import { EdgeKind, RelationshipGraph } from 'types/Relationship';
 
 import { ExecutionContext } from 'types/Execution';
 
@@ -154,6 +156,7 @@ export default class EventEngine {
     private ledger: MoneyLedger | null; // money (task 017)
     private housing: HousingMarket | null; // move-out eligibility (task 024)
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
+    private social: RelationshipGraph | null; // the elective social graph (task 083)
     // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
     // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
     // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
@@ -228,6 +231,7 @@ export default class EventEngine {
         this.ledger = null;
         this.housing = null;
         this.skills = null;
+        this.social = null;
     }
 
     // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
@@ -415,6 +419,14 @@ export default class EventEngine {
             role: (name: string) => {
                 const roleId = roleMap[name];
                 return roleId ? this.makeContext(state, roleId, {}, tick, ticksPerYear) : null;
+            },
+            relationshipWith: (name: string) => {
+                // Relationship standing (task 083): `name` addresses a bound ROLE in event contexts.
+                const otherId = roleMap[name];
+                if (!otherId) {
+                    return null;
+                }
+                return resolveStanding(state.people, this.social, id, otherId, tick);
             },
         };
     }
@@ -621,6 +633,17 @@ export default class EventEngine {
                 const targetId = effect.target ? roleMap[effect.target] : subjectId;
                 if (this.ledger && targetId) {
                     this.ledger.adjustPerson(targetId, effect.amount ? evaluateCurve(effect.amount, 0) : 0);
+                }
+                return true;
+            }
+            // Adjust the elective social graph between the subject and a bound role (task 083). No-op (still
+            // commits) without a graph/binding. Kind transitions from THIS path fire no events (the action-
+            // consequence path owns transition events — invoking mid-effect would recurse the engine).
+            case 'adjustRelationship': {
+                const otherId = effect.role ? roleMap[effect.role] : undefined;
+                if (this.social && otherId && otherId !== subjectId) {
+                    this.social.adjust(subjectId, otherId, effect.delta ?? 0, tick,
+                        effect.kind ? { kind: effect.kind as EdgeKind } : {});
                 }
                 return true;
             }
@@ -838,6 +861,7 @@ export default class EventEngine {
         this.ledger = markets.ledger ?? null;
         this.housing = markets.housing ?? null;
         this.skills = markets.skills ?? null;
+        this.social = markets.social ?? null;
     }
 
     // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
@@ -851,6 +875,7 @@ export default class EventEngine {
         this.ledger = null;
         this.housing = null;
         this.skills = null;
+        this.social = null;
     }
 
     // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,

@@ -57,16 +57,24 @@ describe('the consent evaluator (placeholder policy)', () => {
         expect(run()).toEqual(run());
     });
 
-    test('~80% acceptance over a large sample', () => {
-        let yes = 0;
-        const n = 4000;
-        for (let i = 0; i < n; i++) {
-            if (evaluateConsent({ actionId: 'gave_object_to_person', params: {}, sourcePersonId: `p${i % 40}`, targetPersonId: `q${i % 37}`, tick: i, worldSeed: SEED })) {
-                yes += 1;
+    test('standing scores acceptance: strangers ~35%, friends ~85% (consent v2, task 083)', () => {
+        const sample = (relationship: { kind: string; strength: number } | null) => {
+            let yes = 0;
+            const n = 4000;
+            for (let i = 0; i < n; i++) {
+                if (evaluateConsent({ actionId: 'gave_object_to_person', params: {}, sourcePersonId: `p${i % 40}`, targetPersonId: `q${i % 37}`, tick: i, worldSeed: SEED, relationship: relationship as never })) {
+                    yes += 1;
+                }
             }
-        }
-        expect(yes / n).toBeGreaterThan(0.75);
-        expect(yes / n).toBeLessThan(0.85);
+            return yes / n;
+        };
+        const strangers = sample(null);
+        expect(strangers).toBeGreaterThan(0.30);
+        expect(strangers).toBeLessThan(0.40);
+        const friends = sample({ kind: 'friend', strength: 50 });
+        expect(friends).toBeGreaterThan(0.80);
+        expect(friends).toBeLessThan(0.90);
+        expect(friends).toBeGreaterThan(strangers);
     });
 
     test('stream isolation: the verdict keys on its own salted stream, so unrelated subsystems are untouched', () => {

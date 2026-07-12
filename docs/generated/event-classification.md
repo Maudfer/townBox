@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 708 events — **15 vital**, **33 wired**, **519 texture**, **141 reserved**.
+Totals: 709 events — **16 vital**, **33 wired**, **519 texture**, **141 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -38,6 +38,7 @@ Totals: 708 events — **15 vital**, **33 wired**, **519 texture**, **141 reserv
 | beat_high_score | achievement | probabilistic+manual | texture | — |
 | beat_long_illness | health | probabilistic | texture | — |
 | became_aunt_or_uncle | family | manual | reserved | — |
+| became_close_friends | social | manual | vital | — |
 | became_estranged | family | probabilistic | texture | — |
 | became_grandparent | milestone | manual | reserved | — |
 | became_great_grandparent | milestone | manual | reserved | — |
@@ -395,7 +396,7 @@ Totals: 708 events — **15 vital**, **33 wired**, **519 texture**, **141 reserv
 | lost_wallet | finance | probabilistic+manual | texture | — |
 | lost_weight | health | probabilistic+manual | texture | — |
 | made_frenemy | social | probabilistic | texture | — |
-| made_friend | social | probabilistic | vital | — |
+| made_friend | social | manual | vital | — |
 | made_honor_roll | education | manual | reserved | — |
 | made_it_official | romance | probabilistic+manual | texture | — |
 | made_new_friend | social | probabilistic+manual | texture | — |

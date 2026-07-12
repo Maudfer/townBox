@@ -7,6 +7,7 @@
 
 import { PersonId } from 'types/Genealogy';
 import { JobMarket, MoneyLedger, HousingMarket, SkillRegistry } from 'types/LifeEvent';
+import { RelationshipGraph } from 'types/Relationship';
 
 export type SimulationMode = 'live' | 'bootstrap';
 
@@ -52,6 +53,9 @@ export interface SimulationMarkets {
     ledger?: MoneyLedger | null;
     housing?: HousingMarket | null;
     skills?: SkillRegistry | null;
+    // The elective social graph (task 083): consent, target weighting, relationship predicates, and the
+    // adjustRelationship effect/consequence all consult it. Null/absent = pre-graph contexts (pure tests).
+    social?: RelationshipGraph | null;
 }
 
 export interface ExecutionContext {

@@ -27,6 +27,7 @@ import {
     validatePopulationStructure,
 } from 'game/data/validators/params';
 import { validateObjectGenerationStructure, validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
+import { validateRelationshipsSemantics, validateRelationshipsStructure } from 'game/data/validators/relationships';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
     validateSkillInitSemantics,
@@ -52,6 +53,7 @@ import objectsConfig from 'json/objects.json';
 import objectGenerationConfig from 'json/objectGeneration.json';
 import placementConfig from 'json/placement.json';
 import populationConfig from 'json/population.json';
+import relationshipsConfig from 'json/relationships.json';
 import residencesConfig from 'json/residences.json';
 import schoolsConfig from 'json/schools.json';
 import skillInitConfig from 'json/skillInit.json';
@@ -87,6 +89,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'householdDraw', version: 1, data: householdDrawConfig, validateStructure: validateHouseholdDrawStructure },
         { name: 'historyGenerator', version: 1, data: historyGeneratorConfig, validateStructure: validateHistoryGeneratorStructure },
         { name: 'schools', version: 1, data: schoolsConfig, validateStructure: validateSchoolsStructure, validateSemantics: validateSchoolsSemantics },
+        { name: 'relationships', version: 1, data: relationshipsConfig, validateStructure: validateRelationshipsStructure, validateSemantics: validateRelationshipsSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
         { name: 'config', version: 1, data: config, validateStructure: validateConfigStructure },
         { name: 'input', version: 1, data: inputConfig, validateStructure: validateInputStructure },

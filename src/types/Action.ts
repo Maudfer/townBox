@@ -204,6 +204,10 @@ export type ConsequenceOp =
     | { op: 'setObjectState'; object: ObjectRef; key: string; value: Value }
     // Approved person mutation: money through the ledger (never raw writes).
     | { op: 'adjustMoney'; amount: number; target?: 'person' | 'targetPerson' }
+    // Adjust the elective social graph between the actor and the action's target (task 083). Kind transitions
+    // (acquaintance → friend, …) fire their authored events (json/relationships.json ladder) for BOTH sides,
+    // chained to this commit. No-op without a graph in context (pure tests).
+    | { op: 'adjustRelationship'; delta: number; kind?: string }
     // Fire a manual Event now / schedule an automated one — both through the Event engine, with causation.
     | { op: 'triggerEvent'; event: string }
     | { op: 'scheduleEvent'; event: string; afterTicks: number };

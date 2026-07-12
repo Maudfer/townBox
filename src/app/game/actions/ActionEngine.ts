@@ -18,6 +18,7 @@ import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/events
 import EventEngine from 'game/events/EventEngine';
 import LifeLog from 'game/events/LifeLog';
 import Inventory from 'game/objects/Inventory';
+import { resolveStanding } from 'game/population/SocialGraph';
 import actionsConfig from 'json/actions.json';
 import oarConfig from 'json/object-action-relationships.json';
 import { EventLink,
@@ -341,6 +342,14 @@ export default class ActionEngine {
                 cache.set(key, { epoch, result });
                 return result;
             },
+            relationshipWith: name => {
+                // Relationship standing (task 083): `name` addresses an ACTION parameter (usually 'target').
+                const otherId = params?.[name];
+                if (typeof otherId !== 'string') {
+                    return null;
+                }
+                return resolveStanding(deps.state.people, deps.ctx.markets?.social ?? null, personId, otherId, deps.tick);
+            },
         };
         if (params === undefined) {
             this.ctxMemo = { personId, tick: deps.tick, world, inventory, epoch: inventory?.getMutationEpoch() ?? -1, context };
@@ -473,9 +482,11 @@ export default class ActionEngine {
             // full params snapshot — never a silent skip; it also counts toward the actor's action history,
             // so selection cooldowns apply to declined attempts (no immediate re-tries).
             if (def.interaction.askFirst) {
+                // The TARGET's standing toward the ASKER scores the accept probability (task 083 / B6).
                 const consented = evaluateConsent({
                     actionId, params, sourcePersonId: personId, targetPersonId: targetId,
                     tick: deps.tick, worldSeed: deps.state.worldSeed,
+                    relationship: resolveStanding(deps.state.people, deps.ctx.markets?.social ?? null, targetId, personId, deps.tick),
                 });
                 if (!consented) {
                     const seq = this.lifeLog.append(personId, {

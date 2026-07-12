@@ -123,11 +123,20 @@ describe('the social-opportunity hook (dead content comes alive)', () => {
         // a carries something giftable.
         const gift = inventory.createInstance({ archetypeId: 'wristwatch', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
 
-        expect(actions.startAction('a', 'lent_an_object', { target: 'b' }, cause, deps, result()).ok).toBe(true);
+        // Consent v2 (task 083): graph-strangers accept ~35%/attempt — walk deterministic ticks until yes.
+        const startAccepted = (personId: string, actionId: string, params: Record<string, string>): boolean => {
+            for (let tick = deps.tick; tick < deps.tick + 80; tick++) {
+                if (actions.startAction(personId, actionId, params, cause, { ...deps, tick }, result()).ok) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        expect(startAccepted('a', 'lent_an_object', { target: 'b' })).toBe(true);
         expect(inventory.getInstance(gift.id)!.container).toEqual({ kind: 'possessions', personId: 'b' }); // b holds it
         expect(inventory.getInstance(gift.id)!.owner).toEqual({ kind: 'person', personId: 'a' }); // a still owns it
 
-        expect(actions.startAction('b', 'returned_borrowed_object', { target: 'a', object: gift.id }, cause, deps, result()).ok).toBe(true);
+        expect(startAccepted('b', 'returned_borrowed_object', { target: 'a', object: gift.id })).toBe(true);
         expect(inventory.getInstance(gift.id)!.container).toEqual({ kind: 'possessions', personId: 'a' }); // returned
         expect(engine.getPersonLog('a').length + engine.getPersonLog('b').length).toBeGreaterThan(1);
     });
