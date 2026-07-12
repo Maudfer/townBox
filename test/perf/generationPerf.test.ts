@@ -1,16 +1,18 @@
 // Aggregate per-agent / per-phase cost view of the generation spine (perf module).
 //
-// One profiled run of the shared tick spine (game/execution/TickRunner — what the offline generator drives
-// per step) yields, via the task-079 SubProfiler, a per-phase / per-hook / per-advance-sub-phase breakdown.
-// Averaged over thousands of agent-steps and taken as the min over several fresh runs, these costs are far
-// steadier than a micro-bench. We normalize each against an in-run calibration (perfHarness — so a uniform
-// machine slowdown cancels), LOG the full table every run (watch the trend at a glance), and fail if any
-// bucket exceeds its committed baseline by more than COST_TOLERANCE.
+// One profiled run of the shared tick spine (game/execution/TickRunner — what the offline generator drives per
+// step) yields, via the task-079 SubProfiler, a per-phase / per-hook / per-advance-sub-phase breakdown. We turn
+// each bucket into its SHARE OF A TICK — bucket / (total − bucket) — and take the median over several fresh
+// runs. That fraction is dimensionless and JITTER-IMMUNE: numerator and denominator are measured in the same
+// run, so a machine slowdown (or the wild scheduler jitter of a 2-vCPU CI runner) scales both and cancels;
+// a component that gets slower raises its OWN share (the denominator excludes it, so no absorption → real
+// sensitivity). A regression that shifts the profile trips the gate.
 //
-// This is the broad net: it covers as many moving parts of a step as the profiler exposes, so the sum stands
-// in for benchmarking the whole flow. The TIGHT, 5%-strict, flake-free protection of the specific 078/079
-// wins (agent-list gating, the caches, predicate precompilation, instance pruning) lives in
-// regressionGuards.test.ts as deterministic + within-run-ratio checks. Re-baseline: see perfHarness.
+// The gate ENFORCES only with PERF_ENFORCE=1 (the CI job, once its baselines are CI-measured — fractions still
+// drift ~10% across microarchitectures, so a dev baseline mustn't gate CI); otherwise it LOGS the table so the
+// trend is watchable. The TIGHT, flake-free, machine-independent protection of the specific 078/079 wins lives
+// in regressionGuards.test.ts (deterministic + within-run-ratio checks, always enforced). Re-baseline: see
+// perfHarness.
 
 import ActionEngine from 'game/actions/ActionEngine';
 import Brain from 'game/actions/Brain';
@@ -25,7 +27,13 @@ import { TICKS_PER_YEAR } from 'util/time';
 import { GenPerson, PopulationState } from 'types/Genealogy';
 import { Genders } from 'types/Social';
 
-import { calibrationCostPerUnit, gateNormalized, formatResults, COST_TOLERANCE, UPDATE_BASELINES, ENFORCE_COST_GATE } from './perfHarness';
+import { gateAgainstBaselines, formatResults, FRACTION_TOLERANCE, UPDATE_BASELINES, ENFORCE_COST_GATE } from './perfHarness';
+
+function median(xs: number[]): number {
+    const s = [...xs].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+}
 
 jest.setTimeout(120_000);
 
@@ -86,50 +94,45 @@ function profiledRun(agents: number, warmupTicks: number, windowTicks: number): 
     return out;
 }
 
-// The dominant, reliably-fired buckets we gate (near-zero noise buckets are excluded — 20% of noise is noise).
+// The dominant, reliably-fired buckets we turn into per-tick fractions (near-zero noise buckets are excluded —
+// a % of noise is noise). `total` is the reference (the whole tick), not itself a gated fraction.
 const GATED_BUCKETS = [
-    'total', 'phase.actions', 'phase.events', 'phase.brain', 'brain.resolveIntents',
+    'phase.actions', 'phase.events', 'phase.brain', 'brain.resolveIntents',
     'brain.wokeUp', 'brain.idleFallback', 'brain.socialOpportunity', 'brain.inventoryOpportunity',
     'brain.freeTime:loop', 'brain.freeTime:requirements', 'brain.freeTime:modifiers',
     'advance.durationFinish', 'advance.finish:onCompleteEvent', 'advance.invoke:attempt', 'advance.pool',
 ];
 
-describe('generation perf — aggregate per-agent / per-phase cost gates', () => {
-    it('no profiled bucket exceeds its baseline beyond the noise tolerance (normalized)', () => {
-        // Interleaved self-normalization: each of R runs measures its profiled buckets AND a calibration right
-        // after, and normalizes by ITS OWN calibration — so a transient machine-load spike during a run
-        // inflates both and cancels in the ratio. We then take the MIN ratio over R (the least-loaded run).
-        // This is what makes the gate survive noisy shared runners (and a busy dev box).
-        const R = 6;
-        const perRun: Record<string, number>[] = [];
-        const calibrations: number[] = [];
+describe('generation perf — per-phase cost-fraction gates', () => {
+    it('no component grows its share of a tick beyond tolerance (jitter-immune fractions)', () => {
+        // R fresh profiled runs; each bucket → its share of a tick, bucket / (total − bucket). Median over R
+        // resists both a run where the bucket itself was preempted (its fraction spikes) and one where other
+        // buckets were (its fraction dips). Fractions are within-run ratios, so runner jitter cancels.
+        const R = 7;
+        const perRunFractions: Record<string, number[]> = Object.fromEntries(GATED_BUCKETS.map(l => [l, []]));
         for (let k = 0; k < R; k++) {
             const buckets = profiledRun(40, 24, 72);
-            const calibration = calibrationCostPerUnit();
-            calibrations.push(calibration);
-            const norm: Record<string, number> = {};
+            const total = buckets['total']!;
             for (const label of GATED_BUCKETS) {
-                if (Number.isFinite(buckets[label])) {
-                    norm[label] = buckets[label]! / calibration;
+                const b = buckets[label];
+                if (b !== undefined && total - b > 0) {
+                    perRunFractions[label]!.push(b / (total - b));
                 }
             }
-            perRun.push(norm);
         }
         const measured: Record<string, number> = {};
         for (const label of GATED_BUCKETS) {
-            const vals = perRun.map(n => n[label]).filter((v): v is number => v !== undefined);
-            if (vals.length > 0) {
-                measured[label] = Math.min(...vals);
+            if (perRunFractions[label]!.length > 0) {
+                measured[label] = median(perRunFractions[label]!);
             }
         }
 
-        const results = gateNormalized(measured);
-        const calibRange = `${Math.min(...calibrations).toExponential(2)}–${Math.max(...calibrations).toExponential(2)}`;
-        const mode = UPDATE_BASELINES ? 'BASELINES UPDATED' : ENFORCE_COST_GATE ? `gating @${(COST_TOLERANCE * 100).toFixed(0)}%` : 'LOG-ONLY (set PERF_ENFORCE=1 + run --runInBand to gate)';
-        console.info(`[generation perf] calibration ${calibRange} ms/unit · ${mode}\n${formatResults(results)}`);
+        const results = gateAgainstBaselines(measured);
+        const mode = UPDATE_BASELINES ? 'BASELINES UPDATED' : ENFORCE_COST_GATE ? `gating @${(FRACTION_TOLERANCE * 100).toFixed(0)}%` : 'LOG-ONLY (enforced on CI once baselines are CI-measured)';
+        console.info(`[generation perf] per-tick cost fractions · ${mode}\n${formatResults(results)}`);
 
-        // Only fail in an isolated, enforced run (the CI `perf` job); under a parallel `npm test` this is
-        // advisory (the memory-bound sim diverges from the compute calibration under sibling-worker load).
+        // Enforced only when the baselines match the running machine class (PERF_ENFORCE=1 on the CI job);
+        // elsewhere it's advisory, so a dev box's fractions don't gate against CI-measured baselines.
         const regressed = results.filter(r => r.regressed).map(r => `${r.label} (+${(((r.ratio ?? 1) - 1) * 100).toFixed(1)}%)`);
         if (ENFORCE_COST_GATE) {
             expect(regressed).toEqual([]);

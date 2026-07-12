@@ -5,35 +5,37 @@
 // parts, in isolation or via the profiler's per-phase breakdown, so the sum of the parts stands in for
 // benchmarking the whole flow (which we otherwise never run in CI).
 //
-// The hard problem is machine variance: CI runners are slower/faster than a dev box, so absolute µs baselines
-// don't transfer. Every measurement is therefore NORMALIZED against an in-run CALIBRATION workload (a blended
-// mix of the primitives the sim leans on — RNG draws, Map churn, object/closure access, array scans). A
-// component's normalized cost = (its ns/op) / (calibration ns/unit): a uniform machine slowdown scales both,
-// leaving the ratio stable, while a real regression raises the component alone. Baselines are the committed
-// normalized ratios in test/perf/baselines.json; a measurement fails when it exceeds baseline × (1 + TOLERANCE).
+// The hard problem is machine variance: CI runners (2-vCPU shared VMs) vary WILDLY at short timescales — a
+// first CI run measured a supposedly-stable pure-compute calibration swinging 12× across six samples, from
+// scheduler preemption. So absolute wall-clock, even normalized against a calibration, can't gate tightly.
 //
-// Re-baseline (after an intentional change, or on a new reference machine): run
-//   PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf
-// which rewrites baselines.json from the current run instead of gating. Do this on a quiet machine.
+// Two robust mechanisms instead, both machine-independent because they compare measurements taken in the SAME
+// run so any jitter cancels:
+//   1) DETERMINISTIC + within-run-RATIO guards (regressionGuards.test.ts): reference identity for the caches/
+//      pruning, and cost ratios with huge signals (2–100×) for the agent-list gating and precompilation.
+//   2) Per-phase COST FRACTIONS of a step (generationPerf.test.ts): each profiler bucket is expressed as
+//      bucket / (total − bucket) — a dimensionless share of the tick. A uniform machine slowdown scales both
+//      numerator and denominator equally, so the fraction is invariant; a component that gets slower raises
+//      its own fraction (the denominator excludes it, so there's no absorption → full 5% sensitivity).
+// Baselines are the committed fractions in test/perf/baselines.json; a metric fails above baseline × (1 + TOL).
+//
+// Re-baseline (after an intentional change): PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf --runInBand
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-// The maintainer's strictness bar is 5%, but raw wall-clock on a CI runner varies far more than that
-// process-to-process (empirically ~15–40% for short benches). So the 5% bar is enforced RELIABLY via the
-// deterministic + within-run-RATIO guards in regressionGuards.test.ts (identity/counts/ratios cancel machine
-// noise and carry huge regression signals). The normalized wall-clock costs in generationPerf.test.ts are the
-// AGGREGATE per-agent/per-phase view (profiled, averaged over thousands of agent-steps + min-of-R, so far
-// steadier than a micro-bench); they gate at COST_TOLERANCE — loose enough to survive runner noise, tight
-// enough to catch a real slowdown — and log the full table every run so trends are watchable at a glance.
-export const COST_TOLERANCE = 0.20;
+// The fraction metrics cancel machine JITTER within a run, but they still drift a little across DIFFERENT
+// microarchitectures (a component's share of a tick depends on how that CPU weights its op mix). So the gate
+// is strict but not razor-thin, and — critically — the committed baselines must be measured on the same
+// machine class that runs the gate (i.e. CI), not a dev box: the first CI run showed the event-walk's share
+// ~14% higher there than on a dev box. Re-baseline on CI (PERF_UPDATE_BASELINES) before enforcing.
+export const FRACTION_TOLERANCE = 0.10;
 export const UPDATE_BASELINES = process.env.PERF_UPDATE_BASELINES === '1';
 
-// The aggregate wall-clock cost gate is only ENFORCED in an isolated run (the CI `perf` job runs jest
-// --runInBand with PERF_ENFORCE=1). Under a parallel `npm test`, sibling workers hammer the CPU and the
-// memory-bound sim slows more than the compute-bound calibration, so the normalized costs inflate — there it
-// LOGS only, never fails. The deterministic + within-run-ratio GUARDS are robust under load and always
-// enforce. (Baseline-update runs implicitly enforce nothing — they rewrite instead.)
+// The aggregate fraction gate ENFORCES only when PERF_ENFORCE=1 (set on the CI `perf` job once its baselines
+// are CI-measured). Otherwise — a dev run, or CI before the baselines are trusted — it LOGS the table but
+// never fails. The deterministic + within-run-ratio GUARDS in regressionGuards.test.ts are machine-independent
+// and ALWAYS enforce (they're what makes the perf job a safe blocking check).
 export const ENFORCE_COST_GATE = process.env.PERF_ENFORCE === '1' && !UPDATE_BASELINES;
 
 const BASELINE_PATH = join(__dirname, 'baselines.json');
@@ -57,39 +59,12 @@ export function minMsPerOp(fn: () => void, ops: number, iterations = 12, warmup 
     return min / ops;
 }
 
-// The calibration workload: a tight, ALLOCATION-FREE integer loop (mulberry32 — the exact core of the sim's
-// SeededRandom, the single most-called primitive of a step). Pure compute means no GC, so its cost is a
-// low-noise, CPU-clock-proportional yardstick: dividing a component's cost by it cancels a uniform machine
-// speedup. (An earlier blended, allocation-heavy calibration was GC-noisy and made the normalization flake —
-// every bucket moving together is the tell-tale of a noisy denominator, not a real regression.) The residual
-// cross-machine imperfection — compute-bound calibration vs a more memory-bound sim — is absorbed by the loose
-// COST_TOLERANCE; the TIGHT protection is the within-run-ratio guards.
-export function calibrationCostPerUnit(): number {
-    const UNITS = 2_000_000;
-    const imul = Math.imul;
-    const run = (): void => {
-        let state = 0x9e3779b1 >>> 0;
-        let acc = 0;
-        for (let i = 0; i < UNITS; i++) {
-            state = (state + 0x6d2b79f5) >>> 0;
-            let t = state;
-            t = imul(t ^ (t >>> 15), t | 1);
-            t ^= t + imul(t ^ (t >>> 7), t | 61);
-            acc = (acc + ((t ^ (t >>> 14)) >>> 0)) >>> 0;
-        }
-        if (acc === 0xffffffff && state === 0) {
-            throw new Error('unreachable'); // keep acc/state observable so the loop isn't optimized away
-        }
-    };
-    return minMsPerOp(run, UNITS, 25, 8);
-}
-
-// A single measured, calibration-normalized cost with its committed baseline and whether it regressed.
+// A single measured metric with its committed baseline and whether it regressed.
 export interface PerfResult {
     label: string;
-    normalized: number;      // measured cost / calibration cost (machine-independent units)
+    value: number;           // the measured fraction (dimensionless, machine-independent)
     baseline: number | null; // committed baseline, or null when new/updating
-    ratio: number | null;    // normalized / baseline (>1 means slower); null when no baseline
+    ratio: number | null;    // value / baseline (>1 means the component grew its share); null when no baseline
     regressed: boolean;
 }
 
@@ -106,35 +81,35 @@ function loadBaselines(): Baselines {
     }
 }
 
-// Gate (or, under PERF_UPDATE_BASELINES, rewrite) a map of measured normalized costs against baselines.json.
-// Returns a per-label verdict; callers assert `every(r => !r.regressed)` and log the table. New labels (no
-// baseline yet) never fail — they're recorded on the next update so adding a measurement is non-breaking.
-export function gateNormalized(measured: Record<string, number>, tolerance = COST_TOLERANCE): PerfResult[] {
+// Gate (or, under PERF_UPDATE_BASELINES, rewrite) a map of measured metrics against baselines.json. Returns a
+// per-label verdict; callers assert `every(r => !r.regressed)` and log the table. New labels (no baseline yet)
+// never fail — they're recorded on the next update, so adding a metric is non-breaking.
+export function gateAgainstBaselines(measured: Record<string, number>, tolerance = FRACTION_TOLERANCE): PerfResult[] {
     const baselines = loadBaselines();
-    const results: PerfResult[] = Object.entries(measured).map(([label, normalized]) => {
+    const results: PerfResult[] = Object.entries(measured).map(([label, value]) => {
         const baseline = baselines[label] ?? null;
-        const ratio = baseline !== null && baseline > 0 ? normalized / baseline : null;
+        const ratio = baseline !== null && baseline > 0 ? value / baseline : null;
         const regressed = !UPDATE_BASELINES && ratio !== null && ratio > 1 + tolerance;
-        return { label, normalized, baseline, ratio, regressed };
+        return { label, value, baseline, ratio, regressed };
     });
 
     if (UPDATE_BASELINES) {
         const next: Baselines = { ...baselines };
         for (const r of results) {
-            next[r.label] = Number(r.normalized.toFixed(4));
+            next[r.label] = Number(r.value.toFixed(5));
         }
         writeFileSync(BASELINE_PATH, JSON.stringify(next, Object.keys(next).sort(), 2) + '\n', 'utf8');
     }
     return results;
 }
 
-// Pretty one-line-per-metric table for the CI log, so a failure shows exactly which component regressed.
+// Pretty one-line-per-metric table for the CI log, so a failure shows exactly which component grew its share.
 export function formatResults(results: PerfResult[]): string {
     const rows = results.map(r => {
-        const base = r.baseline === null ? '   (new)' : r.baseline.toFixed(4);
+        const base = r.baseline === null ? '  (new)' : r.baseline.toFixed(5);
         const ratio = r.ratio === null ? '    -' : `${(r.ratio * 100).toFixed(1)}%`;
         const flag = r.regressed ? '  <<< REGRESSED' : '';
-        return `  ${r.label.padEnd(26)} norm ${r.normalized.toFixed(4).padStart(9)}  base ${base.padStart(9)}  ${ratio.padStart(7)}${flag}`;
+        return `  ${r.label.padEnd(26)} frac ${r.value.toFixed(5).padStart(9)}  base ${base.padStart(9)}  ${ratio.padStart(7)}${flag}`;
     });
     return rows.join('\n');
 }

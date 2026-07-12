@@ -119,17 +119,18 @@ jobs:
         if: always()
         run: npm run lint:js
 
-  # Unit perf-regression gates for the offline generation spine (the `perf` jest project). Runs on EVERY
-  # change — a per-agent / subcomponent perf regression can originate anywhere in the sim — with --runInBand
-  # (serial, so timings aren't muddied by parallel workers) and NO coverage (istanbul instrumentation would
-  # skew the measurements). Two tiers: deterministic + within-run-RATIO guards (flake-free, the strict 5%-grade
-  # protection of the 078/079 wins) and the aggregate profiled per-agent/per-phase costs (interleaved
-  # self-normalization → survives runner noise, gated at the loose COST_TOLERANCE). Well under 10s of work.
-  #
-  # ADVISORY FOR NOW (like `coverage`): intentionally NOT in `ci-success`'s needs, so a cross-machine baseline
-  # drift on the aggregate cost gate can't block a merge. To make it blocking once trusted: re-baseline on a CI
-  # runner once (`PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf --runInBand`, commit test/perf/
-  # baselines.json), optionally tighten COST_TOLERANCE, then add `perf` to `ci-success`'s `needs`.
+  # Unit perf-regression gates for the offline generation spine (the `perf` jest project). Runs on EVERY change
+  # — a per-agent / subcomponent perf regression can originate anywhere in the sim — with --runInBand (serial,
+  # so timings aren't muddied by parallel workers) and NO coverage (istanbul instrumentation would skew them).
+  # Well under 10s of work. Two tiers:
+  #   - regressionGuards.test.ts: DETERMINISTIC + within-run-RATIO guards. Machine-independent and flake-free
+  #     (a first CI run confirmed it — the ratios were identical to a dev box), so they ALWAYS enforce and are
+  #     what makes THIS a safe BLOCKING check (it's in `ci-success`'s needs). This is the real protection of the
+  #     078/079 wins (agent-list gating, the caches, predicate precompilation, instance pruning).
+  #   - generationPerf.test.ts: the aggregate per-phase cost FRACTIONS (jitter-immune within a run). Currently
+  #     LOG-ONLY — even fractions drift ~10-15% across microarchitectures / under load, so gating needs
+  #     CI-measured baselines. To enable: run once with PERF_UPDATE_BASELINES=1 on CI (workflow_dispatch),
+  #     commit test/perf/baselines.json, then set `PERF_ENFORCE: '1'` on this step.
   perf:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -141,8 +142,6 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Generation perf-regression gates
-        env:
-          PERF_ENFORCE: '1' # enforce the aggregate cost gate (this job is isolated + --runInBand)
         run: npx jest --selectProjects perf --runInBand
 
   # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs
@@ -222,7 +221,7 @@ jobs:
   # any required upstream job failed or was cancelled (skipped is fine). NOTE: `coverage` is
   # deliberately excluded (advisory forcing function today); add it here to make coverage blocking.
   ci-success:
-    needs: [changes, typecheck, build, lint, test]
+    needs: [changes, typecheck, build, lint, perf, test]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -235,6 +234,7 @@ jobs:
             "${{ needs.typecheck.result }}" \
             "${{ needs.build.result }}" \
             "${{ needs.lint.result }}" \
+            "${{ needs.perf.result }}" \
             "${{ needs.test.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
               echo "A required job did not succeed (result: $r)"; exit 1
