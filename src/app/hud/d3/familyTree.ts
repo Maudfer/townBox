@@ -34,7 +34,8 @@ function updateLinkLabels(linkLabelsTag: d3Tag, links: Link[]) {
             const source = d.source as Node;
             const target = d.target as Node;
 
-            if (!source.x || !target.x) {
+            // == null (not falsy): 0 is a legitimate coordinate.
+            if (source.x == null || target.x == null) {
                 return 0;
             }
             return (source.x + target.x) / 2;
@@ -43,7 +44,7 @@ function updateLinkLabels(linkLabelsTag: d3Tag, links: Link[]) {
             const source = d.source as Node;
             const target = d.target as Node;
 
-            if (!source.y || !target.y) {
+            if (source.y == null || target.y == null) {
                 return 0;
             }
             return (source.y + target.y) / 2;
@@ -84,7 +85,6 @@ function updateNodes(nodesTag: d3Tag, nodes: Node[], dragHandler: DragBehavior) 
 
 
 export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize, tags: FamilyTreeTags): d3.Simulation<Node, Link> {
-    console.log('Creating family tree', size);
     const dragHandler = d3.drag<SVGTextElement, Node>()
         .on('start', (event, d) => {
             if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -101,16 +101,35 @@ export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize,
             d.fy = null;
         });
 
+    // Keep every node inside the SVG (with a margin for the text label): without this the simulation pushes
+    // outer generations past the viewport edge, clipping their names (task-012 live-verification fix).
+    const PADDING = 28;
+    const clampToBounds = () => {
+        for (const node of nodes) {
+            node.x = Math.max(PADDING, Math.min(size.width - PADDING, node.x ?? size.width / 2));
+            node.y = Math.max(PADDING, Math.min(size.height - PADDING, node.y ?? size.height / 2));
+        }
+    };
+
     const tickUpdate = () => {
+        clampToBounds();
         updateLinks(tags.linksTag, links);
         updateLinkLabels(tags.linkLabelsTag, links);
         updateNodes(tags.nodesTag, nodes, dragHandler);
     }
 
+    // Layout tuning (task-012): the old parameters (charge -10, link distance 400) asked every link to be
+    // longer than the panel itself with almost no repulsion — a guaranteed hairball with labels stacked on
+    // top of each other and edges spanning the whole viewport. Genealogies are dense; short link distances,
+    // real repulsion, a collision radius around each text label, and a gentle pull toward the centre (which
+    // also keeps DISCONNECTED family components from repelling each other off-canvas) make it legible.
     const simulation = d3.forceSimulation(nodes)
-        .force('charge', d3.forceManyBody().strength(-10))
+        .force('charge', d3.forceManyBody().strength(-120))
         .force('center', d3.forceCenter(size.width / 2, size.height / 2))
-        .force('link', d3.forceLink<Node, Link>().links(links).distance(400))
+        .force('link', d3.forceLink<Node, Link>().links(links).distance(60))
+        .force('collide', d3.forceCollide<Node>(26))
+        .force('x', d3.forceX(size.width / 2).strength(0.06))
+        .force('y', d3.forceY(size.height / 2).strength(0.06))
         .on('tick', tickUpdate);
 
     return simulation;

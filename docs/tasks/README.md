@@ -41,7 +41,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [009](009-github-actions-ci_DONE.md) | ✅ | [Test] GitHub Actions CI pipeline |
 | [010](010-marriage-formation-over-time_DONE.md) | ✅ | [Feature] Marriage / partnership formation over time |
 | [011](011-emergent-rehousing_DONE.md) | ✅ | [Feature] Emergent re-housing of household survivors |
-| [012](012-live-app-verification-clock-population.md) | 🚧 | [Task] Live-app verification of the clock & population simulation |
+| [012](012-live-app-verification-clock-population_DONE.md) | ✅ | [Task] Live-app verification pass — clock, population & general gameplay QA |
 | [013](013-procedural-simulation-framework_DONE.md) | ✅ | [Planning] File-based procedural simulation framework — blueprints + life events |
 | [014](014-people-skills-model_DONE.md) | ✅ | [Feature] People skills model & assignment |
 | [015](015-skill-matched-hiring_DONE.md) | ✅ | [Feature] Skill-matched hiring as resource-slot events |
@@ -112,4 +112,3 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 
 ## Open work
 
-- **[012](012-live-app-verification-clock-population.md)** — live-app verification of the clock & population sim.
