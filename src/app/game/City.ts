@@ -688,7 +688,7 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
                 // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.

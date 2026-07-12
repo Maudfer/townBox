@@ -163,7 +163,8 @@ export function validateArbitrationStructure(data: unknown, issues: IssueCollect
         return;
     }
     const config = data as Record<string, unknown>;
-    checkUnknownKeys(issues, 'arbitration', config, ['sameBandUtilityDelta', 'decisionCooldownTicks']);
+    checkUnknownKeys(issues, 'arbitration', config, ['sameBandUtilityDelta', 'decisionCooldownTicks', 'resumeWindowTicks']);
     checkNumber(issues, 'arbitration.sameBandUtilityDelta', config['sameBandUtilityDelta'], { min: 0 });
     checkNumber(issues, 'arbitration.decisionCooldownTicks', config['decisionCooldownTicks'], { min: 0, integer: true });
+    checkNumber(issues, 'arbitration.resumeWindowTicks', config['resumeWindowTicks'], { min: 1, integer: true });
 }

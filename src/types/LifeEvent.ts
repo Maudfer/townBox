@@ -191,15 +191,16 @@ export interface EventLogEntry {
 export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet';
 
 // An action lifecycle transition in the same append-only log (task 043). One entry per transition
-// ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones),
-// linked by instanceId — the log itself stays immutable.
+// ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones,
+// plus paused/resumed for resumable instances parked by a higher band — task 087), linked by instanceId —
+// the log itself stays immutable.
 export interface ActionLogEntry {
     seq: number;
     tick: number;
     kind: 'action';
     defId: string; // action id in the manifest
     instanceId: string | null; // null for discrete actions (no instance materializes)
-    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed';
+    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused' | 'resumed';
     params: Record<string, string | number | boolean>;
     parentInstanceId: string | null;
     // Why a runtime failure/decline happened (task 073) — a closed vocabulary, additive on the log.

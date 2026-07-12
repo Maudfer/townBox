@@ -152,6 +152,9 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                         </p>
                     )}
                     <p><strong>Age:</strong> {age} &nbsp; <strong>Gender:</strong> {info.gender}</p>
+                    {personId && game.traits && game.traits.describe(personId) && (
+                        <p data-testid="person-temperament"><em>{game.traits.describe(personId)}</em></p>
+                    )}
                     <p><strong>Home:</strong> {home ? `${home.getHouseholdName()} household` : 'Homeless'}</p>
                     {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
                 </section>

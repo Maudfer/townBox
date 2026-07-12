@@ -162,6 +162,11 @@ export const socialOpportunityHook: BrainHook = {
             if (needsLedger && def.satisfies) {
                 weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
             }
+            // Trait affinity (task 087): the gregarious lean in, the solitary hang back.
+            const traitsReader = deps.ctx.markets?.traits ?? null;
+            if (traitsReader && def.affinity) {
+                weight *= traitsReader.affinityMultiplier(personId, def.affinity);
+            }
             if (weight > 0) {
                 candidates.push({ actionId, weight, objectParam, activityParam });
             }

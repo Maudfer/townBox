@@ -12,6 +12,7 @@ import EventEngine from 'game/events/EventEngine';
 import Needs from 'game/population/Needs';
 import Population from 'game/population/Population';
 import SocialGraph from 'game/population/SocialGraph';
+import Traits from 'game/population/Traits';
 import DebugTools from 'game/scene/DebugTools';
 import MainScene from 'game/scene/MainScene';
 import Field from 'game/world/Field';
@@ -61,6 +62,7 @@ export default class GameManager {
     public socialGraph: SocialGraph | null;
     public needs: Needs | null;
     public agenda: Agenda | null;
+    public traits: Traits | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -162,6 +164,7 @@ export default class GameManager {
         this.socialGraph = null;
         this.needs = null;
         this.agenda = null;
+        this.traits = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -278,6 +281,9 @@ export default class GameManager {
             // The agenda (task 085): persisted planned intents (routines, visits, joint plans).
             // A load restores entries during deserialize.
             this.agenda = new Agenda();
+
+            // Traits (task 087): derived temperament, never stored — a provider reads the live pool.
+            this.traits = new Traits(() => this.population?.getState() ?? { worldSeed: 0, people: {} });
 
             // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.

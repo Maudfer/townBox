@@ -28,6 +28,7 @@ import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/population/Populati
 import Agenda from 'game/actions/Agenda';
 import Needs from 'game/population/Needs';
 import SocialGraph from 'game/population/SocialGraph';
+import Traits from 'game/population/Traits';
 import SkillBook from 'game/skills/SkillBook';
 import eventsConfig from 'json/events.json';
 import generatorConfig from 'json/historyGenerator.json';
@@ -319,6 +320,10 @@ export async function generateHistoryAsset(
     const needsLedger = logical ? logical.needs : bootstrapNeeds!;
     const bootstrapAgenda = logical ? null : new Agenda();
     const agendaLedger = logical ? logical.agenda : bootstrapAgenda!;
+    const traits = new Traits(() => ({ worldSeed: state.worldSeed, people: state.people }));
+    if (logical) {
+        logical.traits = traits;
+    }
     if (logical && skillBook) {
         logical.buildSchools(params.recordThreshold);
         logical.buildJobs(skillBook, params.recordThreshold);
@@ -439,7 +444,7 @@ export async function generateHistoryAsset(
             agentIds,
             tick,
             ticksPerYear: tpy,
-            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger } },
+            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger, traits } },
             ...(facts ? { inventory: facts.inventory } : {}),
             ticksPerStep: step,
         });

@@ -60,6 +60,9 @@ export interface ActionIntent {
     band?: IntentBand;
     mayInterrupt: boolean;
     causationId: number | null;
+    // Resume a PAUSED instance (task 087 / L5) instead of starting a new one — set by the resume hook; the
+    // actionId mirrors the paused instance's for arbitration purposes.
+    resumeInstanceId?: string;
 }
 
 const BAND_RANK: Record<IntentBand, number> = { survival: 0, obligation: 1, commitment: 2, need: 3, opportunity: 4, fallback: 5 };
@@ -166,6 +169,7 @@ export default class Brain {
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)
             inventoryOpportunityHook,
+            resumeHook, // paused activities resume before fresh idle picks (task 087 / L5)
             idleFallbackHook,
         ];
     }
@@ -284,7 +288,21 @@ export default class Brain {
                         continue;
                     }
                 }
-                this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
+                // Pause-vs-interrupt (task 087 / L5): a resumable activity displaced by a strictly HIGHER
+                // band parks (the walk continues after the chase); same-band swaps and non-resumables end.
+                const activeDef = this.actionEngine.getDefinition(active.defId);
+                if (activeDef?.resumable && intentRank < activeRank) {
+                    this.actionEngine.pause(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
+                } else {
+                    this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
+                }
+            }
+            // Resume intents (task 087): revive the paused instance instead of starting a new one.
+            if (intent.resumeInstanceId) {
+                if (this.actionEngine.resume(intent.resumeInstanceId, { source: 'brain', causationId: intent.causationId }, deps)) {
+                    break;
+                }
+                continue;
             }
             const outcome = this.actionEngine.startAction(
                 personId, intent.actionId, intent.params ?? {}, { source: 'brain', causationId: intent.causationId },
@@ -353,6 +371,7 @@ export default class Brain {
     selectActionForNeed(personId: PersonId, need: import('types/Needs').NeedId, deps: BrainDeps): string | null {
         const context = this.actionEngine.contextFor(personId, deps);
         const needsLedger = deps.ctx.markets?.needs ?? null;
+        const traitsReader = deps.ctx.markets?.traits ?? null;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
@@ -373,6 +392,9 @@ export default class Brain {
             }
             if (needsLedger) {
                 weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            if (traitsReader && def.affinity) {
+                weight *= traitsReader.affinityMultiplier(personId, def.affinity);
             }
             if (weight > 0) {
                 candidates.push({ actionId, weight });
@@ -425,6 +447,7 @@ export default class Brain {
         const context = this.actionEngine.contextFor(personId, deps);
         addSeg('freeTime:context', tCtx);
         const needsLedger = deps.ctx.markets?.needs ?? null;
+        const traitsReader = deps.ctx.markets?.traits ?? null;
         const tLoop = clock ? clock() : 0;
         let reqMs = 0;
         let modMs = 0;
@@ -459,6 +482,10 @@ export default class Brain {
             // the shared gradient in json/needs.json. Authored weights/modifiers keep the last word (above).
             if (needsLedger && def.satisfies) {
                 weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            // Trait affinity (task 087): temperament scales what this PERSON gravitates toward.
+            if (traitsReader && def.affinity) {
+                weight *= traitsReader.affinityMultiplier(personId, def.affinity);
             }
             if (weight > 0) {
                 candidates.push({ actionId, weight });
@@ -659,6 +686,34 @@ const needsHook: BrainHook = {
             mayInterrupt: true,
             causationId: null,
         }] : [];
+    },
+};
+
+// Resume (task 087 / L5): an idle person with a paused activity picks it back up — at the ORIGINAL band and
+// utility, so the interrupted walk resumes ahead of fresh idle picks but never fights real obligations.
+// Expiry is engine-owned (the advance sweep); this hook only reads.
+const resumeHook: BrainHook = {
+    id: 'resume',
+    kind: 'onTick',
+    propose({ personId, brain }): ActionIntent[] {
+        const engine = brain.getActionEngine();
+        if (engine.activeInstanceOf(personId)) {
+            return [];
+        }
+        const paused = engine.pausedInstanceOf(personId);
+        if (!paused) {
+            return [];
+        }
+        return [{
+            actionId: paused.defId,
+            sourceHook: 'resume',
+            priority: (paused.utility ?? 10) + 1, // nudge past equal-utility fresh picks — finish what you started
+            necessity: 'optional',
+            band: paused.band ?? 'fallback',
+            mayInterrupt: false,
+            causationId: paused.causationId,
+            resumeInstanceId: paused.id,
+        }];
     },
 };
 

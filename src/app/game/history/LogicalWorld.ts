@@ -15,6 +15,7 @@
 import { generateBusiness } from 'game/economy/BusinessGen';
 import Agenda from 'game/actions/Agenda';
 import Needs from 'game/population/Needs';
+import Traits from 'game/population/Traits';
 import SocialGraph from 'game/population/SocialGraph';
 import EventEngine from 'game/events/EventEngine';
 import Inventory from 'game/objects/Inventory';
@@ -76,7 +77,7 @@ interface LogicalBusiness {
 // TickRunner only needs the world + markets (jobMarket for get_job/layoff, skills for education) + inventory —
 // no jobOf/schoolOf/skillProgression facts.
 export interface LogicalTickFacts {
-    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda } };
+    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda; traits: Traits | null } };
     inventory: Inventory;
 }
 
@@ -103,6 +104,8 @@ export default class LogicalWorld implements WorldAdapter {
     readonly socialGraph = new SocialGraph();
     readonly needs = new Needs();
     readonly agenda = new Agenda();
+    // Injected by the generator (task 087) — traits derive from the pool the generator owns.
+    traits: Traits | null = null;
     readonly schoolRegistry: SchoolRegistry;
     private schoolSeats: SchoolSeat[] = [];
     private jobMarket: LogicalJobMarket | null = null;
@@ -448,7 +451,7 @@ export default class LogicalWorld implements WorldAdapter {
     tickFacts(skillBook: SkillBook, tick: number): LogicalTickFacts {
         const skillRegistry = new SkillRegistry(skillBook, tick);
         return {
-            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda } },
+            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda, traits: this.traits } },
             inventory: this.inventory,
         };
     }

@@ -117,13 +117,20 @@ export interface ActionDefinition {
     // action commits (discrete: at perform; continuous: at completion). Urgency of these needs multiplies
     // the action's selection weight through the shared gradient (json/needs.json).
     satisfies?: Partial<Record<import('types/Needs').NeedId, number>>;
+    // Continuous only (task 087 / proposal L5): a higher-band interruption PARKS the instance (paused →
+    // later resumed, same instance id) instead of killing it — the walk continues after the chase. The
+    // resume window is authored in json/arbitration.json; past it, the pause becomes a real interruption.
+    resumable?: boolean;
+    // Trait affinity tags (task 087 / proposal M2): which temperament axes this action appeals to, mapped
+    // through json/traits.json — a high-orderliness person actually keeps their house clean.
+    affinity?: string[];
 }
 
 export type ActionManifest = Record<ActionId, ActionDefinition>;
 
 // --- Runtime ---------------------------------------------------------------------------------------------
 
-export type ActionStatus = 'pending' | 'waiting_for_materialization' | 'running' | 'completed' | 'interrupted' | 'blocked' | 'failed';
+export type ActionStatus = 'pending' | 'waiting_for_materialization' | 'running' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused';
 
 export type ActionOutcome = 'completed' | 'interrupted' | 'blocked' | 'failed';
 
@@ -163,6 +170,8 @@ export interface ActionInstance {
     // instance, read by the interruption matrix. Additive (older saves/instances read as 'fallback'/0).
     band?: IntentBand;
     utility?: number;
+    // When the instance was parked by a higher band (task 087, status 'paused'); bounds the resume window.
+    pausedAtTick?: number | null;
 }
 
 // Aggregate action history (mirror of the event aggregate): O(1) hasAction queries.

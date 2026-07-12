@@ -32,6 +32,7 @@ import { validateNeedsSemantics, validateNeedsStructure } from 'game/data/valida
 import { validateRelationshipsSemantics, validateRelationshipsStructure } from 'game/data/validators/relationships';
 import { validateRoutinesSemantics, validateRoutinesStructure } from 'game/data/validators/routines';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
+import { validateTraitsSemantics, validateTraitsStructure } from 'game/data/validators/traits';
 import {
     validateSkillInitSemantics,
     validateSkillInitStructure,
@@ -65,6 +66,7 @@ import schoolsConfig from 'json/schools.json';
 import skillInitConfig from 'json/skillInit.json';
 import skillsConfig from 'json/skills.json';
 import toolAssetsConfig from 'json/toolAssets.json';
+import traitsConfig from 'json/traits.json';
 
 import {
     validateAssetsStructure,
@@ -98,6 +100,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'relationships', version: 1, data: relationshipsConfig, validateStructure: validateRelationshipsStructure, validateSemantics: validateRelationshipsSemantics },
         { name: 'needs', version: 1, data: needsConfig, validateStructure: validateNeedsStructure, validateSemantics: validateNeedsSemantics },
         { name: 'arbitration', version: 1, data: arbitrationConfig, validateStructure: validateArbitrationStructure },
+        { name: 'traits', version: 1, data: traitsConfig, validateStructure: validateTraitsStructure, validateSemantics: validateTraitsSemantics },
         { name: 'routines', version: 1, data: routinesConfig, validateStructure: validateRoutinesStructure, validateSemantics: validateRoutinesSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
         { name: 'config', version: 1, data: config, validateStructure: validateConfigStructure },

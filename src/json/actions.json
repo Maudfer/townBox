@@ -114,7 +114,10 @@
         },
         "satisfies": {
             "fun": 5
-        }
+        },
+        "affinity": [
+            "solitary"
+        ]
     },
     "bake_cake": {
         "label": "Baking a cake",
@@ -160,7 +163,11 @@
         "satisfies": {
             "food": 10,
             "purpose": 12
-        }
+        },
+        "affinity": [
+            "craft",
+            "indulgent"
+        ]
     },
     "sat_on_bench": {
         "label": "Sat on a bench",
@@ -535,7 +542,11 @@
         "satisfies": {
             "fun": 10,
             "rest": 5
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "cozy"
+        ]
     },
     "visiting_beach": {
         "label": "Visiting the beach",
@@ -627,7 +638,12 @@
         "satisfies": {
             "fun": 25,
             "social": 5
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "active",
+            "indulgent"
+        ]
     },
     "at_the_bar": {
         "label": "Spending time at the bar",
@@ -703,7 +719,11 @@
         "satisfies": {
             "fun": 20,
             "social": 15
-        }
+        },
+        "affinity": [
+            "social",
+            "indulgent"
+        ]
     },
     "shopping_trip": {
         "label": "Going on a shopping trip",
@@ -795,7 +815,10 @@
         "satisfies": {
             "purpose": 10,
             "fun": 5
-        }
+        },
+        "affinity": [
+            "indulgent"
+        ]
     },
     "browsing_store": {
         "label": "Browsing a store",
@@ -858,7 +881,10 @@
         },
         "satisfies": {
             "fun": 10
-        }
+        },
+        "affinity": [
+            "indulgent"
+        ]
     },
     "exercising": {
         "label": "Exercising",
@@ -943,7 +969,11 @@
         "satisfies": {
             "fun": 10,
             "purpose": 15
-        }
+        },
+        "affinity": [
+            "active",
+            "industrious"
+        ]
     },
     "gardening": {
         "label": "Gardening",
@@ -1039,7 +1069,12 @@
         "satisfies": {
             "purpose": 20,
             "fun": 10
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "craft",
+            "tidy"
+        ]
     },
     "cleaning_house": {
         "label": "Cleaning the house",
@@ -1152,7 +1187,11 @@
         "satisfies": {
             "hygiene": 10,
             "purpose": 15
-        }
+        },
+        "affinity": [
+            "tidy",
+            "industrious"
+        ]
     },
     "cooking_meal": {
         "label": "Cooking a meal",
@@ -1279,7 +1318,10 @@
         "satisfies": {
             "food": 15,
             "purpose": 5
-        }
+        },
+        "affinity": [
+            "craft"
+        ]
     },
     "watching_television": {
         "label": "Watching television",
@@ -1343,7 +1385,12 @@
         },
         "satisfies": {
             "fun": 20
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "cozy",
+            "indulgent"
+        ]
     },
     "using_computer": {
         "label": "Using the computer",
@@ -1569,7 +1616,12 @@
         "satisfies": {
             "fun": 20,
             "purpose": 15
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "craft",
+            "solitary"
+        ]
     },
     "caring_for_children": {
         "label": "Caring for the children",
@@ -1650,7 +1702,11 @@
         "satisfies": {
             "social": 15,
             "purpose": 20
-        }
+        },
+        "affinity": [
+            "social",
+            "industrious"
+        ]
     },
     "running_errands": {
         "label": "Running errands",
@@ -1728,7 +1784,11 @@
         },
         "satisfies": {
             "purpose": 15
-        }
+        },
+        "affinity": [
+            "industrious",
+            "tidy"
+        ]
     },
     "playing_at_playground": {
         "label": "Playing at the playground",
@@ -1823,7 +1883,11 @@
         "satisfies": {
             "fun": 30,
             "social": 10
-        }
+        },
+        "affinity": [
+            "active",
+            "social"
+        ]
     },
     "spending_time_at_home": {
         "label": "Spending time at home",
@@ -2026,7 +2090,12 @@
         "satisfies": {
             "fun": 10,
             "purpose": 5
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "solitary",
+            "active"
+        ]
     },
     "listening_to_music": {
         "label": "Listening to music",
@@ -2102,7 +2171,11 @@
         },
         "satisfies": {
             "fun": 15
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "cozy"
+        ]
     },
     "people_watching": {
         "label": "People watching",
@@ -2174,7 +2247,11 @@
         "satisfies": {
             "fun": 10,
             "social": 5
-        }
+        },
+        "resumable": true,
+        "affinity": [
+            "solitary"
+        ]
     },
     "fed_the_pigeons": {
         "label": "Fed the pigeons",
@@ -2255,7 +2332,10 @@
         ],
         "satisfies": {
             "food": 12
-        }
+        },
+        "affinity": [
+            "indulgent"
+        ]
     },
     "ordered_a_drink": {
         "label": "Ordered a drink",
@@ -2363,6 +2443,10 @@
                 "op": "adjustMoney",
                 "amount": -12
             }
+        ],
+        "affinity": [
+            "indulgent",
+            "thrill"
         ]
     },
     "did_stretches": {
@@ -2495,7 +2579,10 @@
         "satisfies": {
             "hygiene": 6,
             "purpose": 5
-        }
+        },
+        "affinity": [
+            "tidy"
+        ]
     },
     "chopped_ingredients": {
         "label": "Chopped the ingredients",
@@ -2832,7 +2919,10 @@
     "rearranged_possessions": {
         "label": "Rearranged some possessions",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "affinity": [
+            "tidy"
+        ]
     },
     "called_a_relative": {
         "label": "Called a relative",
@@ -3009,7 +3099,10 @@
         },
         "satisfies": {
             "social": 25
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "visiting_friends": {
         "label": "Visiting friends",
@@ -3086,7 +3179,10 @@
         "satisfies": {
             "social": 30,
             "fun": 15
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "hosting_gathering": {
         "label": "Hosting a gathering",
@@ -3177,7 +3273,10 @@
         "satisfies": {
             "social": 35,
             "fun": 10
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "catching_up_over_coffee": {
         "label": "Catching up over coffee",
@@ -3242,7 +3341,10 @@
         "satisfies": {
             "social": 25,
             "food": 8
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "talked_with_relative": {
         "label": "Talked with a relative",
@@ -3588,7 +3690,10 @@
         ],
         "satisfies": {
             "social": 2
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "talked_to_person": {
         "label": "Talked to someone",
@@ -3617,7 +3722,10 @@
         ],
         "satisfies": {
             "social": 6
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "asked_for_help": {
         "label": "Asked for help",
@@ -3718,6 +3826,9 @@
                 "op": "adjustRelationship",
                 "delta": -8
             }
+        ],
+        "affinity": [
+            "thrill"
         ]
     },
     "invited_person_over": {
@@ -3775,7 +3886,10 @@
         "satisfies": {
             "social": 4,
             "fun": 4
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "asked_for_advice": {
         "label": "Asked for advice",
@@ -4368,7 +4482,10 @@
         "satisfies": {
             "food": 8,
             "purpose": 10
-        }
+        },
+        "affinity": [
+            "craft"
+        ]
     },
     "repaired_an_item": {
         "label": "Repaired a broken item",
@@ -4376,7 +4493,11 @@
         "category": "maintenance",
         "satisfies": {
             "purpose": 15
-        }
+        },
+        "affinity": [
+            "craft",
+            "industrious"
+        ]
     },
     "noticed_a_broken_keepsake": {
         "label": "Noticed a keepsake had broken",
@@ -4509,7 +4630,10 @@
         "satisfies": {
             "hygiene": 15,
             "purpose": 10
-        }
+        },
+        "affinity": [
+            "tidy"
+        ]
     },
     "wrapped_a_gift": {
         "label": "Wrapped a gift",
@@ -4821,6 +4945,9 @@
         },
         "satisfies": {
             "social": 4
-        }
+        },
+        "affinity": [
+            "social"
+        ]
     }
 }

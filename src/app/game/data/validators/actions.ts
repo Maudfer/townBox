@@ -10,7 +10,7 @@ import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/da
 import { ActionManifest } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies', 'resumable', 'affinity'];
 // The closed need vocabulary (task 084) — mirrors types/Needs.ts NEED_IDS.
 const NEED_KEYS = ['food', 'rest', 'social', 'fun', 'hygiene', 'purpose'];
 const ACTION_TYPES = ['discrete', 'continuous'];
@@ -90,6 +90,19 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('children' in action) {
             validateChildren(issues, id, action['children'], parameterNames);
+        }
+        if ('resumable' in action) {
+            // Pause/resume (task 087) only makes sense for continuous instances.
+            checkBoolean(issues, `${id}.resumable`, action['resumable']);
+            if (action['type'] !== 'continuous') {
+                issues.add(`${id}.resumable`, 'only continuous actions can pause/resume (discrete commits are instant)');
+            }
+        }
+        if ('affinity' in action) {
+            // Trait affinity tags (task 087) — cross-checked against json/traits.json in semantics.
+            if (!Array.isArray(action['affinity']) || !(action['affinity'] as unknown[]).every(tag => typeof tag === 'string')) {
+                issues.add(`${id}.affinity`, 'expected an array of trait-affinity tag strings');
+            }
         }
         if ('satisfies' in action && checkRecord(issues, `${id}.satisfies`, action['satisfies'])) {
             // Needs satisfaction (task 084): keys from the closed need set, values finite numbers.

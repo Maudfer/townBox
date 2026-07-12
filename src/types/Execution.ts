@@ -10,6 +10,7 @@ import { PersonId } from 'types/Genealogy';
 import { JobMarket, MoneyLedger, HousingMarket, SkillRegistry } from 'types/LifeEvent';
 import { NeedsReader } from 'types/Needs';
 import { RelationshipGraph } from 'types/Relationship';
+import { TraitsReader } from 'types/Traits';
 
 export type SimulationMode = 'live' | 'bootstrap';
 
@@ -64,6 +65,8 @@ export interface SimulationMarkets {
     // The agenda (task 085): the planner hook reads due entries; producers and the joint-activity
     // consequence enqueue. Null/absent = no planning (pure tests).
     agenda?: AgendaAccess | null;
+    // Traits (task 087): temperament axes read by selection affinity and consent. Derived, never stored.
+    traits?: TraitsReader | null;
 }
 
 export interface ExecutionContext {

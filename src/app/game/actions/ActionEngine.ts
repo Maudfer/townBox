@@ -20,6 +20,7 @@ import LifeLog from 'game/events/LifeLog';
 import Inventory from 'game/objects/Inventory';
 import { resolveStanding } from 'game/population/SocialGraph';
 import actionsConfig from 'json/actions.json';
+import arbitration from 'json/arbitration.json';
 import oarConfig from 'json/object-action-relationships.json';
 import { EventLink,
     ActionCause,
@@ -86,6 +87,9 @@ export default class ActionEngine {
     // discrete, the one-active-continuous rule blocks a second, and history lives in the LifeLog), so both the
     // scan set and memory stay bounded over a centuries-long run.
     private activeByPerson: Map<PersonId, Set<ActionInstanceId>>;
+    // Paused resumable instances (task 087 / L5): max ONE per person, parked by a higher band, waiting for
+    // resumption within the authored window. Rebuilt on load like the active index.
+    private pausedByPerson: Map<PersonId, ActionInstanceId>;
     // Transient --profile sub-timer (task 079), set for the duration of an advance() call so finish() can
     // attribute its internal cost (consequence planning / log append / onComplete event fire) without every
     // caller threading it. Undefined outside profiled advances (finish from interrupt etc. isn't sub-timed).
@@ -110,6 +114,7 @@ export default class ActionEngine {
         this.state = { instances: {}, nextInstanceSeq: 0, actionHistory: {} };
         this.handles = new Map();
         this.activeByPerson = new Map();
+        this.pausedByPerson = new Map();
         this.oarByAction = new Map();
         for (const entry of Object.values(oar)) {
             const entries = this.oarByAction.get(entry.action) ?? [];
@@ -133,11 +138,14 @@ export default class ActionEngine {
     // order) did. Called on load; construction starts with an empty state so the index starts empty.
     private rebuildActiveIndex(): void {
         this.activeByPerson = new Map();
+        this.pausedByPerson = new Map();
         const ids = Object.keys(this.state.instances).sort((a, b) => a.localeCompare(b));
         for (const id of ids) {
             const instance = this.state.instances[id]!;
             if (ACTIVE_STATUSES.has(instance.status)) {
                 this.indexActivate(instance);
+            } else if (instance.status === 'paused') {
+                this.pausedByPerson.set(instance.personId, instance.id);
             }
         }
     }
@@ -498,6 +506,7 @@ export default class ActionEngine {
                     actionId, params, sourcePersonId: personId, targetPersonId: targetId,
                     tick: deps.tick, worldSeed: deps.state.worldSeed,
                     relationship: resolveStanding(deps.state.people, deps.ctx.markets?.social ?? null, targetId, personId, deps.tick),
+                    targetTraits: deps.ctx.markets?.traits?.traitsOf(targetId) ?? null,
                 });
                 if (!consented) {
                     const seq = this.lifeLog.append(personId, {
@@ -662,6 +671,23 @@ export default class ActionEngine {
             }
         };
         this.advanceSub = sub;
+
+        // Paused-instance expiry (task 087 / L5): a pause outliving its resume window becomes a real
+        // interruption (the log reads started → paused → interrupted — an abandoned plan is also story).
+        // Engine-owned so no hook ever mutates; snapshotted first since finish() edits the map.
+        const resumeWindow = (arbitration as { resumeWindowTicks?: number }).resumeWindowTicks ?? 12;
+        for (const [personId, instanceId] of [...this.pausedByPerson.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+            const paused = this.state.instances[instanceId];
+            if (!paused || paused.status !== 'paused') {
+                this.pausedByPerson.delete(personId);
+                continue;
+            }
+            if (deps.tick > (paused.pausedAtTick ?? deps.tick) + resumeWindow) {
+                this.pausedByPerson.delete(personId);
+                this.finish(paused, 'interrupted', { source: 'system', causationId: null }, deps, result);
+            }
+        }
+
         // Iterate the active index (task 078) instead of scanning every instance ever created. Snapshotted to
         // an array first so finishes/starts during the loop don't mutate what we're iterating.
         const tScan = clock ? clock() : 0;
@@ -750,6 +776,57 @@ export default class ActionEngine {
         }
         this.finish(instance, 'interrupted', cause, deps, result);
         return true;
+    }
+
+    // Parks a resumable instance (task 087 / L5): logs 'paused', keeps the instance, frees the active slot.
+    // Max one paused per person — a second pause turns the first into a real interruption.
+    pause(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult): boolean {
+        this.ctxMemo = null;
+        const instance = this.state.instances[instanceId];
+        if (!instance || !ACTIVE_STATUSES.has(instance.status)) {
+            return false;
+        }
+        const previous = this.pausedByPerson.get(instance.personId);
+        if (previous && this.state.instances[previous]) {
+            this.finish(this.state.instances[previous]!, 'interrupted', cause, deps, result);
+        }
+        this.pausedByPerson.delete(instance.personId);
+        this.lifeLog.append(instance.personId, {
+            tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: 'paused',
+            params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
+        });
+        instance.status = 'paused';
+        instance.pausedAtTick = deps.tick;
+        instance.transitionHandleId = null;
+        this.handles.delete(instance.id);
+        this.indexDeactivate(instance);
+        this.pausedByPerson.set(instance.personId, instance.id);
+        return true;
+    }
+
+    // Resumes a paused instance (same id — the log reads started → paused → resumed → …): back to pending,
+    // so the next advance re-materializes (incl. re-requesting the location transition).
+    resume(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps): boolean {
+        this.ctxMemo = null;
+        const instance = this.state.instances[instanceId];
+        if (!instance || instance.status !== 'paused') {
+            return false;
+        }
+        this.lifeLog.append(instance.personId, {
+            tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: 'resumed',
+            params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
+        });
+        instance.status = 'pending';
+        instance.pausedAtTick = null;
+        this.pausedByPerson.delete(instance.personId);
+        this.indexActivate(instance);
+        return true;
+    }
+
+    // The person's paused instance, if any (the resume hook's read).
+    pausedInstanceOf(personId: PersonId): ActionInstance | null {
+        const id = this.pausedByPerson.get(personId);
+        return id ? this.state.instances[id] ?? null : null;
     }
 
     private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {

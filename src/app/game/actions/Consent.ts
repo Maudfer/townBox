@@ -14,9 +14,11 @@
 // identical in live and bootstrap, and never perturbing the event/action/brain streams.
 
 import { RELATIONSHIPS_CONFIG } from 'game/population/SocialGraph';
+import { traitConsentShift } from 'game/population/Traits';
 import { PersonId } from 'types/Genealogy';
 import { RelationshipView } from 'types/Relationship';
 import { Value } from 'types/Simulation';
+import { PersonTraits } from 'types/Traits';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 
 export const CONSENT_SALT = 0xc0;
@@ -33,6 +35,8 @@ export interface ConsentRequest {
     // The TARGET's standing toward the ASKER (resolveStanding order: spouse > edge > family), or null for
     // strangers / contexts without a graph. Supplied by the Action engine.
     relationship?: RelationshipView | null;
+    // The TARGET's temperament (task 087): a sociable person says yes more, a quick temper less.
+    targetTraits?: PersonTraits | null;
 }
 
 // The scored accept probability — exported so tests (and later the inspector) can read the policy directly.
@@ -41,7 +45,8 @@ export function consentProbability(request: ConsentRequest): number {
     const view = request.relationship ?? null;
     const base = config.base[view?.kind ?? 'none'] ?? config.base.none;
     const strengthShift = (view?.strength ?? 0) * config.strengthWeight;
-    return Math.min(MAX_ACCEPT, Math.max(MIN_ACCEPT, base + strengthShift));
+    const traitShift = request.targetTraits ? traitConsentShift(request.targetTraits) : 0;
+    return Math.min(MAX_ACCEPT, Math.max(MIN_ACCEPT, base + strengthShift + traitShift));
 }
 
 export function evaluateConsent(request: ConsentRequest): boolean {

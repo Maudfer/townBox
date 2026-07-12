@@ -376,6 +376,9 @@ export default class SaveManager {
         // The agenda (v16, task 085). Absent (older saves) loads empty — routines re-plan.
         this.game.agenda?.loadState(snapshot.agenda);
 
+        // Traits are derived, not stored — but the memo keyed the OLD world; drop it (task 087).
+        this.game.traits?.reset();
+
         // Skill records (v10+, tasks 059-062). Pre-v10 saves carry none: every loaded person is
         // re-initialized deterministically (same seed convention as materialization) and their legacy
         // boolean skills are granted on top via the 061 mapping, so a MedicalSkill person stays medical.

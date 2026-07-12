@@ -1,0 +1,24 @@
+{
+    "heritability": 0.4,
+    "affinities": {
+        "social": { "axis": "sociability", "weight": 1 },
+        "solitary": { "axis": "sociability", "weight": -1 },
+        "industrious": { "axis": "industriousness", "weight": 1 },
+        "tidy": { "axis": "orderliness", "weight": 1 },
+        "messy": { "axis": "orderliness", "weight": -1 },
+        "thrill": { "axis": "riskAppetite", "weight": 1 },
+        "cozy": { "axis": "riskAppetite", "weight": -1 },
+        "indulgent": { "axis": "hedonism", "weight": 1 },
+        "craft": { "axis": "industriousness", "weight": 0.7 },
+        "active": { "axis": "riskAppetite", "weight": 0.5 }
+    },
+    "phrases": {
+        "sociability": { "low": "keeps to themselves", "high": "loves company", "band": 25 },
+        "industriousness": { "low": "takes it easy", "high": "always busy with something", "band": 25 },
+        "temper": { "low": "even-keeled", "high": "quick-tempered", "band": 25 },
+        "riskAppetite": { "low": "careful", "high": "a little reckless", "band": 25 },
+        "orderliness": { "low": "comfortable with clutter", "high": "likes things just so", "band": 25 },
+        "hedonism": { "low": "abstemious", "high": "fond of the good things", "band": 25 }
+    },
+    "consent": { "sociabilityWeight": 0.002, "temperWeight": -0.001 }
+}
