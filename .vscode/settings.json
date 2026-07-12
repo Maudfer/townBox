@@ -6,5 +6,15 @@
   // match CI. VS Code prompts once to trust the workspace version — accept it (or run
   // "TypeScript: Select TypeScript Version" -> "Use Workspace Version").
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // Make the markdownlint EXTENSION match what CI lints. CI (npm run lint:md / markdownlint-cli2)
+  // ignores these via .markdownlint-cli2.jsonc's `ignores`, but the extension lints any open file and
+  // doesn't reliably honor that field — so mirror the ignores here to silence advisory squiggles on
+  // the frozen task backlog + generated docs that CI deliberately skips.
+  "markdownlint.ignore": [
+    "docs/tasks/**",
+    "docs/generated/**",
+    ".claude/**"
+  ]
 }
