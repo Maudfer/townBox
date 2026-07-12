@@ -128,6 +128,22 @@ export async function pressToolKey(page: Page, key: string): Promise<void> {
     await page.waitForTimeout(150);
 }
 
+// A robust mouse drag for react-rnd (drag/resize): a lone move+down+up, or Playwright's `{steps}` option,
+// intermittently fails to start a react-draggable/re-resizable gesture on a slow CI runner. Explicit
+// per-increment moves with small settles between the mousedown, each move, and the mouseup make it reliable.
+export async function dragMouse(page: Page, fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+    const steps = 12;
+    await page.mouse.move(fromX, fromY);
+    await page.mouse.down();
+    await page.waitForTimeout(60);
+    for (let i = 1; i <= steps; i++) {
+        await page.mouse.move(fromX + (toX - fromX) * (i / steps), fromY + (toY - fromY) * (i / steps));
+        await page.waitForTimeout(16);
+    }
+    await page.waitForTimeout(60);
+    await page.mouse.up();
+}
+
 // --- window.__townbox delegators (each a single page.evaluate) --------------
 
 export async function step(page: Page, n = 1): Promise<void> {

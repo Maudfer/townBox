@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 
-import { bootFixture, buildings, people, selectBuilding } from '../support/app';
+import { bootFixture, buildings, dragMouse, people, selectBuilding } from '../support/app';
 
 // §4 HUD baseline: inspector windows opened via the Select tool (house / workplace / person / city overview),
 // plus window move / resize / close and the singleton vs per-identity window rules.
@@ -53,10 +53,7 @@ test.describe('inspector windows', () => {
         const ph = (await personHeader.boundingBox())!;
         const grabX = ph.x + ph.width - 55;
         const grabY = ph.y + ph.height / 2;
-        await page.mouse.move(grabX, grabY);
-        await page.mouse.down();
-        await page.mouse.move(grabX + 300, grabY + 260, { steps: 8 });
-        await page.mouse.up();
+        await dragMouse(page, grabX, grabY, grabX + 300, grabY + 260);
 
         // Re-opening the same resident must not add a duplicate window (dedupe by identity).
         await page.getByTestId('house-resident').first().click();
@@ -70,10 +67,7 @@ test.describe('inspector windows', () => {
 
         const header = windowEl.locator('.window-header');
         const hb = (await header.boundingBox())!;
-        await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
-        await page.mouse.down();
-        await page.mouse.move(hb.x + hb.width / 2 + 140, hb.y + hb.height / 2 + 90, { steps: 8 });
-        await page.mouse.up();
+        await dragMouse(page, hb.x + hb.width / 2, hb.y + hb.height / 2, hb.x + hb.width / 2 + 140, hb.y + hb.height / 2 + 90);
 
         const after = (await windowEl.boundingBox())!;
         expect(Math.abs(after.x - before.x)).toBeGreaterThan(80);
@@ -94,11 +88,7 @@ test.describe('inspector windows', () => {
         const hb = (await handle.boundingBox())!;
         const grabX = hb.x + hb.width / 2;
         const grabY = hb.y + hb.height / 2;
-        await page.mouse.move(grabX, grabY);
-        await page.mouse.down();
-        await page.mouse.move(grabX + 40, grabY + 30, { steps: 4 });
-        await page.mouse.move(grabX + 170, grabY + 130, { steps: 10 });
-        await page.mouse.up();
+        await dragMouse(page, grabX, grabY, grabX + 170, grabY + 130);
 
         const after = (await windowEl.boundingBox())!;
         expect(after.width).toBeGreaterThan(before.width + 40);
