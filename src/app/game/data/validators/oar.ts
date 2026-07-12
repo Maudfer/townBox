@@ -11,7 +11,7 @@ import { EventManifest } from 'types/LifeEvent';
 const DISPOSITIONS = ['consumed', 'retained', 'transformed', 'required'];
 const OWNERSHIP_TARGETS = ['person', 'targetPerson', 'employer', 'world', 'none'];
 const CONTAINERS = ['possessions', 'location'];
-const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'planJointActivity', 'triggerEvent', 'scheduleEvent'];
+const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'planJointActivity', 'purchaseObject', 'triggerEvent', 'scheduleEvent'];
 
 function validateObjectQuery(issues: IssueCollector, path: string, query: unknown): void {
     if (!checkRecord(issues, path, query)) {
@@ -135,6 +135,26 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                 checkNumber(issues, `${opPath}.afterTicks`, op['afterTicks'], { min: 0, integer: true });
                 checkNumber(issues, `${opPath}.windowTicks`, op['windowTicks'], { min: 1, integer: true });
                 break;
+            case 'purchaseObject': {
+                // Task 089/F3: real stock preferred, conjured fallback allowed (the 071 keep-list posture).
+                checkUnknownKeys(issues, opPath, op, ['op', 'query', 'price', 'fallback', 'fallbackQuantity']);
+                const query = op['query'];
+                if (checkRecord(issues, `${opPath}.query`, query)) {
+                    checkUnknownKeys(issues, `${opPath}.query`, query as Record<string, unknown>, ['archetype', 'tag']);
+                    const q = query as Record<string, unknown>;
+                    if (!('archetype' in q) && !('tag' in q)) {
+                        issues.add(`${opPath}.query`, 'a purchase query needs archetype and/or tag');
+                    }
+                }
+                checkNumber(issues, `${opPath}.price`, op['price'], { min: 0 });
+                if ('fallback' in op) {
+                    checkString(issues, `${opPath}.fallback`, op['fallback']);
+                }
+                if ('fallbackQuantity' in op) {
+                    checkNumber(issues, `${opPath}.fallbackQuantity`, op['fallbackQuantity'], { min: 1, integer: true });
+                }
+                break;
+            }
             case 'triggerEvent':
                 checkUnknownKeys(issues, opPath, op, ['op', 'event']);
                 checkString(issues, `${opPath}.event`, op['event']);
@@ -171,6 +191,12 @@ export function validateConsequenceOpsSemantics(issues: IssueCollector, path: st
         if (op.op === 'adjustRelationship' && !declaredParams.has('target')) {
             // Task 083: the edge is actor↔target; without a target parameter the op can never plan.
             issues.add(opPath, `adjustRelationship requires the action to declare a "target" parameter`);
+        }
+        if (op.op === 'purchaseObject') {
+            const fallback = (op as { fallback?: string }).fallback;
+            if (fallback !== undefined && !archetypes.has(fallback)) {
+                issues.add(opPath + '.fallback', 'references unknown object archetype "' + fallback + '"');
+            }
         }
         if (op.op === 'planJointActivity' && !declaredParams.has('target')) {
             // Task 085: the mirrored entries need both sides; without a target the op can never plan.

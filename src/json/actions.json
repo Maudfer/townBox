@@ -806,6 +806,11 @@
                     "action": "bought_gift_wrap",
                     "chancePerTick": 0.05,
                     "maxTotal": 1
+                },
+                {
+                    "action": "bought_fresh_bread",
+                    "chancePerTick": 0.2,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -2319,15 +2324,12 @@
         "category": "leisure",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "granola_bar",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -5
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "granola_bar"
+                },
+                "price": 5,
+                "fallback": "granola_bar"
             }
         ],
         "satisfies": {
@@ -2388,22 +2390,21 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "flour_bag",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "flour_bag"
+                },
+                "price": 18,
+                "fallback": "flour_bag"
             },
             {
-                "op": "createObject",
-                "archetype": "tomato",
-                "quantity": 2,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -30
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "tomato"
+                },
+                "price": 12,
+                "fallback": "tomato",
+                "fallbackQuantity": 2
             }
         ]
     },
@@ -2433,15 +2434,12 @@
         "category": "leisure",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "souvenir_magnet",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -12
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "souvenir_magnet"
+                },
+                "price": 12,
+                "fallback": "souvenir_magnet"
             }
         ],
         "affinity": [
@@ -2735,15 +2733,12 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "medicine_bottle",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -10
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "medicine_bottle"
+                },
+                "price": 10,
+                "fallback": "medicine_bottle"
             }
         ]
     },
@@ -4522,36 +4517,38 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "potato",
-                "quantity": 2,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "potato"
+                },
+                "price": 5,
+                "fallback": "potato",
+                "fallbackQuantity": 2
             },
             {
-                "op": "createObject",
-                "archetype": "onion",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "onion"
+                },
+                "price": 3,
+                "fallback": "onion"
             },
             {
-                "op": "createObject",
-                "archetype": "lettuce",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "lettuce"
+                },
+                "price": 4,
+                "fallback": "lettuce"
             },
             {
-                "op": "createObject",
-                "archetype": "egg",
-                "quantity": 4,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -18
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "egg"
+                },
+                "price": 6,
+                "fallback": "egg",
+                "fallbackQuantity": 4
             }
         ]
     },
@@ -4561,22 +4558,21 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "detergent_pod",
-                "quantity": 3,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "detergent_pod"
+                },
+                "price": 8,
+                "fallback": "detergent_pod",
+                "fallbackQuantity": 3
             },
             {
-                "op": "createObject",
-                "archetype": "sponge",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -12
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "sponge"
+                },
+                "price": 4,
+                "fallback": "sponge"
             }
         ]
     },
@@ -4586,15 +4582,12 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "toolbox",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -45
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "toolbox"
+                },
+                "price": 45,
+                "fallback": "toolbox"
             }
         ]
     },
@@ -4604,22 +4597,20 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "wrapping_paper",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "wrapping_paper"
+                },
+                "price": 6,
+                "fallback": "wrapping_paper"
             },
             {
-                "op": "createObject",
-                "archetype": "gift_bow",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -10
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "gift_bow"
+                },
+                "price": 4,
+                "fallback": "gift_bow"
             }
         ]
     },
@@ -4949,5 +4940,23 @@
         "affinity": [
             "social"
         ]
+    },
+    "bought_fresh_bread": {
+        "label": "Bought fresh bread",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "bread_loaf"
+                },
+                "price": 7,
+                "fallback": "bread_loaf"
+            }
+        ],
+        "satisfies": {
+            "food": 5
+        }
     }
 }

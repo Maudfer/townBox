@@ -7,6 +7,10 @@
 
 import { ActionDeps } from 'game/actions/ActionEngine';
 import Inventory from 'game/objects/Inventory';
+import inventoryTuning from 'json/inventory.json';
+
+// Business shelf capacity per archetype (task 089 / F3) — production halts at a full shelf.
+const STOCK_CEILING_PER_ARCHETYPE = (inventoryTuning as { businessStockCeilingPerArchetype?: number }).businessStockCeilingPerArchetype ?? 60;
 import {
     ConsequenceOp,
     OAREntry,
@@ -228,6 +232,22 @@ export function planOAR(entries: OAREntry[], ctx: CommitContext): Plan | null | 
             continue;
         }
         const inventory = inventoryOf(ctx)!;
+        // Stock ceilings (task 089 / F3): a business stops producing an archetype once its shelf is full —
+        // the 12,185-baked-dough mountain the audit found can no longer accumulate. A full shelf makes the
+        // entry unsatisfiable (typed inputsUnavailable upstream); sales drain the shelf and production resumes.
+        const ceiling = STOCK_CEILING_PER_ARCHETYPE;
+        const overCeiling = outputSpecs.some(spec => {
+            if (spec.owner!.kind !== 'business') {
+                return false;
+            }
+            const held = inventory.instancesOwnedBy(spec.owner!)
+                .filter(instance => instance.archetypeId === spec.output.archetype)
+                .reduce((total, instance) => total + instance.quantity, 0);
+            return held >= ceiling;
+        });
+        if (overCeiling) {
+            continue;
+        }
         const steps: (() => void)[] = [];
         entry.inputs.forEach((input, index) => {
             const takes = matched.matches[index]!.takes;
@@ -380,6 +400,64 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                             ctx.result.signals.push(...result.signals);
                             ctx.result.committed.push(...result.committed);
                         }
+                    }
+                });
+                break;
+            }
+            case 'purchaseObject': {
+                // Materialized retail (task 089): prefer real business stock here; fall back to conjuring.
+                // Plannable whenever a fallback exists (shops without stock still sell — the 071 posture);
+                // without a fallback, missing stock is a typed plan failure.
+                const world = ctx.deps.ctx.world ?? null;
+                const stockId = (): string | null => {
+                    if (!world || !inventory) {
+                        return null;
+                    }
+                    const candidates = world.objectsAt(world.objectLocationOf(ctx.personId))
+                        .map(id => inventory.getInstance(id))
+                        .filter((instance): instance is NonNullable<typeof instance> => {
+                            if (!instance || instance.owner.kind !== 'business') {
+                                return false;
+                            }
+                            const archetype = inventory.getArchetype(instance.archetypeId);
+                            if (op.query.archetype !== undefined && instance.archetypeId !== op.query.archetype) {
+                                return false;
+                            }
+                            if (op.query.tag !== undefined && !(archetype?.tags ?? []).includes(op.query.tag)) {
+                                return false;
+                            }
+                            return true;
+                        })
+                        .map(instance => instance.id)
+                        .sort();
+                    return candidates[0] ?? null;
+                };
+                if (stockId() === null && op.fallback === undefined) {
+                    return null;
+                }
+                if (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback))) {
+                    return null;
+                }
+                steps.push(() => {
+                    const ledger = ctx.deps.ctx.markets?.ledger ?? null;
+                    const id = stockId(); // re-resolve at apply time (earlier steps may have moved stock)
+                    if (id !== null && inventory) {
+                        const businessKey = (inventory.getInstance(id)!.owner as { kind: 'business'; key: string }).key;
+                        inventory.transferOwnership(id, { kind: 'person', personId: ctx.personId });
+                        inventory.moveInstance(id, { kind: 'possessions', personId: ctx.personId });
+                        ledger?.recordPurchase?.(ctx.personId, businessKey, op.price);
+                        return;
+                    }
+                    if (op.fallback !== undefined && inventory) {
+                        inventory.createInstance({
+                            archetypeId: op.fallback,
+                            quantity: op.fallbackQuantity ?? 1,
+                            owner: { kind: 'person', personId: ctx.personId },
+                            container: { kind: 'possessions', personId: ctx.personId },
+                            tick: ctx.deps.tick,
+                            provenance: ctx.causationId,
+                        });
+                        ledger?.recordFallbackPurchase?.(ctx.personId, op.price);
                     }
                 });
                 break;

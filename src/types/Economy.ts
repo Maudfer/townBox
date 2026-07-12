@@ -14,6 +14,10 @@ export interface EconomyState {
     // money adjustments) is balanced against, so the grand total (people + businesses + external) is conserved
     // and a long run can be checked for drift. Optional for pre-H3 saves (derived on load).
     externalBalance?: number;
+    // Materialized retail counters (task 089): month-to-date micro-purchase revenue per business and
+    // spend per person, netted out of the monthly resolution. Optional for pre-089 saves.
+    materializedSales?: Record<string, number>;
+    materializedSpend?: Record<string, number>;
 }
 
 // Tunable economy values (src/json/economy.json).

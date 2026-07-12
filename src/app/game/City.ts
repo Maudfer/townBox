@@ -456,6 +456,9 @@ export default class City {
         if (!population || !clock) {
             return;
         }
+        // Spoilage sweep (task 089 / F3): perishables past their shelf life are removed daily — bread rots,
+        // shelves drain, production resumes below the stock ceiling.
+        Game.inventory?.sweepExpired(event.tick);
         const materializedIds = new Set(this.indexMaterialized().keys());
         const coarse = population.simulate(event.tick, clock.getTicksPerYear(), undefined, materializedIds);
 
@@ -840,6 +843,11 @@ export default class City {
 
         const unitsByKey = resolveDemand(competitors, demandByCategory);
 
+        // Materialized retail netting (task 089 / F3): micro-purchases already moved money person → business
+        // at the till; the demand model's revenue covers ALL consumer sales, so the already-collected part is
+        // subtracted from this month's credit (capped at the model's revenue — genuine over-selling is kept).
+        const materializedSales = economy.drainMaterializedSales();
+
         // B2B supply chain (task 035): the input materials those consumer sales require become demand on local
         // producers (businesses whose `products` are those materials). Producers compete to supply each material
         // by capacity (staffing × per-employee output), via the same demand resolution keyed by material id.
@@ -873,8 +881,10 @@ export default class City {
             const payroll = workplace.getEmployees().reduce((total, employee) => total + (employee.work.getJob()?.salary ?? 0), 0);
             const finance = computeBusinessPnl(revenue, materialsCost, fixedCosts, payroll);
 
-            // Payroll was already debited by runPayroll; apply only the income side here.
-            economy.adjustBusiness(key, revenue - materialsCost - fixedCosts);
+            // Payroll was already debited by runPayroll; apply only the income side here — minus whatever the
+            // till already collected through materialized purchases this month (task 089).
+            const alreadyCollected = Math.min(materializedSales[key] ?? 0, revenue);
+            economy.adjustBusiness(key, revenue - alreadyCollected - materialsCost - fixedCosts);
             business.lastPnl = finance.pnl;
 
             const previousStreak = business.profitStreak ?? 0;
@@ -1086,6 +1096,11 @@ export default class City {
             return;
         }
 
+        // Materialized retail netting (task 089): what a household already spent at the till this month comes
+        // off its abstract cost-of-living charge (they bought part of their consumption concretely) — never
+        // below the housing cost itself (rent isn't groceries).
+        const materializedSpend = economy.drainMaterializedSpend();
+
         for (const structure of field.getStructures()) {
             if (!(structure instanceof House)) {
                 continue;
@@ -1096,7 +1111,9 @@ export default class City {
                 continue;
             }
 
-            const expense = DEFAULT_ECONOMY_PARAMS.housingCost + DEFAULT_ECONOMY_PARAMS.perCapitaCost * residents.length;
+            const householdSpend = residents.reduce((total, resident) => total + (materializedSpend[resident.social.getPersonId()!] ?? 0), 0);
+            const fullExpense = DEFAULT_ECONOMY_PARAMS.housingCost + DEFAULT_ECONOMY_PARAMS.perCapitaCost * residents.length;
+            const expense = Math.max(DEFAULT_ECONOMY_PARAMS.housingCost, fullExpense - householdSpend);
             const funds = residents.reduce((total, resident) => total + economy.getPersonBalance(resident.social.getPersonId()!), 0);
 
             // Drain the household's available funds (head first) up to what it can afford; never forced negative.

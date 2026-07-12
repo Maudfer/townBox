@@ -175,7 +175,7 @@ export function validateInventoryTuningStructure(data: unknown, issues: IssueCol
         return;
     }
     const config = data as Record<string, unknown>;
-    checkUnknownKeys(issues, 'inventory', config, ['maxCarriedWeightGrams', 'maxBulkyItems', 'stowAboveFraction', 'curiosityChancePerTick', 'fiddleChancePerTick', 'pantryFetchBelowFood']);
+    checkUnknownKeys(issues, 'inventory', config, ['maxCarriedWeightGrams', 'maxBulkyItems', 'stowAboveFraction', 'curiosityChancePerTick', 'fiddleChancePerTick', 'pantryFetchBelowFood', 'businessStockCeilingPerArchetype']);
     checkNumber(issues, 'inventory.maxCarriedWeightGrams', config['maxCarriedWeightGrams'], { min: 1 });
     checkNumber(issues, 'inventory.maxBulkyItems', config['maxBulkyItems'], { min: 1, integer: true });
     const fractions: [string, unknown][] = [['stowAboveFraction', config['stowAboveFraction']], ['curiosityChancePerTick', config['curiosityChancePerTick']], ['fiddleChancePerTick', config['fiddleChancePerTick']]];
@@ -185,4 +185,5 @@ export function validateInventoryTuningStructure(data: unknown, issues: IssueCol
         }
     }
     checkNumber(issues, 'inventory.pantryFetchBelowFood', config['pantryFetchBelowFood'], { min: 0 });
+    checkNumber(issues, 'inventory.businessStockCeilingPerArchetype', config['businessStockCeilingPerArchetype'], { min: 1, integer: true });
 }

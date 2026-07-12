@@ -227,6 +227,12 @@ export type ConsequenceOp =
     | { op: 'setObjectState'; object: ObjectRef; key: string; value: Value }
     // Approved person mutation: money through the ledger (never raw writes).
     | { op: 'adjustMoney'; amount: number; target?: 'person' | 'targetPerson' }
+    // Materialized retail (task 089 / F3): buy a matching BUSINESS-OWNED instance at the person's current
+    // location — ownership transfers, the object lands in Possessions, money moves person → business through
+    // the ledger, and the sale is recorded for monthly netting. Without matching stock, `fallback` conjures
+    // the archetype instead (the documented 071 keep-list path — venues without real stock) with a one-sided
+    // spend. The 12k-bread mountain finally has an outlet.
+    | { op: 'purchaseObject'; query: { archetype?: string; tag?: string }; price: number; fallback?: string; fallbackQuantity?: number }
     // Adjust the elective social graph between the actor and the action's target (task 083). Kind transitions
     // (acquaintance → friend, …) fire their authored events (json/relationships.json ladder) for BOTH sides,
     // chained to this commit. No-op without a graph in context (pure tests).

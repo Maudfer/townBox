@@ -231,6 +231,10 @@ export interface TickResult {
 export interface MoneyLedger {
     getPersonBalance(personId: string): number;
     adjustPerson(personId: string, delta: number): void;
+    // Materialized retail (task 089): a concrete stock purchase (person → business transfer + netting
+    // counters) and the conjured-stock fallback. Optional — off-map/pure contexts have no money.
+    recordPurchase?(personId: string, businessKey: string, price: number): void;
+    recordFallbackPurchase?(personId: string, price: number): void;
 }
 
 // The employment adapter the event runtime consults so the pure engine can reason about (and effect) hiring

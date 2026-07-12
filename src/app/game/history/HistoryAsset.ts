@@ -454,6 +454,7 @@ export async function generateHistoryAsset(
         if (logical && skillBook) {
             const tDaily = now();
             logical.runDaily(state, tick, tick + step, tpy, skillBook, engine, living);
+            logical.inventory.sweepExpired(tick); // perishables spoil daily (task 089)
             if (profile) {
                 profile.runDaily += now() - tDaily;
             }

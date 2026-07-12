@@ -19,15 +19,27 @@ export default class Economy implements MoneyLedger {
     // two local accounts and leaves external untouched.
     private externalBalance: number;
 
+    // Materialized retail (task 089 / F3): object-level micro-purchases this month, netted out of the
+    // monthly demand-model resolution so nothing is double-counted (the business already banked the money;
+    // the household already paid for those goods). Keyed by business anchor / person id; drained monthly.
+    private materializedSales: Record<string, number>;
+    private materializedSpend: Record<string, number>;
+
     constructor(state?: EconomyState) {
         this.personBalances = state?.personBalances ?? {};
         this.businessBalances = state?.businessBalances ?? {};
         this.lastEconomyMonth = state?.lastEconomyMonth ?? -1;
         this.externalBalance = state?.externalBalance ?? -this.localTotal();
+        this.materializedSales = state?.materializedSales ?? {};
+        this.materializedSpend = state?.materializedSpend ?? {};
     }
 
     getState(): EconomyState {
-        return { personBalances: this.personBalances, businessBalances: this.businessBalances, lastEconomyMonth: this.lastEconomyMonth, externalBalance: this.externalBalance };
+        return {
+            personBalances: this.personBalances, businessBalances: this.businessBalances,
+            lastEconomyMonth: this.lastEconomyMonth, externalBalance: this.externalBalance,
+            materializedSales: this.materializedSales, materializedSpend: this.materializedSpend,
+        };
     }
 
     loadState(state: EconomyState): void {
@@ -37,6 +49,34 @@ export default class Economy implements MoneyLedger {
         // Pre-H3 saves carry no external balance: seed it so the grand total starts conserved (external =
         // -(local total)), then every subsequent flow keeps it conserved.
         this.externalBalance = state.externalBalance ?? -this.localTotal();
+        this.materializedSales = state.materializedSales ?? {};
+        this.materializedSpend = state.materializedSpend ?? {};
+    }
+
+    // --- Materialized retail (task 089) --------------------------------------
+    // A concrete purchase moved money person → business through the ledger; record it for monthly netting.
+    recordPurchase(personId: string, businessKey: string, price: number): void {
+        this.transfer({ kind: 'person', id: personId }, { kind: 'business', id: businessKey }, price);
+        this.materializedSales[businessKey] = (this.materializedSales[businessKey] ?? 0) + price;
+        this.materializedSpend[personId] = (this.materializedSpend[personId] ?? 0) + price;
+    }
+
+    // A conjured purchase (no real stock — the 071 fallback): one-sided spend, external absorbs.
+    recordFallbackPurchase(personId: string, price: number): void {
+        this.adjustPerson(personId, -price);
+        this.materializedSpend[personId] = (this.materializedSpend[personId] ?? 0) + price;
+    }
+
+    drainMaterializedSales(): Record<string, number> {
+        const drained = this.materializedSales;
+        this.materializedSales = {};
+        return drained;
+    }
+
+    drainMaterializedSpend(): Record<string, number> {
+        const drained = this.materializedSpend;
+        this.materializedSpend = {};
+        return drained;
     }
 
     getLastEconomyMonth(): number {
