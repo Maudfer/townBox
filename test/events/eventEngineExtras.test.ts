@@ -101,13 +101,13 @@ describe('EventEngine — attribute reads without/with markets bound', () => {
 
     test('an attribute outside the closed switch falls back to the overlay bag', () => {
         const manifest: EventManifest = {
-            set_mood: { roles: { subject: alive }, triggers: { manual: {} }, effects: [{ type: 'setAttr', attr: 'mood', value: 'happy' }] },
-            mood_check: { roles: { subject: { where: { attr: 'mood', op: '==', value: 'happy' } } }, triggers: { probabilistic: { perYear: 200000 } }, effects: [{ type: 'emit', signal: 'moodMatched' }] },
+            set_vibe: { roles: { subject: alive }, triggers: { manual: {} }, effects: [{ type: 'setAttr', attr: 'vibe', value: 'happy' }] },
+            vibe_check: { roles: { subject: { where: { attr: 'vibe', op: '==', value: 'happy' } } }, triggers: { probabilistic: { perYear: 200000 } }, effects: [{ type: 'emit', signal: 'moodMatched' }] },
         };
         const engine = new EventEngine(manifest);
         const state = makeState([gen('a', Genders.Male, 30)]);
-        expect(engine.simulateTick(state, ['a'], 0, TPY).signals).toEqual([]); // no mood set yet
-        engine.invoke(state, 'set_mood', 'a', 1, TPY, { source: 'system', causationId: null });
+        expect(engine.simulateTick(state, ['a'], 0, TPY).signals).toEqual([]); // no vibe set yet ('mood' itself is a closed attribute since 091)
+        engine.invoke(state, 'set_vibe', 'a', 1, TPY, { source: 'system', causationId: null });
         expect(engine.simulateTick(state, ['a'], 2, TPY).signals.map(s => s.signal)).toContain('moodMatched');
     });
 

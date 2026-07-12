@@ -65,7 +65,7 @@ export function validateRelationshipsStructure(data: unknown, issues: IssueColle
 
     if (checkRecord(issues, 'consent', config['consent'])) {
         const consent = config['consent'] as Record<string, unknown>;
-        checkUnknownKeys(issues, 'consent', consent, ['base', 'strengthWeight']);
+        checkUnknownKeys(issues, 'consent', consent, ['base', 'strengthWeight', 'moodWeight']);
         if (checkRecord(issues, 'consent.base', consent['base'])) {
             const base = consent['base'] as Record<string, unknown>;
             for (const standing of STANDINGS) {
@@ -77,6 +77,7 @@ export function validateRelationshipsStructure(data: unknown, issues: IssueColle
             checkUnknownKeys(issues, 'consent.base', base, STANDINGS);
         }
         checkNumber(issues, 'consent.strengthWeight', consent['strengthWeight'], { min: 0 });
+        checkNumber(issues, 'consent.moodWeight', consent['moodWeight'], { min: 0 });
     }
 
     if (checkRecord(issues, 'socialTargeting', config['socialTargeting'])) {

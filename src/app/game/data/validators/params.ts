@@ -187,3 +187,23 @@ export function validateInventoryTuningStructure(data: unknown, issues: IssueCol
     checkNumber(issues, 'inventory.pantryFetchBelowFood', config['pantryFetchBelowFood'], { min: 0 });
     checkNumber(issues, 'inventory.businessStockCeilingPerArchetype', config['businessStockCeilingPerArchetype'], { min: 1, integer: true });
 }
+
+// json/mood.json (task 091): the mood meter's baseline/impulse policy.
+export function validateMoodStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'mood', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'mood', config, ['baseline', 'impulseScale', 'halfLifeDays', 'maxActiveImpulses', 'pruneBelow']);
+    checkNumber(issues, 'mood.baseline', config['baseline'], { min: 0, max: 100 });
+    checkNumber(issues, 'mood.impulseScale', config['impulseScale'], { min: 0 });
+    if (checkRecord(issues, 'mood.halfLifeDays', config['halfLifeDays'])) {
+        const halfLives = config['halfLifeDays'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'mood.halfLifeDays', halfLives, ['1', '2', '3']);
+        for (const magnitude of ['1', '2', '3']) {
+            checkNumber(issues, 'mood.halfLifeDays.' + magnitude, halfLives[magnitude], { min: 0.1 });
+        }
+    }
+    checkNumber(issues, 'mood.maxActiveImpulses', config['maxActiveImpulses'], { min: 1, integer: true });
+    checkNumber(issues, 'mood.pruneBelow', config['pruneBelow'], { min: 0 });
+}

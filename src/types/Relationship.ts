@@ -65,7 +65,7 @@ export interface RelationshipsConfig {
     hostility: { to: EdgeKind; strength: number };
     reconciliation: { to: EdgeKind; strength: number };
     // Consent v2 (task 083 / proposal B6): base accept probability per standing + a per-strength-point shift.
-    consent: { base: Record<RelationshipStanding, number>; strengthWeight: number };
+    consent: { base: Record<RelationshipStanding, number>; strengthWeight: number; moodWeight: number };
     // Social-opportunity target weighting: multiplier per standing + per-strength-point bonus.
     socialTargeting: { kindWeight: Record<RelationshipStanding, number>; strengthWeight: number };
     // Edges whose decayed strength falls below this are pruned (memory hygiene; rebuilding is one hello away).

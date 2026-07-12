@@ -4,7 +4,9 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { compileEvents, EventGraph, GateComparison } from 'game/events/EventCompiler';
 import LifeLog from 'game/events/LifeLog';
+import { MOOD_CONFIG } from 'game/population/Mood';
 import { resolveStanding } from 'game/population/SocialGraph';
+import { MoodReader } from 'types/Mood';
 import { EdgeKind, RelationshipGraph } from 'types/Relationship';
 
 import { ExecutionContext } from 'types/Execution';
@@ -157,6 +159,7 @@ export default class EventEngine {
     private housing: HousingMarket | null; // move-out eligibility (task 024)
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
     private social: RelationshipGraph | null; // the elective social graph (task 083)
+    private moodLedger: MoodReader | null; // mood impulses from event valence (task 091)
     // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
     // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
     // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
@@ -232,6 +235,7 @@ export default class EventEngine {
         this.housing = null;
         this.skills = null;
         this.social = null;
+        this.moodLedger = null;
     }
 
     // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
@@ -352,6 +356,13 @@ export default class EventEngine {
         const existing = personHistory[eventId];
         personHistory[eventId] = { count: (existing?.count ?? 0) + 1, lastTick: tick };
         this.history[personId] = personHistory;
+
+        // Mood impulse (task 091 / G1): the event's authored valence lands on the SUBJECT of this commit —
+        // counterpart events carry their own valence, so both sides of an interaction feel their own halves.
+        const valence = this.manifest[eventId]?.valence ?? 0;
+        if (valence !== 0) {
+            this.moodLedger?.impulse(personId, valence, tick);
+        }
         return seq;
     }
 
@@ -394,6 +405,9 @@ export default class EventEngine {
             case 'retired':
                 // Set true by the retirement event (task 032); gates get_job so retirees aren't re-hired.
                 return (this.overlay[id]?.['retired'] as boolean) ?? false;
+            case 'mood':
+                // Morale 0–100 (task 091): baseline without a bound ledger. Vice/withdrawal data gates on it.
+                return this.moodLedger ? this.moodLedger.moodOf(id, tick) : MOOD_CONFIG.baseline;
             case 'hourOfDay':
                 // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
                 // at dinner time) and predicates. Derived from the tick, identical in both execution modes.
@@ -887,6 +901,7 @@ export default class EventEngine {
         this.housing = markets.housing ?? null;
         this.skills = markets.skills ?? null;
         this.social = markets.social ?? null;
+        this.moodLedger = markets.mood ?? null;
     }
 
     // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
@@ -901,6 +916,7 @@ export default class EventEngine {
         this.housing = null;
         this.skills = null;
         this.social = null;
+        this.moodLedger = null;
     }
 
     // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,

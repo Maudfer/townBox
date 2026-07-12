@@ -50,7 +50,8 @@
             "family": 0.85,
             "engaged": 0.95
         },
-        "strengthWeight": 0.001
+        "strengthWeight": 0.001,
+        "moodWeight": 0.003
     },
     "socialTargeting": {
         "kindWeight": {

@@ -143,6 +143,9 @@ export interface EventDefinition {
     parameters?: Record<string, EventParameterSpec>;
     // Occurrence limit across ALL trigger paths (optional).
     limit?: OccurrenceLimit;
+    // Mood valence (task 091 / G1): −3…+3 — this commit's emotional weight on its subject. Magnitude picks
+    // the impulse's half-life (a ±1 ripple fades in days, a ±3 blow shadows months). 0/absent = neutral.
+    valence?: number;
     // Presentation-only (task 032), ignored by the compiler and runtime: a human label for the person event-log
     // (027) and feed (029), and a coarse grouping for filtering/styling.
     label?: string;

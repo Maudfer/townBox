@@ -6,6 +6,7 @@ import { Household } from 'types/Household';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { Direction } from 'types/Movement';
 import { AgendaState } from 'types/Agenda';
+import { MoodState } from 'types/Mood';
 import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
 import { SocialGraphState } from 'types/Relationship';
@@ -162,6 +163,8 @@ export interface WorldSnapshot {
     needs?: NeedsState;
     // The agenda (v16, task 085). Optional so older saves load with no pending plans (routines re-plan).
     agenda?: AgendaState;
+    // Mood impulses (v16 family, task 091). Optional so older saves rest at the baseline.
+    mood?: MoodState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

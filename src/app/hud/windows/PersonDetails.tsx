@@ -111,6 +111,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     // Needs meters (task 084): the decayed levels, refreshed on the same interval as everything else.
     const worldSeed = game.population?.getState().worldSeed ?? 0;
     const needLevels = personId && game.needs ? game.needs.levelsOf(personId, game.clock?.getCurrentTick() ?? 0, worldSeed) : null;
+    const moodLevel = personId && game.mood ? game.mood.moodOf(personId, game.clock?.getCurrentTick() ?? 0) : null;
 
     // The day strip (task 081/J3): this in-game day's log entries bucketed by hour, midnight → now.
     const currentTick = game.clock?.getCurrentTick() ?? 0;
@@ -161,7 +162,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
 
                 {needLevels && (
                     <section>
-                        <h4>Needs</h4>
+                        <h4>Needs{moodLevel !== null ? ` · Mood ${moodLevel.toFixed(0)}` : ""}</h4>
                         <div data-testid="person-needs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
                             {Object.entries(needLevels).map(([need, level]) => (
                                 <div key={need} title={`${need}: ${level.toFixed(0)}/100`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

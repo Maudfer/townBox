@@ -162,6 +162,8 @@ export default class SaveManager {
             needs: this.game.needs?.serialize(),
             // The agenda (v16, task 085).
             agenda: this.game.agenda?.serialize(),
+            // Mood impulses (v16 family, task 091).
+            mood: this.game.mood?.serialize(),
             // Lazy history hydration (v14): pin the asset ref + who is already hydrated, so households placed
             // after a load keep receiving pre-game histories. Absent for cold-start worlds.
             historyHydration: this.game.getHistoryHydrationState?.(),
@@ -375,6 +377,9 @@ export default class SaveManager {
 
         // The agenda (v16, task 085). Absent (older saves) loads empty — routines re-plan.
         this.game.agenda?.loadState(snapshot.agenda);
+
+        // Mood impulses (v16 family, task 091). Absent rests at the baseline.
+        this.game.mood?.loadState(snapshot.mood);
 
         // Traits are derived, not stored — but the memo keyed the OLD world; drop it (task 087).
         this.game.traits?.reset();

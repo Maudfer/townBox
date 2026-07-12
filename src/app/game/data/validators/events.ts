@@ -11,7 +11,7 @@ import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/events/EventCompile
 import { EventManifest } from 'types/LifeEvent';
 import { KNOWN_SIGNALS } from 'util/notifications';
 
-const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category'];
+const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category', 'valence'];
 const ROLE_KEYS = ['where', 'bind'];
 const BIND_RELATIONS = ['partnerOf', 'partnerOrDatingOf', 'engagedOf']; // EventEngine.resolveBind's vocabulary
 
@@ -64,6 +64,12 @@ export function validateEventsStructure(data: unknown, issues: IssueCollector): 
         validateEffects(issues, id, event['effects'], roleNames);
         if ('label' in event) {
             checkString(issues, `${id}.label`, event['label']);
+        }
+        if ('valence' in event) {
+            const valence = event['valence'];
+            if (typeof valence !== 'number' || valence < -3 || valence > 3) {
+                issues.add(id + '.valence', 'expected a number in [-3, 3]');
+            }
         }
         if ('category' in event) {
             checkString(issues, `${id}.category`, event['category']);

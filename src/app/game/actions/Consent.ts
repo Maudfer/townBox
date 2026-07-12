@@ -13,6 +13,7 @@
 // target, relationship view) on the same salted RNG stream as 073 — independent of execution order,
 // identical in live and bootstrap, and never perturbing the event/action/brain streams.
 
+import { MOOD_CONFIG } from 'game/population/Mood';
 import { RELATIONSHIPS_CONFIG } from 'game/population/SocialGraph';
 import { traitConsentShift } from 'game/population/Traits';
 import { PersonId } from 'types/Genealogy';
@@ -37,6 +38,8 @@ export interface ConsentRequest {
     relationship?: RelationshipView | null;
     // The TARGET's temperament (task 087): a sociable person says yes more, a quick temper less.
     targetTraits?: PersonTraits | null;
+    // The TARGET's mood (task 091): a low day makes everything a harder ask. 0–100; absent = baseline.
+    targetMood?: number | null;
 }
 
 // The scored accept probability — exported so tests (and later the inspector) can read the policy directly.
@@ -46,7 +49,8 @@ export function consentProbability(request: ConsentRequest): number {
     const base = config.base[view?.kind ?? 'none'] ?? config.base.none;
     const strengthShift = (view?.strength ?? 0) * config.strengthWeight;
     const traitShift = request.targetTraits ? traitConsentShift(request.targetTraits) : 0;
-    return Math.min(MAX_ACCEPT, Math.max(MIN_ACCEPT, base + strengthShift + traitShift));
+    const moodShift = typeof request.targetMood === 'number' ? (request.targetMood - MOOD_CONFIG.baseline) * config.moodWeight : 0;
+    return Math.min(MAX_ACCEPT, Math.max(MIN_ACCEPT, base + strengthShift + traitShift + moodShift));
 }
 
 export function evaluateConsent(request: ConsentRequest): boolean {

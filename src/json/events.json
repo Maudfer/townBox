@@ -118,7 +118,8 @@
                 "perYear": 12
             }
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pregnancy": {
         "label": "Became pregnant",
@@ -253,7 +254,8 @@
                 "signal": "partnershipFormed",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": 3
     },
     "divorce": {
         "label": "Got divorced",
@@ -288,7 +290,8 @@
             {
                 "type": "divorce"
             }
-        ]
+        ],
+        "valence": -2
     },
     "get_job": {
         "label": "Started a new job",
@@ -342,7 +345,8 @@
                 "signal": "hired",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": 2
     },
     "layoff": {
         "label": "Was laid off",
@@ -387,7 +391,8 @@
                 "signal": "laidOff",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": -2
     },
     "retirement": {
         "label": "Retired",
@@ -458,7 +463,8 @@
                 "signal": "retired",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": 1
     },
     "fell_ill": {
         "label": "Fell ill",
@@ -519,7 +525,8 @@
                 "signal": "fellIll",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": -1
     },
     "injury": {
         "label": "Was injured in an accident",
@@ -558,7 +565,8 @@
                 "signal": "injured",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": -2
     },
     "recovered": {
         "label": "Recovered their health",
@@ -609,7 +617,8 @@
                 "signal": "recovered",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": 1
     },
     "trade_school": {
         "label": "Finished trade school",
@@ -680,7 +689,8 @@
         ],
         "limit": {
             "withinTicks": 86400
-        }
+        },
+        "valence": 1
     },
     "nursing_school": {
         "label": "Qualified as a nurse",
@@ -751,7 +761,8 @@
         ],
         "limit": {
             "withinTicks": 86400
-        }
+        },
+        "valence": 1
     },
     "made_friend": {
         "label": "Made a new friend",
@@ -779,7 +790,8 @@
             "with": {
                 "type": "string"
             }
-        }
+        },
+        "valence": 1
     },
     "argument": {
         "label": "Had a falling-out",
@@ -831,7 +843,8 @@
                 "signal": "hadArgument",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": -1
     },
     "woke_up": {
         "label": "Woke up",
@@ -919,7 +932,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "caught_flu": {
         "label": "Caught the flu",
@@ -942,7 +956,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "recovered_from_illness": {
         "label": "Recovered from an illness",
@@ -965,7 +980,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "sprained_ankle": {
         "label": "Sprained an ankle",
@@ -988,7 +1004,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_migraine": {
         "label": "Got a migraine",
@@ -1011,7 +1028,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "pulled_muscle": {
         "label": "Pulled a muscle",
@@ -1031,7 +1049,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_routine_checkup": {
         "label": "Had a routine checkup",
@@ -1054,7 +1073,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_vaccinated": {
         "label": "Got vaccinated",
@@ -1077,7 +1097,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "diagnosed_chronic_illness": {
         "label": "Was diagnosed with a chronic illness",
@@ -1099,7 +1120,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "started_wearing_glasses": {
         "label": "Started wearing glasses",
@@ -1122,7 +1144,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_surgery": {
         "label": "Had surgery",
@@ -1145,7 +1168,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "was_hospitalized": {
         "label": "Was hospitalized",
@@ -1168,7 +1192,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "donated_blood": {
         "label": "Donated blood",
@@ -1191,7 +1216,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "broke_fever": {
         "label": "Broke a fever",
@@ -1211,7 +1237,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_allergic_reaction": {
         "label": "Had an allergic reaction",
@@ -1234,7 +1261,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "developed_insomnia": {
         "label": "Developed insomnia",
@@ -1257,7 +1285,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "slept_through_night_again": {
         "label": "Slept through the night again",
@@ -1279,7 +1308,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "threw_out_back": {
         "label": "Threw out their back",
@@ -1302,7 +1332,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_food_poisoning": {
         "label": "Got food poisoning",
@@ -1325,7 +1356,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "quit_smoking": {
         "label": "Quit smoking",
@@ -1348,7 +1380,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "took_up_smoking": {
         "label": "Took up smoking",
@@ -1370,7 +1403,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "started_fitness_routine": {
         "label": "Started a fitness routine",
@@ -1393,7 +1427,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "lost_weight": {
         "label": "Lost weight",
@@ -1416,7 +1451,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "gained_weight": {
         "label": "Gained weight",
@@ -1439,7 +1475,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_panic_attack": {
         "label": "Had a panic attack",
@@ -1462,7 +1499,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "fainted": {
         "label": "Fainted",
@@ -1485,7 +1523,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_dental_filling": {
         "label": "Got a filling at the dentist",
@@ -1508,7 +1547,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_toothache": {
         "label": "Had a toothache",
@@ -1531,7 +1571,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "beat_long_illness": {
         "label": "Beat a long illness",
@@ -1553,7 +1594,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_clean_bill_of_health": {
         "label": "Got a clean bill of health",
@@ -1573,7 +1615,8 @@
         "limit": {
             "withinTicks": 360
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_first_kiss": {
         "label": "Had a first kiss",
@@ -1605,7 +1648,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "went_on_first_date": {
         "label": "Went on a first date",
@@ -1644,7 +1688,8 @@
             "with": {
                 "type": "string"
             }
-        }
+        },
+        "valence": 2
     },
     "developed_crush": {
         "label": "Developed a crush",
@@ -1676,7 +1721,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "asked_someone_out": {
         "label": "Asked someone out",
@@ -1715,7 +1761,8 @@
             "with": {
                 "type": "string"
             }
-        }
+        },
+        "valence": 1
     },
     "was_turned_down": {
         "label": "Was turned down",
@@ -1747,7 +1794,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "started_dating": {
         "label": "Started dating",
@@ -1779,7 +1827,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "made_it_official": {
         "label": "Made it official",
@@ -1811,7 +1860,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_engaged": {
         "label": "Got engaged",
@@ -1845,7 +1895,8 @@
             "with": {
                 "type": "string"
             }
-        }
+        },
+        "valence": 2
     },
     "proposal_rejected": {
         "label": "Proposed and was rejected",
@@ -1874,7 +1925,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_married": {
         "label": "Got married",
@@ -1906,7 +1958,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "eloped": {
         "label": "Eloped",
@@ -1938,7 +1991,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_wedding_anniversary": {
         "label": "Had a wedding anniversary",
@@ -1967,7 +2021,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "renewed_vows": {
         "label": "Renewed their vows",
@@ -1998,7 +2053,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "argued_with_partner": {
         "label": "Had a big argument with partner",
@@ -2035,7 +2091,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "reconciled_with_partner": {
         "label": "Reconciled with partner",
@@ -2072,7 +2129,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "went_through_rough_patch": {
         "label": "Went through a rough patch",
@@ -2103,7 +2161,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "was_cheated_on": {
         "label": "Was cheated on",
@@ -2132,7 +2191,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_affair": {
         "label": "Had an affair",
@@ -2163,7 +2223,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ended_affair": {
         "label": "Ended an affair",
@@ -2195,7 +2256,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_divorced": {
         "label": "Got divorced",
@@ -2227,7 +2289,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "broke_up": {
         "label": "Broke up",
@@ -2259,7 +2322,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_back_together": {
         "label": "Got back together",
@@ -2291,7 +2355,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "moved_in_with_partner": {
         "label": "Moved in with partner",
@@ -2320,7 +2385,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_candlelit_dinner": {
         "label": "Had a candlelit dinner",
@@ -2352,7 +2418,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "received_love_letter": {
         "label": "Received a love letter",
@@ -2384,7 +2451,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "wrote_love_letter": {
         "label": "Wrote a love letter",
@@ -2416,7 +2484,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_date_night": {
         "label": "Had a date night",
@@ -2453,7 +2522,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fell_in_love": {
         "label": "Fell in love",
@@ -2485,7 +2555,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fell_out_of_love": {
         "label": "Fell out of love",
@@ -2516,7 +2587,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "met_charming_stranger": {
         "label": "Met a charming stranger",
@@ -2548,7 +2620,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_pregnant": {
         "label": "Became pregnant",
@@ -2590,7 +2663,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "gave_birth": {
         "label": "Gave birth",
@@ -2610,7 +2684,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 3
     },
     "became_parent": {
         "label": "Became a parent",
@@ -2630,7 +2705,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 3
     },
     "had_miscarriage": {
         "label": "Suffered a miscarriage",
@@ -2665,7 +2741,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -3
     },
     "adopted_child": {
         "label": "Adopted a child",
@@ -2702,7 +2779,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "welcomed_sibling": {
         "label": "Welcomed a sibling",
@@ -2722,7 +2800,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "named_baby": {
         "label": "Named the baby",
@@ -2742,7 +2821,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "hosted_family_reunion": {
         "label": "Hosted a family reunion",
@@ -2765,7 +2845,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "argued_with_sibling": {
         "label": "Argued with a sibling",
@@ -2788,7 +2869,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "reconciled_with_sibling": {
         "label": "Reconciled with a sibling",
@@ -2811,7 +2893,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "took_in_aging_parent": {
         "label": "Took in an aging parent",
@@ -2831,7 +2914,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "taken_in_by_relatives": {
         "label": "Was taken in by relatives",
@@ -2851,7 +2935,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_estranged": {
         "label": "Became estranged from family",
@@ -2873,7 +2958,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "reconnected_with_relative": {
         "label": "Reconnected with an estranged relative",
@@ -2896,7 +2982,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "taught_child_to_ride_bike": {
         "label": "Taught a child to ride a bike",
@@ -2926,7 +3013,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "read_bedtime_story": {
         "label": "Read a bedtime story",
@@ -2949,7 +3037,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "grounded_child": {
         "label": "Grounded a child",
@@ -2979,7 +3068,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "was_grounded": {
         "label": "Was grounded",
@@ -2999,7 +3089,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_the_talk": {
         "label": "Had \"the talk\" with a child",
@@ -3021,7 +3112,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "celebrated_childs_birthday": {
         "label": "Celebrated a child's birthday",
@@ -3041,7 +3133,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "enrolled_child_in_school": {
         "label": "Enrolled a child in school",
@@ -3061,7 +3154,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "watched_child_graduate": {
         "label": "Watched a child graduate",
@@ -3081,7 +3175,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "walked_child_down_aisle": {
         "label": "Walked a child down the aisle",
@@ -3101,7 +3196,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_aunt_or_uncle": {
         "label": "Became an aunt or uncle",
@@ -3121,7 +3217,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "met_new_in_law": {
         "label": "Met a new in-law",
@@ -3141,7 +3238,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "inherited_heirloom": {
         "label": "Inherited a family heirloom",
@@ -3161,7 +3259,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "started_family_tradition": {
         "label": "Started a family tradition",
@@ -3183,7 +3282,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_family_game_night": {
         "label": "Had a family game night",
@@ -3206,7 +3306,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "was_scolded": {
         "label": "Was scolded by parents",
@@ -3229,7 +3330,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "helped_with_homework": {
         "label": "Helped a child with homework",
@@ -3259,7 +3361,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "passed_away": {
         "label": "Passed away",
@@ -3291,7 +3394,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "died_in_accident": {
         "label": "Died in an accident",
@@ -3320,7 +3424,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "died_in_sleep": {
         "label": "Died peacefully in their sleep",
@@ -3351,7 +3456,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "lost_spouse": {
         "label": "Lost a spouse",
@@ -3380,7 +3486,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "lost_parent": {
         "label": "Lost a parent",
@@ -3409,7 +3516,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -3
     },
     "lost_child": {
         "label": "Lost a child",
@@ -3438,7 +3546,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -3
     },
     "lost_close_friend": {
         "label": "Lost a close friend",
@@ -3467,7 +3576,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "attended_funeral": {
         "label": "Attended a funeral",
@@ -3496,7 +3606,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "delivered_eulogy": {
         "label": "Delivered a eulogy",
@@ -3525,7 +3636,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "wrote_will": {
         "label": "Wrote a will",
@@ -3557,7 +3669,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "updated_will": {
         "label": "Updated their will",
@@ -3589,7 +3702,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "inherited_estate": {
         "label": "Inherited an estate",
@@ -3618,7 +3732,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "named_in_will": {
         "label": "Was named in a will",
@@ -3647,7 +3762,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "had_near_death_experience": {
         "label": "Had a near-death experience",
@@ -3679,7 +3795,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "survived_heart_attack": {
         "label": "Survived a heart attack",
@@ -3711,7 +3828,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "had_health_scare": {
         "label": "Had a health scare",
@@ -3743,7 +3861,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "made_peace_with_rival": {
         "label": "Made peace with an old rival",
@@ -3774,7 +3893,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "planned_own_funeral": {
         "label": "Planned their own funeral",
@@ -3805,7 +3925,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "visited_grave": {
         "label": "Visited a grave",
@@ -3837,7 +3958,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "mourned_loss_anniversary": {
         "label": "Mourned the anniversary of a loss",
@@ -3866,7 +3988,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "became_widowed": {
         "label": "Became widowed",
@@ -3895,7 +4018,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -3
     },
     "scattered_ashes": {
         "label": "Scattered a loved one's ashes",
@@ -3924,7 +4048,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "received_terminal_diagnosis": {
         "label": "Received a terminal diagnosis",
@@ -3956,7 +4081,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -3
     },
     "outlived_prognosis": {
         "label": "Outlived the doctor's prognosis",
@@ -3987,7 +4113,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "said_final_goodbyes": {
         "label": "Said final goodbyes",
@@ -4016,7 +4143,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "got_job": {
         "label": "Got a job",
@@ -4141,7 +4269,8 @@
                 "signal": "promoted",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": 2
     },
     "got_demoted": {
         "label": "Got demoted",
@@ -5159,7 +5288,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "first_day_of_school": {
         "label": "Had a first day of school",
@@ -5188,7 +5318,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_to_read": {
         "label": "Learned to read",
@@ -5220,7 +5351,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_to_write": {
         "label": "Learned to write",
@@ -5249,7 +5381,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "passed_exam": {
         "label": "Passed an exam",
@@ -5286,7 +5419,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "failed_exam": {
         "label": "Failed an exam",
@@ -5323,7 +5457,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "aced_final": {
         "label": "Aced a final",
@@ -5360,7 +5495,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pulled_all_nighter": {
         "label": "Pulled an all-nighter studying",
@@ -5392,7 +5528,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "caught_cheating_on_test": {
         "label": "Was caught cheating on a test",
@@ -5429,7 +5566,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_spelling_bee": {
         "label": "Won the spelling bee",
@@ -5461,7 +5599,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "made_honor_roll": {
         "label": "Made the honor roll",
@@ -5490,7 +5629,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "held_back_a_year": {
         "label": "Was held back a year",
@@ -5521,7 +5661,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "skipped_grade": {
         "label": "Skipped a grade",
@@ -5552,7 +5693,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "graduated_school": {
         "label": "Graduated school",
@@ -5584,7 +5726,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "dropped_out": {
         "label": "Dropped out of school",
@@ -5616,7 +5759,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "went_back_to_school": {
         "label": "Went back to school",
@@ -5647,7 +5791,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "enrolled_in_trade_school": {
         "label": "Enrolled in trade school",
@@ -5679,7 +5824,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "graduated_nursing_school": {
         "label": "Graduated nursing school",
@@ -5711,7 +5857,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_new_skill": {
         "label": "Learned a new skill",
@@ -5748,7 +5895,8 @@
             "from": {
                 "type": "string"
             }
-        }
+        },
+        "valence": 1
     },
     "got_scholarship": {
         "label": "Got a scholarship",
@@ -5780,7 +5928,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "gave_valedictorian_speech": {
         "label": "Gave the valedictorian speech",
@@ -5809,7 +5958,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "joined_debate_club": {
         "label": "Joined the debate club",
@@ -5840,7 +5990,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_science_fair": {
         "label": "Won the science fair",
@@ -5872,7 +6023,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_detention": {
         "label": "Got detention",
@@ -5904,7 +6056,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "skipped_class": {
         "label": "Skipped class",
@@ -5936,7 +6089,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "favorite_teacher_retired": {
         "label": "Saw a favorite teacher retire",
@@ -5965,7 +6119,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "finished_apprenticeship": {
         "label": "Finished an apprenticeship",
@@ -5997,7 +6152,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "took_evening_course": {
         "label": "Took an evening course",
@@ -6029,7 +6185,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "earned_certificate": {
         "label": "Earned a certificate",
@@ -6061,7 +6218,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "blanked_on_test": {
         "label": "Blanked on a test",
@@ -6097,7 +6255,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_paid": {
         "label": "Got paid",
@@ -7065,7 +7224,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "drifted_apart": {
         "label": "Drifted apart from a friend",
@@ -7110,7 +7270,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_falling_out": {
         "label": "Had a falling out",
@@ -7155,7 +7316,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "buried_the_hatchet": {
         "label": "Buried the hatchet",
@@ -7200,7 +7362,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "threw_party": {
         "label": "Threw a party",
@@ -7245,7 +7408,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "attended_party": {
         "label": "Attended a party",
@@ -7290,7 +7454,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "was_life_of_party": {
         "label": "Was the life of the party",
@@ -7310,7 +7475,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "embarrassed_at_party": {
         "label": "Embarrassed themselves at a party",
@@ -7355,7 +7521,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "was_not_invited": {
         "label": "Wasn't invited",
@@ -7399,7 +7566,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_stood_up": {
         "label": "Got stood up",
@@ -7444,7 +7612,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ran_into_old_friend": {
         "label": "Ran into an old friend",
@@ -7489,7 +7658,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "caught_up_over_coffee": {
         "label": "Caught up over coffee",
@@ -7534,7 +7704,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "received_surprise_visit": {
         "label": "Received a surprise visit",
@@ -7579,7 +7750,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "gave_gift": {
         "label": "Gave a gift",
@@ -7599,7 +7771,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "received_gift": {
         "label": "Received a gift",
@@ -7624,7 +7797,8 @@
             "from": {
                 "type": "string"
             }
-        }
+        },
+        "valence": 1
     },
     "regifted_present": {
         "label": "Re-gifted a present",
@@ -7668,7 +7842,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "was_gossiped_about": {
         "label": "Was gossiped about",
@@ -7713,7 +7888,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "spread_rumor": {
         "label": "Spread a rumor",
@@ -7758,7 +7934,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "apologized_first": {
         "label": "Apologized first",
@@ -7803,7 +7980,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_argument": {
         "label": "Won an argument",
@@ -7823,7 +8001,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "lost_argument": {
         "label": "Lost an argument",
@@ -7843,7 +8022,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "made_frenemy": {
         "label": "Made a frenemy",
@@ -7887,7 +8067,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "joined_friend_group": {
         "label": "Joined a friend group",
@@ -7931,7 +8112,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "excluded_from_group": {
         "label": "Was excluded from the group",
@@ -7975,7 +8157,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "hosted_dinner_party": {
         "label": "Hosted a dinner party",
@@ -8020,7 +8203,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_heart_to_heart": {
         "label": "Had a heart-to-heart",
@@ -8065,7 +8249,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "kept_secret": {
         "label": "Kept a friend's secret",
@@ -8109,7 +8294,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "let_slip_secret": {
         "label": "Let slip a secret",
@@ -8153,7 +8339,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_pen_pals": {
         "label": "Became pen pals",
@@ -8197,7 +8384,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_nickname": {
         "label": "Got a nickname",
@@ -8241,7 +8429,8 @@
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "moved_into_new_home": {
         "label": "Moved into a new home",
@@ -8331,7 +8520,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "became_homeless": {
         "label": "Became homeless",
@@ -8360,7 +8550,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": -3
     },
     "got_back_on_feet": {
         "label": "Got back on their feet",
@@ -8389,7 +8580,8 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "valence": 2
     },
     "bought_first_home": {
         "label": "Bought a first home",
@@ -9146,7 +9338,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_speeding_ticket": {
         "label": "Got a speeding ticket",
@@ -9178,7 +9371,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "contested_ticket": {
         "label": "Contested a ticket",
@@ -9210,7 +9404,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "won_small_claims": {
         "label": "Won in small-claims court",
@@ -9242,7 +9437,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "lost_small_claims": {
         "label": "Lost in small-claims court",
@@ -9274,7 +9470,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "sued_by_neighbor": {
         "label": "Was sued by a neighbor",
@@ -9306,7 +9503,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "sued_business": {
         "label": "Sued a business",
@@ -9337,7 +9535,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "served_jury_duty": {
         "label": "Served jury duty",
@@ -9369,7 +9568,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "called_as_witness": {
         "label": "Was called as a witness",
@@ -9398,7 +9598,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "signed_contract": {
         "label": "Signed a contract",
@@ -9427,7 +9628,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "was_scammed": {
         "label": "Was scammed",
@@ -9459,7 +9661,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "reported_scam": {
         "label": "Reported a scam",
@@ -9488,7 +9691,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "filed_noise_complaint": {
         "label": "Filed a noise complaint",
@@ -9520,7 +9724,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "received_noise_complaint": {
         "label": "Received a noise complaint",
@@ -9549,7 +9754,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_permit_approved": {
         "label": "Got a permit approved",
@@ -9578,7 +9784,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "permit_denied": {
         "label": "Had a permit denied",
@@ -9607,7 +9814,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "fined_by_city": {
         "label": "Was fined by the city",
@@ -9639,7 +9847,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "notarized_document": {
         "label": "Notarized a document",
@@ -9671,7 +9880,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "changed_legal_name": {
         "label": "Changed their legal name",
@@ -9702,7 +9912,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "disputed_inheritance": {
         "label": "Disputed an inheritance",
@@ -9733,7 +9944,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "settled_out_of_court": {
         "label": "Settled out of court",
@@ -9764,7 +9976,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "bailed_out_friend": {
         "label": "Bailed a friend out",
@@ -9793,7 +10006,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "was_wrongly_accused": {
         "label": "Was wrongly accused",
@@ -9824,7 +10038,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "cleared_of_charges": {
         "label": "Was cleared of charges",
@@ -9853,7 +10068,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "updated_insurance": {
         "label": "Updated their insurance",
@@ -9885,7 +10101,8 @@
         "limit": {
             "withinTicks": 2880
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "took_up_painting": {
         "label": "Took up painting",
@@ -11541,7 +11758,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "said_first_word": {
         "label": "Said a first word",
@@ -11564,7 +11782,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "celebrated_birthday": {
         "label": "Celebrated a birthday",
@@ -11584,7 +11803,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "turned_18": {
         "label": "Turned 18",
@@ -11604,7 +11824,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "turned_30": {
         "label": "Turned 30",
@@ -11624,7 +11845,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "turned_50": {
         "label": "Turned 50",
@@ -11644,7 +11866,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "turned_100": {
         "label": "Turned 100",
@@ -11664,7 +11887,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_drivers_license": {
         "label": "Got a driver's license",
@@ -11696,7 +11920,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "failed_driving_test": {
         "label": "Failed the driving test",
@@ -11728,7 +11953,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "bought_first_car": {
         "label": "Bought a first car",
@@ -11760,7 +11986,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "cast_first_vote": {
         "label": "Cast a first vote",
@@ -11780,7 +12007,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "earned_first_paycheck": {
         "label": "Earned a first paycheck",
@@ -11800,7 +12028,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_midlife_crisis": {
         "label": "Had a midlife crisis",
@@ -11823,7 +12052,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "reinvented_themselves": {
         "label": "Reinvented themselves",
@@ -11845,7 +12075,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "left_home_first_time": {
         "label": "Left home for the first time",
@@ -11865,7 +12096,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_grandparent": {
         "label": "Became a grandparent",
@@ -11885,7 +12117,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_great_grandparent": {
         "label": "Became a great-grandparent",
@@ -11905,7 +12138,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "celebrated_silver_anniversary": {
         "label": "Celebrated a silver anniversary",
@@ -11925,7 +12159,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "celebrated_golden_anniversary": {
         "label": "Celebrated a golden anniversary",
@@ -11945,7 +12180,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "reached_retirement_age": {
         "label": "Reached retirement age",
@@ -11965,7 +12201,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ten_years_in_town": {
         "label": "Marked ten years in town",
@@ -11985,7 +12222,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "checked_bucket_list_item": {
         "label": "Checked off a bucket-list item",
@@ -12008,7 +12246,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "wrote_bucket_list": {
         "label": "Wrote a bucket list",
@@ -12030,7 +12269,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_to_swim": {
         "label": "Learned to swim",
@@ -12053,7 +12293,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "broke_arm": {
         "label": "Broke an arm",
@@ -12076,7 +12317,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "broke_leg": {
         "label": "Broke a leg",
@@ -12099,7 +12341,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "twisted_knee": {
         "label": "Twisted a knee",
@@ -12121,7 +12364,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "slipped_on_ice": {
         "label": "Slipped on ice",
@@ -12144,7 +12388,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "fell_off_ladder": {
         "label": "Fell off a ladder",
@@ -12167,7 +12412,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "fell_down_stairs": {
         "label": "Fell down the stairs",
@@ -12190,7 +12436,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "cut_finger_cooking": {
         "label": "Cut a finger cooking",
@@ -12213,7 +12460,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "burned_hand_on_stove": {
         "label": "Burned a hand on the stove",
@@ -12236,7 +12484,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_paper_cut": {
         "label": "Got a paper cut",
@@ -12259,7 +12508,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "stubbed_toe": {
         "label": "Stubbed a toe",
@@ -12282,7 +12532,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "stung_by_bee": {
         "label": "Was stung by a bee",
@@ -12305,7 +12556,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "bitten_by_dog": {
         "label": "Was bitten by a dog",
@@ -12328,7 +12580,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "crashed_car": {
         "label": "Crashed the car",
@@ -12360,7 +12613,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_fender_bender": {
         "label": "Had a fender bender",
@@ -12383,7 +12637,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "hit_by_cyclist": {
         "label": "Was hit by a cyclist",
@@ -12406,7 +12661,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "near_miss_crossing": {
         "label": "Nearly got hit crossing the street",
@@ -12429,7 +12685,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "tripped_over_pet": {
         "label": "Tripped over the pet",
@@ -12469,7 +12726,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "dropped_phone_in_toilet": {
         "label": "Dropped the phone in the toilet",
@@ -12491,7 +12749,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_concussion": {
         "label": "Got a concussion",
@@ -12514,7 +12773,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "choked_on_food": {
         "label": "Choked on food",
@@ -12537,7 +12797,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "set_off_smoke_alarm": {
         "label": "Set off the smoke alarm",
@@ -12560,7 +12821,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "started_kitchen_fire": {
         "label": "Started a small kitchen fire",
@@ -12583,7 +12845,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "shocked_by_outlet": {
         "label": "Was shocked by an outlet",
@@ -12606,7 +12869,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "sprained_wrist": {
         "label": "Sprained a wrist",
@@ -12629,7 +12893,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "got_something_in_eye": {
         "label": "Got something in their eye",
@@ -12651,7 +12916,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "walked_into_glass_door": {
         "label": "Walked into a glass door",
@@ -12674,7 +12940,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "recovered_from_injury": {
         "label": "Recovered from an injury",
@@ -12697,7 +12964,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "had_workplace_near_miss": {
         "label": "Had a near-miss at work",
@@ -12729,7 +12997,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "was_pickpocketed": {
         "label": "Was pickpocketed",
@@ -14163,7 +14432,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "visited_by_tooth_fairy": {
         "label": "Was visited by the tooth fairy",
@@ -14192,7 +14462,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_to_ride_bike": {
         "label": "Learned to ride a bike",
@@ -14246,7 +14517,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fell_off_bike": {
         "label": "Fell off the bike",
@@ -14300,7 +14572,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_to_tie_shoes": {
         "label": "Learned to tie shoelaces",
@@ -14353,7 +14626,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "built_blanket_fort": {
         "label": "Built a blanket fort",
@@ -14407,7 +14681,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_imaginary_friend": {
         "label": "Had an imaginary friend",
@@ -14460,7 +14735,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "outgrew_imaginary_friend": {
         "label": "Outgrew the imaginary friend",
@@ -14513,7 +14789,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "made_recess_best_friend": {
         "label": "Made a best friend at recess",
@@ -14572,7 +14849,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_game_of_tag": {
         "label": "Won a game of tag",
@@ -14626,7 +14904,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "scraped_knee": {
         "label": "Scraped a knee",
@@ -14680,7 +14959,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "climbed_tree": {
         "label": "Climbed a tree",
@@ -14734,7 +15014,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_stuck_in_tree": {
         "label": "Got stuck in a tree",
@@ -14788,7 +15069,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "caught_fireflies": {
         "label": "Caught fireflies",
@@ -14842,7 +15124,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_growth_spurt": {
         "label": "Had a growth spurt",
@@ -14896,7 +15179,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_braces": {
         "label": "Got braces",
@@ -14949,7 +15233,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_braces_off": {
         "label": "Got the braces off",
@@ -14978,7 +15263,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "went_trick_or_treating": {
         "label": "Went trick-or-treating",
@@ -15032,7 +15318,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "believed_town_legend": {
         "label": "Believed in the town legend",
@@ -15085,7 +15372,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_first_sleepover": {
         "label": "Had a first sleepover",
@@ -15139,7 +15427,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_homesick": {
         "label": "Got homesick at a sleepover",
@@ -15193,7 +15482,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_sandcastle_contest": {
         "label": "Won a sandcastle contest",
@@ -15246,7 +15536,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_to_whistle": {
         "label": "Learned to whistle",
@@ -15299,7 +15590,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "lost_balloon": {
         "label": "Lost a balloon to the sky",
@@ -15353,7 +15645,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_first_crush": {
         "label": "Had a first crush",
@@ -15407,7 +15700,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "passed_note_in_class": {
         "label": "Passed a note in class",
@@ -15461,7 +15755,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "picked_last_for_team": {
         "label": "Was picked last for the team",
@@ -15515,7 +15810,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "picked_first_for_team": {
         "label": "Was picked first for the team",
@@ -15569,7 +15865,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ran_lemonade_stand": {
         "label": "Ran a lemonade stand",
@@ -15623,7 +15920,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "earned_later_bedtime": {
         "label": "Earned a later bedtime",
@@ -15676,7 +15974,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "found_first_gray_hair": {
         "label": "Found a first gray hair",
@@ -16574,7 +16873,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ran_for_council": {
         "label": "Ran for town council",
@@ -16627,7 +16927,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_council_seat": {
         "label": "Won a council seat",
@@ -16656,7 +16957,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "lost_election": {
         "label": "Lost an election",
@@ -16685,7 +16987,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "volunteered_at_shelter": {
         "label": "Volunteered at a shelter",
@@ -16739,7 +17042,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "organized_food_drive": {
         "label": "Organized a food drive",
@@ -16792,7 +17096,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "donated_to_charity": {
         "label": "Donated to charity",
@@ -16846,7 +17151,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "attended_town_meeting": {
         "label": "Attended a town meeting",
@@ -16900,7 +17206,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "spoke_at_town_meeting": {
         "label": "Spoke up at a town meeting",
@@ -16953,7 +17260,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "joined_neighborhood_watch": {
         "label": "Joined the neighborhood watch",
@@ -17006,7 +17314,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "attended_town_fair": {
         "label": "Attended the town fair",
@@ -17060,7 +17369,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_pie_eating_contest": {
         "label": "Won the pie-eating contest",
@@ -17114,7 +17424,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "judged_baking_contest": {
         "label": "Judged the baking contest",
@@ -17168,7 +17479,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "helped_stranger": {
         "label": "Helped a stranger",
@@ -17221,7 +17533,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "helped_by_stranger": {
         "label": "Was helped by a stranger",
@@ -17274,7 +17587,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "gave_directions": {
         "label": "Gave directions to a newcomer",
@@ -17328,7 +17642,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "shoveled_neighbors_walk": {
         "label": "Shoveled a neighbor's walk",
@@ -17382,7 +17697,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fed_neighborhood_cats": {
         "label": "Fed the neighborhood cats",
@@ -17436,7 +17752,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_neighbor_dispute": {
         "label": "Had a dispute with a neighbor",
@@ -17489,7 +17806,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "settled_neighbor_dispute": {
         "label": "Settled a neighbor dispute",
@@ -17542,7 +17860,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "borrowed_cup_of_sugar": {
         "label": "Borrowed a cup of sugar",
@@ -17596,7 +17915,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "lent_lawnmower": {
         "label": "Lent out the lawnmower",
@@ -17650,7 +17970,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "lawnmower_never_returned": {
         "label": "Never got the lawnmower back",
@@ -17703,7 +18024,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "joined_choir": {
         "label": "Joined the church choir",
@@ -17756,7 +18078,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "planted_town_tree": {
         "label": "Planted a tree downtown",
@@ -17785,7 +18108,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "cleaned_up_park": {
         "label": "Cleaned up the park",
@@ -17839,7 +18163,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_local_legend": {
         "label": "Became a local legend",
@@ -17892,7 +18217,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "photo_in_local_paper": {
         "label": "Got their photo in the paper",
@@ -17921,7 +18247,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "bought_new_couch": {
         "label": "Bought a new couch",
@@ -21387,7 +21714,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 2
     },
     "adopted_cat": {
         "label": "Adopted a cat",
@@ -21432,7 +21760,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 2
     },
     "adopted_goldfish": {
         "label": "Adopted a goldfish",
@@ -21477,7 +21806,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "named_pet": {
         "label": "Named the new pet",
@@ -21497,7 +21827,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_learned_trick": {
         "label": "Taught the pet a trick",
@@ -21559,7 +21890,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_failed_obedience": {
         "label": "Saw the pet fail obedience school",
@@ -21621,7 +21953,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "walked_dog": {
         "label": "Walked the dog",
@@ -21673,7 +22006,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "dog_walked_them": {
         "label": "Was walked by the dog",
@@ -21724,7 +22058,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_ran_away": {
         "label": "Had a pet run away",
@@ -21786,7 +22121,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_came_back": {
         "label": "Had the pet come back",
@@ -21838,7 +22174,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "put_up_lost_pet_posters": {
         "label": "Put up lost-pet posters",
@@ -21858,7 +22195,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "found_lost_pet": {
         "label": "Found someone's lost pet",
@@ -21902,7 +22240,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_got_sick": {
         "label": "Had a pet fall sick",
@@ -21964,7 +22303,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "took_pet_to_vet": {
         "label": "Took the pet to the vet",
@@ -22026,7 +22366,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_recovered": {
         "label": "Saw the pet recover",
@@ -22046,7 +22387,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_passed_away": {
         "label": "Lost a pet",
@@ -22108,7 +22450,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": -2
     },
     "buried_pet_in_yard": {
         "label": "Buried a pet in the yard",
@@ -22128,7 +22471,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_had_litter": {
         "label": "Had a pet have a litter",
@@ -22189,7 +22533,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "gave_away_kittens": {
         "label": "Gave away kittens",
@@ -22209,7 +22554,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "cat_brought_gift": {
         "label": "Received a \"gift\" from the cat",
@@ -22260,7 +22606,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "dog_ate_homework": {
         "label": "Had the dog eat the homework",
@@ -22322,7 +22669,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_destroyed_couch": {
         "label": "Had the pet destroy the couch",
@@ -22383,7 +22731,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "built_doghouse": {
         "label": "Built a doghouse",
@@ -22403,7 +22752,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "taught_parrot_word": {
         "label": "Taught the parrot a word",
@@ -22448,7 +22798,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "parrot_embarrassed_them": {
         "label": "Was embarrassed by the parrot",
@@ -22492,7 +22843,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "entered_pet_show": {
         "label": "Entered the pet in a show",
@@ -22554,7 +22906,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "pet_won_ribbon": {
         "label": "Saw the pet win a ribbon",
@@ -22607,7 +22960,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fell_asleep_with_cat": {
         "label": "Fell asleep with the cat",
@@ -22659,7 +23013,8 @@
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "cooked_meal": {
         "label": "Cooked a meal",
@@ -22704,7 +23059,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "burned_dinner": {
         "label": "Burned dinner",
@@ -22749,7 +23105,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "tried_new_recipe": {
         "label": "Tried a new recipe",
@@ -22794,7 +23151,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "recipe_disaster": {
         "label": "Had a recipe turn out a disaster",
@@ -22814,7 +23172,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "recipe_became_favorite": {
         "label": "Found a new favorite recipe",
@@ -22834,7 +23193,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "baked_bread": {
         "label": "Baked bread from scratch",
@@ -22879,7 +23239,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "baked_cookies_for_neighbors": {
         "label": "Baked cookies for the neighbors",
@@ -22899,7 +23260,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "perfected_grandmas_recipe": {
         "label": "Perfected grandma's recipe",
@@ -22943,7 +23305,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ate_at_restaurant": {
         "label": "Ate out at a restaurant",
@@ -22988,7 +23351,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "left_big_tip": {
         "label": "Left a big tip",
@@ -23033,7 +23397,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "sent_dish_back": {
         "label": "Sent a dish back",
@@ -23078,7 +23443,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "discovered_favorite_cafe": {
         "label": "Discovered a favorite cafe",
@@ -23123,7 +23489,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "spilled_coffee_on_shirt": {
         "label": "Spilled coffee on a shirt",
@@ -23168,7 +23535,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "skipped_breakfast": {
         "label": "Skipped breakfast",
@@ -23213,7 +23581,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_breakfast_for_dinner": {
         "label": "Had breakfast for dinner",
@@ -23257,7 +23626,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "grew_own_vegetables": {
         "label": "Grew their own vegetables",
@@ -23302,7 +23672,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "ate_questionable_leftover": {
         "label": "Ate a questionable leftover",
@@ -23347,7 +23718,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "regretted_leftover": {
         "label": "Regretted the leftover",
@@ -23367,7 +23739,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "went_grocery_shopping": {
         "label": "Went grocery shopping",
@@ -23412,7 +23785,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "forgot_shopping_list": {
         "label": "Forgot the shopping list",
@@ -23456,7 +23830,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fridge_went_empty": {
         "label": "Ran out of groceries",
@@ -23476,7 +23851,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "hosted_barbecue": {
         "label": "Hosted a barbecue",
@@ -23521,7 +23897,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_chili_cookoff": {
         "label": "Won the chili cook-off",
@@ -23566,7 +23943,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "gave_up_sweets": {
         "label": "Gave up sweets",
@@ -23610,7 +23988,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "broke_sweets_fast": {
         "label": "Broke the sweets fast",
@@ -23654,7 +24033,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "tried_exotic_food": {
         "label": "Tried something exotic",
@@ -23699,7 +24079,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "found_hair_in_soup": {
         "label": "Found a hair in the soup",
@@ -23744,7 +24125,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_chopsticks": {
         "label": "Learned to use chopsticks",
@@ -23788,7 +24170,8 @@
         "limit": {
             "withinTicks": 168
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "had_great_day": {
         "label": "Had a great day",
@@ -24441,7 +24824,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "finished_first_5k": {
         "label": "Finished a first 5K",
@@ -24473,7 +24857,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "set_personal_best": {
         "label": "Set a personal best",
@@ -24505,7 +24890,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_trivia_night": {
         "label": "Won trivia night",
@@ -24537,7 +24923,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_karaoke_contest": {
         "label": "Won the karaoke contest",
@@ -24569,7 +24956,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "perfect_attendance_award": {
         "label": "Got a perfect attendance award",
@@ -24598,7 +24986,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "earned_black_belt": {
         "label": "Earned a black belt",
@@ -24630,7 +25019,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "broke_town_record": {
         "label": "Broke a town record",
@@ -24661,7 +25051,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "citizen_of_the_year": {
         "label": "Was named citizen of the year",
@@ -24690,7 +25081,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "won_gardening_prize": {
         "label": "Won a gardening prize",
@@ -24722,7 +25114,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "solved_crossword_in_ink": {
         "label": "Solved the crossword in ink",
@@ -24753,7 +25146,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "beat_high_score": {
         "label": "Beat their high score",
@@ -24785,7 +25179,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "learned_language": {
         "label": "Learned a language",
@@ -24816,7 +25211,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "held_breath_longest": {
         "label": "Held their breath the longest",
@@ -24848,7 +25244,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "bowled_perfect_game": {
         "label": "Bowled a perfect game",
@@ -24880,7 +25277,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "got_standing_ovation": {
         "label": "Got a standing ovation",
@@ -24909,7 +25307,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "framed_first_dollar": {
         "label": "Framed their first dollar",
@@ -24938,7 +25337,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "opened_own_business": {
         "label": "Opened their own business",
@@ -24970,7 +25370,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "business_turned_profit": {
         "label": "Saw the business turn a profit",
@@ -24999,7 +25400,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "business_went_under": {
         "label": "Saw the business go under",
@@ -25028,7 +25430,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "hired_first_employee": {
         "label": "Hired their first employee",
@@ -25057,7 +25460,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "paid_off_mortgage": {
         "label": "Paid off the mortgage",
@@ -25086,7 +25490,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "fixed_the_unfixable": {
         "label": "Fixed something unfixable",
@@ -25117,7 +25522,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "quoted_in_newspaper": {
         "label": "Was quoted in the newspaper",
@@ -25148,7 +25554,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "finished_todo_list": {
         "label": "Finally finished the to-do list",
@@ -25179,7 +25586,8 @@
         "limit": {
             "once": "ever"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "school_day_started": {
         "label": "Went to school",
@@ -25199,7 +25607,8 @@
         "limit": {
             "once": "perDay"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "completed_school_day": {
         "label": "Attended a school day",
@@ -25227,7 +25636,8 @@
         "limit": {
             "once": "perDay"
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "object_acquired": {
         "label": "Acquired an object",
@@ -25370,7 +25780,8 @@
                 "type": "string"
             }
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "action_failed": {
         "label": "Failed at something",
@@ -25396,7 +25807,8 @@
                 "type": "string"
             }
         },
-        "effects": []
+        "effects": [],
+        "valence": -1
     },
     "received_a_hug": {
         "label": "Received a hug",
@@ -25418,7 +25830,8 @@
                 "type": "string"
             }
         },
-        "effects": []
+        "effects": [],
+        "valence": 1
     },
     "became_close_friends": {
         "label": "Became close friends",
@@ -25446,6 +25859,7 @@
                 "signal": "madeFriend",
                 "target": "subject"
             }
-        ]
+        ],
+        "valence": 2
     }
 }

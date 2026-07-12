@@ -26,7 +26,7 @@ const DISCRIMINANT_ATTRS = new Set(['alive', 'gender', 'marital', 'employed']);
 
 // Exported so the data validators (game/data/validators/events.ts, task 039) share the same closed attribute
 // vocabulary — a setAttr targeting an attribute outside this list is an authoring error, not a new feature.
-export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'wantsMoreChildren', 'health', 'retired', 'hourOfDay'];
+export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'wantsMoreChildren', 'health', 'retired', 'hourOfDay', 'mood'];
 
 // One hard conjunctive comparison on a subject discriminant attribute, kept in the predicate's own node
 // shape so the runtime evaluates it with the predicate evaluator's exact compare semantics.

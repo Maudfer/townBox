@@ -22,6 +22,7 @@ import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/va
 import {
     validateArbitrationStructure,
     validateInventoryTuningStructure,
+    validateMoodStructure,
     validateHistoryGeneratorStructure,
     validateEconomyStructure,
     validateHouseholdDrawStructure,
@@ -55,6 +56,7 @@ import inventoryConfig from 'json/inventory.json';
 import jobsConfig from 'json/jobs.json';
 import lifeSimulationConfig from 'json/lifeSimulation.json';
 import materialsConfig from 'json/materials.json';
+import moodConfig from 'json/mood.json';
 import needsConfig from 'json/needs.json';
 import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
@@ -103,6 +105,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'needs', version: 1, data: needsConfig, validateStructure: validateNeedsStructure, validateSemantics: validateNeedsSemantics },
         { name: 'arbitration', version: 1, data: arbitrationConfig, validateStructure: validateArbitrationStructure },
         { name: 'inventoryTuning', version: 1, data: inventoryConfig, validateStructure: validateInventoryTuningStructure },
+        { name: 'mood', version: 1, data: moodConfig, validateStructure: validateMoodStructure },
         { name: 'traits', version: 1, data: traitsConfig, validateStructure: validateTraitsStructure, validateSemantics: validateTraitsSemantics },
         { name: 'routines', version: 1, data: routinesConfig, validateStructure: validateRoutinesStructure, validateSemantics: validateRoutinesSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
