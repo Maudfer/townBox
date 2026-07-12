@@ -4,15 +4,21 @@
         "ESNext",
         "dom"
       ],
-      
+      // Ambient global type packages. TS 6.0 no longer auto-includes every @types/* package into the
+      // global scope, so name the ones that provide GLOBALS explicitly: node (Buffer, node: builtins in
+      // scripts/) and jest (describe/expect/test in tests). Imported types (d3, pako, uuid, react) resolve
+      // through their import statements and don't need listing here. This also keeps editors (pinned to
+      // the workspace TS) resolving node globals in scripts/ — no more "Cannot find name 'node:fs'".
+      "types": ["node", "jest"],
+
       "jsx": "react-jsx",
       "outDir": "dist",
       "removeComments": false, // Strips all comments from TypeScript files when converting into JavaScript
       "target": "ES6", // Target environment. Most modern browsers support ES6, but you may want to set it to newer or older. (defaults to ES3)
       "skipLibCheck": true, // Skip type checking of all declaration files (*.d.ts)
 
-      // Module resolution
-      "baseUrl": ".",
+      // Module resolution. No `baseUrl` (deprecated in TS 6.0/removed in 7.0) — `paths` resolve relative
+      // to this tsconfig, so the aliases below work without it.
       "paths": {
         "game/*": ["./src/app/game/*"],
         "hud/*": ["./src/app/hud/*"],
@@ -22,7 +28,7 @@
         "css/*": ["./src/css/*"],
       },
       "module": "ES2020", // ES module output so `import.meta` (Web Worker URL, task 036) is permitted; Parcel bundles, and ts-jest overrides this to CommonJS for the Node test runner (see jest.config.js)
-      "moduleResolution": "node", // how modules get resolved. Node is the most common
+      "moduleResolution": "bundler", // Parcel bundles the app; "bundler" is the modern replacement for the deprecated "node" (node10) and resolves the path aliases + package exports correctly
       "esModuleInterop": true, // fixes some issues TS originally had with the ES6 spec where TypeScript treats CommonJS/AMD/UMD modules similar to ES6 module
       "resolveJsonModule": true, // allows importing JSON files as modules
   
@@ -46,6 +52,7 @@
     
     "include": ["./**/*.ts", "src/app/main.tsx"],
     "exclude": [
-      "node_modules/**/*"
+      "node_modules/**/*",
+      ".claude/**/*"
     ]
   }

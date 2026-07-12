@@ -2,8 +2,8 @@
 // Mostly structural numeric sanity; the load-bearing cross-check is that every `ticksPerYear` mirrors the
 // clock's tick constant — the genealogy tick contract (CLAUDE.md §4.12; hour ticks since task 040).
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkBoolean, checkNumber, checkRecord, checkUnknownKeys } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 import { HouseholdArrangements } from 'types/Household';
 import { TICKS_PER_YEAR } from 'util/time';
 
@@ -95,7 +95,7 @@ export function validateHouseholdDrawStructure(data: unknown, issues: IssueColle
     const weights = data['arrangementWeights'] as Record<string, unknown>;
     let sum = 0;
     for (const [arrangement, weight] of Object.entries(weights)) {
-        if (!DRAWABLE_ARRANGEMENTS.includes(arrangement as HouseholdArrangements)) {
+        if (!(DRAWABLE_ARRANGEMENTS as readonly HouseholdArrangements[]).includes(arrangement as HouseholdArrangements)) {
             // Homeless is reached only via eviction (task 022); it must never be drawable.
             issues.add(`arrangementWeights.${arrangement}`, `not a drawable arrangement (allowed: ${DRAWABLE_ARRANGEMENTS.join(', ')})`);
             continue;

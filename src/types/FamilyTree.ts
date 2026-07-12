@@ -20,7 +20,7 @@ export interface FamilyTree {
     links: Link[];
 }
 
-export type d3Tag = d3.Selection<d3.BaseType, unknown, HTMLElement, any>;
+export type d3Tag = d3.Selection<d3.BaseType, unknown, HTMLElement, unknown>;
 export interface FamilyTreeTags {
     nodesTag: d3Tag;
     linksTag: d3Tag;

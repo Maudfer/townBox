@@ -1,5 +1,3 @@
-import React, { useEffect, useState } from 'react';
-import Icon from '@mdi/react';
 import {
     mdiCursorDefault,
     mdiRoadVariant,
@@ -9,9 +7,11 @@ import {
     mdiBulldozer,
     mdiContentSave,
 } from '@mdi/js';
+import Icon from '@mdi/react';
+import React, { useEffect, useState } from 'react';
 
-import { HUDProps } from 'types/HUD';
 import { Tool } from 'types/Cursor';
+import { HUDProps } from 'types/HUD';
 
 // Toolbar buttons select tools by emitting the `toolSelected` bus event (task 030); MainScene consumes it,
 // and the F1–F6 keys emit the same event, so keyboard and toolbar stay in sync. The active tool is tracked
@@ -31,7 +31,7 @@ const Toolbar: React.FC<HUDProps> = ({ game }) => {
     useEffect(() => {
         game.on('toolSelected', { callback: (tool: Tool) => setActiveTool(tool) });
         return () => game.off('toolSelected');
-    }, []);
+    }, [game]);
 
     return (
         <div className="toolbar glass">

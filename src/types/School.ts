@@ -3,8 +3,8 @@
 // assignment contract and a weekday schedule. School is deliberately NOT modeled as a Job (056 decision):
 // it shares the shift-window shape but differs in progression, compensation, and skill awarding (task 063).
 
-import { Curve } from 'util/curve';
 import { PersonId } from 'types/Genealogy';
+import { Curve } from 'util/curve';
 
 // The city-wide school schedule & enrollment parameters (json/schools.json). One schedule for all schools
 // for now; per-school schedules would slot in here later without changing consumers (they read through

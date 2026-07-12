@@ -1,8 +1,8 @@
-import { FC, useEffect, useState } from 'react';
-import { RndResizeCallback } from 'react-rnd';
 import * as d3 from 'd3';
+import { FC, useEffect, useMemo, useState } from 'react';
+import { RndResizeCallback } from 'react-rnd';
 
-import House from 'game/House';
+import House from 'game/world/House';
 import Window from 'hud/Window';
 import { createFamilyTree } from 'hud/d3/familyTree';
 import { buildGenealogyTree } from 'util/familyGraph';
@@ -23,7 +23,6 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
     const initialSize: WindowSize = { width: INITIAL_WIDTH, height: INITIAL_HEIGHT };
 
     const [size, setSize] = useState<WindowSize>(initialSize);
-    const [familyTree, setFamilyTree] = useState<FamilyTree>()
 
     const svgSize = { width: size.width * 0.8, height: size.height * 0.8 };
 
@@ -51,22 +50,21 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         if (linkLabelsTag) linkLabelsTag.empty();
     }
 
-    useEffect(() => {
+    // Derived (not stored): a snapshot of the tree for the current house/clock. Prefer the genealogy pool
+    // (cross-household tree incl. deceased ancestors); fall back to the residents-only tree when no
+    // pool/household is available (e.g. legacy saves).
+    const familyTree = useMemo<FamilyTree | undefined>(() => {
         if (!house) {
-            return;
+            return undefined;
         }
-
-        // Prefer the genealogy pool (cross-household tree incl. deceased ancestors); fall back to the
-        // residents-only tree when no pool/household is available (e.g. legacy saves).
         const population = game?.population;
         const currentHousehold = house.getHousehold();
         if (population && currentHousehold && currentHousehold.memberIds.length) {
             const placed = new Set(population.getState().placedIds);
             const currentTick = game?.clock?.getCurrentTick() ?? 0;
-            setFamilyTree(buildGenealogyTree(population.getPeople(), currentHousehold.memberIds, currentTick, placed, TREE_DEPTH));
-        } else {
-            setFamilyTree(house.getFamilyTree());
+            return buildGenealogyTree(population.getPeople(), currentHousehold.memberIds, currentTick, placed, TREE_DEPTH);
         }
+        return house.getFamilyTree();
     }, [house, game]);
 
     useEffect(() => {
@@ -92,7 +90,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
             familyTreeGraph?.stop();
             familyTreeGraph?.on('tick', null);
         };
-    }, [size, familyTree]);
+    }, [size, familyTree, nodesSelector, linksSelector, linkLabelsSelector]);
 
     return (
         <Window

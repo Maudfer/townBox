@@ -1,5 +1,5 @@
-import { Curve } from 'util/curve';
 import { JobPosition } from 'types/Work';
+import { Curve } from 'util/curve';
 
 // Engine A (generative blueprints) data model for the procedural simulation framework
 // (docs/tasks/013-procedural-simulation-framework_DONE.md §4, §6). A blueprint describes *how to generate* a

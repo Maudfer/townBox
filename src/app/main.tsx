@@ -13,7 +13,7 @@ const App: FC<{ game: GameManager }> = ({ game }) => {
     useEffect(() => {
         game.on('gameInitialized', { callback: () => setReady(true) });
         return () => game.off('gameInitialized');
-    }, []);
+    }, [game]);
 
     return ready ? <HUD game={game} /> : null;
 };

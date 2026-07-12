@@ -23,7 +23,7 @@ const Feed: FC<FeedProps> = ({ game }) => {
             callback: (event: CityEvent) => setEvents(prev => [event, ...prev].slice(0, MAX_ENTRIES)),
         });
         return () => game.off('cityEvent');
-    }, []);
+    }, [game]);
 
     return (
         <div className="city-feed glass">

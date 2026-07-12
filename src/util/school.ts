@@ -3,9 +3,9 @@
 // the single extension point task 057 reserved: future calendar exceptions (holidays, vacations) compose
 // HERE, so consumers (the Brain hook, progression counting in 063) never re-derive weekday logic.
 
+import { SchoolConfig, SchoolFacts } from 'types/School';
 import { ShiftWindow, isOnShiftAtTick } from 'util/shifts';
 import { dayOfWeekOfDay, dayOfTick, WEEKDAY_NAMES, TICKS_PER_YEAR } from 'util/time';
-import { SchoolConfig, SchoolFacts } from 'types/School';
 
 // School-sourced progression on BASIC skills caps at 60 (tasks 062/063): perfect attendance from the 7th to
 // the 18th birthday lands every basic skill at exactly 60.0. The band above 60 is career/talent territory

@@ -1,19 +1,18 @@
 import { FC, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import Toolbar from 'hud/Toolbar';
-import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
+import City from 'game/City';
+import Person from 'game/agents/Person';
+import House from 'game/world/House';
+import Workplace from 'game/world/Workplace';
 import Clock from 'hud/Clock';
 import Feed from 'hud/Feed';
+import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
+import Toolbar from 'hud/Toolbar';
+import CityDetails from 'hud/windows/CityDetails';
 import HouseDetails from 'hud/windows/HouseDetails';
 import PersonDetails from 'hud/windows/PersonDetails';
 import WorkplaceDetails from 'hud/windows/WorkplaceDetails';
-import CityDetails from 'hud/windows/CityDetails';
-import House from 'game/House';
-import Person from 'game/Person';
-import Workplace from 'game/Workplace';
-import City from 'game/City';
-
 import { HUDProps, WindowData, WindowTypes, WindowPayload } from 'types/HUD';
 
 const TOAST_DURATION_MS = 3200;
@@ -75,7 +74,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
             game.off("WorkplaceSelected");
             game.off("CitySelected");
         };
-    }, []);
+    }, [game]);
 
     useEffect(() => {
         // Toast feedback for save/load. Register listeners BEFORE signalling hudReady so a queued load (title or
@@ -103,7 +102,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
             game.off("loadFailed");
             window.removeEventListener('keydown', onKeyDown);
         };
-    }, []);
+    }, [game]);
 
     return (
         <div className="hud">

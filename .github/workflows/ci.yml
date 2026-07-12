@@ -1,8 +1,14 @@
 name: CI
 
-# Runs on every PR targeting main and on every push to main (post-merge validation), plus manual dispatch.
-# CI only — no deploy/publish steps. These checks are intended to be configured as required status checks on
-# `main` so PRs can't merge red (see docs/tasks/009-github-actions-ci_DONE.md for the branch-protection notes).
+# Runs on every PR targeting main and on every push to main (post-merge validation), plus manual
+# dispatch. CI only — no deploy/publish steps.
+#
+# The suite is split into concurrent, independently-reported checks: a `changes` job detects which
+# test modules a PR touched (path-based skipping), a dynamic `test` matrix runs one job per affected
+# module (each mirrors a src/app/game/<group> folder — see jest.config.js `projects`), a
+# `coverage-gate` merges every module's coverage and enforces the global threshold, and `ci-success`
+# is the single stable aggregate check. Point branch protection's required check at `ci-success`.
+
 on:
   pull_request:
     branches: [main]
@@ -10,50 +16,232 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Cancel superseded runs on the same ref (e.g. a new push to a PR branch).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+permissions:
+  contents: read
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+jobs:
+  # Detect which test modules this change affects. `shared` (foundational code imported everywhere)
+  # fans out to ALL modules — the sim is tightly coupled, so a change to types/util/json/the tick
+  # spine/root orchestrators must run everything. Otherwise a module runs when its own
+  # src/app/game/<group>/ or test/<module>/ changed. Output `modules` is a JSON array consumed by the
+  # dynamic test matrix.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      modules: ${{ steps.detect.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          MODULES="world agents population events actions execution economy skills objects history save data util"
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then BASE="$PR_BASE_SHA"; else BASE="$PUSH_BEFORE_SHA"; fi
+          if [ -z "${BASE:-}" ] || ! git cat-file -e "$BASE" 2>/dev/null; then BASE="HEAD~1"; fi
+          CHANGED=$(git diff --name-only "$BASE" HEAD || true)
+          echo "changed files:"; echo "$CHANGED"
+
+          # Shared foundations → run everything. (Root config, shared types/util/json, the execution
+          # spine, and the root orchestrators GameManager/City/Clock are imported across all modules.)
+          SHARED_RE='^(src/types/|src/util/|src/json/|src/app/game/execution/|src/app/game/GameManager\.ts|src/app/game/City\.ts|src/app/game/Clock\.ts|package\.json|package-lock\.json|tsconfig\.json|jest\.config\.js|\.babelrc|babel\.config\.js|scripts/|\.github/workflows/)'
+
+          SELECTED=""
+          if echo "$CHANGED" | grep -qE "$SHARED_RE"; then
+            SELECTED="$MODULES"
+          else
+            for m in $MODULES; do
+              # util's source lives in the shared src/util (handled above); trigger it only on its tests.
+              if [ "$m" = "util" ]; then
+                echo "$CHANGED" | grep -qE "^test/util/" && SELECTED="$SELECTED $m" || true
+              else
+                echo "$CHANGED" | grep -qE "^(src/app/game/$m/|test/$m/)" && SELECTED="$SELECTED $m" || true
+              fi
+            done
+          fi
+
+          # Emit a JSON array (empty array when nothing test-relevant changed → the test job is skipped).
+          JSON=$(printf '%s\n' $SELECTED | grep -v '^$' | sort -u \
+                 | jq -R . | jq -cs .)
+          echo "selected modules: $JSON"
+          echo "modules=$JSON" >> "$GITHUB_OUTPUT"
+
+  typecheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+      - run: npm ci
+      - run: npm run typecheck
 
-      - name: Install dependencies
-        run: npm ci
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build-prod
 
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Unit tests + coverage gate
-        run: npm run test:coverage
-
-      - name: Production build
-        run: npm run build-prod
-
-      - name: Upload coverage report
+  # Broad "lint & problems" check — reproduces the VS Code Problems panel (ESLint for TS/React/import
+  # hygiene, markdownlint for docs). Both linters run even if the first fails, so all problems surface.
+  # The backlog is cleared, so this is BLOCKING (in `ci-success`'s needs) — keep it green.
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Markdown lint
+        run: npm run lint:md
+      - name: ESLint
         if: always()
+        run: npm run lint:js
+
+  # Unit perf-regression gates for the offline generation spine (the `perf` jest project). Runs on EVERY change
+  # — a per-agent / subcomponent perf regression can originate anywhere in the sim — with --runInBand and NO
+  # coverage (istanbul instrumentation would skew the one timing check). Well under 10s. The gate is
+  # DETERMINISTIC OPERATION COUNTS (util/perfMeter): the sim does identical work per fixed seed on every machine,
+  # so the counts are byte-identical everywhere and are asserted EXACTLY against test/perf/baselines.json — no
+  # drift tolerance, no machine-class caveat, no PERF_ENFORCE flag (it enforces the same on a dev box and here).
+  # A count moves only when the sim's work moves, which forces a conscious re-baseline. generationPerf covers
+  # the whole spine (the sum of parts); regressionGuards pins the specific 078/079 wins (invoke agent-list = 0
+  # scanned, cache-miss counts, instance pruning) plus the ONE exception counts can't see — predicate
+  # precompilation — via a within-run timing RATIO (still machine-independent). BLOCKING (in ci-success needs).
+  # Re-baseline after an intentional perf change: PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf, commit
+  # baselines.json (deterministic, so a local box suffices — CI will match).
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Generation perf-regression gates
+        run: npx jest --selectProjects perf --runInBand
+
+  # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs
+  # with --coverage and uploads its own per-module coverage report (measured by its own tests) for the
+  # `coverage` job to gate.
+  test:
+    needs: changes
+    if: needs.changes.outputs.modules != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.changes.outputs.modules) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run ${{ matrix.module }} tests with coverage
+        run: npx jest --selectProjects ${{ matrix.module }} --coverage --coverageReporters=json --coverageReporters=lcovonly --coverageDirectory coverage
+      - name: Upload ${{ matrix.module }} coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-lcov
-          path: coverage/
+          name: coverage-${{ matrix.module }}
+          path: |
+            coverage/coverage-final.json
+            coverage/lcov.info
           if-no-files-found: ignore
 
-      # Advisory only — surfaces known vulnerabilities without blocking the merge.
-      - name: Dependency audit (advisory)
-        if: always()
+  # Coverage gate: does NOT run tests — it downloads every module's report from the `test` jobs and
+  # fails if ANY module's OWNED-file statement coverage is below COVERAGE_THRESHOLD (jest.config.js,
+  # currently 80%). scripts/coverage-gate.mjs filters each report to the module's own files first —
+  # Jest's collectCoverageFrom is additive, so an unfiltered report is diluted by transitively-required
+  # files from other modules. All modules currently clear 80%, so this is BLOCKING (in ci-success's needs).
+  coverage:
+    needs: [changes, test]
+    if: always() && needs.changes.outputs.modules != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Download module coverage reports
+        uses: actions/download-artifact@v4
+        with:
+          path: coverage-artifacts
+          pattern: coverage-*
         continue-on-error: true
-        run: npm audit --audit-level=high
+      - name: Per-module coverage gate
+        run: node scripts/coverage-gate.mjs coverage-artifacts
 
-  # The Playwright integration suite (task 008) is not implemented yet. When it lands, add a job here that
-  # installs Chromium (`npx playwright install --with-deps chromium`) and runs `npm run test:integration`,
-  # uploading the Playwright report/trace on failure. Kept out for now so CI stays green and fast.
+  # Advisory — surfaces known vulnerabilities without blocking the merge. `--omit=dev` gates only the
+  # dependencies that actually SHIP: dev-only tooling (browser-sync's transitive ws/socket.io) carries
+  # advisories that never reach the bundle. Run a plain `npm audit` locally for the full dev picture.
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --audit-level=high --omit=dev
+
+  # Single stable aggregate check — make THIS the required status check in branch protection. Fails if
+  # any required upstream job failed or was cancelled (skipped is fine). `audit` is intentionally NOT
+  # here (advisory — dev-tooling advisories shouldn't block).
+  ci-success:
+    needs: [changes, typecheck, build, lint, perf, test, coverage]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify no required job failed
+        run: |
+          set -euo pipefail
+          for r in \
+            "${{ needs.changes.result }}" \
+            "${{ needs.typecheck.result }}" \
+            "${{ needs.build.result }}" \
+            "${{ needs.lint.result }}" \
+            "${{ needs.perf.result }}" \
+            "${{ needs.test.result }}" \
+            "${{ needs.coverage.result }}"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "A required job did not succeed (result: $r)"; exit 1
+            fi
+          done
+          echo "All required jobs succeeded."
+
+  # The Playwright integration suite (task 008) is not implemented yet. When it lands, add a job here
+  # that installs Chromium (`npx playwright install --with-deps chromium`) and runs the integration
+  # suite, gated on `changes` and wired into `ci-success`'s needs.

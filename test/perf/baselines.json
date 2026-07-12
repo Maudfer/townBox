@@ -1,0 +1,16 @@
+{
+  "action.activeLookup": 10549,
+  "action.contextBuild": 3314,
+  "action.instancesLive": 40,
+  "action.objectQuery": 7841,
+  "action.objectQueryMiss": 458,
+  "action.scanWalked": 2880,
+  "brain.freeTimeCompute": 746,
+  "event.invokeScan": 0,
+  "event.roll": 1569600,
+  "event.subjectEval": 136,
+  "inv.carriedBuild": 1517,
+  "inv.contentsBuild": 416,
+  "predicate.evalCached": 40893,
+  "world.peopleAt": 318
+}

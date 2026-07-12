@@ -1,8 +1,8 @@
 // Validators for the scene/HUD manifests: assets, config, input, toolAssets. Deliberately cheap — these are
 // small files whose failures were previously runtime-visible (a missing sprite, a dead key) but never explained.
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkBoolean, checkEnum, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 import { Tool } from 'types/Cursor';
 
 const TOOLS = Object.values(Tool) as string[];

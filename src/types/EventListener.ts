@@ -2,7 +2,7 @@ import { EventPayloads } from 'types/Events';
 
 export interface Handler<T> {
     callback: (payload: T) => void;
-    context?: any;
+    context?: unknown;
 }
 
 export type HandlerList<T> = Array<Handler<T>>;

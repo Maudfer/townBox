@@ -1,6 +1,6 @@
-import { Predicate } from 'util/predicate';
-import { Curve } from 'util/curve';
 import { Value } from 'types/Simulation';
+import { Curve } from 'util/curve';
+import { Predicate } from 'util/predicate';
 
 // Engine B — life-event manifest schema (docs/tasks/013-procedural-simulation-framework_DONE.md §5). An event is a
 // flat, self-describing record: who participates (roles), how likely it is (probability), and what it does

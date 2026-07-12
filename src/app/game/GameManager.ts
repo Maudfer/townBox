@@ -1,35 +1,35 @@
 import Phaser from 'phaser';
-import Field from 'game/Field';
-import MainScene from 'game/MainScene';
-import TitleScene from 'game/TitleScene';
-import DebugTools from 'game/DebugTools';
 
 import City from './City';
-import Population from 'game/Population';
+
 import Clock from 'game/Clock';
-import EventEngine from 'game/EventEngine';
-import ActionEngine from 'game/ActionEngine';
-import Brain from 'game/Brain';
-import Economy from 'game/Economy';
-import Inventory from 'game/Inventory';
-import SchoolRegistry from 'game/SchoolRegistry';
-import SkillBook from 'game/SkillBook';
-import SocialLife from 'game/SocialLife';
+import ActionEngine from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
+import { assertValidData } from 'game/data/schemas';
+import Economy from 'game/economy/Economy';
+import EventEngine from 'game/events/EventEngine';
+import Population from 'game/population/Population';
+import DebugTools from 'game/scene/DebugTools';
+import MainScene from 'game/scene/MainScene';
+import Field from 'game/world/Field';
+import TitleScene from 'game/scene/TitleScene';
+
+
+import Inventory from 'game/objects/Inventory';
+import SchoolRegistry from 'game/skills/SchoolRegistry';
+import SkillBook from 'game/skills/SkillBook';
+import SocialLife from 'game/population/SocialLife';
 import SaveManager from 'game/save/SaveManager';
-import { loadCommittedAsset, loadSelectedWorldFromHttp } from 'game/HistoryAssetSource';
-import { selectStartingWorld, SelectedWorld } from 'game/HistoryAssetSelection';
-
-import { EventListeners, Handler } from 'types/EventListener';
-import { EventPayloads, UpdateEvent } from 'types/Events';
-import { PixelPosition, TilePosition } from 'types/Position';
-import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
-import { Toolbelt } from 'types/Cursor';
-import { DEFAULT_SAVE_SLOT } from 'types/Save';
-
+import { loadCommittedAsset, loadSelectedWorldFromHttp } from 'game/history/HistoryAssetSource';
+import { selectStartingWorld, SelectedWorld } from 'game/history/HistoryAssetSelection';
 import config from 'json/config.json';
 import toolAssets from 'json/toolAssets.json';
-
-import { assertValidData } from 'game/data/schemas';
+import { Toolbelt } from 'types/Cursor';
+import { EventListeners, Handler } from 'types/EventListener';
+import { EventPayloads, UpdateEvent } from 'types/Events';
+import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { DEFAULT_SAVE_SLOT } from 'types/Save';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -405,6 +405,7 @@ export default class GameManager {
         delete this.eventListeners[eventName];
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic bus: handler return types are heterogeneous and unknown to the emitter
     async emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any[]> {
         if (!payload) {
             payload = {} as EventPayloads[K];
@@ -419,6 +420,7 @@ export default class GameManager {
         return results;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic bus: the single handler's return type is unknown to the emitter; callers narrow it
     async emitSingle<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any> {
         if (!payload) {
             payload = {} as EventPayloads[K];

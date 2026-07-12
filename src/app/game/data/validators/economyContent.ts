@@ -3,8 +3,8 @@
 // same referential integrity that gated CI now also gates game boot. (Skills moved to their own manifest and
 // validator family — validators/skills.ts, task 059; jobs cross-check against that manifest here.)
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkNumber, checkRecord, checkString, checkUnknownKeys } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 import { validateCurve } from 'game/data/substrate';
 import { BusinessBlueprintTable, JobTable } from 'types/Business';
 import { DemandTable } from 'types/Demand';

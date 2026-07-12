@@ -1,15 +1,15 @@
-import { Direction } from 'types/Movement';
-import { Gender, Relationships } from 'types/Social';
-import { JobPosition } from 'types/Work';
+import { ActionEngineState } from 'types/Action';
+import { BusinessInstance } from 'types/Business';
+import { EconomyState } from 'types/Economy';
 import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
-import { BusinessInstance } from 'types/Business';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
-import { EconomyState } from 'types/Economy';
+import { Direction } from 'types/Movement';
 import { InventoryState } from 'types/Objects';
-import { ActionEngineState } from 'types/Action';
 import { SchoolRegistryState } from 'types/School';
 import { SkillBookState } from 'types/Skill';
+import { Gender, Relationships } from 'types/Social';
+import { JobPosition } from 'types/Work';
 
 // Bump whenever the snapshot shape changes in a backwards-incompatible way. Loaders may use this to migrate.
 // v1 → v2: added the genealogy `population` pool (v1 saves load with an empty pool); families → households.

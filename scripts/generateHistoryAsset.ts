@@ -18,15 +18,13 @@
 //   --full-manifest (run the full event manifest — texture events included; slower, for correctness runs)
 //   --reduced-manifest (force the reduced walk on)  --profile (per-phase timing attribution → printed at end)
 
-import { writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { hostname } from 'node:os';
+import { join, resolve } from 'node:path';
 import process from 'node:process';
 
-import { compress } from 'util/compress';
-import { formatDuration, DAYS_PER_YEAR, DAYS_PER_MONTH, DAYS_PER_WEEK } from 'util/time';
 import {
     generateHistoryAsset,
     DEFAULT_GENERATOR_PARAMS,
@@ -35,10 +33,12 @@ import {
     GenerationProgress,
     HistoryAssetSink,
     ShardRef,
-} from 'game/HistoryAsset';
+} from 'game/history/HistoryAsset';
+import { AssetHeader } from 'game/history/HistoryAssetSelection';
 import { EventLogTable } from 'types/LifeEvent';
 import { SkillTimeline } from 'types/Skill';
-import { AssetHeader } from 'game/HistoryAssetSelection';
+import { compress } from 'util/compress';
+import { formatDuration, DAYS_PER_YEAR, DAYS_PER_MONTH, DAYS_PER_WEEK } from 'util/time';
 
 function parseFlags(argv: string[]): Record<string, string | boolean> {
     const flags: Record<string, string | boolean> = {};
