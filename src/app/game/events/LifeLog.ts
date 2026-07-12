@@ -36,6 +36,28 @@ export default class LifeLog {
         return this.nextSeq;
     }
 
+    // Installs a person's PRE-GAME log entries from the history asset (lazy hydration, task 012 follow-up).
+    // Asset entries predate anything committed live, so they go BEFORE any existing entries, and `nextSeq` is
+    // raised past the installed seqs so future commits never collide. (Loops, not spreads — a person's
+    // pre-game log can hold tens of thousands of entries and spreading them would overflow the call stack.)
+    installPersonEntries(personId: PersonId, entries: PersonLogEntry[]): void {
+        if (entries.length === 0) {
+            return;
+        }
+        const existing = this.table[personId] ?? [];
+        const merged: PersonLogEntry[] = [];
+        for (const entry of entries) {
+            merged.push(entry);
+            if (entry.seq >= this.nextSeq) {
+                this.nextSeq = entry.seq + 1;
+            }
+        }
+        for (const entry of existing) {
+            merged.push(entry);
+        }
+        this.table[personId] = merged;
+    }
+
     // Hands back the accumulated entries and RESETS the table to empty, keeping `nextSeq` (task 077 streaming):
     // the offline generator flushes the full log to disk shards periodically so it never holds the whole
     // centuries-long log in RAM. The aggregate history (EventEngine.history) is separate and unaffected, so the

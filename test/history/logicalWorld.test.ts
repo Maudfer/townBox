@@ -3,8 +3,8 @@
 // run proving the generator carries lived skills/careers/possessions into the asset.
 
 import EventEngine from 'game/events/EventEngine';
-import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAsset, HistoryAssetSink, ShardRef } from 'game/history/HistoryAsset';
-import { sliceAndRebase, selectStartingWorld, selectStartingWorldFromShards, AssetHeader } from 'game/history/HistoryAssetSelection';
+import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAsset, HistoryAssetSink } from 'game/history/HistoryAsset';
+import { sliceAndRebase, selectStartingWorld, selectStartingWorldFromSections, decodePersonFile, AssetHeader, PersonChunk } from 'game/history/HistoryAssetSelection';
 import LogicalWorld, { LogicalJobMarket } from 'game/history/LogicalWorld';
 import SkillBook from 'game/skills/SkillBook';
 import { PopulationState } from 'types/Genealogy';
@@ -325,9 +325,9 @@ describe('generator with the logical-economy world (task 077, integration)', () 
     });
 });
 
-describe('streaming to shards + chunked loading (task 077)', () => {
+describe('streaming to person files + boot-from-sections (task 077; person-keyed since the task-012 follow-up)', () => {
     jest.setTimeout(180000);
-    // A few flush intervals over the run so multiple shards are produced.
+    // A few flush intervals over the run so every person file accumulates multiple chunk lines.
     const params: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
         seed: 11, founderCount: 40, recordThreshold: 30, recordYears: 12, daysPerStep: 30,
@@ -336,79 +336,70 @@ describe('streaming to shards + chunked loading (task 077)', () => {
         logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
     };
 
-    // An in-memory sink standing in for the CLI's disk sink: shard payloads land in a map keyed by file name.
-    function memorySink(store: Map<string, string>): { sink: HistoryAssetSink } {
-        let li = 0;
-        let si = 0;
-        const range = (ticks: number[]) => ({ minTick: ticks.length ? Math.min(...ticks) : 0, maxTick: ticks.length ? Math.max(...ticks) : 0 });
+    // An in-memory sink standing in for the CLI's disk sink: chunk lines append to a body per person file.
+    function memorySink(bodies: Map<string, string>): { sink: HistoryAssetSink; chunksAppended: () => number } {
+        let chunks = 0;
+        const append = (personId: string, chunk: PersonChunk): void => {
+            const file = `person-${personId}.tbz`;
+            bodies.set(file, (bodies.get(file) ?? '') + compress(JSON.stringify(chunk)) + '\n');
+            chunks++;
+        };
         const sink: HistoryAssetSink = {
-            logShard(table: EventLogTable): ShardRef {
-                const ticks = Object.values(table).flatMap(entries => entries.map(e => e.tick));
-                const file = `log-${li++}.tbz`;
-                store.set(file, compress(JSON.stringify(table)));
-                return { file, ...range(ticks) };
+            logChunk(table: EventLogTable): void {
+                for (const [id, entries] of Object.entries(table)) {
+                    append(id, { log: entries });
+                }
             },
-            skillShard(timeline: SkillTimeline): ShardRef {
-                const ticks = Object.values(timeline).flatMap(snaps => snaps.map(s => s.tick));
-                const file = `skills-${si++}.tbz`;
-                store.set(file, compress(JSON.stringify(timeline)));
-                return { file, ...range(ticks) };
+            skillChunk(timeline: SkillTimeline): void {
+                for (const [id, snapshots] of Object.entries(timeline)) {
+                    append(id, { skills: snapshots });
+                }
             },
         };
-        return { sink };
+        return { sink, chunksAppended: () => chunks };
     }
 
-    test('streamed + chunk-loaded selection equals in-memory selection (multiple shards)', async () => {
+    test('streamed person files + boot-from-sections reproduce the in-memory selection exactly', async () => {
         const inMem = await generateHistoryAsset(params);
 
-        const store = new Map<string, string>();
-        const { sink } = memorySink(store);
+        const bodies = new Map<string, string>();
+        const { sink, chunksAppended } = memorySink(bodies);
         const streamed = await generateHistoryAsset(params, undefined, null, sink);
-        // The log + timeline were streamed to shards, not held inline.
+        // The log + timeline were streamed to the sink, not held inline; multiple chunks were appended
+        // (several flush intervals over the run), so decode genuinely merges chunk lines.
         expect(streamed.eventLog).toEqual({});
         expect(streamed.skillTimeline).toBeUndefined();
-        expect(streamed.logShards!.length).toBeGreaterThan(1); // actually sharded across flush intervals
+        expect(chunksAppended()).toBeGreaterThan(Object.keys(streamed.population.people).length);
 
+        const store = new Map<string, string>(bodies);
         store.set('population.tbz', compress(JSON.stringify(streamed.population)));
         store.set('objects.tbz', compress(JSON.stringify(streamed.objects)));
-        store.set('eventHistory.tbz', compress(JSON.stringify(streamed.eventHistory)));
+        const retained = Object.keys(streamed.population.people);
         const header: AssetHeader = {
             meta: streamed.meta, eventLogSeq: streamed.eventLogSeq,
             sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
-            logShards: streamed.logShards!, skillShards: streamed.skillShards!,
+            people: Object.fromEntries(retained.filter(id => bodies.has(`person-${id}.tbz`)).map(id => [id, `person-${id}.tbz`])),
         };
         const read = (file: string) => store.get(file)!;
 
         for (const seed of [1, 42, 7777]) {
-            const fromShards = selectStartingWorldFromShards(header, read, seed)!;
+            const fromSections = selectStartingWorldFromSections(header, read, seed)!;
             const fromMemory = selectStartingWorld(inMem, seed)!;
-            expect(fromShards.window).toBe(fromMemory.window);
-            expect(fromShards.population.people).toEqual(fromMemory.population.people);
-            expect(fromShards.skillBook).toEqual(fromMemory.skillBook);
-            expect(fromShards.objects).toEqual(fromMemory.objects);
-            expect(fromShards.eventLog).toEqual(fromMemory.eventLog);
-        }
-    });
+            expect(fromSections.window).toBe(fromMemory.window);
+            expect(fromSections.population.people).toEqual(fromMemory.population.people);
+            expect(fromSections.objects).toEqual(fromMemory.objects);
+            // Boot deliberately installs NO logs/skills — those hydrate per person below.
+            expect(fromSections.eventLog).toEqual({});
+            expect(fromSections.skillBook).toBeUndefined();
 
-    test('chunked loading only reads shards up to the window', async () => {
-        const store = new Map<string, string>();
-        const { sink } = memorySink(store);
-        const streamed = await generateHistoryAsset(params, undefined, null, sink);
-        store.set('population.tbz', compress(JSON.stringify(streamed.population)));
-        store.set('objects.tbz', compress(JSON.stringify(streamed.objects)));
-        store.set('eventHistory.tbz', compress(JSON.stringify(streamed.eventHistory)));
-        const header: AssetHeader = {
-            meta: streamed.meta, eventLogSeq: streamed.eventLogSeq,
-            sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
-            logShards: streamed.logShards!, skillShards: streamed.skillShards!,
-        };
-        const readFiles: string[] = [];
-        const read = (file: string) => { readFiles.push(file); return store.get(file)!; };
-        const selected = selectStartingWorldFromShards(header, read, 3)!;
-        // No shard whose window starts after the selected present tick should have been fetched.
-        for (const shard of [...header.logShards, ...header.skillShards]) {
-            if (shard.minTick > selected.window) {
-                expect(readFiles).not.toContain(shard.file);
+            // Per-person decode of the chunked file reproduces the eager windowed log, aggregate and skills.
+            for (const id of Object.keys(fromMemory.eventLog).slice(0, 8)) {
+                const file = header.people[id];
+                expect(file).toBeDefined();
+                const hydrated = decodePersonFile(id, read(file!), fromSections.window);
+                expect(hydrated.log).toEqual(fromMemory.eventLog[id]);
+                expect(hydrated.history).toEqual(fromMemory.eventHistory[id] ?? {});
+                expect(hydrated.skills ?? undefined).toEqual(fromMemory.skillBook?.records[id]);
             }
         }
     });

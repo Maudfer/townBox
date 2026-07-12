@@ -144,13 +144,16 @@ the title screen / real new-game path. Town: 8 road segments, 3 houses (3 househ
 
 ### Findings — proposed follow-ups
 
-- 🔴 **CRITICAL — real "Start Game" freezes the tab 4+ minutes** (gave up waiting). The committed
-  default history asset (~530 MB compressed, full action log) is fetched and inflated/parsed
-  **synchronously on the main thread**; there is no loading indicator and the renderer is unresponsive
-  (CDP evaluate times out). Test mode cold-starts and CI never exercise this path, so nothing caught
-  it. CLAUDE.md's "no loading wait" only holds for small assets (e.g. the ~29 MB `--no-action-log`
-  variant). Options: decode in a Web Worker / streaming decode, shrink the default asset, filter shards
-  before parse, and add a loading indicator regardless.
+- ✅ **FIXED (same PR) — real "Start Game" froze the tab 4+ minutes** (gave up waiting). The committed
+  default history asset (~530 MB compressed, full action log) was fetched and inflated/parsed
+  **synchronously on the main thread** — all shards, for every person in the pool, up-front. Fixed
+  architecturally with the **person-keyed lazy asset layout (format v2)**: the generator writes one
+  `person-<id>.tbz` per retained person; boot fetches only the small population/objects sections
+  (~1.5 MB), and each drawn person's history hydrates on demand at household placement
+  (`GameManager.hydratePeople`). Boot is now seconds regardless of asset size; save v14 pins the asset
+  ref so loaded games keep hydrating. Guarded by `test/integration/scenarios/history-asset.spec.ts`
+  (boot-fast + pre-game-history-on-placement) and the lazy-vs-eager equivalence tests in
+  `test/history/`.
 - 🐞 **A single click can place two buildings**: build tools drag-paint on `pointermove` while the
   button is down, so 1 px of click jitter paints a second house/workplace at the *next* free soft-snap
   spot (observed: 2 clicks → 3 houses). Roads are idempotent (same supertile). Suggest restricting

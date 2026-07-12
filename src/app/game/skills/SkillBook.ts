@@ -204,6 +204,14 @@ export default class SkillBook {
         return Object.keys(this.manifest).filter(id => this.manifest[id]!.basic).sort();
     }
 
+    // Installs a person's LIVED skills from the history asset (lazy hydration, task 012 follow-up) and marks
+    // them initialized, so a later initialize() call no-ops and the real proficiency survives materialization —
+    // the per-person equivalent of installing a whole asset SkillBook via loadState at boot.
+    installPerson(personId: PersonId, skills: PersonSkills): void {
+        this.records[personId] = JSON.parse(JSON.stringify(skills)) as PersonSkills;
+        this.initialized[personId] = true;
+    }
+
     // One-time age-appropriate seeding for a person entering detailed simulation (task 062). `jobCoreSkills`
     // biases the adult assortment toward employable abilities (the ids referenced by jobs.json, supplied by
     // the host so this store stays decoupled from the jobs table).
