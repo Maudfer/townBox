@@ -52,9 +52,14 @@ jobs:
           CHANGED=$(git diff --name-only "$BASE" HEAD || true)
           echo "changed files:"; echo "$CHANGED"
 
-          # Shared foundations → run everything. (Root config, shared types/util/json, the execution
-          # spine, and the root orchestrators GameManager/City/Clock are imported across all modules.)
-          SHARED_RE='^(src/types/|src/util/|src/json/|src/app/game/execution/|src/app/game/GameManager\.ts|src/app/game/City\.ts|src/app/game/Clock\.ts|package\.json|package-lock\.json|tsconfig\.json|jest\.config\.js|\.babelrc|babel\.config\.js|scripts/|\.github/workflows/)'
+          # Shared foundations → run EVERY module's tests. This is a correctness net, not laziness: these
+          # are imported by / affect the compilation of every module, so a change here can break any
+          # module's tests. It is deliberately limited to things that change TEST OUTCOMES — shared source
+          # (types/util/json, the execution spine, the root orchestrators GameManager/City/Clock) and the
+          # test toolchain config (package(-lock), tsconfig, jest.config, babel). It does NOT include CI
+          # workflow files, scripts/, lint config, or docs — changing those can't change a module test's
+          # result, so a PR touching only those (like a docs/CI-config change) runs NO module tests.
+          SHARED_RE='^(src/types/|src/util/|src/json/|src/app/game/execution/|src/app/game/GameManager\.ts|src/app/game/City\.ts|src/app/game/Clock\.ts|package\.json|package-lock\.json|tsconfig\.json|jest\.config\.js|\.babelrc|babel\.config\.js)'
 
           SELECTED=""
           if echo "$CHANGED" | grep -qE "$SHARED_RE"; then
