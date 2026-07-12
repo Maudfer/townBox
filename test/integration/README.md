@@ -34,8 +34,10 @@ and never in a normal production session. Test mode is enabled by a `?test=1` UR
 `window.__TOWNBOX_TEST = true` global set before boot (the helpers use `addInitScript`). In test mode the
 RAF-driven clock is **paused**, so in-game time advances only when a test asks.
 
-Boot params (test mode only): `?boot=new` skips the splash into a fresh game; `?boot=load` skips it and loads
-the default save slot (seeded by the test); `?seed=N` pins the cold-start pool for reproducible scenarios.
+Boot params (test mode only): `?boot=new` skips the splash into a fresh game (cold-start pool); `?boot=asset`
+does the same through the REAL history-asset path (lazy per-person hydration and all — see
+`scenarios/history-asset.spec.ts`); `?boot=load` skips it and loads the default save slot (seeded by the
+test); `?seed=N` pins the world seed (cold-start pool / asset window) for reproducible scenarios.
 
 Hook API (control + read):
 

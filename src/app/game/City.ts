@@ -264,6 +264,11 @@ export default class City {
         const selection = population.drawHousehold(currentTick, capacity, ticksPerYear);
         const pool = population.getPeople();
 
+        // Lazy history hydration (task 012 follow-up): pull the drawn members' pre-game logs/skills from the
+        // history asset BEFORE materialization, so initialize() below sees their lived skills as `initialized`
+        // and the inspector shows their real pre-game history. No-op for cold-start worlds / unknown people.
+        await Game.hydratePeople?.(selection.memberIds);
+
         // Materialize each drawn pool person into a live Person bound to this house.
         const personByGenId = new Map<PersonId, Person>();
         for (const memberId of selection.memberIds) {

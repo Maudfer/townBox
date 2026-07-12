@@ -42,6 +42,11 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         backfillMaxChildren(snapshot);
         snapshot.version = 13;
     }
+    if (snapshot.version < 14) {
+        // v13 → v14 (lazy history hydration): `historyHydration` is additive; absent means hydration is
+        // disabled for the loaded world (already-materialized people carry their logs in the save itself).
+        snapshot.version = 14;
+    }
     return snapshot;
 }
 

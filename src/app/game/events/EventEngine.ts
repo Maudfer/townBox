@@ -252,6 +252,16 @@ export default class EventEngine {
         this.history = history ?? {};
     }
 
+    // Lazy hydration (task 012 follow-up): installs ONE person's pre-game aggregate history + log entries from
+    // the history asset at materialization time, instead of loading everyone's up-front at boot.
+    installPersonHistory(personId: PersonId, record: EventHistoryTable[PersonId]): void {
+        this.history[personId] = record;
+    }
+
+    installPersonLog(personId: PersonId, entries: PersonLogEntry[]): void {
+        this.lifeLog.installPersonEntries(personId, entries);
+    }
+
     // The shared life log (task 043): the ActionEngine appends to the SAME instance so events and actions
     // share one global commit sequence.
     getLifeLog(): LifeLog {

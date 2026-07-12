@@ -20,7 +20,7 @@
 
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { writeFileSync, appendFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { join, resolve } from 'node:path';
 import process from 'node:process';
@@ -32,9 +32,9 @@ import {
     HistoryGeneratorParams,
     GenerationProgress,
     HistoryAssetSink,
-    ShardRef,
 } from 'game/history/HistoryAsset';
-import { AssetHeader } from 'game/history/HistoryAssetSelection';
+import { AssetHeader, PersonChunk } from 'game/history/HistoryAssetSelection';
+import { PersonId } from 'types/Genealogy';
 import { EventLogTable } from 'types/LifeEvent';
 import { SkillTimeline } from 'types/Skill';
 import { compress } from 'util/compress';
@@ -167,49 +167,32 @@ async function main(): Promise<void> {
         + `, snapshot ${params.skillSnapshotYears}y, flush ${params.flushIntervalYears}y`);
     console.log(`  console    : progress batched once/sec, all lines kept${params.profile ? ' · profile ON' : ''}`);
 
-    // The streaming sink: each drained log/skill chunk becomes a compressed shard file on disk. min/max ticks
-    // are accumulated in a running loop — NOT `Math.min(...ticks)` — because an action-log shard can hold
-    // hundreds of thousands of entries, and spreading that many args overflows the call stack.
-    let logIndex = 0;
-    let skillIndex = 0;
-    let shardBytes = 0;
-    const emptyRange = (): { minTick: number; maxTick: number } => ({ minTick: 0, maxTick: 0 });
+    // The streaming sink (format v2, the person-keyed lazy layout): each drained log/skill flush is split BY
+    // PERSON, and every person's slice is appended as one compressed chunk line to that person's file
+    // (`person-<id>.tbz`, newline-separated — base64 payloads are newline-free, so appends need no framing).
+    // The game later fetches exactly the files of the people it materializes; nothing else is ever read.
+    const personFiles = new Map<PersonId, string>();
+    let personBytes = 0;
+    const appendPersonChunk = (personId: PersonId, chunk: PersonChunk): void => {
+        let file = personFiles.get(personId);
+        if (!file) {
+            file = `person-${personId}.tbz`;
+            personFiles.set(personId, file);
+        }
+        const line = compress(JSON.stringify(chunk)) + '\n';
+        appendFileSync(join(outDir, file), line, 'utf8');
+        personBytes += Buffer.byteLength(line, 'utf8');
+    };
     const sink: HistoryAssetSink = {
-        logShard(table: EventLogTable): ShardRef {
-            const range = emptyRange();
-            let seen = false;
-            for (const entries of Object.values(table)) {
-                for (const entry of entries) {
-                    if (!seen) {
-                        range.minTick = range.maxTick = entry.tick;
-                        seen = true;
-                    } else {
-                        if (entry.tick < range.minTick) { range.minTick = entry.tick; }
-                        if (entry.tick > range.maxTick) { range.maxTick = entry.tick; }
-                    }
-                }
+        logChunk(table: EventLogTable): void {
+            for (const [personId, entries] of Object.entries(table)) {
+                appendPersonChunk(personId, { log: entries });
             }
-            const file = `log-${String(logIndex++).padStart(4, '0')}.tbz`;
-            shardBytes += writeCompressed(outDir, file, table);
-            return { file, ...range };
         },
-        skillShard(timeline: SkillTimeline): ShardRef {
-            const range = emptyRange();
-            let seen = false;
-            for (const snapshots of Object.values(timeline)) {
-                for (const snapshot of snapshots) {
-                    if (!seen) {
-                        range.minTick = range.maxTick = snapshot.tick;
-                        seen = true;
-                    } else {
-                        if (snapshot.tick < range.minTick) { range.minTick = snapshot.tick; }
-                        if (snapshot.tick > range.maxTick) { range.maxTick = snapshot.tick; }
-                    }
-                }
+        skillChunk(timeline: SkillTimeline): void {
+            for (const [personId, snapshots] of Object.entries(timeline)) {
+                appendPersonChunk(personId, { skills: snapshots });
             }
-            const file = `skills-${String(skillIndex++).padStart(4, '0')}.tbz`;
-            shardBytes += writeCompressed(outDir, file, timeline);
-            return { file, ...range };
         },
     };
 
@@ -294,21 +277,38 @@ async function main(): Promise<void> {
     }
     flushLog(true);
 
+    // Prune person files for people the generator dropped as warm-up scaffolding (they streamed chunks while
+    // alive but are not in the retained pool), so the asset carries exactly one file per RETAINED person and
+    // the header's people map doubles as the existence check.
+    const retained = new Set(Object.keys(asset.population.people));
+    let prunedFiles = 0;
+    for (const [personId, file] of [...personFiles]) {
+        if (retained.has(personId)) {
+            continue;
+        }
+        const path = join(outDir, file);
+        if (existsSync(path)) {
+            personBytes -= statSync(path).size;
+            rmSync(path, { force: true });
+        }
+        personFiles.delete(personId);
+        prunedFiles++;
+    }
+
     // Write the section files (small, held in RAM) + the header.
     let sectionBytes = 0;
     sectionBytes += writeCompressed(outDir, 'population.tbz', asset.population);
     sectionBytes += writeCompressed(outDir, 'objects.tbz', asset.objects ?? { instances: {}, nextInstanceSeq: 0 });
     sectionBytes += writeCompressed(outDir, 'eventHistory.tbz', asset.eventHistory);
 
-    const totalCompressed = shardBytes + sectionBytes;
+    const totalCompressed = personBytes + sectionBytes;
     asset.meta.stats.compressedBytes = totalCompressed;
 
     const header: AssetHeader = {
         meta: asset.meta,
         eventLogSeq: asset.eventLogSeq,
         sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
-        logShards: asset.logShards ?? [],
-        skillShards: asset.skillShards ?? [],
+        people: Object.fromEntries(personFiles),
     };
     writeFileSync(join(outDir, 'meta.json'), JSON.stringify(header, null, 2), 'utf8');
 
@@ -331,8 +331,8 @@ async function main(): Promise<void> {
         environment: { node: process.version, platform: `${process.platform}/${process.arch}`, host: hostname() },
         invocation: { argv: process.argv.slice(2), flags },
         runtime: formatDuration(asset.meta.stats.runtimeMs),
-        shards: { logShards: header.logShards.length, skillShards: header.skillShards.length },
-        sizes: { shardBytes, sectionBytes },
+        people: { files: personFiles.size, prunedWarmupFiles: prunedFiles },
+        sizes: { personBytes, sectionBytes },
     };
     writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
 
@@ -357,8 +357,8 @@ async function main(): Promise<void> {
     console.log(`  retained people:     ${stats.retainedPeople}`);
     console.log(`  births / deaths:     ${stats.births} / ${stats.deaths}`);
     console.log(`  median history len:  ${stats.medianHistoryLen}`);
-    console.log(`  log shards:          ${header.logShards.length}   skill shards: ${header.skillShards.length}`);
-    console.log(`  shard bytes:         ${mb(shardBytes)} MB   section bytes: ${mb(sectionBytes)} MB`);
+    console.log(`  person files:        ${personFiles.size} (pruned ${prunedFiles} warm-up-only)`);
+    console.log(`  person bytes:        ${mb(personBytes)} MB   section bytes: ${mb(sectionBytes)} MB`);
     console.log(`  TOTAL on disk:       ${mb(totalCompressed)} MB`);
     console.log(`  runtime:             ${formatDuration(stats.runtimeMs)}`);
     if (stats.profile) {
