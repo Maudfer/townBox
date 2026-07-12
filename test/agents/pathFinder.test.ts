@@ -192,13 +192,13 @@ describe('PathFinder A*', () => {
         expect(() => pathFinder.findPath({ row: 1, col: 0 }, { row: 1, col: 2 })).not.toThrow();
     });
 
-    // Documents a live edge-case limitation (acknowledged by the `// TODO: handle grid edges` comment in
-    // PathFinder.getValidNeighbors): a north/south neighbor lookup indexes `field.matrix[row]` BEFORE
-    // `isValidPosition` is consulted. A real Field's matrix only has entries for rows [0, rows), so probing
-    // the out-of-bounds north neighbor of a row-0 start (or the south neighbor of the last row) throws
-    // instead of being filtered out like an out-of-bounds column is. This pins the CURRENT behavior; it is
-    // not a desired outcome, and this test will need updating if the underlying bug is ever fixed.
-    test('a start on the grid top edge crashes probing the out-of-bounds north neighbor (documents a known edge-case bug)', () => {
+    // A north/south neighbor lookup used to index `field.matrix[row]` BEFORE `isValidPosition` was
+    // consulted. A real Field's matrix only has entries for rows [0, rows), so probing the out-of-bounds
+    // north neighbor of a row-0 start (or the south neighbor of the last row) threw a TypeError instead of
+    // being filtered out like an out-of-bounds column is. The fix bounds-checks the row before indexing;
+    // these two tests use UNPADDED matrices (only real rows exist, exactly like a real Field's top/bottom
+    // edge) to prove the edge is now filtered and the search still routes normally.
+    test('a start on the grid top edge filters the out-of-bounds north neighbor and still finds a path', () => {
         const road00 = new Road(0, 0, null);
         const road01 = new Road(0, 1, null);
         const road02 = new Road(0, 2, null);
@@ -211,6 +211,32 @@ describe('PathFinder A*', () => {
         };
         const pathFinder = new PathFinder(field as unknown as Field);
 
-        expect(() => pathFinder.findPath({ row: 0, col: 0 }, { row: 0, col: 2 })).toThrow();
+        let path: Tile[] = [];
+        expect(() => { path = pathFinder.findPath({ row: 0, col: 0 }, { row: 0, col: 2 }); }).not.toThrow();
+        expect(path).toEqual([road01, road02]);
+    });
+
+    test('a start on the grid bottom edge filters the out-of-bounds south neighbor and still finds a path', () => {
+        // A 3-row road grid where only rows 0..2 exist (no row 3), just like a real Field's bottom edge.
+        // Starting on the last row (row 2) probes a south neighbor on row 3, which must be filtered.
+        const roads: { [row: number]: { [col: number]: Road } } = {};
+        for (let row = 0; row < 3; row++) {
+            roads[row] = {};
+            for (let col = 0; col < 3; col++) {
+                roads[row]![col] = new Road(row, col, null);
+            }
+        }
+        const matrix = roads as unknown as { [row: number]: { [col: number]: Tile } };
+        const field: FakeField = {
+            matrix: matrix as unknown as Field['matrix'],
+            isValidPosition: (row: number, col: number) => row >= 0 && row < 3 && col >= 0 && col < 3,
+            getTile: (row: number, col: number) => matrix[row]?.[col] ?? null,
+        };
+        const pathFinder = new PathFinder(field as unknown as Field);
+
+        let path: Tile[] = [];
+        expect(() => { path = pathFinder.findPath({ row: 2, col: 0 }, { row: 2, col: 2 }); }).not.toThrow();
+        // Straight along the bottom row: (2,0) -> (2,1) -> (2,2).
+        expect(path).toEqual([roads[2]![1], roads[2]![2]]);
     });
 });

@@ -100,19 +100,24 @@ export default class PathFinder {
                 return false;
             }
 
-            // TODO: handle grid edges
-            const neighborTile = matrix[neighbor.row]![neighbor.col];
-            if (!neighborTile || !destination) {
+            // Bounds-check the row AND col before indexing the matrix. A neighbor off the top/bottom edge has
+            // no row entry (matrix[-1] is undefined), so indexing it before this guard threw a TypeError.
+            const isValid = this.field.isValidPosition(neighbor.row, neighbor.col);
+            if (!isValid || !destination) {
                 return false;
             }
 
-            const isValid = this.field.isValidPosition(neighbor.row, neighbor.col);
+            const neighborTile = matrix[neighbor.row]![neighbor.col];
+            if (!neighborTile) {
+                return false;
+            }
+
             const isRoad = (neighborTile instanceof Road);
             // Every cell of the destination structure shares the same anchor identifier, so this lets A* step
             // through a building's footprint to reach its anchor cell from an adjacent road.
             const isDestination = (neighborTile.getIdentifier() === `${destination.row}-${destination.col}`);
 
-            return ( isValid && (isRoad || isDestination) );
+            return (isRoad || isDestination);
         });
 
         if (!validNeighbors) {
