@@ -71,8 +71,9 @@ jobs:
           fi
 
           # Emit a JSON array (empty array when nothing test-relevant changed → the test job is skipped).
-          JSON=$(printf '%s\n' $SELECTED | grep -v '^$' | sort -u \
-                 | jq -R . | jq -cs .)
+          # Use jq to drop blanks + dedupe — NOT `grep -v '^$'`, which exits 1 when SELECTED is empty
+          # (e.g. a docs-only PR) and, under `set -o pipefail`, would fail the whole step.
+          JSON=$(printf '%s\n' $SELECTED | jq -R 'select(length > 0)' | jq -cs 'unique')
           echo "selected modules: $JSON"
           echo "modules=$JSON" >> "$GITHUB_OUTPUT"
 
