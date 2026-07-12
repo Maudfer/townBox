@@ -60,6 +60,17 @@ export async function bootSplash(page: Page): Promise<void> {
     await page.waitForSelector('canvas', { timeout: 60_000 });
 }
 
+// Seeds a fixture into the default save slot and stops on the splash — for exercising the real Load Game button.
+export async function bootSplashWithSave(page: Page, fixtureName: string): Promise<void> {
+    const payload = readFixture(fixtureName);
+    await enableTestMode(page);
+    await page.addInitScript(([key, data]) => {
+        window.localStorage.setItem(key, data);
+    }, [SAVE_SLOT_KEY, payload] as const);
+    await page.goto('/?test=1');
+    await page.waitForSelector('canvas', { timeout: 60_000 });
+}
+
 // Seeds a committed fixture into the default save slot and boots straight into it (splash skipped).
 export async function bootFixture(page: Page, fixtureName: string): Promise<void> {
     const payload = readFixture(fixtureName);
@@ -71,21 +82,43 @@ export async function bootFixture(page: Page, fixtureName: string): Promise<void
     await waitForHarness(page);
 }
 
+// The splash buttons are drawn on the canvas centered on the camera; click relative to the canvas box so any
+// offset/letterboxing is accounted for.
+// TitleScene fades its buttons in over ~1.3s (700ms delay + 600ms tween) and only becomes interactive once
+// create() has run — which happens AFTER the <canvas> element appears. Settle before clicking so the button's
+// interactive hit area is live.
+const SPLASH_SETTLE_MS = 1600;
+
+async function clickCanvasCenterOffset(page: Page, offsetY: number): Promise<void> {
+    const box = await page.locator('canvas').first().boundingBox();
+    if (!box) {
+        throw new Error('[integration] Canvas has no bounding box');
+    }
+    await page.waitForTimeout(SPLASH_SETTLE_MS);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2 + offsetY);
+}
+
 // Clicks the splash Start Game button (canvas), then waits for the game to boot.
 export async function clickStartButton(page: Page): Promise<void> {
-    const size = page.viewportSize();
-    const cx = (size?.width ?? 1280) / 2;
-    const cy = (size?.height ?? 720) / 2;
-    await page.mouse.click(cx, cy + START_BUTTON_OFFSET_Y);
+    await clickCanvasCenterOffset(page, START_BUTTON_OFFSET_Y);
     await waitForHarness(page);
 }
 
 // Clicks the splash Load Game button (canvas). Caller waits for the harness (only appears if a save existed).
 export async function clickLoadButton(page: Page): Promise<void> {
-    const size = page.viewportSize();
-    const cx = (size?.width ?? 1280) / 2;
-    const cy = (size?.height ?? 720) / 2;
-    await page.mouse.click(cx, cy + LOAD_BUTTON_OFFSET_Y);
+    await clickCanvasCenterOffset(page, LOAD_BUTTON_OFFSET_Y);
+}
+
+// Navigates the SAME page (same browser context, so localStorage persists) into a load of the default slot —
+// used by the save→load round-trip test after a Ctrl+S wrote the slot.
+export async function reloadIntoSavedGame(page: Page): Promise<void> {
+    await page.goto('/?test=1&boot=load');
+    await waitForHarness(page);
+}
+
+// Selects a tool by clicking its toolbar button (real DOM click).
+export async function selectTool(page: Page, tool: 'soil' | 'road' | 'house' | 'work' | 'select' | 'bulldoze'): Promise<void> {
+    await page.getByTestId(`tool-${tool}`).click();
 }
 
 // --- window.__townbox delegators (each a single page.evaluate) --------------
