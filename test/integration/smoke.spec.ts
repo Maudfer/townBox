@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './support/fixtures';
 
 import { bootNewGame, getTick, step, structureCounts } from './support/app';
 

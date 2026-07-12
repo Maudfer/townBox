@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+import { expect, test } from '../support/fixtures';
 
 import { bootNewGame, cityStats, clickTile, people, pressToolKey, structureCounts, tileAt } from '../support/app';
 

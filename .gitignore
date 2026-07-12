@@ -115,6 +115,7 @@ bin/
 /test-results/
 /blob-report/
 /playwright/.cache/
+/coverage-integration/
 
 # Offline history assets (generate-history): the committed default lives at src/history/ (asset.json +
 # meta.json/manifest.json/shards). Dev generations (--dev) and the local dev pointer are never committed.

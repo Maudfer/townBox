@@ -21,9 +21,12 @@ export default defineConfig({
     retries: process.env.CI ? 1 : 0,
     // Serial by default: the shared static server + heavy canvas boot make one worker the reliable choice.
     workers: 1,
-    reporter: process.env.CI
-        ? [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
-        : [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
+    // The custom coverage reporter is always listed but no-ops unless COVERAGE=1 (§7, informational).
+    reporter: [
+        ['list'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['./test/integration/support/coverageReporter.ts'],
+    ],
     use: {
         baseURL: BASE_URL,
         trace: 'on-first-retry',
