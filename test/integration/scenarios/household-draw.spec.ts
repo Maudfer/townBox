@@ -1,13 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { bootNewGame, buildings, cityStats, clickTile, people, selectBuilding, structureCounts } from '../support/app';
+import { bootNewGame, buildings, cityStats, clickTile, people, pressToolKey, selectBuilding, structureCounts } from '../support/app';
 
 // §4.3 scenario: placing a house draws a coherent household from the genealogy pool and materialises its living
 // members, whose family tree renders in the inspector.
 const ROAD_ROW = 190;
 
 async function placeRoad(page: Page, col: number): Promise<void> {
-    await page.keyboard.press('F2');
+    await pressToolKey(page, 'F2');
     await clickTile(page, ROAD_ROW, col);
 }
 
@@ -16,7 +16,7 @@ test('placing a house materialises a household whose family tree renders', async
     await placeRoad(page, 190);
     await placeRoad(page, 193);
 
-    await page.keyboard.press('F3'); // house tool
+    await pressToolKey(page, 'F3'); // house tool
     await clickTile(page, 193, 190);
     await page.evaluate(() => window.__townbox!.stepTicks(1));
 

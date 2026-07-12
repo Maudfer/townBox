@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { bootNewGame, cityStats, clickTile, people, structureCounts, tileAt } from '../support/app';
+import { bootNewGame, cityStats, clickTile, people, pressToolKey, structureCounts, tileAt } from '../support/app';
 
 // §5 canvas operations: bulldozing a built tile tears it down coherently (the structure is removed; an occupied
 // building's residents/business are cleared), driven by a real canvas click of the bulldozer tool.
@@ -8,7 +8,7 @@ import { bootNewGame, cityStats, clickTile, people, structureCounts, tileAt } fr
 const ROAD_ROW = 190;
 
 async function placeRoads(page: Page): Promise<void> {
-    await page.keyboard.press('F2');
+    await pressToolKey(page, 'F2');
     await clickTile(page, ROAD_ROW, 190);
     await clickTile(page, ROAD_ROW, 193);
 }
@@ -20,14 +20,14 @@ test.describe('canvas bulldoze', () => {
     });
 
     test('bulldozing a house removes it and clears its residents', async ({ page }) => {
-        await page.keyboard.press('F3'); // house
+        await pressToolKey(page, 'F3'); // house
         await clickTile(page, 193, 190);
         await page.evaluate(() => window.__townbox!.stepTicks(1));
         expect((await structureCounts(page)).occupiedHouses).toBe(1);
         const residentsBefore = (await people(page)).length;
         expect(residentsBefore).toBeGreaterThan(0);
 
-        await page.keyboard.press('F6'); // bulldoze
+        await pressToolKey(page, 'F6'); // bulldoze
         await clickTile(page, 193, 190);
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 
@@ -42,12 +42,12 @@ test.describe('canvas bulldoze', () => {
     });
 
     test('bulldozing a workplace closes its business', async ({ page }) => {
-        await page.keyboard.press('F4'); // work
+        await pressToolKey(page, 'F4'); // work
         await clickTile(page, 187, 190);
         await page.evaluate(() => window.__townbox!.stepTicks(1));
         expect((await structureCounts(page)).businesses).toBe(1);
 
-        await page.keyboard.press('F6'); // bulldoze
+        await pressToolKey(page, 'F6'); // bulldoze
         await clickTile(page, 187, 190);
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 

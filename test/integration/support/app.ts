@@ -121,6 +121,13 @@ export async function selectTool(page: Page, tool: 'soil' | 'road' | 'house' | '
     await page.getByTestId(`tool-${tool}`).click();
 }
 
+// Presses a tool hotkey (F1–F6 / Escape) and settles. Phaser consumes keydowns on its game loop (throttled
+// headless), so a short window ensures the keypress is processed before the caller acts on the result.
+export async function pressToolKey(page: Page, key: string): Promise<void> {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(150);
+}
+
 // --- window.__townbox delegators (each a single page.evaluate) --------------
 
 export async function step(page: Page, n = 1): Promise<void> {

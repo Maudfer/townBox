@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { bootFixture } from '../support/app';
+import { bootFixture, pressToolKey } from '../support/app';
 
 // §4 HUD baseline: the toolbar. Every tool button selects its tool (active highlight) and the F1–F6 / Esc keys
 // stay in sync with the buttons — both emit the same `toolSelected` bus event the scene consumes.
@@ -35,7 +35,9 @@ test.describe('toolbar', () => {
 
     test('F1–F6 keys select the matching tool and sync the button highlight', async ({ page }) => {
         for (const [key, tool] of KEY_TO_TOOL) {
-            await page.keyboard.press(key);
+            // pressToolKey settles: Phaser consumes keydowns on its (headless-throttled) game loop, so a window
+            // lets each keypress be processed before we assert / press the next key.
+            await pressToolKey(page, key);
             await expect(page.getByTestId(`tool-${tool}`)).toHaveAttribute('data-active', 'true');
         }
     });
@@ -44,12 +46,12 @@ test.describe('toolbar', () => {
         await page.getByTestId('tool-road').click();
         await expect(page.getByTestId('tool-road')).toHaveAttribute('data-active', 'true');
 
-        await page.keyboard.press('Escape');
+        await pressToolKey(page, 'Escape');
         await expect(page.getByTestId('tool-select')).toHaveAttribute('data-active', 'true');
     });
 
     test('keyboard and button selection agree on the same tool', async ({ page }) => {
-        await page.keyboard.press('F3'); // house
+        await pressToolKey(page, 'F3'); // house
         await expect(page.getByTestId('tool-house')).toHaveAttribute('data-active', 'true');
         await page.getByTestId('tool-work').click();
         await expect(page.getByTestId('tool-work')).toHaveAttribute('data-active', 'true');

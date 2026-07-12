@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { bootNewGame, clickTile, structureCounts, tileAt } from '../support/app';
+import { bootNewGame, clickTile, pressToolKey, structureCounts, tileAt } from '../support/app';
 
 // §5 canvas operations, driven by REAL canvas clicks (tool selected via F1–F6, tile centered under the cursor
 // by the harness) and asserted through the window.__townbox state hook — never pixel diffs.
@@ -8,7 +8,7 @@ import { bootNewGame, clickTile, structureCounts, tileAt } from '../support/app'
 const ROAD_ROW = 190;
 
 async function placeRoad(page: Page, row: number, col: number): Promise<void> {
-    await page.keyboard.press('F2'); // road tool
+    await pressToolKey(page, 'F2'); // road tool
     await clickTile(page, row, col);
 }
 
@@ -41,7 +41,7 @@ test.describe('canvas placement', () => {
         await placeRoad(page, ROAD_ROW, 190);
         await placeRoad(page, ROAD_ROW, 193);
 
-        await page.keyboard.press('F3'); // house tool
+        await pressToolKey(page, 'F3'); // house tool
         await clickTile(page, 193, 190); // flush below the road
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 
@@ -54,7 +54,7 @@ test.describe('canvas placement', () => {
         await placeRoad(page, ROAD_ROW, 190);
         await placeRoad(page, ROAD_ROW, 193);
 
-        await page.keyboard.press('F4'); // work tool
+        await pressToolKey(page, 'F4'); // work tool
         await clickTile(page, 187, 190); // flush above the road
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 
