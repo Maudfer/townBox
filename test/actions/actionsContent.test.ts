@@ -129,6 +129,7 @@ describe('action reachability (task 076/M3)', () => {
     const DIRECTLY_HOOKED = new Set([
         'attend_school',                                                    // schoolObligationHook
         'pocketed_small_object', 'grab', 'use_object', 'put_down', 'discard_object', // inventoryOpportunityHook
+        'resting_at_home_sick',                                             // jobOrchestrator's fitness gate (092)
     ]);
 
     test('every action is reachable via some proposal path', () => {

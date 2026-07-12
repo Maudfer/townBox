@@ -36,6 +36,12 @@ export const schoolObligationHook: BrainHook = {
         if (attending) {
             return []; // already at their desk
         }
+        // The fitness gate (task 092 / G2): a sick child stays home — no attendance intent, no day credit
+        // (missed days simply end lower, the 063 contract). Same threshold as the work gate.
+        const health = engine.contextFor(personId, deps).getAttr('health');
+        if (typeof health === 'number' && health < 0.6) {
+            return [];
+        }
         return [{
             actionId: ATTEND_SCHOOL_ACTION,
             locationOverride: `building:${school.schoolKey}`,

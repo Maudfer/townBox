@@ -24,6 +24,14 @@
                         ]
                     },
                     "multiply": 250
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 1.6
                 }
             ]
         },
@@ -40,7 +48,17 @@
         "category": "recovery",
         "durationTicks": 2,
         "selection": {
-            "weight": 0.6
+            "weight": 0.6,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 2.5
+                }
+            ]
         },
         "satisfies": {
             "rest": 25
@@ -590,6 +608,14 @@
                         "value": 25
                     },
                     "multiply": 0.4
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -686,6 +712,14 @@
                         ]
                     },
                     "multiply": 1.4
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -759,6 +793,14 @@
                         "value": false
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -941,6 +983,14 @@
                         ]
                     },
                     "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -1022,6 +1072,14 @@
                         ]
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -1358,6 +1416,14 @@
                         "value": true
                     },
                     "multiply": 1.4
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 1.5
                 }
             ]
         },
@@ -1833,6 +1899,14 @@
                         "value": 8
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -1926,6 +2000,14 @@
                         "value": true
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 2
                 }
             ]
         },
@@ -3009,6 +3091,14 @@
                         }
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -3131,6 +3221,14 @@
                         }
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -3212,6 +3310,14 @@
                         }
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -3307,6 +3413,14 @@
                         "value": true
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -5117,6 +5231,22 @@
         },
         "satisfies": {
             "social": 15
+        }
+    },
+    "resting_at_home_sick": {
+        "label": "Resting at home, sick",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "home",
+        "durationTicks": 8,
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "rest": 50
+        },
+        "events": {
+            "onStart": "called_in_sick"
         }
     }
 }

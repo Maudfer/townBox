@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 709 events — **16 vital**, **36 wired**, **516 texture**, **141 reserved**.
+Totals: 710 events — **17 vital**, **37 wired**, **515 texture**, **141 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -86,7 +86,7 @@ Totals: 709 events — **16 vital**, **36 wired**, **516 texture**, **141 reserv
 | business_went_under | achievement | manual | reserved | — |
 | called_as_witness | legal | manual | reserved | — |
 | called_exterminator | housing | probabilistic+manual | texture | — |
-| called_in_sick | career | probabilistic+manual | texture | — |
+| called_in_sick | career | manual | wired | resting_at_home_sick.onStart |
 | came_home_from_vacation | travel | manual | reserved | — |
 | came_out_of_retirement | career | probabilistic | texture | — |
 | canceled_trip | travel | probabilistic+manual | texture | — |
@@ -179,12 +179,13 @@ Totals: 709 events — **16 vital**, **36 wired**, **516 texture**, **141 reserv
 | fell_asleep_with_cat | pet | probabilistic+manual | texture | — |
 | fell_down_stairs | accident | probabilistic+manual | texture | — |
 | fell_for_prank | crime-mischief | probabilistic+manual | texture | — |
-| fell_ill | health | probabilistic | vital | — |
+| fell_ill | health | probabilistic+manual | vital | — |
 | fell_in_love | romance | probabilistic+manual | texture | — |
 | fell_into_arrears | finance | manual | reserved | — |
 | fell_off_bike | childhood | probabilistic+manual | texture | — |
 | fell_off_ladder | accident | probabilistic+manual | texture | — |
 | fell_out_of_love | romance | probabilistic | texture | — |
+| fell_seriously_ill | health | probabilistic+manual | vital | — |
 | felt_homesick | emotion-mood | probabilistic+manual | texture | — |
 | felt_jealous_of_friend | emotion-mood | probabilistic | texture | — |
 | felt_lonely | emotion-mood | probabilistic+manual | texture | — |

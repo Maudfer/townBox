@@ -377,7 +377,25 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.5
+                "perYear": 0.5,
+                "factors": [
+                    {
+                        "driver": "subject.health",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 2.2
+                                },
+                                {
+                                    "at": 0.6,
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "effects": [
@@ -512,7 +530,8 @@
                         }
                     }
                 ]
-            }
+            },
+            "manual": {}
         },
         "effects": [
             {
@@ -603,7 +622,25 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 18
+                "perYear": 18,
+                "factors": [
+                    {
+                        "driver": "subject.health",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.55
+                                },
+                                {
+                                    "at": 0.4,
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "effects": [
@@ -4656,30 +4693,19 @@
         "roles": {
             "subject": {
                 "where": {
-                    "all": [
-                        {
-                            "attr": "alive",
-                            "op": "==",
-                            "value": true
-                        },
-                        {
-                            "attr": "age",
-                            "op": ">=",
-                            "value": 16
-                        }
-                    ]
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
                 }
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.4
-            },
             "manual": {}
         },
         "limit": {
-            "withinTicks": 720
+            "once": "perDay"
         },
+        "valence": -1,
         "effects": []
     },
     "late_for_work": {
@@ -25861,5 +25887,68 @@
             }
         ],
         "valence": 2
+    },
+    "fell_seriously_ill": {
+        "label": "Fell seriously ill",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "health",
+                            "op": ">=",
+                            "value": 0.5
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 0.35,
+                "factors": [
+                    {
+                        "driver": "subject.age",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.6
+                                },
+                                {
+                                    "at": 55,
+                                    "value": 1.6
+                                },
+                                {
+                                    "at": 75,
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "manual": {}
+        },
+        "valence": -2,
+        "effects": [
+            {
+                "type": "setAttr",
+                "attr": "health",
+                "value": 0.25
+            },
+            {
+                "type": "emit",
+                "signal": "fellIll",
+                "target": "subject"
+            }
+        ]
     }
 }

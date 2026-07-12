@@ -17,6 +17,8 @@ import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isOnShiftAtTick } from 'util/shifts';
 
 export const ORCHESTRATOR_SALT = 0x0b;
+// Below this health, a person calls in sick instead of starting the shift (task 092 / G2).
+export const SICK_HEALTH_THRESHOLD = 0.6;
 
 // On-duty and idle-or-leisure → the continuous work action, chosen by deterministic weighted rotation over
 // the job's repertoire (entry chancePerTick doubles as rotation weight; default 1). On-duty and already
@@ -44,6 +46,26 @@ export const jobOrchestratorHook: BrainHook = {
                 engine.interrupt(active.id, { source: 'brain', causationId: null }, deps, { died: [], born: [], signals: [], committed: [] });
             }
             return [];
+        }
+
+        // The fitness gate (task 092 / G2): too sick to work. Instead of the shift, the person stays home
+        // sick — a real continuous action whose onStart fires called_in_sick, so the absence is a log entry
+        // with a cause, not a silent no-show. Health reads through the same context attribute the data uses.
+        const health = engine.contextFor(personId, deps).getAttr('health');
+        if (typeof health === 'number' && health < SICK_HEALTH_THRESHOLD) {
+            if (working && active) {
+                engine.interrupt(active.id, { source: 'brain', causationId: null }, deps, { died: [], born: [], signals: [], committed: [] });
+            }
+            const restingAlready = active ? active.defId === 'resting_at_home_sick' : false;
+            return restingAlready ? [] : [{
+                actionId: 'resting_at_home_sick',
+                sourceHook: 'jobOrchestrator',
+                priority: 90,
+                necessity: 'required',
+                band: 'obligation', // it replaces the shift in the same slot of the day
+                mayInterrupt: true,
+                causationId: null,
+            }];
         }
 
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(ORCHESTRATOR_SALT);
