@@ -119,8 +119,8 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {
             const events = action['events'] as Record<string, unknown>;
-            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt', 'onDecline']);
-            for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline']) {
+            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt', 'onDecline', 'onCompleteTarget', 'onDeclineTarget']);
+            for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline', 'onCompleteTarget', 'onDeclineTarget']) {
                 if (!(hook in events)) {
                     continue;
                 }
@@ -297,10 +297,19 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
         if (action.events?.onDecline && action.interaction?.askFirst !== true) {
             issues.add(`${id}.events.onDecline`, 'declares a decline event but the action is not askFirst — nothing can ever decline it');
         }
+        if (action.events?.onDeclineTarget && action.interaction?.askFirst !== true) {
+            issues.add(`${id}.events.onDeclineTarget`, 'declares a target decline event but the action is not askFirst — nothing can ever decline it');
+        }
+        // Counterpart links (task 082): only an interaction has a target to fire at.
+        for (const hook of ['onCompleteTarget', 'onDeclineTarget'] as const) {
+            if (action.events?.[hook] && !action.interaction) {
+                issues.add(`${id}.events.${hook}`, 'declares a counterpart event but the action has no interaction contract (no target to fire at)');
+            }
+        }
 
         // Lifecycle event links: the event must exist AND be manually triggerable (both directions of the
         // action↔event coupling are managed data — 038 §7).
-        for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline'] as const) {
+        for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline', 'onCompleteTarget', 'onDeclineTarget'] as const) {
             const link = action.events?.[hook];
             if (!link) {
                 continue;
@@ -327,6 +336,11 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
                         if (!(paramName in (action.parameters ?? {}))) {
                             issues.add(`${id}.events.${hook}.params.${key}`, `mapping references undeclared action parameter "${paramName}"`);
                         }
+                    }
+                    // '$actor' (task 082) resolves only when firing at a target — actor-side links have no
+                    // separate "actor" to name.
+                    if (mapping === '$actor' && hook !== 'onCompleteTarget' && hook !== 'onDeclineTarget') {
+                        issues.add(`${id}.events.${hook}.params.${key}`, `'$actor' is only meaningful on counterpart (target) links`);
                     }
                 }
             }

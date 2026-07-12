@@ -10,7 +10,7 @@
 | Manifest | Entries | Notes |
 |---|---|---|
 | `actions.json` | 260 | 67 continuous / 193 discrete |
-| `events.json` | 707 | 175 probabilistic, 160 manual, 2 manual + automated, 370 probabilistic + manual |
+| `events.json` | 708 | 174 probabilistic, 369 probabilistic + manual, 163 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -20,6 +20,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | Actions | Lifecycle → Event |
 |---|---|
 | `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
+| `argued_with_person` | onCompleteTarget → `argument` |
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
@@ -42,11 +43,12 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 
 | Event | Triggers | Limit | Invoked by |
 |---|---|---|---|
+| `argument` | probabilistic + manual | — | `argued_with_person`.onCompleteTarget (discrete) |
 | `completed_school_day` | manual + automated | once: perDay | `attend_school`.onComplete (continuous) |
 | `decluttered_house` | probabilistic + manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
 | `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
 | `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
-| `gave_gift` | probabilistic + manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
+| `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
 | `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
 | `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
@@ -57,7 +59,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 532 manual-triggered events, 518 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 534 manual-triggered events, 519 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -70,16 +72,16 @@ Of the 532 manual-triggered events, 518 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 370 |
-| probabilistic | 175 |
-| manual | 160 |
+| probabilistic + manual | 369 |
+| probabilistic | 174 |
+| manual | 163 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
 |---|---|
 | cooldown window | 633 |
 | once: ever | 50 |
-| — | 20 |
+| — | 21 |
 | once: perDay | 4 |
 
 ## Object-action transformations

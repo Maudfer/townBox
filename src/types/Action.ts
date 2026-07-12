@@ -69,6 +69,12 @@ export interface ActionEventLinks {
     // Fired when an askFirst consent is DECLINED (task 074) — wired only where a downstream consumer exists
     // (curated: object transfers); everything else lets the failed log entry be the record.
     onDecline?: EventLink;
+    // Counterpart events (task 082 / proposal C1): fired with the interaction TARGET as the event subject and
+    // the SAME causation seq as the actor's lifecycle entry, so both sides of an interaction log the same
+    // moment ("Gave a gift" ↔ "Received a gift"). Param mappings may use '$actor' for the acting person's id
+    // in addition to '$params.<name>' and literals. Only meaningful on actions with an interaction contract.
+    onCompleteTarget?: EventLink;
+    onDeclineTarget?: EventLink;
 }
 
 // The interaction contract every Person-targeted action must declare (task 072): which parameter names the

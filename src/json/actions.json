@@ -3213,6 +3213,12 @@
                     "action": "lent_an_object",
                     "reason": "consent_declined"
                 }
+            },
+            "onCompleteTarget": {
+                "event": "object_received",
+                "params": {
+                    "from": "$actor"
+                }
             }
         }
     },
@@ -3262,8 +3268,16 @@
             }
         ],
         "selection": {
-            "weight": 3.0,
+            "weight": 3,
             "cooldownTicks": 12
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "object_received",
+                "params": {
+                    "from": "$actor"
+                }
+            }
         }
     },
     "laughed_together": {
@@ -3451,6 +3465,9 @@
         "selection": {
             "weight": 0.15,
             "cooldownTicks": 24
+        },
+        "events": {
+            "onCompleteTarget": "argument"
         }
     },
     "invited_person_over": {
@@ -3613,6 +3630,14 @@
         "selection": {
             "weight": 0.25,
             "cooldownTicks": 24
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "learned_new_skill",
+                "params": {
+                    "from": "$actor"
+                }
+            }
         }
     },
     "gave_object_to_person": {
@@ -3654,6 +3679,12 @@
                 "params": {
                     "action": "gave_object_to_person",
                     "reason": "consent_declined"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "received_gift",
+                "params": {
+                    "from": "$actor"
                 }
             }
         },
@@ -3697,6 +3728,14 @@
         "selection": {
             "weight": 0.4,
             "cooldownTicks": 12
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "object_received",
+                "params": {
+                    "from": "$actor"
+                }
+            }
         }
     },
     "balancing_the_till": {
@@ -4353,6 +4392,14 @@
         "selection": {
             "weight": 0.6,
             "cooldownTicks": 8
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "received_a_hug",
+                "params": {
+                    "from": "$actor"
+                }
+            }
         }
     }
 }

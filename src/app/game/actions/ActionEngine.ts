@@ -359,7 +359,7 @@ export default class ActionEngine {
     // The event's own eligibility applies; a rejection is fine (e.g. the person died this tick).
     // Resolve a lifecycle EventLink (067): the object form maps an event payload from the action's params
     // ('$params.<name>') or literal scalars; the string shorthand fires with no payload.
-    private fireEvent(link: EventLink | undefined, personId: PersonId, causationSeq: number, deps: ActionDeps, result: TickResult, actionParams?: Record<string, Value>): void {
+    private fireEvent(link: EventLink | undefined, personId: PersonId, causationSeq: number, deps: ActionDeps, result: TickResult, actionParams?: Record<string, Value>, actorId?: PersonId): void {
         if (!link) {
             return;
         }
@@ -372,6 +372,11 @@ export default class ActionEngine {
                     const value = actionParams?.[mapping.slice('$params.'.length)];
                     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
                         payload[name] = value;
+                    }
+                } else if (mapping === '$actor') {
+                    // Counterpart mapping (task 082): the acting person's id, from the TARGET's perspective.
+                    if (actorId) {
+                        payload[name] = actorId;
                     }
                 } else {
                     payload[name] = mapping;
@@ -396,6 +401,30 @@ export default class ActionEngine {
         result.born.push(...eventResult.born);
         result.signals.push(...eventResult.signals);
         result.committed.push(...eventResult.committed);
+    }
+
+    // The interaction target bound in an action's params, or null. Counterpart events (task 082) fire at this
+    // person; the target was validated live at start, and invoke's own eligibility re-checks at fire time
+    // (a rejection — e.g. the target died within the tick — is a fine no-op).
+    private targetOf(def: ActionDefinition, params: Record<string, Value>): PersonId | null {
+        if (!def.interaction) {
+            return null;
+        }
+        const targetId = params[def.interaction.targetParam];
+        return typeof targetId === 'string' ? targetId : null;
+    }
+
+    // Fires the counterpart link (task 082 / proposal C1) at the interaction target: same causation seq as
+    // the actor's lifecycle entry, subject = the target, '$actor' resolving to the acting person.
+    private fireTargetEvent(link: EventLink | undefined, def: ActionDefinition, actorId: PersonId, params: Record<string, Value>, causationSeq: number, deps: ActionDeps, result: TickResult): void {
+        if (!link) {
+            return;
+        }
+        const targetId = this.targetOf(def, params);
+        if (!targetId) {
+            return;
+        }
+        this.fireEvent(link, targetId, causationSeq, deps, result, params, actorId);
     }
 
     // --- Starting ------------------------------------------------------------
@@ -458,6 +487,8 @@ export default class ActionEngine {
                     // Curated decline events (task 074): only actions that wire events.onDecline fire one —
                     // the failed log entry above is the universal record; the event is for consumers.
                     this.fireEvent(def.events?.onDecline, personId, seq, deps, result, params);
+                    // The decliner's side of the story (task 082): they turned someone down, and know it.
+                    this.fireTargetEvent(def.events?.onDeclineTarget, def, personId, params, seq, deps, result);
                     return { ok: false, reason: 'consentDeclined' };
                 }
             }
@@ -497,6 +528,8 @@ export default class ActionEngine {
             this.recordAction(personId, actionId, deps.tick);
             this.fireEvent(def.events?.onStart, personId, seq, deps, result, params);
             this.fireEvent(def.events?.onComplete, personId, seq, deps, result, params);
+            // Counterpart event (task 082): the target's half of the interaction, chained to the same seq.
+            this.fireTargetEvent(def.events?.onCompleteTarget, def, personId, params, seq, deps, result);
             return { ok: true, instanceId: null, logSeq: seq };
         }
 
@@ -735,6 +768,7 @@ export default class ActionEngine {
             }
             const tEvent = fclock ? fclock() : 0;
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
+            this.fireTargetEvent(def.events?.onCompleteTarget, def, instance.personId, instance.params, seq, deps, result);
             addF('finish:onCompleteEvent', tEvent);
         } else if (outcome === 'interrupted') {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);

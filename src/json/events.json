@@ -875,7 +875,8 @@
                         }
                     }
                 ]
-            }
+            },
+            "manual": {}
         },
         "effects": [
             {
@@ -5789,7 +5790,12 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [],
+        "parameters": {
+            "from": {
+                "type": "string"
+            }
+        }
     },
     "got_scholarship": {
         "label": "Got a scholarship",
@@ -7635,31 +7641,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 2,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
         "limit": {
@@ -7680,37 +7661,17 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 2,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
         "limit": {
             "withinTicks": 240
         },
-        "effects": []
+        "effects": [],
+        "parameters": {
+            "from": {
+                "type": "string"
+            }
+        }
     },
     "regifted_present": {
         "label": "Re-gifted a present",
@@ -25378,8 +25339,10 @@
         },
         "parameters": {
             "object": {
-                "type": "string",
-                "required": true
+                "type": "string"
+            },
+            "from": {
+                "type": "string"
             }
         },
         "effects": []
@@ -25477,6 +25440,28 @@
                 "required": true
             },
             "reason": {
+                "type": "string"
+            }
+        },
+        "effects": []
+    },
+    "received_a_hug": {
+        "label": "Received a hug",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "from": {
                 "type": "string"
             }
         },

@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserved**.
+Totals: 708 events — **15 vital**, **33 wired**, **519 texture**, **141 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -20,7 +20,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | argued_with_coworker | career | probabilistic+manual | texture | — |
 | argued_with_partner | romance | probabilistic+manual | texture | — |
 | argued_with_sibling | family | probabilistic+manual | texture | — |
-| argument | social | probabilistic | vital | — |
+| argument | social | probabilistic+manual | vital | argued_with_person.onCompleteTarget |
 | asked_someone_out | romance | probabilistic+manual | texture | — |
 | assembled_flatpack | possessions | probabilistic+manual | texture | — |
 | ate_at_restaurant | food | probabilistic+manual | texture | — |
@@ -222,7 +222,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | gave_away_kittens | pet | manual | reserved | — |
 | gave_birth | family | manual | wired | City.handleTick (birth, task 076) |
 | gave_directions | community | probabilistic+manual | texture | — |
-| gave_gift | social | probabilistic+manual | wired | gave_object_to_person.onComplete |
+| gave_gift | social | manual | wired | gave_object_to_person.onComplete |
 | gave_up_driving | aging | probabilistic | texture | — |
 | gave_up_hobby | hobby | probabilistic | texture | — |
 | gave_up_sweets | food | probabilistic | texture | — |
@@ -360,7 +360,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | learned_instrument | hobby | probabilistic+manual | texture | — |
 | learned_language | achievement | probabilistic | texture | — |
 | learned_magic_tricks | hobby | probabilistic | texture | — |
-| learned_new_skill | education | probabilistic+manual | texture | — |
+| learned_new_skill | education | probabilistic+manual | wired | taught_person_something.onCompleteTarget |
 | learned_to_read | education | probabilistic+manual | texture | — |
 | learned_to_ride_bike | childhood | probabilistic+manual | texture | — |
 | learned_to_swim | milestone | probabilistic+manual | texture | — |
@@ -428,7 +428,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | object_consumed | possessions | manual | reserved | — |
 | object_given | possessions | manual | reserved | — |
 | object_lost | possessions | manual | wired | discard_object.onComplete |
-| object_received | possessions | manual | reserved | — |
+| object_received | possessions | manual | wired | lent_an_object.onCompleteTarget, returned_borrowed_object.onCompleteTarget, shared_food_with_person.onCompleteTarget |
 | opened_bank_account | finance | manual | reserved | — |
 | opened_own_business | achievement | probabilistic+manual | texture | — |
 | organized_food_drive | community | probabilistic | texture | — |
@@ -490,7 +490,8 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | ran_lemonade_stand | childhood | probabilistic+manual | texture | — |
 | reached_retirement_age | milestone | manual | reserved | — |
 | read_bedtime_story | family | probabilistic+manual | texture | — |
-| received_gift | social | probabilistic+manual | texture | — |
+| received_a_hug | social | manual | wired | hugged_person.onCompleteTarget |
+| received_gift | social | manual | wired | gave_object_to_person.onCompleteTarget |
 | received_inheritance | finance | manual | reserved | — |
 | received_love_letter | romance | probabilistic+manual | texture | — |
 | received_noise_complaint | legal | manual | reserved | — |
