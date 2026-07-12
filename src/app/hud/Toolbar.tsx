@@ -34,11 +34,13 @@ const Toolbar: React.FC<HUDProps> = ({ game }) => {
     }, [game]);
 
     return (
-        <div className="toolbar glass">
+        <div className="toolbar glass" data-testid="toolbar">
             {TOOL_BUTTONS.map(({ tool, icon, label }) => (
                 <button
                     key={tool}
                     title={label}
+                    data-testid={`tool-${tool}`}
+                    data-active={activeTool === tool}
                     className={activeTool === tool ? 'active' : ''}
                     onClick={() => game.emit('toolSelected', tool)}
                 >
@@ -46,7 +48,7 @@ const Toolbar: React.FC<HUDProps> = ({ game }) => {
                 </button>
             ))}
 
-            <button title="Save game (Ctrl+S)" onClick={() => game.emit('saveGameRequest')}>
+            <button title="Save game (Ctrl+S)" data-testid="tool-save" onClick={() => game.emit('saveGameRequest')}>
                 <Icon path={mdiContentSave} size={2} />
             </button>
         </div>

@@ -14,9 +14,9 @@ interface ToastsProps {
 
 const Toasts: FC<ToastsProps> = ({ toasts }) => {
     return (
-        <div className="toasts">
+        <div className="toasts" data-testid="toasts">
             {toasts.map(toast => (
-                <div key={toast.id} className={`toast toast-${toast.type}`}>
+                <div key={toast.id} className={`toast toast-${toast.type}`} data-testid={`toast-${toast.type}`}>
                     {toast.message}
                 </div>
             ))}

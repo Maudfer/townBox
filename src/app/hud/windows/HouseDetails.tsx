@@ -97,6 +97,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
             game={game}
             index={index}
             title={`Casa ${house?.getHouseholdName() ?? ''}`}
+            testId="window-house"
             initialSize={initialSize}
             onClose={onClose}
             onResize={handleResize}

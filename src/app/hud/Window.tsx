@@ -3,7 +3,7 @@ import { Rnd } from 'react-rnd';
 
 import { WindowProps } from 'types/HUD';
 
-const Window: FC<WindowProps> = ({ children, game, index, title, header, footer, initialSize, onClose, onResize }) => {
+const Window: FC<WindowProps> = ({ children, game, index, title, testId, header, footer, initialSize, onClose, onResize }) => {
     function handleDragStart() {
         game.emit("windowDragStart");
     }
@@ -34,12 +34,12 @@ const Window: FC<WindowProps> = ({ children, game, index, title, header, footer,
             onDragStop={handleDragStop}
             onResize={onResize}
         >
-            <div className="window">
+            <div className="window" data-testid={testId ?? 'window'}>
                 <div className="window-header glass">
                     {!header && (
                         <>
                             <h3>{title}</h3>
-                            <button onClick={handleClose}>X</button>
+                            <button data-testid="window-close" onClick={handleClose}>X</button>
                         </>
                     )}
                     {header}
@@ -52,7 +52,7 @@ const Window: FC<WindowProps> = ({ children, game, index, title, header, footer,
                 <div className="window-footer glass">
                     {!footer && (
                         <>
-                            <button onClick={handleClose}>OK</button>
+                            <button data-testid="window-ok" onClick={handleClose}>OK</button>
                         </>
                     )}
                     {footer}

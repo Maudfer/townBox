@@ -26,7 +26,7 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
 
     if (!business) {
         return (
-            <Window game={game} index={index} title="Vacant work building" initialSize={INITIAL_SIZE} onClose={onClose}>
+            <Window game={game} index={index} title="Vacant work building" testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
                 <div style={{ padding: '8px' }}><em>No business operates here.</em></div>
             </Window>
         );
@@ -38,7 +38,7 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
     const stock = game.inventory?.instancesOwnedBy({ kind: 'business', key: workplace.getIdentifier() }) ?? [];
 
     return (
-        <Window game={game} index={index} title={business.name} initialSize={INITIAL_SIZE} onClose={onClose}>
+        <Window game={game} index={index} title={business.name} testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
                 <p><strong>{business.lineOfWork}</strong> &nbsp; <small>size {business.size}</small></p>
                 {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}

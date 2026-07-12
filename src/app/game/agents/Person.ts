@@ -104,6 +104,12 @@ export default class Person {
         return this.currentBuilding;
     }
 
+    // The current travel-state-machine step. Read by the integration test harness (task 008) to assert commute
+    // progression (ExitingBuilding → WalkingToCar → … → Arrived) without reaching into private state.
+    getTravelStep(): TravelStep {
+        return this.travelStep;
+    }
+
     setCurrentBuilding(building: Building | null): void {
         this.currentBuilding = building;
     }

@@ -28,7 +28,7 @@ const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => 
     const money = (value: number) => `$${Math.round(value).toLocaleString()}`;
 
     return (
-        <Window game={game} index={index} title={`${stats.name} — overview`} initialSize={INITIAL_SIZE} onClose={onClose}>
+        <Window game={game} index={index} title={`${stats.name} — overview`} testId="window-city" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div style={{ padding: '4px 10px', overflowY: 'auto', height: '100%' }}>
                 <section>
                     <h4>Population</h4>

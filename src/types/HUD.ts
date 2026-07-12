@@ -20,6 +20,8 @@ export interface WindowProps {
     game: GameManager;
     index: number;
     title?: string;
+    // Stable selector for the integration tests (task 008), e.g. "window-person". Applied to the window root.
+    testId?: string;
     children?: React.ReactNode;
     header?: React.ReactNode;
     footer?: React.ReactNode;

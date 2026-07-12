@@ -26,19 +26,20 @@ const Feed: FC<FeedProps> = ({ game }) => {
     }, [game]);
 
     return (
-        <div className="city-feed glass">
-            <div className="city-feed-header" onClick={() => setCollapsed(value => !value)}>
+        <div className="city-feed glass" data-testid="city-feed">
+            <div className="city-feed-header" data-testid="city-feed-header" onClick={() => setCollapsed(value => !value)}>
                 <span>City Feed</span>
                 <span>{collapsed ? '▴' : '▾'}</span>
             </div>
             {!collapsed && (
-                <div className="city-feed-list">
+                <div className="city-feed-list" data-testid="city-feed-list">
                     {events.length === 0 ? (
                         <div className="city-feed-empty">No news yet…</div>
                     ) : (
                         events.map((event, index) => (
                             <div
                                 key={index}
+                                data-testid="city-feed-entry"
                                 className={`city-feed-entry${event.person ? ' clickable' : ''}`}
                                 onClick={() => event.person && game.emit('PersonSelected', event.person)}
                             >

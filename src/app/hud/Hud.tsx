@@ -105,7 +105,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
     }, [game]);
 
     return (
-        <div className="hud">
+        <div className="hud" data-testid="hud">
             {openWindows.map((window, index) => {
                 const WindowComponent = windowMap[window.type];
                 if (!WindowComponent) {
