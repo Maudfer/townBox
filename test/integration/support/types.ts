@@ -51,6 +51,10 @@ export interface CityStatsLike {
     unemployedAdults: number;
     births: number;
     deaths: number;
+    homelessPeople: number;
+    businessBalance: number;
+    householdWealth: number;
+    livingPool: number;
     [key: string]: unknown;
 }
 
