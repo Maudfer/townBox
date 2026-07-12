@@ -96,6 +96,8 @@ export interface TownboxTestApi {
     // --- World reads ----------------------------------------------------
     tileAt(row: number, col: number): TileInfo;
     structureCounts(): StructureCounts;
+    // Anchor identifiers ("row-col") of the placed buildings, split by kind — for targeting a click.
+    buildings(): { houses: string[]; workplaces: string[] };
     people(): PersonInfo[];
     personById(personId: string): PersonInfo | null;
     vehicles(): VehicleInfo[];
@@ -232,6 +234,19 @@ export function createTestApi(game: GameManager): TownboxTestApi {
                 }
             }
             return counts;
+        },
+
+        buildings(): { houses: string[]; workplaces: string[] } {
+            const houses: string[] = [];
+            const workplaces: string[] = [];
+            for (const structure of game.field ? game.field.getStructures() : []) {
+                if (structure instanceof House) {
+                    houses.push(structure.getIdentifier());
+                } else if (structure instanceof Workplace) {
+                    workplaces.push(structure.getIdentifier());
+                }
+            }
+            return { houses, workplaces };
         },
 
         people(): PersonInfo[] {

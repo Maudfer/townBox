@@ -161,7 +161,26 @@ export async function clickTile(page: Page, row: number, col: number): Promise<v
     if (!point) {
         throw new Error(`[integration] Could not resolve a screen point for tile ${row},${col}`);
     }
+    await page.mouse.move(point.x, point.y);
     await page.mouse.click(point.x, point.y);
+}
+
+// Anchor identifiers ("row-col") of placed buildings, by kind.
+export async function buildings(page: Page): Promise<{ houses: string[]; workplaces: string[] }> {
+    return page.evaluate(() => window.__townbox!.buildings());
+}
+
+function parseAnchor(anchor: string): [number, number] {
+    const [row, col] = anchor.split('-').map(Number);
+    return [row as number, col as number];
+}
+
+// Selects the Select tool (via Esc — the toolbar's Select button can be behind the feed) and REAL-clicks the
+// given building anchor to open its inspector.
+export async function selectBuilding(page: Page, anchor: string): Promise<void> {
+    await page.keyboard.press('Escape');
+    const [row, col] = parseAnchor(anchor);
+    await clickTile(page, row, col);
 }
 
 // Reads the current world as a save string (for the fixture recorder).

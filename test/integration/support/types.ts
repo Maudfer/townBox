@@ -65,6 +65,7 @@ export interface TownboxTestApi {
     bulldoze(row: number, col: number): Promise<void>;
     tileAt(row: number, col: number): TileInfo;
     structureCounts(): StructureCounts;
+    buildings(): { houses: string[]; workplaces: string[] };
     people(): PersonInfo[];
     personById(personId: string): PersonInfo | null;
     vehicles(): VehicleInfo[];

@@ -30,6 +30,8 @@ const Window: FC<WindowProps> = ({ children, game, index, title, testId, header,
             minHeight={250}
             bounds="window"
             dragHandleClassName="window-header"
+            // Give the corner resize handles stable class hooks for the integration tests (task 008).
+            resizeHandleClasses={{ bottomRight: 'window-resize-se', bottomLeft: 'window-resize-sw' }}
             onDragStart={handleDragStart}
             onDragStop={handleDragStop}
             onResize={onResize}

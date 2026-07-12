@@ -110,6 +110,7 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
                             {house.getResidents().map((resident, residentIndex) => (
                                 <li
                                     key={residentIndex}
+                                    data-testid="house-resident"
                                     style={{ cursor: 'pointer', textDecoration: 'underline' }}
                                     onClick={() => game.emit('PersonSelected', resident)}
                                 >
