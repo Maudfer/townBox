@@ -326,10 +326,16 @@ export default class Person {
                 }
                 break;
             case TravelStep.EnteringCar:
-                // person enters vehicle
+                // The person boards: their sprite vanishes into the car (task 008 commute spec), the car gains
+                // its occupant (drive() refuses to move an empty car), and the car is routed to the STREET in
+                // front of the destination — cars stop on the road, never inside a footprint (anchor fallback
+                // for legacy/test worlds with no adjacent road).
                 if (this.vehicle) {
+                    this.vehicle.board();
+                    this.setIndoors(true);
                     const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
-                    const destTile = this.destinationBuilding.getPosition();
+                    const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
+                        ?? this.destinationBuilding.getPosition();
                     if (vehicleTile && destTile) {
                         const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
                         if (tile) {
@@ -345,8 +351,17 @@ export default class Person {
                 }
                 break;
             case TravelStep.ExitingCar:
-                // person exits vehicle
+                // The person steps out where the car parked (task 008 commute spec): position syncs to the
+                // car, the sprite reappears, the car loses its occupant (an empty parked car can't move), and
+                // the last leg to the destination entrance is walked from the street.
                 if (this.vehicle) {
+                    const carPosition = this.vehicle.getPosition();
+                    if (carPosition) {
+                        this.x = carPosition.x;
+                        this.y = carPosition.y;
+                    }
+                    this.vehicle.disembark();
+                    this.setIndoors(false);
                     const carTilePos = Game.pixelToTilePosition(this.vehicle.getPosition());
                     if (carTilePos) {
                         const tile = Game.field!.getTile(carTilePos.row, carTilePos.col);

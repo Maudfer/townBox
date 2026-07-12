@@ -40,6 +40,12 @@ export default class Vehicle {
     // destination (Field skips updateDestination for it). Test/idle cars stay false and wander.
     private controlled: boolean;
 
+    // Cars cannot move without at least one person inside (task 008 commute spec). `occupied` flips when a
+    // commuter boards (EnteringCar) and clears when they step out (ExitingCar); drive() gates on it. The
+    // debug V-key test car instead carries an implicit `debugDriver` so the wander demo still works.
+    private occupied: boolean;
+    private debugDriver: boolean;
+
     private asset: Image;
 
     private redrawFunction: ((timeDelta: number) => void) | null;
@@ -62,6 +68,8 @@ export default class Vehicle {
         this.path = [];
         this.currentDestination = null;
         this.controlled = false;
+        this.occupied = false;
+        this.debugDriver = false;
         this.asset = null;
 
         this.redrawFunction = null;
@@ -75,12 +83,29 @@ export default class Vehicle {
         return this.controlled;
     }
 
+    // Boarding/disembarking (task 008 commute spec): drive() refuses to move an empty car.
+    board(): void {
+        this.occupied = true;
+    }
+
+    disembark(): void {
+        this.occupied = false;
+    }
+
+    isOccupied(): boolean {
+        return this.occupied;
+    }
+
+    setDebugDriver(debugDriver: boolean): void {
+        this.debugDriver = debugDriver;
+    }
+
     drive(currentTile: Tile, timeDelta: number): void {
-        // A commute car spawns at its owner's building ENTRANCE (a footprint cell, not a road), so driving
-        // must be allowed from a Building tile too — pulling out of the entrance onto the street — or the
-        // commute freezes at Driving forever (found by the task-008 integration suite). Soil stays blocked.
-        const onDrivableTile = currentTile instanceof Road || currentTile instanceof Building;
-        if (!this.asset || !this.currentTarget || !onDrivableTile) {
+        // Cars cannot move without a person inside (task 008 commute spec) — a commuter boards at
+        // EnteringCar and steps out at ExitingCar; the debug V-key test car carries an implicit test driver.
+        // And cars only drive on ROADS: they spawn and park on the street, never inside a footprint.
+        const hasDriver = this.occupied || this.debugDriver;
+        if (!this.asset || !this.currentTarget || !hasDriver || !(currentTile instanceof Road)) {
             return;
         }
 
@@ -177,8 +202,14 @@ export default class Vehicle {
             return;
         }
 
-        const nextTile = this.path.shift();
-        if (!nextTile) {
+        let nextTile = this.path.shift();
+        // A car starting on a road footprint gets that same footprint as the path's first element (the
+        // reconstructed path only excludes the start CELL, not other cells of the start structure). Skip it —
+        // getRelativeDirection(current → same tile) is undefined and would leave the car targetless.
+        while (nextTile === currentTile && this.path.length) {
+            nextTile = this.path.shift();
+        }
+        if (!nextTile || nextTile === currentTile) {
             return;
         }
 

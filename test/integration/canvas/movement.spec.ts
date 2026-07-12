@@ -21,6 +21,8 @@ interface CommuteResult {
     workKey: string | null;
     sawDriving: boolean;
     sawVehicle: boolean;
+    // Task 008 commute spec: while the person rides, their sprite is hidden (vanished into the car).
+    sawSpriteVanishWhileDriving: boolean;
 }
 
 // Steps the sim tick-by-tick (with movement frames) until the employed person completes a full round trip,
@@ -28,6 +30,7 @@ interface CommuteResult {
 async function driveCommute(page: Page, personId: string, homeKey: string): Promise<CommuteResult> {
     const result: CommuteResult = {
         arrivedWorkTick: -1, backHomeTick: -1, workKey: null, sawDriving: false, sawVehicle: false,
+        sawSpriteVanishWhileDriving: false,
     };
     for (let tick = 0; tick < MAX_TICKS; tick++) {
         await step(page, 1);
@@ -35,6 +38,9 @@ async function driveCommute(page: Page, personId: string, homeKey: string): Prom
         const person = (await personById(page, personId))!;
         if (person.travelStep === 'driving') {
             result.sawDriving = true;
+            if (person.indoors) {
+                result.sawSpriteVanishWhileDriving = true;
+            }
         }
         if (await vehiclesCount(page) > 0) {
             result.sawVehicle = true;
@@ -65,6 +71,8 @@ test.describe('movement & commute', () => {
         // The trip genuinely used the car commute (travel state machine passed through Driving; a vehicle existed).
         expect(result.sawDriving).toBe(true);
         expect(result.sawVehicle).toBe(true);
+        // Task 008 commute spec: the person's sprite vanished into the car while riding.
+        expect(result.sawSpriteVanishWhileDriving).toBe(true);
         // And back: after the shift the person returned home.
         expect(result.backHomeTick, 'expected the return trip within the cap').toBeGreaterThan(result.arrivedWorkTick);
     });

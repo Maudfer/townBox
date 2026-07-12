@@ -3,6 +3,7 @@ import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
 import Field from 'game/world/Field';
 import House from 'game/world/House';
+import Road from 'game/world/Road';
 import Workplace from 'game/world/Workplace';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { TimeChangedEvent } from 'types/Time';
@@ -77,6 +78,25 @@ describe('the live commute machinery behind the execution boundary', () => {
         person.setCurrentBuilding(workplace);
         city.handleCommute(timeAt(10, 2));
         expect(handle.status).toBe('arrived');
+    });
+
+    test('the commute car materializes ON the street in front of the origin, not inside the footprint (task 008 spec)', () => {
+        const { city, field } = makeWorld();
+        const { person, home, workplace } = employ(field);
+        person.social.setPersonId('p1');
+        // A road flush above the home (home covers rows 3-5 / cols 3-5; the road rows 0-2 / cols 3-5).
+        field.loadStructure('road', 1, 4, 'r');
+
+        city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+
+        const vehicle = field.getVehicles()[0]!;
+        const spot = { x: vehicle.getPosition()!.x, y: vehicle.getPosition()!.y };
+        const spotTile = { row: Math.floor(spot.y / 16), col: Math.floor(spot.x / 16) };
+        // On the street: the car's tile is a Road cell on the ring outside the home footprint.
+        expect(field.getTile(spotTile.row, spotTile.col)).toBeInstanceOf(Road);
+        // And NOT at the entrance (which sits inside the home's own footprint).
+        const entrance = home.getEntrance()!;
+        expect(spot).not.toEqual({ x: entrance.x, y: entrance.y });
     });
 
     test('a minor commutes on foot: no car is spawned, and arrival still resolves the handle (task 058)', () => {
