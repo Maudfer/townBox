@@ -3,13 +3,12 @@
 // loading as the format evolves. Keep migrations dumb and mechanical — anything smarter belongs in the
 // systems that consume the data.
 
-import { WorldSnapshot } from 'types/Save';
-import { EventLogTable } from 'types/LifeEvent';
-import { JobTable } from 'types/Business';
-import { TICKS_PER_DAY } from 'util/time';
-import { maxChildrenForPerson } from 'util/fertility';
-
 import jobsConfig from 'json/jobs.json';
+import { JobTable } from 'types/Business';
+import { EventLogTable } from 'types/LifeEvent';
+import { WorldSnapshot } from 'types/Save';
+import { maxChildrenForPerson } from 'util/fertility';
+import { TICKS_PER_DAY } from 'util/time';
 
 const JOBS = jobsConfig as unknown as JobTable;
 

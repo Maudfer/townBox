@@ -1,6 +1,6 @@
+import { Direction } from 'types/Movement';
 import { degreesToRadians } from 'util/Math';
 
-import { Direction } from 'types/Movement';
 
 export function directionToRadianRotation(direction: Direction): number {
     if (direction === Direction.NULL) {

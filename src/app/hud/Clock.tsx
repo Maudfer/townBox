@@ -20,7 +20,7 @@ const Clock: FC<ClockProps> = ({ game }) => {
         return () => {
             game.off('timeChanged');
         };
-    }, []);
+    }, [game]);
 
     if (!timestamp) {
         return null;

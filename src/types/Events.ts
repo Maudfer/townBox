@@ -1,14 +1,13 @@
-import Tile from 'game/Tile';
-import Road from 'game/Road';
-import House from 'game/House';
-import Workplace from 'game/Workplace';
-import Person from 'game/Person';
-import Vehicle from 'game/Vehicle';
-
-import { TilePosition, PixelPosition } from "types/Position";
-import { Tool } from "types/Cursor";
-import { TimeChangedEvent, NewTickEvent, NewDayEvent } from "types/Time";
 import GameManager from 'game/GameManager';
+import Person from 'game/agents/Person';
+import Vehicle from 'game/agents/Vehicle';
+import House from 'game/world/House';
+import Road from 'game/world/Road';
+import Tile from 'game/world/Tile';
+import Workplace from 'game/world/Workplace';
+import { Tool } from "types/Cursor";
+import { TilePosition, PixelPosition } from "types/Position";
+import { TimeChangedEvent, NewTickEvent, NewDayEvent } from "types/Time";
 
 export type UpdateEvent = {
     time: number;

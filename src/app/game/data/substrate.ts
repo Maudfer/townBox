@@ -2,8 +2,8 @@
 // and Predicate (util/predicate.ts). These mirror the runtime evaluators exactly — same shape discrimination
 // order as evaluatePredicate/evaluateCurve — so "validates" means "the runtime will interpret it as intended".
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkNumber, checkRecord, checkString, checkUnknownKeys, isScalar } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 
 const CURVE_KEYS: Record<string, readonly string[]> = {
     const: ['mode', 'value'],

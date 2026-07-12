@@ -1,0 +1,32 @@
+// markdownlint config (task: lint & problems CI check). Matches the VS Code markdownlint extension so
+// the Markdown "Problems" you see locally reproduce in CI. A forcing function — fix over time.
+{
+  "config": {
+    "default": true,
+    // Line length: prose docs (CLAUDE.md/README) are intentionally long — off (also off-by-default noise
+    // in most editor setups).
+    "MD013": false,
+    // Inline HTML: the docs use <HUD>, <br/>, alignment tags deliberately.
+    "MD033": false,
+    // First-line-heading: some docs open with a blockquote/badge.
+    "MD041": false,
+    // Table pipe alignment: a very new, purely-cosmetic rule (not in most editor extensions). The tables
+    // here use compact/unpadded pipes deliberately — enforcing column alignment is churn with no value.
+    "MD060": false
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules",
+    "bin",
+    "dist",
+    "coverage",
+    "coverage-artifacts",
+    // Worktree-isolated spawned-agent checkouts (gitignored) — don't lint the nested repo copies.
+    ".claude",
+    // Generated docs are produced by the doc generators, not hand-edited — fix the generator, not the output.
+    "docs/generated",
+    // The task backlog is a frozen historical record (each file is a completed/archived ticket); not worth
+    // reformatting to lint rules.
+    "docs/tasks"
+  ]
+}

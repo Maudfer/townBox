@@ -1,10 +1,9 @@
 import { FC, useEffect, useState } from 'react';
 
-import Window from 'hud/Window';
 import City from 'game/City';
-
-import { DetailsWindowProps } from 'types/HUD';
+import Window from 'hud/Window';
 import { CityStats } from 'types/City';
+import { DetailsWindowProps } from 'types/HUD';
 
 const INITIAL_SIZE = { width: 340, height: 480 };
 const REFRESH_MS = 2000;
@@ -20,7 +19,7 @@ const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => 
     useEffect(() => {
         const id = setInterval(() => setStats(city?.getCityStats() ?? null), REFRESH_MS);
         return () => clearInterval(id);
-    }, []);
+    }, [city]);
 
     if (!city || !stats) {
         return null;

@@ -5,8 +5,8 @@
 // carry building-scoped vocabulary tags. Objects' `placement`/`generation` fields are validated by the
 // objects validator (shape) plus the semantic vocabulary check here-adjacent (validators/objects.ts).
 
-import { IssueCollector } from 'game/data/registry';
 import { checkArray, checkEnum, checkNumber, checkRecord, checkString, checkUnknownKeys, isRecord } from 'game/data/checks';
+import { IssueCollector } from 'game/data/registry';
 
 const TAG_PATTERN = /^[a-z][a-z0-9-]*$/;
 

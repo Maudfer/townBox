@@ -1,0 +1,240 @@
+import Person from 'game/agents/Person';
+import Vehicle from 'game/agents/Vehicle';
+import Building from 'game/world/Building';
+import { BusinessInstance } from 'types/Business';
+import { WorkplaceOverview } from 'types/Social';
+import { JobPosition } from 'types/Work';
+
+const MAX_OCCUPANTS = 100;
+const MAX_VEHICLES = 40;
+
+type PotentialJob = JobPosition | null;
+
+export default class Workplace extends Building {
+    private employees: Person[];
+    private avaiableJobs: JobPosition[];
+    private business: BusinessInstance | null;
+
+    // Re-occupancy bookkeeping (task 037): how many in-game months the lot has been vacant since its last
+    // business closed, and how many businesses it has hosted in total. The generation count varies the
+    // generation seed so a re-occupied lot draws a *different* business than the one that failed.
+    private vacantMonths: number;
+    private businessGenerations: number;
+
+    private occupants: Person[];
+    private garage: Vehicle[];
+
+    private maxOccupants: number;
+    private maxVehicles: number;
+
+    constructor(row: number, col: number, assetName: string | null) {
+        super(row, col, assetName);
+
+        this.employees = [];
+        this.avaiableJobs = [];
+        this.business = null;
+        this.vacantMonths = 0;
+        this.businessGenerations = 0;
+
+        this.maxOccupants = MAX_OCCUPANTS;
+        this.maxVehicles = MAX_VEHICLES;
+
+        this.occupants = [];
+        this.garage = [];
+
+        // Jobs are no longer seeded here: a business (and its open positions) is generated on the
+        // `workplaceBuilt` event by City.setupBusiness (Engine A), or restored from a save. See docs/tasks/013.
+    }
+
+    // Assigns a generated/restored business: stores its identity and opens all of its positions for hiring.
+    // (Open/filled reconciliation across save/load gains slot identity in phase 013d, when hiring becomes an
+    // event; for now all of the instance's positions are treated as open.)
+    public setBusiness(business: BusinessInstance): void {
+        this.business = business;
+        this.avaiableJobs = [...business.positions];
+    }
+
+    public getBusiness(): BusinessInstance | null {
+        return this.business;
+    }
+
+    // --- Re-occupancy bookkeeping (task 037) ---
+    public getVacantMonths(): number {
+        return this.vacantMonths;
+    }
+
+    public setVacantMonths(months: number): void {
+        this.vacantMonths = months;
+    }
+
+    public getBusinessGenerations(): number {
+        return this.businessGenerations;
+    }
+
+    public setBusinessGenerations(generations: number): void {
+        this.businessGenerations = generations;
+    }
+
+    // Grows the business to a larger size (task 020): records the new full establishment + size and opens the
+    // added positions for hiring. Existing employees/filled slots are untouched (we only append open slots).
+    public expandPositions(newSize: number, fullPositions: JobPosition[], addedOpen: JobPosition[]): void {
+        if (!this.business) {
+            return;
+        }
+        this.business.size = newSize;
+        this.business.positions = fullPositions;
+        this.avaiableJobs.push(...addedOpen);
+    }
+
+    // Graceful downsizing (task 076/M6): shrink to a smaller position set (mirror of expandPositions). Keeps
+    // employees up to each title's capacity in the shrunk business and lays off the surplus (returned so the
+    // caller clears their WorkLife.job → they re-enter the job market via get_job, like a bankruptcy layoff but
+    // without closure). Open positions are recomputed from the leftover capacity, preserving the invariant
+    // employees + open == positions.
+    public shrinkPositions(newSize: number, fullPositions: JobPosition[]): Person[] {
+        if (!this.business) {
+            return [];
+        }
+        const remaining = new Map<string, number>();
+        for (const position of fullPositions) {
+            remaining.set(position.title, (remaining.get(position.title) ?? 0) + 1);
+        }
+        const kept: Person[] = [];
+        const laidOff: Person[] = [];
+        for (const employee of this.employees) {
+            const title = employee.work.getJob()?.title;
+            if (title && (remaining.get(title) ?? 0) > 0) {
+                kept.push(employee);
+                remaining.set(title, remaining.get(title)! - 1);
+            } else {
+                laidOff.push(employee);
+            }
+        }
+        this.employees = kept;
+        // Whatever capacity the retained employees didn't consume becomes the new open-position pool.
+        const open: JobPosition[] = [];
+        for (const position of fullPositions) {
+            if ((remaining.get(position.title) ?? 0) > 0) {
+                open.push(position);
+                remaining.set(position.title, remaining.get(position.title)! - 1);
+            }
+        }
+        this.avaiableJobs = open;
+        this.business.size = newSize;
+        this.business.positions = fullPositions;
+        return laidOff;
+    }
+
+    // The open (unfilled) positions still available for hiring.
+    public getOpenPositions(): JobPosition[] {
+        return [...this.avaiableJobs];
+    }
+
+    // `canFill` answers whether the person meets a position's skill requirements — supplied by the caller
+    // (JobMarket reads the central SkillBook, task 059) so the scene class stays decoupled from the store.
+    public hire(person: Person, canFill: (requirements: string[]) => boolean = () => true): PotentialJob {
+        if(!person){
+            console.error(person);
+            throw new Error('Person is not valid for hire');
+        }
+
+        // Take the first open position whose requirements the person meets, removing it from the open pool so
+        // filled/open counts stay correct.
+        const index = this.avaiableJobs.findIndex(job => canFill(job.requirements));
+
+        if (index === -1) {
+            return null;
+        }
+
+        const [job] = this.avaiableJobs.splice(index, 1);
+        if (!job) {
+            return null;
+        }
+        this.employees.push(person);
+        return job;
+    }
+
+    public layoff(person: Person): PotentialJob {
+        if(!person){
+            console.error(person);
+            throw new Error('Person is not valid for layoff');
+        }
+
+        const currentJob = person.work.getJob();
+        if (!currentJob) {
+            return null;
+        }
+
+        const index = this.employees.indexOf(person);
+        if (index !== -1) {
+            this.employees.splice(index, 1);
+        }
+
+        this.avaiableJobs.push(currentJob);
+        return currentJob;
+    }
+
+    // Shuts the business down (task 021 bankruptcy): drops every employee, closes all open positions, and
+    // clears the BusinessInstance so the building reads as vacant. Returns the laid-off employees so the caller
+    // can clear their WorkLife.job and surface notifications; they then re-enter the job market (get_job, 015).
+    public closeBusiness(): Person[] {
+        const laidOff = [...this.employees];
+        this.employees = [];
+        this.avaiableJobs = [];
+        this.business = null;
+        return laidOff;
+    }
+
+    public getEmployees(): Person[] {
+        return this.employees;
+    }
+
+    public addEmployee(person: Person): void {
+        this.employees.push(person);
+    }
+
+    public addOccupant(person: Person): void {
+        if (this.occupants.length >= this.maxOccupants) {
+            return;
+        }
+        this.occupants.push(person);
+    }
+
+    public removeOccupant(person: Person): void {
+        const index = this.occupants.indexOf(person);
+        if (index !== -1) {
+            this.occupants.splice(index, 1);
+        }
+    }
+
+    public addVehicle(vehicle: Vehicle): void {
+        if (this.garage.length >= this.maxVehicles) {
+            return;
+        }
+        this.garage.push(vehicle);
+    }
+
+    public removeVehicle(vehicle: Vehicle): void {
+        const index = this.garage.indexOf(vehicle);
+        if (index !== -1) {
+            this.garage.splice(index, 1);
+        }
+    }
+
+    public getOccupants(): Person[] {
+        return this.occupants;
+    }
+
+    public getVehicles(): Vehicle[] {
+        return this.garage;
+    }
+
+    public getOverview(): WorkplaceOverview {
+        return {
+            maxOccupants: this.maxOccupants,
+            maxVehicles: this.maxVehicles,
+            occupants: this.occupants.map(occupant => occupant.getOverview()),
+            employees: this.employees.map(employee => employee.getOverview()),
+        };
+    }
+}

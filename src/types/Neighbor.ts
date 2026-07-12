@@ -1,4 +1,4 @@
-import Tile from 'game/Tile';
+import Tile from 'game/world/Tile';
 
 export type Neighbor = Tile | null;
 

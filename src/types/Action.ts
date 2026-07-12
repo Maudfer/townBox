@@ -1,6 +1,6 @@
-import { Predicate } from 'util/predicate';
-import { Value } from 'types/Simulation';
 import { TriggerSource } from 'types/LifeEvent';
+import { Value } from 'types/Simulation';
+import { Predicate } from 'util/predicate';
 
 // The Action system schema (task 043; docs/tasks/038 §7). Actions are what people DO (sleep, cook, wander,
 // work); Events are what HAPPENED (logged life facts). Discrete Actions are instantaneous and log-worthy

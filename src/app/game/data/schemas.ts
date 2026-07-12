@@ -5,6 +5,35 @@
 // validateAllData() is the single entry point: game boot asserts it (GameManager), CI gates on it
 // (test/dataValidation.test.ts), and `npm run validate-data` runs it standalone for content-authoring loops.
 
+import { SchemaRegistration, ValidationIssue, assertValid, validateRegistrations } from 'game/data/registry';
+import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
+import {
+    validateBusinessesSemantics,
+    validateBusinessesStructure,
+    validateDemandSemantics,
+    validateDemandStructure,
+    validateJobsSemantics,
+    validateJobsStructure,
+    validateMaterialsStructure,
+} from 'game/data/validators/economyContent';
+import { validateEventsSemantics, validateEventsStructure } from 'game/data/validators/events';
+import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
+import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
+import {
+    validateHistoryGeneratorStructure,
+    validateEconomyStructure,
+    validateHouseholdDrawStructure,
+    validateLifeSimulationStructure,
+    validatePopulationStructure,
+} from 'game/data/validators/params';
+import { validateObjectGenerationStructure, validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
+import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
+import {
+    validateSkillInitSemantics,
+    validateSkillInitStructure,
+    validateSkillsSemantics,
+    validateSkillsStructure,
+} from 'game/data/validators/skills';
 import actionsConfig from 'json/actions.json';
 import assetsConfig from 'json/assets.json';
 import historyGeneratorConfig from 'json/historyGenerator.json';
@@ -29,35 +58,6 @@ import skillInitConfig from 'json/skillInit.json';
 import skillsConfig from 'json/skills.json';
 import toolAssetsConfig from 'json/toolAssets.json';
 
-import { SchemaRegistration, ValidationIssue, assertValid, validateRegistrations } from 'game/data/registry';
-import { validateEventsSemantics, validateEventsStructure } from 'game/data/validators/events';
-import {
-    validateBusinessesSemantics,
-    validateBusinessesStructure,
-    validateDemandSemantics,
-    validateDemandStructure,
-    validateJobsSemantics,
-    validateJobsStructure,
-    validateMaterialsStructure,
-} from 'game/data/validators/economyContent';
-import {
-    validateSkillInitSemantics,
-    validateSkillInitStructure,
-    validateSkillsSemantics,
-    validateSkillsStructure,
-} from 'game/data/validators/skills';
-import {
-    validateHistoryGeneratorStructure,
-    validateEconomyStructure,
-    validateHouseholdDrawStructure,
-    validateLifeSimulationStructure,
-    validatePopulationStructure,
-} from 'game/data/validators/params';
-import { validateActionsSemantics, validateActionsStructure } from 'game/data/validators/actions';
-import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
-import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
-import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
-import { validateObjectGenerationStructure, validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
 import {
     validateAssetsStructure,
     validateConfigStructure,

@@ -1,13 +1,11 @@
 import { FC, useEffect, useState } from 'react';
 
+import Person from 'game/agents/Person';
+import { sortedSkillEntries } from 'game/skills/SkillBook';
+import Workplace from 'game/world/Workplace';
 import Window from 'hud/Window';
-import Person from 'game/Person';
-import Workplace from 'game/Workplace';
-import { sortedSkillEntries } from 'game/SkillBook';
-
-import { formatTick } from 'util/time';
-import { JobTable } from 'types/Business';
 import jobsConfig from 'json/jobs.json';
+import { JobTable } from 'types/Business';
 
 const JOBS = jobsConfig as unknown as JobTable;
 
@@ -20,6 +18,7 @@ function rankLabel(job: { title: string; rankId?: string }): string | null {
     return definition?.ranks.find(rank => rank.rankId === job.rankId)?.label ?? job.rankId;
 }
 import { DetailsWindowProps } from 'types/HUD';
+import { formatTick } from 'util/time';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;

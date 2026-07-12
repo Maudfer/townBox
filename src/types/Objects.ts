@@ -1,6 +1,6 @@
-import { Value } from 'types/Simulation';
-import { PersonId } from 'types/Genealogy';
 import { LogicalLocation } from 'types/Execution';
+import { PersonId } from 'types/Genealogy';
+import { Value } from 'types/Simulation';
 
 // The object system (task 041; docs/tasks/038 §5). `objects.json` defines ARCHETYPES — the platonic "ballpoint
 // pen" — while runtime state consists of Object INSTANCES with identity, quantity, state, an owner, and a
