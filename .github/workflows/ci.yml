@@ -119,6 +119,32 @@ jobs:
         if: always()
         run: npm run lint:js
 
+  # Unit perf-regression gates for the offline generation spine (the `perf` jest project). Runs on EVERY
+  # change — a per-agent / subcomponent perf regression can originate anywhere in the sim — with --runInBand
+  # (serial, so timings aren't muddied by parallel workers) and NO coverage (istanbul instrumentation would
+  # skew the measurements). Two tiers: deterministic + within-run-RATIO guards (flake-free, the strict 5%-grade
+  # protection of the 078/079 wins) and the aggregate profiled per-agent/per-phase costs (interleaved
+  # self-normalization → survives runner noise, gated at the loose COST_TOLERANCE). Well under 10s of work.
+  #
+  # ADVISORY FOR NOW (like `coverage`): intentionally NOT in `ci-success`'s needs, so a cross-machine baseline
+  # drift on the aggregate cost gate can't block a merge. To make it blocking once trusted: re-baseline on a CI
+  # runner once (`PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf --runInBand`, commit test/perf/
+  # baselines.json), optionally tighten COST_TOLERANCE, then add `perf` to `ci-success`'s `needs`.
+  perf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Generation perf-regression gates
+        env:
+          PERF_ENFORCE: '1' # enforce the aggregate cost gate (this job is isolated + --runInBand)
+        run: npx jest --selectProjects perf --runInBand
+
   # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs
   # with --coverage and uploads its own per-module coverage report (measured by its own tests) for the
   # `coverage` job to gate.

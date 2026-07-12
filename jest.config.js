@@ -53,14 +53,26 @@ const base = {
 };
 
 module.exports = {
-  projects: MODULES.map((name) => ({
-    ...base,
-    displayName: name,
-    testMatch: [`<rootDir>/test/${name}/**/*.test.ts`],
-    // Per-project coverage scope: `jest --selectProjects <name> --coverage` collects only this module's
-    // slice, so the emitted report is that module measured by its own tests.
-    collectCoverageFrom: MODULE_COVERAGE[name],
-  })),
+  projects: [
+    ...MODULES.map((name) => ({
+      ...base,
+      displayName: name,
+      testMatch: [`<rootDir>/test/${name}/**/*.test.ts`],
+      // Per-project coverage scope: `jest --selectProjects <name> --coverage` collects only this module's
+      // slice, so the emitted report is that module measured by its own tests.
+      collectCoverageFrom: MODULE_COVERAGE[name],
+    })),
+    // Perf module — unit perf-regression gates for the generation spine. Its own project so
+    // `jest --selectProjects perf` runs it in isolation; CI runs it --runInBand with NO coverage (istanbul
+    // instrumentation would skew the timings). Deliberately OUTSIDE MODULE_COVERAGE, so the coverage gate
+    // never expects a `coverage-perf` report; it collects no coverage of its own.
+    {
+      ...base,
+      displayName: 'perf',
+      testMatch: ['<rootDir>/test/perf/**/*.test.ts'],
+      collectCoverageFrom: [],
+    },
+  ],
 
   coveragePathIgnorePatterns: ['/node_modules/'],
   // json  -> coverage/coverage-final.json, read by scripts/coverage-gate.mjs (the machine-readable gate input)
