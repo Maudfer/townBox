@@ -37,7 +37,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [005](005-clock-and-calendar-system_DONE.md) | ✅ | [Feature] Clock & calendar system |
 | [006](006-job-commute-pathfinding_DONE.md) | ✅ | [Feature] Wire jobs to pathfinding — daily work commute loop |
 | [007](007-business-generation_SUPERSEEDED.md) | ⛔ | [Feature] Business generation for work buildings + job/skill data |
-| [008](008-test-suites-unit-integration.md) | 🚧 | [Test] Integration (Playwright) suite — the browser-level test layer |
+| [008](008-test-suites-unit-integration_DONE.md) | ✅ | [Test] Integration (Playwright) suite — the browser-level test layer |
 | [009](009-github-actions-ci_DONE.md) | ✅ | [Test] GitHub Actions CI pipeline |
 | [010](010-marriage-formation-over-time_DONE.md) | ✅ | [Feature] Marriage / partnership formation over time |
 | [011](011-emergent-rehousing_DONE.md) | ✅ | [Feature] Emergent re-housing of household survivors |
@@ -112,6 +112,4 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 
 ## Open work
 
-- **[008](008-test-suites-unit-integration.md)** — the Playwright browser-level integration suite (HUD + canvas
-  + scenario tests). The Jest unit suite and per-module coverage gate are done; this is the remaining browser layer.
 - **[012](012-live-app-verification-clock-population.md)** — live-app verification of the clock & population sim.

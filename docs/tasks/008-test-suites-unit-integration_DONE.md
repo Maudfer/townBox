@@ -2,11 +2,13 @@
 
 - **Type:** Test infrastructure
 - **Labels:** `test`, `tooling`, `playwright`, `integration`, `ci`
-- **Status:** 📋 **Ready.** The unit suite + coverage from the original 008/009 scope are long done and have
-  since been rebuilt into a modular, per-module architecture (below). This task is now **only** the
-  **Playwright integration suite** — the browser-level layer that exercises what the headless Jest suite
-  structurally cannot: the React HUD, the Phaser canvas, real input, windows, save/load round-trips through the
-  actual UI, and emergent on-map behaviour (people/cars moving, commuting) over time.
+- **Status:** ✅ **Done.** The Playwright integration suite is implemented under `test/integration/` (harness +
+  `window.__townbox` determinism hook, HUD/canvas/scenario suites, committed save fixtures, browser coverage of
+  the scene/HUD gap, and a non-blocking `integration` CI job). See `test/integration/README.md`. Original
+  scope note: the unit suite + coverage from the 008/009 era were long done and rebuilt into the modular
+  per-module architecture; this task delivered the remaining **Playwright integration** layer that exercises
+  what the headless Jest suite structurally cannot — the React HUD, the Phaser canvas, real input, windows,
+  save/load round-trips through the actual UI, and emergent on-map behaviour over time.
 
 ---
 

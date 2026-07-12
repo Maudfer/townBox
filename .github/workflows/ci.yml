@@ -286,6 +286,37 @@ jobs:
           done
           echo "All required jobs succeeded."
 
-  # The Playwright integration suite (task 008) is not implemented yet. When it lands, add a job here
-  # that installs Chromium (`npx playwright install --with-deps chromium`) and runs the integration
-  # suite, gated on `changes` and wired into `ci-success`'s needs.
+  # Playwright integration suite (task 008) — boots the real PRODUCTION build (React HUD + Phaser canvas) and
+  # drives it through the window.__townbox determinism hook. It is SLOW (a real browser running the sim over
+  # many ticks) and ASYNC: like `audit`, it is deliberately NOT in `ci-success`'s `needs`, so it never blocks a
+  # merge. Its result is visible on the PR; when the suite is mature and stable, a follow-up can promote it into
+  # `ci-success` (or its own required check). The playwright.config webServer builds+serves ./bin, so no separate
+  # build step is needed. COVERAGE=1 collects the scene/HUD browser-coverage artifact (§7, informational).
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run integration suite (with browser coverage)
+        run: npm run test:integration:coverage
+      - name: Upload Playwright HTML report + traces/videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+      - name: Upload scene/HUD browser-coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: coverage-integration/
+          retention-days: 14

@@ -306,7 +306,7 @@ carry old saves forward), deflated with `pako` and base64-encoded behind a plugg
 | UI          | React `^18` + `react-dom`, windows via `react-rnd` |
 | Language    | TypeScript `^6.0` (strict) |
 | Bundler     | Parcel `^2.12` |
-| Tests       | Jest `^30` + `ts-jest` (unit); Playwright integration is planned |
+| Tests       | Jest `^30` + `ts-jest` (unit); Playwright `^1` (browser-level integration suite) |
 | Data viz    | D3 `^7` (family-tree graph) |
 | Fake data   | `@faker-js/faker` (`pt_BR` locale) |
 | CI          | GitHub Actions — typecheck, per-module concurrent test checks, production build, per-module coverage gate, ESLint + markdownlint |
@@ -401,9 +401,14 @@ widowed, homeless, moved-out…) fired from the transitions the sim already perf
 reachability test; businesses **shrink-via-layoffs** as well as grow; and **money is conserved** via an explicit
 external sector.
 
+The **Playwright integration suite (008)** now exists: a browser-level layer (`test/integration/`) that boots the
+real production build and drives the React HUD + Phaser canvas through a test-only `window.__townbox` determinism
+hook — covering start/save/load, the toolbar, inspector windows, the feed and clock, road/building placement and
+bulldozing, commute engagement, and end-to-end scenarios — plus browser coverage of the scene/HUD gap. It runs
+as a separate, **non-blocking** CI job.
+
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/)):
 
-- **008** — Playwright integration suite (browser-level tests).
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).
 
