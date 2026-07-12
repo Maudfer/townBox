@@ -94,14 +94,23 @@ function profiledRun(agents: number, warmupTicks: number, windowTicks: number): 
     return out;
 }
 
-// The dominant, reliably-fired buckets we turn into per-tick fractions (near-zero noise buckets are excluded —
-// a % of noise is noise). `total` is the reference (the whole tick), not itself a gated fraction.
+// The reliably-fired buckets we turn into per-tick fractions and LOG every run (near-zero noise buckets are
+// excluded — a % of noise is noise). `total` is the reference (the whole tick), not itself a gated fraction.
 const GATED_BUCKETS = [
     'phase.actions', 'phase.events', 'phase.brain', 'brain.resolveIntents',
     'brain.wokeUp', 'brain.idleFallback', 'brain.socialOpportunity', 'brain.inventoryOpportunity',
     'brain.freeTime:loop', 'brain.freeTime:requirements', 'brain.freeTime:modifiers',
     'advance.durationFinish', 'advance.finish:onCompleteEvent', 'advance.invoke:attempt', 'advance.pool',
 ];
+
+// Of those, only the DOMINANT buckets (CI share ≳ 0.10) actually FAIL the gate. The first CI run showed these
+// within ±6% of a dev box, whereas the smaller buckets swung ±15% — too noisy to block on. A sub-component
+// that regresses still inflates its parent phase here (phase.brain/phase.events catch it), and the specific
+// 078/079 wins are caught precisely by the deterministic guards; the small buckets are logged for trend only.
+const ENFORCED_FRACTIONS = new Set([
+    'phase.actions', 'phase.events', 'phase.brain',
+    'brain.idleFallback', 'brain.freeTime:loop', 'advance.pool',
+]);
 
 describe('generation perf — per-phase cost-fraction gates', () => {
     it('no component grows its share of a tick beyond tolerance (jitter-immune fractions)', () => {
@@ -127,12 +136,14 @@ describe('generation perf — per-phase cost-fraction gates', () => {
             }
         }
 
-        const results = gateAgainstBaselines(measured);
-        const mode = UPDATE_BASELINES ? 'BASELINES UPDATED' : ENFORCE_COST_GATE ? `gating @${(FRACTION_TOLERANCE * 100).toFixed(0)}%` : 'LOG-ONLY (enforced on CI once baselines are CI-measured)';
+        const results = gateAgainstBaselines(measured, ENFORCED_FRACTIONS);
+        const mode = UPDATE_BASELINES ? 'BASELINES UPDATED' : ENFORCE_COST_GATE ? `gating '*' rows @${(FRACTION_TOLERANCE * 100).toFixed(0)}%` : 'LOG-ONLY (enforced on CI via PERF_ENFORCE)';
         console.info(`[generation perf] per-tick cost fractions · ${mode}\n${formatResults(results)}`);
 
         // Enforced only when the baselines match the running machine class (PERF_ENFORCE=1 on the CI job);
-        // elsewhere it's advisory, so a dev box's fractions don't gate against CI-measured baselines.
+        // elsewhere it's advisory, so a dev box's fractions don't gate against CI-measured baselines. Only the
+        // ENFORCED_FRACTIONS subset can set `regressed` (gateAgainstBaselines above), so the noisy small buckets
+        // are logged but never fail.
         const regressed = results.filter(r => r.regressed).map(r => `${r.label} (+${(((r.ratio ?? 1) - 1) * 100).toFixed(1)}%)`);
         if (ENFORCE_COST_GATE) {
             expect(regressed).toEqual([]);

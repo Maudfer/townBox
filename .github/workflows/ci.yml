@@ -127,10 +127,11 @@ jobs:
   #     (a first CI run confirmed it — the ratios were identical to a dev box), so they ALWAYS enforce and are
   #     what makes THIS a safe BLOCKING check (it's in `ci-success`'s needs). This is the real protection of the
   #     078/079 wins (agent-list gating, the caches, predicate precompilation, instance pruning).
-  #   - generationPerf.test.ts: the aggregate per-phase cost FRACTIONS (jitter-immune within a run). Currently
-  #     LOG-ONLY — even fractions drift ~10-15% across microarchitectures / under load, so gating needs
-  #     CI-measured baselines. To enable: run once with PERF_UPDATE_BASELINES=1 on CI (workflow_dispatch),
-  #     commit test/perf/baselines.json, then set `PERF_ENFORCE: '1'` on this step.
+  #   - generationPerf.test.ts: the aggregate per-phase cost FRACTIONS (jitter-immune within a run). ENFORCED
+  #     here via PERF_ENFORCE=1, but only for the DOMINANT buckets (ENFORCED_FRACTIONS) against CI-measured
+  #     baselines (test/perf/baselines.json) — the small buckets drift too much to block on, so they're logged
+  #     for trend. Re-baseline after an intentional perf change: run this job once via workflow_dispatch with
+  #     PERF_UPDATE_BASELINES=1 (or locally on a quiet box), then commit the regenerated baselines.json.
   perf:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -142,6 +143,8 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Generation perf-regression gates
+        env:
+          PERF_ENFORCE: '1' # gate the dominant cost fractions against the CI-measured baselines (this job is isolated + --runInBand)
         run: npx jest --selectProjects perf --runInBand
 
   # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs
@@ -175,13 +178,10 @@ jobs:
           if-no-files-found: ignore
 
   # Coverage gate: does NOT run tests — it downloads every module's report from the `test` jobs and
-  # fails if ANY module's statement coverage is below COVERAGE_THRESHOLD (jest.config.js). The
-  # per-module numbers are low by design (each module measured by its own tests only), so this is
-  # expected to fail today — it's a forcing function to grow each module's unit tests.
-  #
-  # ADVISORY FOR NOW: intentionally NOT in `ci-success`'s needs, so a red coverage check does not block
-  # merges. To make it blocking once modules are green, add `coverage` to `ci-success`'s `needs`
-  # (or mark the `CI / coverage` check required in branch protection).
+  # fails if ANY module's OWNED-file statement coverage is below COVERAGE_THRESHOLD (jest.config.js,
+  # currently 80%). scripts/coverage-gate.mjs filters each report to the module's own files first —
+  # Jest's collectCoverageFrom is additive, so an unfiltered report is diluted by transitively-required
+  # files from other modules. All modules currently clear 80%, so this is BLOCKING (in ci-success's needs).
   coverage:
     needs: [changes, test]
     if: always() && needs.changes.outputs.modules != '[]'
@@ -203,7 +203,9 @@ jobs:
       - name: Per-module coverage gate
         run: node scripts/coverage-gate.mjs coverage-artifacts
 
-  # Advisory only — surfaces known vulnerabilities without blocking the merge.
+  # Advisory — surfaces known vulnerabilities without blocking the merge. `--omit=dev` gates only the
+  # dependencies that actually SHIP: dev-only tooling (browser-sync's transitive ws/socket.io) carries
+  # advisories that never reach the bundle. Run a plain `npm audit` locally for the full dev picture.
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -215,13 +217,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - run: npm audit --audit-level=high
+      - run: npm audit --audit-level=high --omit=dev
 
   # Single stable aggregate check — make THIS the required status check in branch protection. Fails if
-  # any required upstream job failed or was cancelled (skipped is fine). NOTE: `coverage` is
-  # deliberately excluded (advisory forcing function today); add it here to make coverage blocking.
+  # any required upstream job failed or was cancelled (skipped is fine). `audit` is intentionally NOT
+  # here (advisory — dev-tooling advisories shouldn't block).
   ci-success:
-    needs: [changes, typecheck, build, lint, perf, test]
+    needs: [changes, typecheck, build, lint, perf, test, coverage]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -235,7 +237,8 @@ jobs:
             "${{ needs.build.result }}" \
             "${{ needs.lint.result }}" \
             "${{ needs.perf.result }}" \
-            "${{ needs.test.result }}"; do
+            "${{ needs.test.result }}" \
+            "${{ needs.coverage.result }}"; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
               echo "A required job did not succeed (result: $r)"; exit 1
             fi

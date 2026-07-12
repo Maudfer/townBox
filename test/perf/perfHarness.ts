@@ -26,10 +26,12 @@ import { join } from 'node:path';
 
 // The fraction metrics cancel machine JITTER within a run, but they still drift a little across DIFFERENT
 // microarchitectures (a component's share of a tick depends on how that CPU weights its op mix). So the gate
-// is strict but not razor-thin, and — critically — the committed baselines must be measured on the same
-// machine class that runs the gate (i.e. CI), not a dev box: the first CI run showed the event-walk's share
-// ~14% higher there than on a dev box. Re-baseline on CI (PERF_UPDATE_BASELINES) before enforcing.
-export const FRACTION_TOLERANCE = 0.10;
+// is strict but not razor-thin, and — critically — the committed baselines are measured on the same machine
+// class that runs the gate (CI), not a dev box: the first CI run of the DOMINANT buckets landed within ±6% of
+// a dev box, while the small (< ~0.05-share) buckets swung ±15%. So only the dominant buckets are ENFORCED
+// (see ENFORCED_FRACTIONS in generationPerf), at a tolerance with headroom over that ±6% for CI-to-CI noise;
+// the small buckets are logged for trend and covered precisely by the deterministic guards.
+export const FRACTION_TOLERANCE = 0.12;
 export const UPDATE_BASELINES = process.env.PERF_UPDATE_BASELINES === '1';
 
 // The aggregate fraction gate ENFORCES only when PERF_ENFORCE=1 (set on the CI `perf` job once its baselines
@@ -65,7 +67,8 @@ export interface PerfResult {
     value: number;           // the measured fraction (dimensionless, machine-independent)
     baseline: number | null; // committed baseline, or null when new/updating
     ratio: number | null;    // value / baseline (>1 means the component grew its share); null when no baseline
-    regressed: boolean;
+    enforced: boolean;       // whether crossing the tolerance FAILS the gate (vs. logged for trend only)
+    regressed: boolean;      // enforced AND over tolerance
 }
 
 type Baselines = Record<string, number>;
@@ -82,15 +85,18 @@ function loadBaselines(): Baselines {
 }
 
 // Gate (or, under PERF_UPDATE_BASELINES, rewrite) a map of measured metrics against baselines.json. Returns a
-// per-label verdict; callers assert `every(r => !r.regressed)` and log the table. New labels (no baseline yet)
-// never fail — they're recorded on the next update, so adding a metric is non-breaking.
-export function gateAgainstBaselines(measured: Record<string, number>, tolerance = FRACTION_TOLERANCE): PerfResult[] {
+// per-label verdict; callers assert `every(r => !r.regressed)` and log the table. `enforced` names the subset
+// whose over-tolerance FAILS the gate — everything else is measured and logged (for trend) but never fails, so
+// the small, noisy buckets don't cause flakes. New labels (no baseline yet) never fail either — they're
+// recorded on the next update, so adding a metric is non-breaking.
+export function gateAgainstBaselines(measured: Record<string, number>, enforced?: Set<string>, tolerance = FRACTION_TOLERANCE): PerfResult[] {
     const baselines = loadBaselines();
     const results: PerfResult[] = Object.entries(measured).map(([label, value]) => {
         const baseline = baselines[label] ?? null;
         const ratio = baseline !== null && baseline > 0 ? value / baseline : null;
-        const regressed = !UPDATE_BASELINES && ratio !== null && ratio > 1 + tolerance;
-        return { label, value, baseline, ratio, regressed };
+        const isEnforced = enforced === undefined || enforced.has(label);
+        const regressed = isEnforced && !UPDATE_BASELINES && ratio !== null && ratio > 1 + tolerance;
+        return { label, value, baseline, ratio, enforced: isEnforced, regressed };
     });
 
     if (UPDATE_BASELINES) {
@@ -108,8 +114,9 @@ export function formatResults(results: PerfResult[]): string {
     const rows = results.map(r => {
         const base = r.baseline === null ? '  (new)' : r.baseline.toFixed(5);
         const ratio = r.ratio === null ? '    -' : `${(r.ratio * 100).toFixed(1)}%`;
+        const tier = r.enforced ? '*' : ' '; // '*' = enforced (can fail the gate); ' ' = logged for trend only
         const flag = r.regressed ? '  <<< REGRESSED' : '';
-        return `  ${r.label.padEnd(26)} frac ${r.value.toFixed(5).padStart(9)}  base ${base.padStart(9)}  ${ratio.padStart(7)}${flag}`;
+        return `${tier} ${r.label.padEnd(26)} frac ${r.value.toFixed(5).padStart(9)}  base ${base.padStart(9)}  ${ratio.padStart(7)}${flag}`;
     });
     return rows.join('\n');
 }
