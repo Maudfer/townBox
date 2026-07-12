@@ -1,0 +1,37 @@
+name: test-module
+
+# Reusable workflow: run ONE module's Jest project with coverage and upload its per-module report for
+# the `coverage` gate. ci.yml calls this once per module, each with a per-module `if`, so a module the
+# PR didn't affect shows as SKIPPED in the checks list. (A static matrix can't do that — `matrix` is not
+# available in a job-level `if` — and a dynamic matrix omits unaffected modules entirely rather than
+# showing them skipped. Hence one small caller job per module, all sharing these steps.)
+
+on:
+  workflow_call:
+    inputs:
+      module:
+        description: The test module (jest project) to run — e.g. economy, events, util.
+        required: true
+        type: string
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run ${{ inputs.module }} tests with coverage
+        run: npx jest --selectProjects ${{ inputs.module }} --coverage --coverageReporters=json --coverageReporters=lcovonly --coverageDirectory coverage
+      - name: Upload ${{ inputs.module }} coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ inputs.module }}
+          path: |
+            coverage/coverage-final.json
+            coverage/lcov.info
+          if-no-files-found: ignore
