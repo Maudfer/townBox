@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-11T19:52:03.837Z",
-  "serial": "20260711165203",
-  "hash": "1c00",
-  "name": "history-20260711165203-1c00",
+  "generatedAt": "2026-07-12T12:49:44.537Z",
+  "serial": "20260712094944",
+  "hash": "c5c9",
+  "name": "history-20260712094944-c5c9",
   "generator": {
     "script": "scripts/generateHistoryAsset.ts"
   },
@@ -15,13 +15,13 @@
     "argv": [],
     "flags": {}
   },
-  "runtime": "20 min 48 s",
-  "shards": {
-    "logShards": 29,
-    "skillShards": 29
+  "runtime": "28 min 45 s",
+  "people": {
+    "files": 540,
+    "prunedWarmupFiles": 37
   },
   "sizes": {
-    "shardBytes": 553914650,
+    "personBytes": 546122086,
     "sectionBytes": 1576203
   }
 }
