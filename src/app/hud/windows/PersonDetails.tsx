@@ -108,6 +108,10 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
         ? `${STATUS_WORDS[status.status] ?? status.status}${activeLabel && status.status !== 'sleeping' ? ` — ${activeLabel}` : ''}${whereHint ? ` (${whereHint})` : ''}`
         : null;
 
+    // Needs meters (task 084): the decayed levels, refreshed on the same interval as everything else.
+    const worldSeed = game.population?.getState().worldSeed ?? 0;
+    const needLevels = personId && game.needs ? game.needs.levelsOf(personId, game.clock?.getCurrentTick() ?? 0, worldSeed) : null;
+
     // The day strip (task 081/J3): this in-game day's log entries bucketed by hour, midnight → now.
     const currentTick = game.clock?.getCurrentTick() ?? 0;
     const dayStartTick = currentTick - (((currentTick % 24) + 24) % 24);
@@ -151,6 +155,25 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     <p><strong>Home:</strong> {home ? `${home.getHouseholdName()} household` : 'Homeless'}</p>
                     {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
                 </section>
+
+                {needLevels && (
+                    <section>
+                        <h4>Needs</h4>
+                        <div data-testid="person-needs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 12px' }}>
+                            {Object.entries(needLevels).map(([need, level]) => (
+                                <div key={need} title={`${need}: ${level.toFixed(0)}/100`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <small style={{ width: 52, textTransform: 'capitalize' }}>{need}</small>
+                                    <div style={{ flex: 1, height: 6, background: 'rgba(127,127,127,0.25)', borderRadius: 3 }}>
+                                        <div style={{
+                                            width: `${Math.max(0, Math.min(100, level))}%`, height: '100%', borderRadius: 3,
+                                            background: level <= 20 ? '#d9534f' : level <= 50 ? '#e6a23c' : '#7fb069',
+                                        }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <section>
                     <h4>Today</h4>

@@ -7,6 +7,7 @@
 
 import { PersonId } from 'types/Genealogy';
 import { JobMarket, MoneyLedger, HousingMarket, SkillRegistry } from 'types/LifeEvent';
+import { NeedsReader } from 'types/Needs';
 import { RelationshipGraph } from 'types/Relationship';
 
 export type SimulationMode = 'live' | 'bootstrap';
@@ -56,6 +57,9 @@ export interface SimulationMarkets {
     // The elective social graph (task 083): consent, target weighting, relationship predicates, and the
     // adjustRelationship effect/consequence all consult it. Null/absent = pre-graph contexts (pure tests).
     social?: RelationshipGraph | null;
+    // The needs ledger (task 084): action commits credit their `satisfies`, selection reads urgency.
+    // Null/absent = pre-needs contexts (pure tests) — selection multipliers read as 1.
+    needs?: NeedsReader | null;
 }
 
 export interface ExecutionContext {

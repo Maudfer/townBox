@@ -113,6 +113,10 @@ export interface ActionDefinition {
     // person-typed parameter.
     interaction?: InteractionContract;
     consequences?: ConsequenceOp[];
+    // What the action restores (task 084 / proposal A): need-id → satisfaction points, credited when the
+    // action commits (discrete: at perform; continuous: at completion). Urgency of these needs multiplies
+    // the action's selection weight through the shared gradient (json/needs.json).
+    satisfies?: Partial<Record<import('types/Needs').NeedId, number>>;
 }
 
 export type ActionManifest = Record<ActionId, ActionDefinition>;

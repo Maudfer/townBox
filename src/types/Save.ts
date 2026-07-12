@@ -5,6 +5,7 @@ import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { Direction } from 'types/Movement';
+import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
 import { SocialGraphState } from 'types/Relationship';
 import { SchoolRegistryState } from 'types/School';
@@ -42,7 +43,9 @@ import { JobPosition } from 'types/Work';
 //          (people placed later simply arrive without pre-game logs — the sim itself never needed them).
 // v14 → v15: the elective social graph (task 083). `socialGraph` carries friendship/rivalry/romance edges;
 //          additive — absent reads as an empty graph (edges regrow from real interactions).
-export const SAVE_VERSION = 15;
+// v15 → v16: the needs ledger (task 084). `needs` carries per-person meters; additive — absent re-seeds
+//          lazily and deterministically per person on first read.
+export const SAVE_VERSION = 16;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -154,6 +157,8 @@ export interface WorldSnapshot {
     historyHydration?: HistoryHydrationSave;
     // The elective social graph (v15, task 083). Optional so older saves load with an empty graph.
     socialGraph?: SocialGraphState;
+    // The needs ledger (v16, task 084). Optional so older saves lazily re-seed per person.
+    needs?: NeedsState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

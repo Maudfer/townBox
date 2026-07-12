@@ -1,0 +1,23 @@
+{
+    "needs": {
+        "food": { "decayPerDay": 36, "critical": 20 },
+        "rest": { "decayPerDay": 30, "critical": 15 },
+        "social": { "decayPerDay": 12, "critical": 8 },
+        "fun": { "decayPerDay": 15, "critical": 8 },
+        "hygiene": { "decayPerDay": 18, "critical": 10 },
+        "purpose": { "decayPerDay": 8, "critical": 4 }
+    },
+    "urgencyCurve": {
+        "mode": "step",
+        "points": [
+            { "at": 0, "value": 6 },
+            { "at": 15, "value": 3.5 },
+            { "at": 30, "value": 2.2 },
+            { "at": 50, "value": 1.4 },
+            { "at": 70, "value": 1 },
+            { "at": 90, "value": 0.6 }
+        ]
+    },
+    "initMin": 55,
+    "initMax": 90
+}

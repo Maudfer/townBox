@@ -537,6 +537,10 @@ export default class ActionEngine {
             applyPlan(opsPlan);
             onOutputs?.(commitCtx.outputs);
             this.recordAction(personId, actionId, deps.tick);
+            // Needs satisfaction (task 084): a discrete commit credits its authored `satisfies` amounts.
+            if (def.satisfies) {
+                deps.ctx.markets?.needs?.satisfy(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
             this.fireEvent(def.events?.onStart, personId, seq, deps, result, params);
             this.fireEvent(def.events?.onComplete, personId, seq, deps, result, params);
             // Counterpart event (task 082): the target's half of the interaction, chained to the same seq.
@@ -776,6 +780,11 @@ export default class ActionEngine {
             if (completionCtx && completionPlan) {
                 completionCtx.causationId = seq;
                 applyPlan(completionPlan);
+            }
+            // Needs satisfaction (task 084): a COMPLETED continuous action credits its authored amounts
+            // (interruptions/blocks credit nothing — finishing matters).
+            if (def.satisfies) {
+                deps.ctx.markets?.needs?.satisfy(instance.personId, def.satisfies, deps.tick, deps.state.worldSeed);
             }
             const tEvent = fclock ? fclock() : 0;
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);

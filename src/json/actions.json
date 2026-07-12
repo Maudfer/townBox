@@ -29,6 +29,9 @@
         },
         "events": {
             "onComplete": "woke_up"
+        },
+        "satisfies": {
+            "rest": 85
         }
     },
     "rest": {
@@ -38,6 +41,9 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0.6
+        },
+        "satisfies": {
+            "rest": 25
         }
     },
     "read_book": {
@@ -105,6 +111,9 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 5
         }
     },
     "bake_cake": {
@@ -147,6 +156,10 @@
             "objectAtLocation": {
                 "archetype": "oven"
             }
+        },
+        "satisfies": {
+            "food": 10,
+            "purpose": 12
         }
     },
     "sat_on_bench": {
@@ -157,7 +170,10 @@
     "greeted_neighbor": {
         "label": "Greeted a neighbor",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 2
+        }
     },
     "found_coin": {
         "label": "Found a coin",
@@ -515,6 +531,10 @@
                     "maxTotal": 1
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 10,
+            "rest": 5
         }
     },
     "visiting_beach": {
@@ -603,6 +623,10 @@
                     "cooldownTicks": 3
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 25,
+            "social": 5
         }
     },
     "at_the_bar": {
@@ -675,6 +699,10 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 20,
+            "social": 15
         }
     },
     "shopping_trip": {
@@ -763,6 +791,10 @@
         },
         "events": {
             "onComplete": "went_grocery_shopping"
+        },
+        "satisfies": {
+            "purpose": 10,
+            "fun": 5
         }
     },
     "browsing_store": {
@@ -823,6 +855,9 @@
                     "chancePerTick": 0.15
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 10
         }
     },
     "exercising": {
@@ -904,6 +939,10 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 10,
+            "purpose": 15
         }
     },
     "gardening": {
@@ -996,6 +1035,10 @@
             "objectAtLocation": {
                 "tag": "garden"
             }
+        },
+        "satisfies": {
+            "purpose": 20,
+            "fun": 10
         }
     },
     "cleaning_house": {
@@ -1105,6 +1148,10 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "hygiene": 10,
+            "purpose": 15
         }
     },
     "cooking_meal": {
@@ -1228,6 +1275,10 @@
         },
         "events": {
             "onComplete": "tried_new_recipe"
+        },
+        "satisfies": {
+            "food": 15,
+            "purpose": 5
         }
     },
     "watching_television": {
@@ -1289,6 +1340,9 @@
                     "maxTotal": 1
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 20
         }
     },
     "using_computer": {
@@ -1511,6 +1565,10 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 20,
+            "purpose": 15
         }
     },
     "caring_for_children": {
@@ -1588,6 +1646,10 @@
                     "maxTotal": 1
                 }
             ]
+        },
+        "satisfies": {
+            "social": 15,
+            "purpose": 20
         }
     },
     "running_errands": {
@@ -1663,6 +1725,9 @@
                     "cooldownTicks": 2
                 }
             ]
+        },
+        "satisfies": {
+            "purpose": 15
         }
     },
     "playing_at_playground": {
@@ -1754,6 +1819,10 @@
                     "chancePerTick": 0.05
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 30,
+            "social": 10
         }
     },
     "spending_time_at_home": {
@@ -1853,6 +1922,11 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "satisfies": {
+            "rest": 10,
+            "fun": 5,
+            "food": 6
         }
     },
     "taking_a_walk": {
@@ -1948,6 +2022,10 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 10,
+            "purpose": 5
         }
     },
     "listening_to_music": {
@@ -2021,6 +2099,9 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 15
         }
     },
     "people_watching": {
@@ -2089,6 +2170,10 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "satisfies": {
+            "fun": 10,
+            "social": 5
         }
     },
     "fed_the_pigeons": {
@@ -2104,7 +2189,10 @@
     "dozed_off": {
         "label": "Dozed off",
         "type": "discrete",
-        "category": "recovery"
+        "category": "recovery",
+        "satisfies": {
+            "rest": 8
+        }
     },
     "waded_in_the_water": {
         "label": "Waded in the water",
@@ -2119,6 +2207,9 @@
             "attr": "age",
             "op": "<",
             "value": 13
+        },
+        "satisfies": {
+            "fun": 8
         }
     },
     "collected_a_seashell": {
@@ -2161,7 +2252,10 @@
                 "op": "adjustMoney",
                 "amount": -5
             }
-        ]
+        ],
+        "satisfies": {
+            "food": 12
+        }
     },
     "ordered_a_drink": {
         "label": "Ordered a drink",
@@ -2187,7 +2281,10 @@
     "watched_the_game": {
         "label": "Watched the game",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 8
+        }
     },
     "bought_a_round": {
         "label": "Bought a round for the bar",
@@ -2281,7 +2378,10 @@
     "stopped_to_rest": {
         "label": "Stopped to rest",
         "type": "discrete",
-        "category": "recovery"
+        "category": "recovery",
+        "satisfies": {
+            "rest": 5
+        }
     },
     "pulled_a_muscle": {
         "label": "Pulled a muscle",
@@ -2296,12 +2396,18 @@
             "objectAtLocation": {
                 "tag": "garden"
             }
+        },
+        "satisfies": {
+            "purpose": 5
         }
     },
     "pulled_weeds": {
         "label": "Pulled some weeds",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "purpose": 6
+        }
     },
     "planted_seeds": {
         "label": "Planted some seeds",
@@ -2346,17 +2452,27 @@
     "swept_the_floor": {
         "label": "Swept the floor",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 6
+        }
     },
     "did_the_dishes": {
         "label": "Did the dishes",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 8,
+            "purpose": 5
+        }
     },
     "took_out_the_trash": {
         "label": "Took out the trash",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 8
+        }
     },
     "found_something_under_the_couch": {
         "label": "Found something under the couch",
@@ -2375,7 +2491,11 @@
     "tidied_up": {
         "label": "Tidied up",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 6,
+            "purpose": 5
+        }
     },
     "chopped_ingredients": {
         "label": "Chopped the ingredients",
@@ -2390,7 +2510,10 @@
     "tasted_the_dish": {
         "label": "Tasted the dish",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "food": 5
+        }
     },
     "burned_something_slightly": {
         "label": "Burned something slightly",
@@ -2405,12 +2528,18 @@
     "channel_surfed": {
         "label": "Channel surfed",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 3
+        }
     },
     "watched_a_rerun": {
         "label": "Watched a rerun",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 5
+        }
     },
     "argued_with_the_news": {
         "label": "Argued with the news",
@@ -2460,7 +2589,10 @@
     "made_some_progress": {
         "label": "Made some progress",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "purpose": 8
+        }
     },
     "admired_the_handiwork": {
         "label": "Admired the handiwork",
@@ -2480,7 +2612,11 @@
     "played_a_game_together": {
         "label": "Played a game together",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "fun": 10,
+            "social": 8
+        }
     },
     "refereed_a_squabble": {
         "label": "Refereed a squabble",
@@ -2501,7 +2637,10 @@
                 "op": "adjustMoney",
                 "amount": -2
             }
-        ]
+        ],
+        "satisfies": {
+            "purpose": 4
+        }
     },
     "picked_up_a_prescription": {
         "label": "Picked up a prescription",
@@ -2524,7 +2663,10 @@
     "crossed_something_off_the_list": {
         "label": "Crossed something off the list",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "purpose": 8
+        }
     },
     "bumped_into_an_acquaintance": {
         "label": "Bumped into an acquaintance",
@@ -2614,7 +2756,11 @@
                 },
                 "quantity": 1
             }
-        ]
+        ],
+        "satisfies": {
+            "food": 8,
+            "social": 5
+        }
     },
     "went_quiet": {
         "label": "Went quiet for a while",
@@ -2648,12 +2794,18 @@
             "objectAtLocation": {
                 "archetype": "television"
             }
+        },
+        "satisfies": {
+            "fun": 8
         }
     },
     "took_a_nap": {
         "label": "Took a nap",
         "type": "discrete",
-        "category": "recovery"
+        "category": "recovery",
+        "satisfies": {
+            "rest": 15
+        }
     },
     "took_a_shower": {
         "label": "Took a shower",
@@ -2672,6 +2824,9 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "hygiene": 40
         }
     },
     "rearranged_possessions": {
@@ -2682,7 +2837,10 @@
     "called_a_relative": {
         "label": "Called a relative",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 10
+        }
     },
     "looked_for_something": {
         "label": "Looked for something",
@@ -2711,12 +2869,18 @@
     "discovered_a_new_song": {
         "label": "Discovered a new song",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 8
+        }
     },
     "danced_a_little": {
         "label": "Danced a little",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 6
+        }
     },
     "nodded_at_a_passerby": {
         "label": "Nodded at a passerby",
@@ -2842,6 +3006,9 @@
         },
         "events": {
             "onComplete": "reconnected_with_relative"
+        },
+        "satisfies": {
+            "social": 25
         }
     },
     "visiting_friends": {
@@ -2915,6 +3082,10 @@
                     "maxTotal": 1
                 }
             ]
+        },
+        "satisfies": {
+            "social": 30,
+            "fun": 15
         }
     },
     "hosting_gathering": {
@@ -3002,6 +3173,10 @@
         },
         "events": {
             "onComplete": "hosted_dinner_party"
+        },
+        "satisfies": {
+            "social": 35,
+            "fun": 10
         }
     },
     "catching_up_over_coffee": {
@@ -3063,17 +3238,28 @@
                     "maxTotal": 1
                 }
             ]
+        },
+        "satisfies": {
+            "social": 25,
+            "food": 8
         }
     },
     "talked_with_relative": {
         "label": "Talked with a relative",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8
+        }
     },
     "shared_a_meal": {
         "label": "Shared a meal",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "food": 40,
+            "social": 10
+        }
     },
     "watched_tv_together": {
         "label": "Watched TV together",
@@ -3083,6 +3269,10 @@
             "objectAtLocation": {
                 "archetype": "television"
             }
+        },
+        "satisfies": {
+            "fun": 8,
+            "social": 6
         }
     },
     "helped_tidy_up": {
@@ -3153,7 +3343,10 @@
     "chatted_with_friend": {
         "label": "Chatted with a friend",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8
+        }
     },
     "played_a_game": {
         "label": "Played a game",
@@ -3168,7 +3361,10 @@
     "swapped_stories": {
         "label": "Swapped stories",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 6
+        }
     },
     "lent_an_object": {
         "label": "Lent an object",
@@ -3291,7 +3487,11 @@
     "laughed_together": {
         "label": "Laughed together",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8,
+            "fun": 5
+        }
     },
     "argued_over_nothing": {
         "label": "Argued over nothing",
@@ -3332,12 +3532,18 @@
     "cleaned_up_after": {
         "label": "Cleaned up afterwards",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "hygiene": 6
+        }
     },
     "chatted_over_coffee": {
         "label": "Chatted over coffee",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8
+        }
     },
     "paid_the_bill": {
         "label": "Paid the bill",
@@ -3379,7 +3585,10 @@
                 "op": "adjustRelationship",
                 "delta": 0.5
             }
-        ]
+        ],
+        "satisfies": {
+            "social": 2
+        }
     },
     "talked_to_person": {
         "label": "Talked to someone",
@@ -3405,7 +3614,10 @@
                 "op": "adjustRelationship",
                 "delta": 1
             }
-        ]
+        ],
+        "satisfies": {
+            "social": 6
+        }
     },
     "asked_for_help": {
         "label": "Asked for help",
@@ -3559,7 +3771,11 @@
                 "op": "adjustRelationship",
                 "delta": 1
             }
-        ]
+        ],
+        "satisfies": {
+            "social": 4,
+            "fun": 4
+        }
     },
     "asked_for_advice": {
         "label": "Asked for advice",
@@ -3631,7 +3847,11 @@
                 "op": "adjustRelationship",
                 "delta": 3
             }
-        ]
+        ],
+        "satisfies": {
+            "social": 12,
+            "fun": 8
+        }
     },
     "consoled_person": {
         "label": "Consoled someone",
@@ -3657,7 +3877,10 @@
                 "op": "adjustRelationship",
                 "delta": 3
             }
-        ]
+        ],
+        "satisfies": {
+            "social": 6
+        }
     },
     "played_with_person": {
         "label": "Played with someone",
@@ -3683,7 +3906,11 @@
                 "op": "adjustRelationship",
                 "delta": 2
             }
-        ]
+        ],
+        "satisfies": {
+            "fun": 8,
+            "social": 8
+        }
     },
     "taught_person_something": {
         "label": "Taught someone something",
@@ -3718,7 +3945,11 @@
                 "op": "adjustRelationship",
                 "delta": 2.5
             }
-        ]
+        ],
+        "satisfies": {
+            "purpose": 10,
+            "social": 6
+        }
     },
     "gave_object_to_person": {
         "label": "Gave an object to someone",
@@ -4084,7 +4315,10 @@
     "ate_a_meal": {
         "label": "Ate a meal",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "food": 45
+        }
     },
     "packed_a_lunch": {
         "label": "Packed a lunch",
@@ -4130,12 +4364,19 @@
                     "action": "baked_bread_loaf"
                 }
             ]
+        },
+        "satisfies": {
+            "food": 8,
+            "purpose": 10
         }
     },
     "repaired_an_item": {
         "label": "Repaired a broken item",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "purpose": 15
+        }
     },
     "noticed_a_broken_keepsake": {
         "label": "Noticed a keepsake had broken",
@@ -4264,7 +4505,11 @@
     "deep_cleaned_the_kitchen": {
         "label": "Deep-cleaned the kitchen",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 15,
+            "purpose": 10
+        }
     },
     "wrapped_a_gift": {
         "label": "Wrapped a gift",
@@ -4494,7 +4739,10 @@
                 "op": "adjustRelationship",
                 "delta": 2.5
             }
-        ]
+        ],
+        "satisfies": {
+            "social": 8
+        }
     },
     "kissed_partner": {
         "label": "Kissed their partner",
@@ -4530,6 +4778,9 @@
         "selection": {
             "weight": 0.8,
             "cooldownTicks": 6
+        },
+        "satisfies": {
+            "social": 10
         }
     }
 }

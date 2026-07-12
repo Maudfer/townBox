@@ -128,6 +128,7 @@ export default class Brain {
         this.hooks = [
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
+            needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             wokeUpHook,
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)
@@ -294,6 +295,53 @@ export default class Brain {
         return candidates;
     }
 
+    // The best available continuous action addressing one need (the needsHook's pick, task 084): the normal
+    // free-time machinery (cooldowns, hard gates, modifiers, urgency) restricted to candidates that satisfy
+    // the need meaningfully. Deterministic per (seed, tick, person) on a salted fork of the free-time stream.
+    selectActionForNeed(personId: PersonId, need: import('types/Needs').NeedId, deps: BrainDeps): string | null {
+        const context = this.actionEngine.contextFor(personId, deps);
+        const needsLedger = deps.ctx.markets?.needs ?? null;
+        const candidates: { actionId: string; weight: number }[] = [];
+        for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
+            if ((def.satisfies?.[need] ?? 0) < 5) {
+                continue;
+            }
+            const selection = def.selection;
+            let weight = baseWeight;
+            if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
+                continue;
+            }
+            if (def.requirements && !evaluatePredicateCached(def.requirements, context)) {
+                continue;
+            }
+            for (const modifier of selection?.modifiers ?? []) {
+                if (evaluatePredicateCached(modifier.when, context)) {
+                    weight *= modifier.multiply;
+                }
+            }
+            if (needsLedger) {
+                weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            if (weight > 0) {
+                candidates.push({ actionId, weight });
+            }
+        }
+        if (candidates.length === 0) {
+            return null;
+        }
+        candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
+        const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x9eed);
+        const total = candidates.reduce((sum, candidate) => sum + candidate.weight, 0);
+        let roll = rng.next() * total;
+        for (const candidate of candidates) {
+            roll -= candidate.weight;
+            if (roll <= 0) {
+                return candidate.actionId;
+            }
+        }
+        return candidates[candidates.length - 1]!.actionId;
+    }
+
     selectFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
         // Serve from the per-tick memo when this person's pick was already computed this tick (see field docs).
         if (this.freeTimeMemoTick !== deps.tick) {
@@ -324,6 +372,7 @@ export default class Brain {
         const tCtx = clock ? clock() : 0;
         const context = this.actionEngine.contextFor(personId, deps);
         addSeg('freeTime:context', tCtx);
+        const needsLedger = deps.ctx.markets?.needs ?? null;
         const tLoop = clock ? clock() : 0;
         let reqMs = 0;
         let modMs = 0;
@@ -353,6 +402,11 @@ export default class Brain {
                 if (applies) {
                     weight *= modifier.multiply;
                 }
+            }
+            // Needs urgency (task 084): an action addressing a starved need multiplies up, a sated one down —
+            // the shared gradient in json/needs.json. Authored weights/modifiers keep the last word (above).
+            if (needsLedger && def.satisfies) {
+                weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
             }
             if (weight > 0) {
                 candidates.push({ actionId, weight });
@@ -513,6 +567,43 @@ const inventoryOpportunityHook: BrainHook = {
             }
         }
         return [];
+    },
+};
+
+// Critical needs (task 084 / proposal A4): a meter at/below its authored floor proposes a REQUIRED intent
+// for the best available action that addresses it — a starving person interrupts leisure to eat, an
+// exhausted one goes home to sleep. Priority sits below the shift/school obligations (100) until the
+// arbitration bands land (task 086); mayInterrupt lets it displace running leisure.
+const needsHook: BrainHook = {
+    id: 'needs',
+    kind: 'onTick',
+    propose({ personId, deps, brain }): ActionIntent[] {
+        const ledger = deps.ctx.markets?.needs ?? null;
+        if (!ledger) {
+            return [];
+        }
+        const critical = ledger.criticalNeedsOf(personId, deps.tick, deps.state.worldSeed);
+        if (critical.length === 0) {
+            return [];
+        }
+        const need = critical[0]!; // most starved first
+        // Already addressing it? Don't thrash the very action that fixes the problem.
+        const active = brain.getActionEngine().activeInstanceOf(personId);
+        if (active) {
+            const activeDef = brain.getActionEngine().getDefinition(active.defId);
+            if ((activeDef?.satisfies?.[need] ?? 0) > 0) {
+                return [];
+            }
+        }
+        const pick = brain.selectActionForNeed(personId, need, deps);
+        return pick ? [{
+            actionId: pick,
+            sourceHook: 'needs',
+            priority: 60,
+            necessity: 'required',
+            mayInterrupt: true,
+            causationId: null,
+        }] : [];
     },
 };
 

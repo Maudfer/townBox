@@ -52,6 +52,11 @@ export function migrateSnapshot(snapshot: WorldSnapshot): WorldSnapshot {
         // grow from real interactions after the load (rebuilding a friendship is one hello away).
         snapshot.version = 15;
     }
+    if (snapshot.version < 16) {
+        // v15 → v16 (task 084): the needs ledger. Additive — absent lazily re-seeds each person
+        // deterministically from (worldSeed, personId) at first read.
+        snapshot.version = 16;
+    }
     return snapshot;
 }
 

@@ -10,7 +10,9 @@ import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/da
 import { ActionManifest } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies'];
+// The closed need vocabulary (task 084) — mirrors types/Needs.ts NEED_IDS.
+const NEED_KEYS = ['food', 'rest', 'social', 'fun', 'hygiene', 'purpose'];
 const ACTION_TYPES = ['discrete', 'continuous'];
 const CATEGORIES = ['obligation', 'work', 'leisure', 'social', 'recovery', 'movement', 'maintenance'];
 const PARAMETER_TYPES = ['person', 'objectArchetype', 'objectInstance', 'recipe', 'string', 'number', 'boolean'];
@@ -88,6 +90,16 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('children' in action) {
             validateChildren(issues, id, action['children'], parameterNames);
+        }
+        if ('satisfies' in action && checkRecord(issues, `${id}.satisfies`, action['satisfies'])) {
+            // Needs satisfaction (task 084): keys from the closed need set, values finite numbers.
+            const satisfies = action['satisfies'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.satisfies`, satisfies, NEED_KEYS);
+            for (const [need, amount] of Object.entries(satisfies)) {
+                if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+                    issues.add(`${id}.satisfies.${need}`, 'satisfaction amounts must be finite numbers');
+                }
+            }
         }
         if ('consequences' in action) {
             validateConsequenceOps(issues, `${id}.consequences`, action['consequences']);

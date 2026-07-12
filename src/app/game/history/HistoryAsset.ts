@@ -25,6 +25,7 @@ import BootstrapWorld from 'game/execution/BootstrapWorld';
 import { runTick } from 'game/execution/TickRunner';
 import LogicalWorld, { LogicalWorldConfig } from 'game/history/LogicalWorld';
 import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/population/Population';
+import Needs from 'game/population/Needs';
 import SocialGraph from 'game/population/SocialGraph';
 import SkillBook from 'game/skills/SkillBook';
 import eventsConfig from 'json/events.json';
@@ -313,6 +314,8 @@ export async function generateHistoryAsset(
     // consent/targeting/relationship predicates behave identically in both generator modes.
     const bootstrapSocial = logical ? null : new SocialGraph();
     const socialGraph = logical ? logical.socialGraph : bootstrapSocial!;
+    const bootstrapNeeds = logical ? null : new Needs();
+    const needsLedger = logical ? logical.needs : bootstrapNeeds!;
     if (logical && skillBook) {
         logical.buildSchools(params.recordThreshold);
         logical.buildJobs(skillBook, params.recordThreshold);
@@ -392,6 +395,7 @@ export async function generateHistoryAsset(
             living.delete(id);
             logical?.onDeath(id);
             bootstrapSocial?.removePerson(id);
+            bootstrapNeeds?.removePerson(id);
             deaths++;
         }
     };
@@ -431,7 +435,7 @@ export async function generateHistoryAsset(
             agentIds,
             tick,
             ticksPerYear: tpy,
-            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph } },
+            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger } },
             ...(facts ? { inventory: facts.inventory } : {}),
             ticksPerStep: step,
         });

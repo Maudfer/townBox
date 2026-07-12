@@ -149,6 +149,11 @@ export const socialOpportunityHook: BrainHook = {
                     weight *= modifier.multiply;
                 }
             }
+            // Needs urgency (task 084): a lonely person leans into company; a socially sated one less so.
+            const needsLedger = deps.ctx.markets?.needs ?? null;
+            if (needsLedger && def.satisfies) {
+                weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
             if (weight > 0) {
                 candidates.push({ actionId, weight, objectParam });
             }

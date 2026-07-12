@@ -158,6 +158,8 @@ export default class SaveManager {
             skillBook: this.game.skillBook?.getState(),
             // The elective social graph (v15, task 083).
             socialGraph: this.game.socialGraph?.serialize(),
+            // The needs ledger (v16, task 084).
+            needs: this.game.needs?.serialize(),
             // Lazy history hydration (v14): pin the asset ref + who is already hydrated, so households placed
             // after a load keep receiving pre-game histories. Absent for cold-start worlds.
             historyHydration: this.game.getHistoryHydrationState?.(),
@@ -365,6 +367,9 @@ export default class SaveManager {
 
         // The elective social graph (v15, task 083). Absent (older saves) loads empty — edges regrow.
         this.game.socialGraph?.loadState(snapshot.socialGraph);
+
+        // The needs ledger (v16, task 084). Absent (older saves) re-seeds lazily per person.
+        this.game.needs?.loadState(snapshot.needs);
 
         // Skill records (v10+, tasks 059-062). Pre-v10 saves carry none: every loaded person is
         // re-initialized deterministically (same seed convention as materialization) and their legacy
