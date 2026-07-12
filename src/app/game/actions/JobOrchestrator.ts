@@ -59,7 +59,8 @@ export const jobOrchestratorHook: BrainHook = {
                 sourceHook: 'jobOrchestrator',
                 priority: 100,
                 necessity: 'required',
-                mayInterrupt: true, // obligations displace leisure
+                band: 'obligation', // displaces commitment/leisure via the matrix (task 086)
+                mayInterrupt: true,
                 causationId: null,
             }];
         }
@@ -83,7 +84,8 @@ export const jobOrchestratorHook: BrainHook = {
             actionId,
             sourceHook: 'jobOrchestrator',
             priority: 50,
-            necessity: 'optional',
+            necessity: 'optional' as const,
+            band: 'opportunity' as const, // on-duty flavor seasons the shift, never steers it
             mayInterrupt: false,
             causationId: active?.startLogSeq ?? null, // flavor chains to the running work action
         }));

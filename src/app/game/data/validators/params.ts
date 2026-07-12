@@ -156,3 +156,14 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
         }
     }
 }
+
+// json/arbitration.json (task 086): the interruption matrix thresholds.
+export function validateArbitrationStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'arbitration', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'arbitration', config, ['sameBandUtilityDelta', 'decisionCooldownTicks']);
+    checkNumber(issues, 'arbitration.sameBandUtilityDelta', config['sameBandUtilityDelta'], { min: 0 });
+    checkNumber(issues, 'arbitration.decisionCooldownTicks', config['decisionCooldownTicks'], { min: 0, integer: true });
+}

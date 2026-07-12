@@ -127,6 +127,12 @@ export type ActionStatus = 'pending' | 'waiting_for_materialization' | 'running'
 
 export type ActionOutcome = 'completed' | 'interrupted' | 'blocked' | 'failed';
 
+// Arbitration bands (task 086 / proposal L2): the closed priority ladder every intent declares, highest
+// first. Bands govern both ordering and INTERRUPTION (a running continuous action is displaced only from a
+// strictly higher band; same-band displacement needs a utility delta over the authored hysteresis).
+export const INTENT_BANDS = ['survival', 'obligation', 'commitment', 'need', 'opportunity', 'fallback'] as const;
+export type IntentBand = (typeof INTENT_BANDS)[number];
+
 // A live (or finished) continuous-action instance. Discrete actions don't materialize instances — they
 // commit straight to the log.
 export interface ActionInstance {
@@ -153,6 +159,10 @@ export interface ActionInstance {
     // Per-child occurrence bookkeeping for pool children: count + last occurrence tick.
     poolState: Record<ActionId, { count: number; lastTick: number }>;
     lastPoolChild: string | null; // interleaving: the last child that occurred within the current tick
+    // Arbitration provenance (task 086): the band + in-band utility of the intent that started this
+    // instance, read by the interruption matrix. Additive (older saves/instances read as 'fallback'/0).
+    band?: IntentBand;
+    utility?: number;
 }
 
 // Aggregate action history (mirror of the event aggregate): O(1) hasAction queries.

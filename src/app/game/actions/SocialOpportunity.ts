@@ -201,6 +201,7 @@ export const socialOpportunityHook: BrainHook = {
             sourceHook: 'socialOpportunity',
             priority: 20,
             necessity: 'optional',
+            band: 'opportunity',
             mayInterrupt: false,
             causationId: null,
         }];

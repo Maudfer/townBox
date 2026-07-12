@@ -1,15 +1,24 @@
-// The Brain (task 046; docs/tasks/038 §8): the per-person DECISION layer. Hooks inspect the simulation
-// context and return Action INTENTS; the Brain resolves them (priority, then stable hook order) and asks the
-// Action engine to start or interrupt actions through the normal pipeline. The Brain never mutates people,
-// never writes logs, and never duplicates execution logic — the Action engine executes, jobs propose (047),
-// the Brain arbitrates.
+// The Brain (task 046; docs/tasks/038 §8; arbitration v2 since task 086 / proposal L): the per-person
+// DECISION layer. Hooks inspect the simulation context and return Action INTENTS; the Brain resolves them
+// and asks the Action engine to start or interrupt actions through the normal pipeline. The Brain never
+// mutates people, never writes logs, and never duplicates execution logic — the Action engine executes,
+// hooks propose, the Brain arbitrates.
 //
-// Deliberately STATELESS: `status` derives from the person's active action instance; anti-repetition derives
-// from the Action engine's aggregate history (`hasAction` + selection cooldowns). Nothing new to serialize,
-// nothing to migrate, and the same Brain runs identically in both execution modes.
+// DOCTRINE (L1, superseding 046's "deliberately stateless"): the Brain OWNS no state but READS many — a
+// decision is a function of (log, active instance, needs 084, edges 083, agenda 085, and later mood/traits),
+// every one a serialized store OUTSIDE the Brain, reached through deps/markets exactly like jobOf/schoolOf.
+// Nothing serializes inside the Brain object itself; determinism and live/bootstrap byte-equivalence hold.
+// What died with 086 is only the idea that the log alone is enough context to decide.
 //
-// Determinism: hooks run in registration order; intents sort by (necessity, priority, hook order, actionId);
-// the free-time weighted pick forks the world-seed RNG per (tick, person).
+// ARBITRATION (L2–L4, L6): intents declare a BAND (survival > obligation > commitment > need > opportunity
+// > fallback) and an in-band utility (scoreIntent — one currency every hook prices in). Ordering is band →
+// utility → hook order → actionId. INTERRUPTION of a running continuous action is governed by the matrix:
+// a strictly higher band displaces; the same band needs a utility delta over the authored hysteresis AND the
+// running action to be past its decision cooldown (commitment inertia — people finish what they start);
+// a lower band never displaces. Thresholds live in json/arbitration.json.
+//
+// Determinism: hooks run in registration order; the free-time weighted pick forks the world-seed RNG per
+// (tick, person); band ranks and utilities are pure functions of the intent.
 
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
@@ -17,7 +26,8 @@ import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
 import { plannerHook } from 'game/actions/Planner';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
-import { ActionDefinition } from 'types/Action';
+import arbitrationConfig from 'json/arbitration.json';
+import { ActionDefinition, IntentBand } from 'types/Action';
 import { SubProfiler } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
@@ -36,8 +46,10 @@ export const DEFAULT_SELECTION_WEIGHT = 1;
 // actual activity is the active instance (`activeActionInstanceId`), queryable separately.
 export type BrainStatus = 'idle' | 'sleeping' | 'commuting' | 'working' | 'performing_action' | 'waiting_for_materialization';
 
-// What a hook proposes. `necessity` outranks `priority`; `mayInterrupt` lets an intent displace a running
-// continuous action (obligations interrupt leisure; leisure never interrupts anything).
+// What a hook proposes. `band` (task 086) is the arbitration ladder rung; hooks that predate the bands (or
+// external hooks) fall back to the mechanical necessity mapping (emergency → survival, required →
+// obligation, optional → opportunity). `priority` is the in-band base utility; `mayInterrupt` is legacy —
+// the interruption MATRIX governs displacement since 086 (the field is ignored).
 export interface ActionIntent {
     actionId: string;
     params?: Record<string, Value>;
@@ -45,8 +57,28 @@ export interface ActionIntent {
     sourceHook: string;
     priority: number;
     necessity: 'optional' | 'required' | 'emergency';
+    band?: IntentBand;
     mayInterrupt: boolean;
     causationId: number | null;
+}
+
+const BAND_RANK: Record<IntentBand, number> = { survival: 0, obligation: 1, commitment: 2, need: 3, opportunity: 4, fallback: 5 };
+// The authored interruption thresholds (task 086 / L4, L6).
+export const ARBITRATION_CONFIG = arbitrationConfig as { sameBandUtilityDelta: number; decisionCooldownTicks: number };
+
+// The band of an intent: explicit, else the mechanical necessity mapping (the L7 migration rule).
+export function bandOf(intent: ActionIntent): IntentBand {
+    if (intent.band) {
+        return intent.band;
+    }
+    return intent.necessity === 'emergency' ? 'survival' : intent.necessity === 'required' ? 'obligation' : 'opportunity';
+}
+
+// One utility currency (task 086 / L3): the in-band score every hook prices its intents in. Today it is the
+// authored base priority; mood (task 091) and trait affinity (task 087) enter THIS formula — never their own
+// per-hook math — so data keeps the last word everywhere at once.
+export function scoreIntent(intent: ActionIntent): number {
+    return intent.priority;
 }
 
 // A person's job facts, resolved by the host (live: WorkLife/Workplace; bootstrap: the logical world when
@@ -99,7 +131,6 @@ export interface BrainHook {
     propose(ctx: HookContext): ActionIntent[];
 }
 
-const NECESSITY_RANK = { emergency: 2, required: 1, optional: 0 } as const;
 
 export default class Brain {
     private actionEngine: ActionEngine;
@@ -211,15 +242,16 @@ export default class Brain {
         this.profileSub = undefined;
     }
 
-    // Deterministic arbitration: necessity, then priority, then hook registration order, then actionId.
+    // Deterministic arbitration (task 086 / L2–L4): band, then in-band utility, then hook registration
+    // order, then actionId. Interruption is matrix-governed — see the header.
     private resolveIntents(personId: PersonId, intents: ActionIntent[], deps: BrainDeps, result: TickResult): void {
         if (intents.length === 0) {
             return;
         }
         const hookOrder = new Map(this.hooks.map((hook, index) => [hook.id, index]));
         intents.sort((a, b) =>
-            NECESSITY_RANK[b.necessity] - NECESSITY_RANK[a.necessity]
-            || b.priority - a.priority
+            BAND_RANK[bandOf(a)] - BAND_RANK[bandOf(b)]
+            || scoreIntent(b) - scoreIntent(a)
             || (hookOrder.get(a.sourceHook) ?? 99) - (hookOrder.get(b.sourceHook) ?? 99)
             || a.actionId.localeCompare(b.actionId)
         );
@@ -235,8 +267,22 @@ export default class Brain {
                 if (active.defId === intent.actionId) {
                     break; // already doing it — the winning intent is satisfied
                 }
-                if (!intent.mayInterrupt) {
-                    continue; // can't displace the current activity; try the next intent
+                // The interruption matrix (L4): a strictly higher band displaces; the same band needs a
+                // utility delta over the hysteresis AND the running action past its decision cooldown (L6 —
+                // commitment inertia: people finish what they start); a lower band never displaces.
+                const intentRank = BAND_RANK[bandOf(intent)];
+                const activeRank = BAND_RANK[active.band ?? 'fallback'];
+                if (intentRank > activeRank) {
+                    continue; // lower band — try the next intent
+                }
+                if (intentRank === activeRank) {
+                    if (scoreIntent(intent) - (active.utility ?? 0) < ARBITRATION_CONFIG.sameBandUtilityDelta) {
+                        continue;
+                    }
+                    const runningSince = active.runningSinceTick ?? active.startedTick;
+                    if (deps.tick - runningSince < ARBITRATION_CONFIG.decisionCooldownTicks) {
+                        continue;
+                    }
                 }
                 this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
             }
@@ -248,6 +294,10 @@ export default class Brain {
                 failures.push({ actionId: intent.actionId, reason: outcome.reason });
             }
             if (outcome.ok && def.type === 'continuous') {
+                // Arbitration provenance (086): the instance carries its band + utility for the matrix.
+                if (outcome.instanceId) {
+                    this.actionEngine.tagInstance(outcome.instanceId, bandOf(intent), scoreIntent(intent));
+                }
                 break; // one continuous activity per person; lower intents wait for another tick
             }
             // Discrete intents (or failed starts) fall through to the next intent.
@@ -465,6 +515,7 @@ const wokeUpHook: BrainHook = {
             sourceHook: 'wokeUp',
             priority: 40,
             necessity: 'optional',
+            band: 'fallback',
             mayInterrupt: false,
             causationId: event.seq,
         }] : [];
@@ -511,6 +562,7 @@ const inventoryOpportunityHook: BrainHook = {
             sourceHook: 'inventoryOpportunity',
             priority: 15,
             necessity: 'optional',
+            band: 'opportunity',
             mayInterrupt: false,
             causationId: null,
         });
@@ -603,6 +655,7 @@ const needsHook: BrainHook = {
             sourceHook: 'needs',
             priority: 60,
             necessity: 'required',
+            band: 'survival', // a critical meter outranks even the shift (lunch breaks are real — L2)
             mayInterrupt: true,
             causationId: null,
         }] : [];
@@ -623,6 +676,7 @@ const idleFallbackHook: BrainHook = {
             sourceHook: 'idleFallback',
             priority: 10,
             necessity: 'optional',
+            band: 'fallback',
             mayInterrupt: false,
             causationId: null,
         }] : [];

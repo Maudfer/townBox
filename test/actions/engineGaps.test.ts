@@ -199,16 +199,19 @@ describe('Brain arbitration gaps', () => {
         return { engine, actions, brain, world, inventory, makeDeps };
     }
 
-    test('an intent that may not interrupt the running continuous activity is skipped, not queued', () => {
+    test('a lower-band intent is skipped, not queued (the 086 interruption matrix)', () => {
         const { actions, brain, makeDeps } = harness();
         const deps = makeDeps(21);
-        actions.startAction('a', 'sleep', {}, { source: 'brain', causationId: null }, deps, result());
+        const started = actions.startAction('a', 'sleep', {}, { source: 'brain', causationId: null }, deps, result());
+        // Tag the running sleep as an obligation-band activity (086 provenance); the opportunity-band
+        // challenger — however high its priority — sits in a LOWER band and can never displace it.
+        actions.tagInstance((started as { instanceId: string }).instanceId, 'obligation', 100);
         brain.registerHook({
             id: 'lowPriorityLeisure', kind: 'onTick',
-            propose: () => [{ actionId: 'read_book', sourceHook: 'lowPriorityLeisure', priority: 999, necessity: 'optional', mayInterrupt: false, causationId: null }],
+            propose: () => [{ actionId: 'read_book', sourceHook: 'lowPriorityLeisure', priority: 999, necessity: 'optional', band: 'opportunity', mayInterrupt: false, causationId: null }],
         });
         brain.processTick(['a'], deps, [], result());
-        // Sleep keeps running: a non-interrupting intent, however high-priority, cannot displace it.
+        // Sleep keeps running: band rank governs displacement, not priority.
         expect(brain.statusOf('a').status).toBe('sleeping');
     });
 

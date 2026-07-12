@@ -42,7 +42,8 @@ export const schoolObligationHook: BrainHook = {
             sourceHook: 'schoolObligation',
             priority: 100,
             necessity: 'required',
-            mayInterrupt: true, // obligations displace leisure — same posture as the work obligation
+            band: 'obligation', // displaces commitment/leisure via the matrix (task 086)
+            mayInterrupt: true,
             causationId: null,
         }];
     },

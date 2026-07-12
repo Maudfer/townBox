@@ -20,6 +20,7 @@ import { validateEventsSemantics, validateEventsStructure } from 'game/data/vali
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
 import {
+    validateArbitrationStructure,
     validateHistoryGeneratorStructure,
     validateEconomyStructure,
     validateHouseholdDrawStructure,
@@ -38,6 +39,7 @@ import {
     validateSkillsStructure,
 } from 'game/data/validators/skills';
 import actionsConfig from 'json/actions.json';
+import arbitrationConfig from 'json/arbitration.json';
 import assetsConfig from 'json/assets.json';
 import historyGeneratorConfig from 'json/historyGenerator.json';
 import businessesConfig from 'json/businesses.json';
@@ -95,6 +97,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'schools', version: 1, data: schoolsConfig, validateStructure: validateSchoolsStructure, validateSemantics: validateSchoolsSemantics },
         { name: 'relationships', version: 1, data: relationshipsConfig, validateStructure: validateRelationshipsStructure, validateSemantics: validateRelationshipsSemantics },
         { name: 'needs', version: 1, data: needsConfig, validateStructure: validateNeedsStructure, validateSemantics: validateNeedsSemantics },
+        { name: 'arbitration', version: 1, data: arbitrationConfig, validateStructure: validateArbitrationStructure },
         { name: 'routines', version: 1, data: routinesConfig, validateStructure: validateRoutinesStructure, validateSemantics: validateRoutinesSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
         { name: 'config', version: 1, data: config, validateStructure: validateConfigStructure },

@@ -97,6 +97,7 @@ export const plannerHook: BrainHook = {
                 sourceHook: 'planner',
                 priority: 55,
                 necessity: 'required',
+                band: 'commitment',
                 mayInterrupt: false,
                 causationId: entry.causationId,
             }];

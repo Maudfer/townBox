@@ -29,6 +29,7 @@ import { EventLink,
     ActionInstanceId,
     ActionManifest,
     ActionStartOutcome,
+    IntentBand,
     OAREntry,
     OARTable,
     PoolChildSpec,
@@ -182,6 +183,16 @@ export default class ActionEngine {
 
     // The person's currently active continuous instance (at most one; Brain owns the single-activity rule
     // and this engine enforces it at start).
+    // Arbitration provenance (task 086): Brain tags a freshly started continuous instance with the band +
+    // utility of the intent that won, so the interruption matrix can weigh later challengers against it.
+    tagInstance(instanceId: ActionInstanceId, band: IntentBand, utility: number): void {
+        const instance = this.state.instances[instanceId];
+        if (instance) {
+            instance.band = band;
+            instance.utility = utility;
+        }
+    }
+
     activeInstanceOf(personId: PersonId): ActionInstance | null {
         count('action.activeLookup'); // perf: call frequency of the O(1)-indexed active-instance lookup (task 078)
         // O(1) via the active index (task 078): the first still-active instance for the person, in id order —
