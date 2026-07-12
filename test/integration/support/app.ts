@@ -144,6 +144,46 @@ export async function dragMouse(page: Page, fromX: number, fromY: number, toX: n
     await page.mouse.up();
 }
 
+interface Box { x: number; y: number; width: number; height: number; }
+
+// Drags a window by its header until it ACTUALLY moves, retrying a few times — the react-draggable gesture can
+// silently fail to start on a slow runner (a 0-delta drag). Grabs the header's right side (clear of the clock
+// widget, which overlaps a left-anchored window's header, and of the close button). Returns the original and
+// moved boxes; throws fast (~a few seconds) rather than letting a downstream assertion hit the test timeout.
+export async function dragWindowBy(page: Page, testId: string, dx: number, dy: number): Promise<{ before: Box; after: Box }> {
+    const win = page.getByTestId(testId);
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const before = (await win.boundingBox())!;
+        const hb = (await win.locator('.window-header').boundingBox())!;
+        const grabX = hb.x + hb.width - 55;
+        const grabY = hb.y + hb.height / 2;
+        await dragMouse(page, grabX, grabY, grabX + dx, grabY + dy);
+        const after = (await win.boundingBox())!;
+        if (Math.hypot(after.x - before.x, after.y - before.y) > 10) {
+            return { before, after };
+        }
+    }
+    throw new Error(`[integration] window "${testId}" did not move after retries`);
+}
+
+// Resizes a window from its south-east handle until it ACTUALLY grows, with the same retry-until-effective
+// robustness as dragWindowBy.
+export async function resizeWindowSE(page: Page, testId: string, dx: number, dy: number): Promise<{ before: Box; after: Box }> {
+    const win = page.getByTestId(testId);
+    for (let attempt = 0; attempt < 5; attempt++) {
+        const before = (await win.boundingBox())!;
+        const hb = (await page.locator('.window-resize-se').boundingBox())!;
+        const grabX = hb.x + hb.width / 2;
+        const grabY = hb.y + hb.height / 2;
+        await dragMouse(page, grabX, grabY, grabX + dx, grabY + dy);
+        const after = (await win.boundingBox())!;
+        if (after.width - before.width > 10 || after.height - before.height > 10) {
+            return { before, after };
+        }
+    }
+    throw new Error(`[integration] window "${testId}" did not resize after retries`);
+}
+
 // --- window.__townbox delegators (each a single page.evaluate) --------------
 
 export async function step(page: Page, n = 1): Promise<void> {

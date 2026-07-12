@@ -13,8 +13,10 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
     testDir: './test/integration',
-    // The sim runs in real time between step-ticks calls; give specs and expectations generous ceilings.
-    timeout: 90_000,
+    // Per-test ceiling. The slowest legitimate specs (feed/demographics, which step many sim ticks) run ~25s on
+    // CI, so 60s is comfortable headroom while capping any genuinely-stuck test well below the old 90s. Drag/
+    // resize interactions retry-until-effective in-helper (support/app.ts) so they fail in seconds, not on this.
+    timeout: 60_000,
     expect: { timeout: 15_000 },
     fullyParallel: false,
     forbidOnly: !!process.env.CI,

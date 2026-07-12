@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 
-import { bootFixture, buildings, dragMouse, people, selectBuilding } from '../support/app';
+import { bootFixture, buildings, dragWindowBy, people, resizeWindowSE, selectBuilding } from '../support/app';
 
 // §4 HUD baseline: inspector windows opened via the Select tool (house / workplace / person / city overview),
 // plus window move / resize / close and the singleton vs per-identity window rules.
@@ -46,14 +46,9 @@ test.describe('inspector windows', () => {
         await page.getByTestId('house-resident').first().click();
         await expect(page.getByTestId('window-person')).toHaveCount(1);
 
-        // The person window opens over the resident list; drag it aside so the same resident can be re-clicked.
-        // Grab the header's RIGHT side — its left edge overlaps the clock widget (z-index 1000), and the far
-        // right is the close button; a point just left of the close button is clear of both.
-        const personHeader = page.getByTestId('window-person').locator('.window-header');
-        const ph = (await personHeader.boundingBox())!;
-        const grabX = ph.x + ph.width - 55;
-        const grabY = ph.y + ph.height / 2;
-        await dragMouse(page, grabX, grabY, grabX + 300, grabY + 260);
+        // The person window opens over the resident list; drag it aside (retry-until-moved) so the same
+        // resident is clickable again.
+        await dragWindowBy(page, 'window-person', 300, 260);
 
         // Re-opening the same resident must not add a duplicate window (dedupe by identity).
         await page.getByTestId('house-resident').first().click();
@@ -62,14 +57,7 @@ test.describe('inspector windows', () => {
 
     test('a window can be moved by dragging its header', async ({ page }) => {
         await openHouseWindow(page);
-        const windowEl = page.getByTestId('window-house');
-        const before = (await windowEl.boundingBox())!;
-
-        const header = windowEl.locator('.window-header');
-        const hb = (await header.boundingBox())!;
-        await dragMouse(page, hb.x + hb.width / 2, hb.y + hb.height / 2, hb.x + hb.width / 2 + 140, hb.y + hb.height / 2 + 90);
-
-        const after = (await windowEl.boundingBox())!;
+        const { before, after } = await dragWindowBy(page, 'window-house', 140, 90);
         expect(Math.abs(after.x - before.x)).toBeGreaterThan(80);
         expect(Math.abs(after.y - before.y)).toBeGreaterThan(50);
     });
@@ -78,19 +66,11 @@ test.describe('inspector windows', () => {
         // Use the city overview window: unlike the household window (whose family-tree SVG overflows and covers
         // the corner handle), its content stays inside the frame so the SE resize handle is grabbable.
         await page.getByTestId('clock-widget').click();
-        const windowEl = page.getByTestId('window-city');
-        await expect(windowEl).toBeVisible();
-        const before = (await windowEl.boundingBox())!;
+        await expect(page.getByTestId('window-city')).toBeVisible();
 
-        // Drag the south-east resize handle (react-rnd) outward via its stable class hook. The handle is a
-        // sibling of .window inside the Rnd wrapper, so locate it at the page level (only one window is open).
-        const handle = page.locator('.window-resize-se');
-        const hb = (await handle.boundingBox())!;
-        const grabX = hb.x + hb.width / 2;
-        const grabY = hb.y + hb.height / 2;
-        await dragMouse(page, grabX, grabY, grabX + 170, grabY + 130);
-
-        const after = (await windowEl.boundingBox())!;
+        // Drag the SE handle outward, retry-until-resized (re-resizable can silently fail to start on a slow
+        // runner). The handle is a sibling of .window in the Rnd wrapper; the helper locates it page-level.
+        const { before, after } = await resizeWindowSE(page, 'window-city', 170, 130);
         expect(after.width).toBeGreaterThan(before.width + 40);
         expect(after.height).toBeGreaterThan(before.height + 40);
     });
