@@ -150,36 +150,77 @@ jobs:
       - name: Generation perf-regression gates
         run: npx jest --selectProjects perf --runInBand
 
-  # One concurrent job per test module — fast, granular pass/fail; each runs with --coverage and uploads
-  # its own per-module report for the `coverage` job to gate. The matrix is the STATIC list of all
-  # modules, and each entry is gated by a per-module `if` so the ones this PR didn't affect show up as
-  # SKIPPED in the checks list (not merely absent). `changes` decides which are affected (see that job).
-  test:
+  # One concurrent job per test module — fast, granular pass/fail; each runs its module's jest project
+  # with --coverage and uploads its own per-module report for the `coverage` job to gate. Shared steps
+  # live in the reusable ./.github/workflows/test-module.yml; here we have one caller per module, each
+  # gated by a per-module `if` so modules this PR did NOT affect show up as SKIPPED in the checks list
+  # (not merely absent). `changes` decides which are affected (see that job). A static matrix can't do
+  # this — `matrix` isn't available in a job-level `if` — so keep this list in sync with `changes`.
+  test-world:
     needs: changes
-    if: ${{ contains(fromJSON(needs.changes.outputs.modules), matrix.module) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        module: [world, agents, population, events, actions, execution, economy, skills, objects, history, save, data, util]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - name: Run ${{ matrix.module }} tests with coverage
-        run: npx jest --selectProjects ${{ matrix.module }} --coverage --coverageReporters=json --coverageReporters=lcovonly --coverageDirectory coverage
-      - name: Upload ${{ matrix.module }} coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-${{ matrix.module }}
-          path: |
-            coverage/coverage-final.json
-            coverage/lcov.info
-          if-no-files-found: ignore
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'world') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: world }
+  test-agents:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'agents') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: agents }
+  test-population:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'population') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: population }
+  test-events:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'events') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: events }
+  test-actions:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'actions') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: actions }
+  test-execution:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'execution') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: execution }
+  test-economy:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'economy') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: economy }
+  test-skills:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'skills') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: skills }
+  test-objects:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'objects') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: objects }
+  test-history:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'history') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: history }
+  test-save:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'save') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: save }
+  test-data:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'data') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: data }
+  test-util:
+    needs: changes
+    if: ${{ contains(fromJSON(needs.changes.outputs.modules), 'util') }}
+    uses: ./.github/workflows/test-module.yml
+    with: { module: util }
 
   # Coverage gate: does NOT run tests — it downloads every module's report from the `test` jobs and
   # fails if ANY module's OWNED-file statement coverage is below COVERAGE_THRESHOLD (jest.config.js,
@@ -187,7 +228,7 @@ jobs:
   # Jest's collectCoverageFrom is additive, so an unfiltered report is diluted by transitively-required
   # files from other modules. All modules currently clear 80%, so this is BLOCKING (in ci-success's needs).
   coverage:
-    needs: [changes, test]
+    needs: [changes, test-world, test-agents, test-population, test-events, test-actions, test-execution, test-economy, test-skills, test-objects, test-history, test-save, test-data, test-util]
     if: always() && needs.changes.outputs.modules != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -227,22 +268,18 @@ jobs:
   # any required upstream job failed or was cancelled (skipped is fine). `audit` is intentionally NOT
   # here (advisory — dev-tooling advisories shouldn't block).
   ci-success:
-    needs: [changes, typecheck, build, lint, perf, test, coverage]
+    needs: [changes, typecheck, build, lint, perf, coverage, test-world, test-agents, test-population, test-events, test-actions, test-execution, test-economy, test-skills, test-objects, test-history, test-save, test-data, test-util]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Verify no required job failed
+        # join(needs.*.result) = the results of every job listed in `needs` (audit is excluded — advisory).
+        # skipped is fine (an unaffected module / a skipped coverage gate); only failure/cancelled block.
         run: |
-          set -euo pipefail
-          for r in \
-            "${{ needs.changes.result }}" \
-            "${{ needs.typecheck.result }}" \
-            "${{ needs.build.result }}" \
-            "${{ needs.lint.result }}" \
-            "${{ needs.perf.result }}" \
-            "${{ needs.test.result }}" \
-            "${{ needs.coverage.result }}"; do
+          set -eu
+          echo "results: ${{ join(needs.*.result, ' ') }}"
+          for r in ${{ join(needs.*.result, ' ') }}; do
             if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
               echo "A required job did not succeed (result: $r)"; exit 1
             fi
