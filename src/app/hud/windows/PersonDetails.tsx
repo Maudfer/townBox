@@ -4,6 +4,7 @@ import Person from 'game/agents/Person';
 import { sortedSkillEntries } from 'game/skills/SkillBook';
 import Workplace from 'game/world/Workplace';
 import Window from 'hud/Window';
+import { isFollowed, toggleFollow, subscribeFollow } from 'hud/followStore';
 import jobsConfig from 'json/jobs.json';
 import { JobTable } from 'types/Business';
 
@@ -38,6 +39,33 @@ function employerName(person: Person): string | null {
     return null;
 }
 
+// The broad-status word for the "Now:" line (task 081/J1). The active action label carries the specifics.
+const STATUS_WORDS: Record<string, string> = {
+    idle: 'Idle',
+    sleeping: 'Sleeping',
+    commuting: 'Commuting',
+    working: 'Working',
+    performing_action: 'Busy',
+    waiting_for_materialization: 'Heading out',
+};
+
+// Human hint for an authored action location key ('home', 'outside', 'venue:<kind>').
+function locationHint(key: string | undefined): string | null {
+    if (!key) {
+        return null;
+    }
+    if (key === 'home') {
+        return 'at home';
+    }
+    if (key === 'outside') {
+        return 'outside';
+    }
+    if (key.startsWith('venue:')) {
+        return `at a ${key.slice('venue:'.length).replace(/_/g, ' ')}`;
+    }
+    return null;
+}
+
 const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
     const person = data as Person;
 
@@ -45,7 +73,11 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     const [, setRefresh] = useState(0);
     useEffect(() => {
         const id = setInterval(() => setRefresh(value => value + 1), REFRESH_MS);
-        return () => clearInterval(id);
+        const unsubscribe = subscribeFollow(() => setRefresh(value => value + 1));
+        return () => {
+            clearInterval(id);
+            unsubscribe();
+        };
     }, []);
 
     if (!person) {
@@ -63,6 +95,32 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     // The append-only life log (task 040): every committed occurrence, newest first, capped for rendering.
     const fullLog = personId ? game.eventEngine?.getPersonLog(personId) ?? [] : [];
     const logEntries = fullLog.slice(-MAX_LOG_ENTRIES).reverse();
+
+    // The "Now:" line (task 081/J1): broad status from the Brain + the active instance's authored label.
+    const status = personId && game.brain ? game.brain.statusOf(personId) : null;
+    const activeInstance = personId ? game.actionEngine?.activeInstanceOf(personId) ?? null : null;
+    const activeDef = activeInstance ? game.actionEngine?.getDefinition(activeInstance.defId) : undefined;
+    const activeLabel = activeInstance ? game.actionEngine?.getActionLabel(activeInstance.defId) ?? activeInstance.defId : null;
+    const whereHint = status?.status === 'working'
+        ? (employerName(person) ? `at ${employerName(person)}` : null)
+        : locationHint(activeInstance?.locationOverride ?? activeDef?.location);
+    const nowLine = status
+        ? `${STATUS_WORDS[status.status] ?? status.status}${activeLabel && status.status !== 'sleeping' ? ` — ${activeLabel}` : ''}${whereHint ? ` (${whereHint})` : ''}`
+        : null;
+
+    // The day strip (task 081/J3): this in-game day's log entries bucketed by hour, midnight → now.
+    const currentTick = game.clock?.getCurrentTick() ?? 0;
+    const dayStartTick = currentTick - (((currentTick % 24) + 24) % 24);
+    const hourBuckets: string[][] = Array.from({ length: 24 }, () => []);
+    for (const entry of fullLog) {
+        if (entry.tick >= dayStartTick && entry.tick <= currentTick) {
+            const hour = entry.tick - dayStartTick;
+            const label = entry.kind === 'action'
+                ? game.actionEngine?.getActionLabel(entry.defId) ?? entry.defId
+                : game.eventEngine?.getEventLabel(entry.defId) ?? entry.defId;
+            hourBuckets[hour]?.push(label);
+        }
+    }
     // Proficiency-bearing skill records (task 059), highest first.
     const skillEntries = personId && game.skillBook ? sortedSkillEntries(game.skillBook.skillsOf(personId)) : [];
     const skillLabel = (skillId: string): string => game.skillBook?.getManifest()[skillId]?.label ?? skillId;
@@ -75,9 +133,44 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
         <Window game={game} index={index} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div className="person-details" style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
                 <section>
+                    {nowLine && (
+                        <p data-testid="person-now-line">
+                            <strong>Now:</strong> {nowLine}
+                            {personId && (
+                                <button
+                                    data-testid="follow-toggle"
+                                    style={{ marginLeft: 8, fontSize: 11, cursor: 'pointer' }}
+                                    onClick={() => toggleFollow(personId, person.social.getFullName())}
+                                >
+                                    {isFollowed(personId) ? '★ Following' : '☆ Follow'}
+                                </button>
+                            )}
+                        </p>
+                    )}
                     <p><strong>Age:</strong> {age} &nbsp; <strong>Gender:</strong> {info.gender}</p>
                     <p><strong>Home:</strong> {home ? `${home.getHouseholdName()} household` : 'Homeless'}</p>
                     {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
+                </section>
+
+                <section>
+                    <h4>Today</h4>
+                    <div data-testid="person-day-strip" style={{ display: 'flex', gap: 1 }}>
+                        {hourBuckets.map((labels, hour) => {
+                            const future = dayStartTick + hour > currentTick;
+                            const background = future ? 'transparent' : labels.length > 0 ? '#7fb069' : 'rgba(127,127,127,0.25)';
+                            return (
+                                <div
+                                    key={hour}
+                                    title={`${hour}:00${labels.length ? ` — ${labels.join(', ')}` : ''}`}
+                                    style={{
+                                        flex: 1, height: 10, background,
+                                        border: '1px solid rgba(127,127,127,0.35)', borderRadius: 2,
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
+                    <small style={{ opacity: 0.7 }}>0:00 → 23:00 · green = logged activity that hour (hover for details)</small>
                 </section>
 
                 <section>
