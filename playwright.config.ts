@@ -1,0 +1,63 @@
+import { defineConfig, devices } from '@playwright/test';
+
+// Playwright integration suite config (task 008). Entirely separate from the Jest unit suite: it boots the real
+// PRODUCTION build (React HUD + Phaser canvas) and drives it through the deterministic window.__townbox hook
+// (see game/TestHarness.ts) so the real-time sim is assertable without wall-clock flakiness.
+//
+// The webServer builds `./bin` (build-prod + postbuild-prod copies sprites & the history asset) and serves it
+// with the zero-dependency static server (scripts/serveIntegration.mjs). Reuse an already-running server locally
+// so iterating on a spec doesn't rebuild every run.
+
+const PORT = Number(process.env.PLAYWRIGHT_PORT ?? 4599);
+const BASE_URL = `http://localhost:${PORT}`;
+
+export default defineConfig({
+    testDir: './test/integration',
+    // Per-test ceiling. The slowest legitimate specs (feed/demographics, which step many sim ticks) run ~25s on
+    // CI, so 60s is comfortable headroom while capping any genuinely-stuck test well below the old 90s. Drag/
+    // resize interactions retry-until-effective in-helper (support/app.ts) so they fail in seconds, not on this.
+    timeout: 60_000,
+    expect: { timeout: 15_000 },
+    fullyParallel: false,
+    forbidOnly: !!process.env.CI,
+    retries: process.env.CI ? 1 : 0,
+    // Serial by default: the shared static server + heavy canvas boot make one worker the reliable choice.
+    workers: 1,
+    // The custom coverage reporter is always listed but no-ops unless COVERAGE=1 (§7, informational).
+    reporter: [
+        ['list'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['./test/integration/support/coverageReporter.ts'],
+    ],
+    use: {
+        baseURL: BASE_URL,
+        trace: 'on-first-retry',
+        screenshot: 'only-on-failure',
+        video: 'retain-on-failure',
+    },
+    projects: [
+        // The suite proper. Excludes the fixture recorder so `npm run test:integration` never regenerates
+        // committed fixtures.
+        {
+            name: 'chromium',
+            testMatch: /.*\.spec\.ts/,
+            use: { ...devices['Desktop Chrome'] },
+        },
+        // The scenario/fixture recorder — run on demand with `npm run generate-scenarios`. It drives the real
+        // app to build scenarios and writes committed fixtures under test/integration/fixtures/.
+        {
+            name: 'fixtures',
+            testMatch: /recordFixtures\.ts/,
+            use: { ...devices['Desktop Chrome'] },
+        },
+    ],
+    webServer: {
+        // Build the production bundle, then serve ./bin. Reused across specs; rebuilt only when not already up.
+        command: `npm run build-prod && node scripts/serveIntegration.mjs --dir ./bin --port ${PORT}`,
+        url: BASE_URL,
+        reuseExistingServer: !process.env.CI,
+        timeout: 240_000,
+        stdout: 'pipe',
+        stderr: 'pipe',
+    },
+});

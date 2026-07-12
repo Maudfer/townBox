@@ -76,7 +76,13 @@ export default class Field {
 
         Game.on("tileClicked", { callback: this.handleTileClick, context: this });
         Game.on("personSpawnRequest", { callback: this.spawnPerson, context: this });
-        Game.on("vehicleSpawnRequest", { callback: this.spawnVehicle, context: this });
+        // The debug V-key spawn (task 016): the test car carries an implicit test driver so the occupancy gate
+        // (cars can't move without a person inside — task 008 spec) doesn't freeze the wander demo.
+        Game.on("vehicleSpawnRequest", { callback: (position: PixelPosition) => {
+            const vehicle = this.spawnVehicle(position);
+            vehicle.setDebugDriver(true);
+            return vehicle;
+        }, context: this });
         Game.on("update", { callback: this.update, context: this });
     }
 
@@ -565,6 +571,48 @@ export default class Field {
         }
 
         return cells;
+    }
+
+    // The street spot "in front of" a building: the road cell on the ring just outside its footprint that is
+    // closest to the building's entrance. This is where a commute car materializes (task 008 spec: cars live
+    // on the street, never inside a footprint) and where it parks at the destination. Null when the building
+    // somehow has no adjacent road (legacy/test worlds) — callers fall back to the entrance.
+    getAdjacentRoadTile(building: Building): TilePosition {
+        const footprintTiles = Game.gridParams.footprint.tiles;
+        const half = Math.floor(footprintTiles / 2);
+        const row = building.getRow();
+        const col = building.getCol();
+
+        const ring: { row: number; col: number }[] = [];
+        for (let c = col - half; c <= col + half; c++) {
+            ring.push({ row: row - half - 1, col: c });
+            ring.push({ row: row + half + 1, col: c });
+        }
+        for (let r = row - half; r <= row + half; r++) {
+            ring.push({ row: r, col: col - half - 1 });
+            ring.push({ row: r, col: col + half + 1 });
+        }
+
+        const entrance = building.getEntrance();
+        let best: TilePosition = null;
+        let bestDistance = Infinity;
+        for (const cell of ring) {
+            if (!this.isValidPosition(cell.row, cell.col) || !(this.getTile(cell.row, cell.col) instanceof Road)) {
+                continue;
+            }
+            const center = Game.tileToPixelPosition(cell);
+            if (!center) {
+                continue;
+            }
+            const distance = entrance
+                ? Math.hypot(center.x - entrance.x, center.y - entrance.y)
+                : 0;
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = cell;
+            }
+        }
+        return best;
     }
 
     // Returns true when at least one cell on the ring just outside the footprint's edges is a road.

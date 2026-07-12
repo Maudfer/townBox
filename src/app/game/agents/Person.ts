@@ -104,6 +104,12 @@ export default class Person {
         return this.currentBuilding;
     }
 
+    // The current travel-state-machine step. Read by the integration test harness (task 008) to assert commute
+    // progression (ExitingBuilding → WalkingToCar → … → Arrived) without reaching into private state.
+    getTravelStep(): TravelStep {
+        return this.travelStep;
+    }
+
     setCurrentBuilding(building: Building | null): void {
         this.currentBuilding = building;
     }
@@ -249,6 +255,18 @@ export default class Person {
         this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
         if (this.path?.length) {
             this.setNextTarget(currentTile);
+            return;
+        }
+
+        // Already there: the destination is the structure we are standing on (e.g. stepping out of the
+        // commute car parked at the destination's own entrance — start tile == goal tile, so A* rightly
+        // returns an empty path). Without a currentTarget, walk() can neither move nor detect arrival and
+        // the travel step stalls forever (found by the task-008 integration suite). Target the building's
+        // entrance — walking the real last leg keeps the person's position coherent for the NEXT commute
+        // (the return trip starts from these pixels) — falling back to where we stand.
+        if (currentTile.getIdentifier() === `${destination.row}-${destination.col}`) {
+            const entrance = currentTile instanceof Building ? currentTile.getEntrance() : null;
+            this.currentTarget = entrance ?? { x: this.x, y: this.y };
         }
     }
 
@@ -308,10 +326,16 @@ export default class Person {
                 }
                 break;
             case TravelStep.EnteringCar:
-                // person enters vehicle
+                // The person boards: their sprite vanishes into the car (task 008 commute spec), the car gains
+                // its occupant (drive() refuses to move an empty car), and the car is routed to the STREET in
+                // front of the destination — cars stop on the road, never inside a footprint (anchor fallback
+                // for legacy/test worlds with no adjacent road).
                 if (this.vehicle) {
+                    this.vehicle.board();
+                    this.setIndoors(true);
                     const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
-                    const destTile = this.destinationBuilding.getPosition();
+                    const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
+                        ?? this.destinationBuilding.getPosition();
                     if (vehicleTile && destTile) {
                         const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
                         if (tile) {
@@ -327,8 +351,17 @@ export default class Person {
                 }
                 break;
             case TravelStep.ExitingCar:
-                // person exits vehicle
+                // The person steps out where the car parked (task 008 commute spec): position syncs to the
+                // car, the sprite reappears, the car loses its occupant (an empty parked car can't move), and
+                // the last leg to the destination entrance is walked from the street.
                 if (this.vehicle) {
+                    const carPosition = this.vehicle.getPosition();
+                    if (carPosition) {
+                        this.x = carPosition.x;
+                        this.y = carPosition.y;
+                    }
+                    this.vehicle.disembark();
+                    this.setIndoors(false);
                     const carTilePos = Game.pixelToTilePosition(this.vehicle.getPosition());
                     if (carTilePos) {
                         const tile = Game.field!.getTile(carTilePos.row, carTilePos.col);

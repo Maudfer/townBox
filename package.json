@@ -16,6 +16,10 @@
     "package": "npm run build-prod",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "test:integration": "playwright test --project=chromium",
+    "test:integration:coverage": "cross-env COVERAGE=1 playwright test --project=chromium",
+    "test:integration:report": "playwright show-report",
+    "generate-scenarios": "playwright test --project=fixtures",
     "validate-data": "jest --selectProjects data",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "npm run lint:md && npm run lint:js",
@@ -55,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.61.1",
     "@types/d3": "^7.4.3",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.19.43",

@@ -120,12 +120,55 @@ describe('drive() guard clauses skip movement entirely', () => {
         expect(v.getPosition()).toEqual({ x: 10, y: 10 });
     });
 
-    test('does nothing when the current tile is not a Road', () => {
+    test('does nothing when the current tile is not drivable (soil)', () => {
         const v = new Vehicle(10, 10);
         v.setAsset({} as any);
+        v.board();
         (v as any).currentTarget = { x: 50, y: 50 };
         v.drive(new Soil(0, 0, 'grass'), 100);
         expect(v.getPosition()).toEqual({ x: 10, y: 10 });
+    });
+
+    // The task-008 commute spec: cars live on the STREET (they spawn in front of the origin and park on the
+    // road in front of the destination), so driving is Road-only — and an EMPTY car must never move: the
+    // occupant boards at EnteringCar and steps out at ExitingCar. The debug V-key test car carries an
+    // implicit test driver instead, so the wander demo still works.
+    test('does nothing when the current tile is a Building (cars stay on the street)', () => {
+        const v = new Vehicle(10, 10);
+        v.setAsset({} as any);
+        v.board();
+        (v as any).currentTarget = { x: 50, y: 10 };
+        (v as any).movingAxis = Axis.X;
+        v.drive(new Building(0, 0, null), 100);
+        expect(v.getPosition()).toEqual({ x: 10, y: 10 });
+    });
+
+    test('does nothing without a person inside (the occupancy gate)', () => {
+        const v = new Vehicle(10, 10);
+        v.setAsset({} as any);
+        (v as any).currentTarget = { x: 50, y: 10 };
+        (v as any).movingAxis = Axis.X;
+        v.drive(new Road(0, 0, null), 100);
+        expect(v.getPosition()).toEqual({ x: 10, y: 10 }); // empty car: parked
+
+        v.board();
+        v.drive(new Road(0, 0, null), 100);
+        expect(v.getPosition()!.x).toBeGreaterThan(10); // occupied: moves
+
+        v.disembark();
+        const parked = { ...v.getPosition()! };
+        v.drive(new Road(0, 0, null), 100);
+        expect(v.getPosition()).toEqual(parked); // empty again: parked again
+    });
+
+    test('a debug test driver also satisfies the occupancy gate (V-key wander cars)', () => {
+        const v = new Vehicle(10, 10);
+        v.setAsset({} as any);
+        v.setDebugDriver(true);
+        (v as any).currentTarget = { x: 50, y: 10 };
+        (v as any).movingAxis = Axis.X;
+        v.drive(new Road(0, 0, null), 100);
+        expect(v.getPosition()!.x).toBeGreaterThan(10);
     });
 });
 
@@ -134,6 +177,7 @@ describe('drive(): real per-frame movement', () => {
         const road = new Road(3, 3, null);
         const v = new Vehicle(0, 0);
         v.setAsset({} as any);
+        v.board(); // drive() refuses to move an empty car (task 008 spec)
         (v as any).currentTarget = { x: 5, y: 0 }; // small distance so a big timeDelta overshoots
         (v as any).movingAxis = Axis.X;
 
@@ -153,6 +197,7 @@ describe('drive(): real per-frame movement', () => {
         const road = new Road(0, 0, null);
         const v = new Vehicle(0, 0);
         v.setAsset({} as any);
+        v.board(); // drive() refuses to move an empty car (task 008 spec)
         (v as any).currentTarget = { x: 0, y: 5 };
         (v as any).movingAxis = Axis.Y;
 
@@ -165,6 +210,7 @@ describe('drive(): real per-frame movement', () => {
         const road = new Road(0, 0, null);
         const v = new Vehicle(0, 0);
         v.setAsset({} as any);
+        v.board(); // drive() refuses to move an empty car (task 008 spec)
         (v as any).currentTarget = { x: 5, y: 5 };
         (v as any).movingAxis = 'diagonal';
 
@@ -178,6 +224,7 @@ describe('drive(): real per-frame movement', () => {
 
         const v = new Vehicle(0, 0);
         v.setAsset({} as any);
+        v.board(); // drive() refuses to move an empty car (task 008 spec)
         (v as any).currentTarget = { x: 0.2, y: 0 }; // already essentially at the target
         (v as any).currentTargetTile = road;
         (v as any).movingAxis = Axis.X;
@@ -195,6 +242,7 @@ describe('drive(): real per-frame movement', () => {
         const roadStraight = new Road(0, 0, null);
         const vStraight = new Vehicle(0, 0);
         vStraight.setAsset({} as any);
+        vStraight.board();
         (vStraight as any).currentTarget = { x: 100, y: 0 };
         (vStraight as any).currentTargetTile = new Road(0, 0, null);
         (vStraight as any).movingAxis = Axis.X;
@@ -206,6 +254,7 @@ describe('drive(): real per-frame movement', () => {
         const roadCurve = new Road(0, 0, null);
         const vCurve = new Vehicle(0, 0);
         vCurve.setAsset({} as any);
+        vCurve.board();
         (vCurve as any).currentTarget = { x: 100, y: 0 };
         (vCurve as any).currentTargetTile = new Road(0, 0, null);
         (vCurve as any).movingAxis = Axis.X;

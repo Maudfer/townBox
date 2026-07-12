@@ -14,7 +14,7 @@ describe('Person travel flow', () => {
 
     const gameStub = {
       pixelToTilePosition: () => ({ row: 0, col: 0 }),
-      field: { getTile: () => road },
+      field: { getTile: () => road, getAdjacentRoadTile: () => null },
       gridParams: { cells: { width: 1, height:1 }, bounds: {top:0,left:0,right:10,bottom:10} }
     } as unknown as GameManager;
 
@@ -33,15 +33,53 @@ describe('Person travel flow', () => {
     expect((person as any).travelStep).toBe(TravelStep.WalkingToCar);
     expect(person.isIndoors()).toBe(false);
 
-    // Simulate arrival at car
+    // Simulate arrival at car: boarding hides the sprite (in the car) and occupies the vehicle (task 008 spec).
     (person as any).travelStep = TravelStep.EnteringCar;
     person.update(road, 0, new Set(), pathFinder);
     expect((person as any).travelStep).toBe(TravelStep.Driving);
+    expect(person.isIndoors()).toBe(true); // sprite vanished into the car
+    expect(vehicle.isOccupied()).toBe(true);
 
-    // Simulate vehicle arrival
+    // Simulate vehicle arrival.
     (vehicle as any).isDestinationReached = () => true;
     person.update(road, 0, new Set(), pathFinder);
     expect((person as any).travelStep).toBe(TravelStep.ExitingCar);
+
+    // Stepping out (the next update) syncs the person to the car, shows the sprite, and frees the car.
+    person.update(road, 0, new Set(), pathFinder);
+    expect((person as any).travelStep).toBe(TravelStep.WalkingToDestination);
+    expect(person.isIndoors()).toBe(false); // sprite back on the street
+    expect(vehicle.isOccupied()).toBe(false);
+    expect(person.getPosition()).toEqual(vehicle.getPosition()); // steps out where the car parked
+  });
+
+  test('the car is routed to the STREET in front of the destination, not into its footprint (task 008 spec)', () => {
+    const road = new Road(0, 0, 'road');
+    const destBuilding = new Building(6, 6, null);
+    const streetSpot = { row: 2, col: 6 }; // the ring road cell "in front of" the destination
+    const vehicle = new Vehicle(1, 1);
+
+    const gameStub = {
+      pixelToTilePosition: () => ({ row: 0, col: 0 }),
+      field: { getTile: () => road, getAdjacentRoadTile: () => streetSpot },
+      gridParams: { cells: { width: 1, height: 1 }, bounds: { top: 0, left: 0, right: 10, bottom: 10 } },
+    } as unknown as GameManager;
+    const pathFinder = { findPath: () => [] } as unknown as PathFinder;
+
+    const person = new Person(0, 0);
+    person.setGameManager(gameStub);
+    person.setVehicle(vehicle);
+    person.setDestination(destBuilding);
+    person.setAsset({} as any);
+
+    const routedTo: unknown[] = [];
+    (vehicle as any).setDestinationTile = (_tile: unknown, destination: unknown) => routedTo.push(destination);
+
+    (person as any).travelStep = TravelStep.EnteringCar;
+    person.update(road, 0, new Set(), pathFinder);
+
+    // The vehicle's destination is the adjacent ROAD cell, not the building anchor (6,6).
+    expect(routedTo).toEqual([streetSpot]);
   });
 
   test('arrival records the building, despawns the commute car, and returns to idle', () => {

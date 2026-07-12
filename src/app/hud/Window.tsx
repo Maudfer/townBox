@@ -3,7 +3,7 @@ import { Rnd } from 'react-rnd';
 
 import { WindowProps } from 'types/HUD';
 
-const Window: FC<WindowProps> = ({ children, game, index, title, header, footer, initialSize, onClose, onResize }) => {
+const Window: FC<WindowProps> = ({ children, game, index, title, testId, header, footer, initialSize, onClose, onResize }) => {
     function handleDragStart() {
         game.emit("windowDragStart");
     }
@@ -30,16 +30,18 @@ const Window: FC<WindowProps> = ({ children, game, index, title, header, footer,
             minHeight={250}
             bounds="window"
             dragHandleClassName="window-header"
+            // Give the corner resize handles stable class hooks for the integration tests (task 008).
+            resizeHandleClasses={{ bottomRight: 'window-resize-se', bottomLeft: 'window-resize-sw' }}
             onDragStart={handleDragStart}
             onDragStop={handleDragStop}
             onResize={onResize}
         >
-            <div className="window">
+            <div className="window" data-testid={testId ?? 'window'}>
                 <div className="window-header glass">
                     {!header && (
                         <>
                             <h3>{title}</h3>
-                            <button onClick={handleClose}>X</button>
+                            <button data-testid="window-close" onClick={handleClose}>X</button>
                         </>
                     )}
                     {header}
@@ -52,7 +54,7 @@ const Window: FC<WindowProps> = ({ children, game, index, title, header, footer,
                 <div className="window-footer glass">
                     {!footer && (
                         <>
-                            <button onClick={handleClose}>OK</button>
+                            <button data-testid="window-ok" onClick={handleClose}>OK</button>
                         </>
                     )}
                     {footer}

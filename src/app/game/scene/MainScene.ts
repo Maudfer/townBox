@@ -247,6 +247,12 @@ export default class MainScene extends Phaser.Scene {
         return this.cursor;
     }
 
+    // Centers the camera on a world point so that point maps to the viewport center — used by the integration
+    // test harness (task 008) to place a target tile under a deterministic screen coordinate for real clicks.
+    centerCameraOn(worldX: number, worldY: number): void {
+        this.cameras.main.centerOn(worldX, worldY);
+    }
+
     setCursor(tool: Tool): void {
         if (!this.cursor) {
             this.cursor = {

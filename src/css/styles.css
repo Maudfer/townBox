@@ -260,7 +260,9 @@ canvas {
     border-radius: 6px;
     border: 1px solid #274041;
     box-shadow: 0 3px 12px #0000008c;
-    pointer-events: none;
+    /* The clock is clickable (opens the city overview, HUD §4.9/§4.12); it must receive pointer events —
+       its container (#hud-container) sets pointer-events: none, so this has to opt back in. */
+    pointer-events: all;
     z-index: 1000;
 }
 

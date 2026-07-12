@@ -13,6 +13,7 @@ import DebugTools from 'game/scene/DebugTools';
 import MainScene from 'game/scene/MainScene';
 import Field from 'game/world/Field';
 import TitleScene from 'game/scene/TitleScene';
+import { createTestApi } from 'game/TestHarness';
 
 
 import Inventory from 'game/objects/Inventory';
@@ -30,6 +31,7 @@ import { EventPayloads, UpdateEvent } from 'types/Events';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { DEFAULT_SAVE_SLOT } from 'types/Save';
+import { MS_PER_TICK } from 'util/time';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -58,6 +60,13 @@ export default class GameManager {
     public saveManager: SaveManager;
     private pendingLoad: string | null;
     private skipSplash: boolean;
+
+    // Integration-test determinism seam (task 008). `testMode` is set ONLY when the page opts in (a `?test=1`
+    // URL param or a `window.__TOWNBOX_TEST` global set before boot) — never in normal production. When on, the
+    // RAF-driven clock is paused (`timePaused`) so in-game time advances only via advanceTicks(), and a read/
+    // control API is installed on `window.__townbox` once the game is initialized.
+    private testMode: boolean;
+    private timePaused: boolean;
 
     constructor() {
         // Fail loudly on invalid data files before anything consumes them (task 039). The registry validated
@@ -136,11 +145,32 @@ export default class GameManager {
         this.pendingLoad = null;
         this.skipSplash = false;
 
+        // Detect opt-in test mode. Pause time up front so no ticks slip through before the harness installs.
+        this.testMode = GameManager.detectTestMode();
+        this.timePaused = this.testMode;
+
         // Debug auto-load: if a build ships with an embedded save, queue it and skip the splash screen.
         const autoLoad = config.debug.autoLoad;
         if (autoLoad && autoLoad.enabled && autoLoad.save) {
             this.pendingLoad = autoLoad.save;
             this.skipSplash = true;
+        }
+
+        // Test-only boot parametrization (task 008, §3), active ONLY in test mode. `?boot=new` skips the splash
+        // straight into a fresh game; `?boot=load` skips it and queues a load from the default save slot (which
+        // the test seeds into localStorage before boot). Lets a scenario fixture boot deterministically without
+        // clicking the canvas splash buttons; the dedicated start/load HUD tests still exercise those buttons.
+        if (this.testMode) {
+            const boot = GameManager.testBootMode();
+            if (boot === 'new') {
+                this.skipSplash = true;
+            } else if (boot === 'load') {
+                const payload = GameManager.readDefaultSaveSlot();
+                if (payload) {
+                    this.pendingLoad = payload;
+                    this.skipSplash = true;
+                }
+            }
         }
 
         const titleScene = new TitleScene(this);
@@ -217,6 +247,12 @@ export default class GameManager {
                 await this.startNewGameWorld();
             }
 
+            // Install the integration-test hook once the field/city/engines exist (task 008). Gated on test
+            // mode, so `window.__townbox` never appears in a normal production session.
+            if (this.testMode) {
+                this.installTestHarness();
+            }
+
             this.emit("gameInitialized", this);
         }
         this.on("sceneInitialized", { callback: postSceneInit, context: this });
@@ -239,6 +275,15 @@ export default class GameManager {
             return;
         }
         const worldSeed = (Math.random() * 0x100000000) >>> 0;
+
+        // Test mode (task 008): never fetch the multi-hundred-MB history asset — it is slow and its window is
+        // non-deterministic. A `?boot=new` test gets a fast cold-start pool; deterministic scenarios come from
+        // committed save fixtures (`?boot=load`), which skip this method entirely (pendingLoad is set). A
+        // `?seed=N` param pins the pool so the fixture recorder can reproduce a world.
+        if (this.testMode) {
+            population.generate(GameManager.testSeed() ?? worldSeed);
+            return;
+        }
 
         // 1) The sharded asset served over HTTP (loads only the shards up to the chosen window).
         let selected = await loadSelectedWorldFromHttp(worldSeed);
@@ -276,7 +321,7 @@ export default class GameManager {
     // `timeChanged` once per in-game minute (the HUD's display granularity), `newTick` once per in-game hour
     // (the canonical simulation tick, task 040), and `newDay` on each day rollover.
     private advanceTime(payload: UpdateEvent): void {
-        if (!this.clock) {
+        if (!this.clock || this.timePaused) {
             return;
         }
         this.clock.advance(payload.timeDelta);
@@ -308,6 +353,119 @@ export default class GameManager {
         this.lastDayEmitted = timestamp.absoluteDay;
         this.lastTickEmitted = this.clock.getCurrentTick();
         this.lastMinuteEmitted = timestamp.hour * 60 + timestamp.minute;
+    }
+
+    // --- Integration-test determinism seam (task 008) ---------------------
+
+    // Opt-in only: a `?test=1` (or `?test`) URL query param, or a `window.__TOWNBOX_TEST === true` global set
+    // before the app boots (Playwright's addInitScript). Never true in a normal production session. Wrapped in a
+    // try/catch so a non-browser context (unit tests constructing GameManager) can't throw on window access.
+    private static detectTestMode(): boolean {
+        try {
+            if (typeof window === 'undefined') {
+                return false;
+            }
+            const global = window as unknown as { __TOWNBOX_TEST?: boolean };
+            if (global.__TOWNBOX_TEST === true) {
+                return true;
+            }
+            const params = new URLSearchParams(window.location.search);
+            return params.has('test');
+        } catch {
+            return false;
+        }
+    }
+
+    // Reads an optional `seed` URL param in test mode (a finite, non-negative integer), else null.
+    private static testSeed(): number | null {
+        try {
+            if (typeof window === 'undefined') {
+                return null;
+            }
+            const raw = new URLSearchParams(window.location.search).get('seed');
+            if (raw === null) {
+                return null;
+            }
+            const value = Number(raw);
+            return Number.isFinite(value) && value >= 0 ? (value >>> 0) : null;
+        } catch {
+            return null;
+        }
+    }
+
+    // Reads the `boot` URL param in test mode: 'new' | 'load' | null. Guarded like detectTestMode.
+    private static testBootMode(): 'new' | 'load' | null {
+        try {
+            if (typeof window === 'undefined') {
+                return null;
+            }
+            const value = new URLSearchParams(window.location.search).get('boot');
+            return value === 'new' || value === 'load' ? value : null;
+        } catch {
+            return null;
+        }
+    }
+
+    // Reads the default-slot save payload straight from localStorage (the LocalStorageProvider key format), for
+    // the `?boot=load` path. Kept in sync with game/save/LocalStorageProvider.ts's `townbox:save:<slot>` key.
+    private static readDefaultSaveSlot(): string | null {
+        try {
+            if (typeof window === 'undefined' || !window.localStorage) {
+                return null;
+            }
+            return window.localStorage.getItem(`townbox:save:${DEFAULT_SAVE_SLOT}`);
+        } catch {
+            return null;
+        }
+    }
+
+    private installTestHarness(): void {
+        try {
+            (window as unknown as { __townbox?: unknown }).__townbox = createTestApi(this);
+            console.info('[GameManager] Test harness installed on window.__townbox (test mode).');
+        } catch (error) {
+            console.error('[GameManager] Failed to install test harness:', error);
+        }
+    }
+
+    // Pauses/resumes the RAF-driven clock so a test controls time exclusively (see advanceTicks).
+    pauseTime(): void {
+        this.timePaused = true;
+    }
+
+    resumeTime(): void {
+        this.timePaused = false;
+        this.resyncTimeTracking();
+    }
+
+    // Advances the simulation by exactly `n` in-game hour ticks, one at a time, emitting the SAME
+    // newDay/newTick/timeChanged signals the frame loop does — but AWAITED, so the returned promise resolves
+    // only after every tick's async handlers (City.handleTick, the event/economy cadence) have fully run. This
+    // is what makes the real-time sim deterministically assertable from a test (task 008). It updates the same
+    // last-emitted markers advanceTime uses, so a subsequent resume() never double-fires the boundary.
+    async advanceTicks(n: number = 1): Promise<void> {
+        if (!this.clock) {
+            return;
+        }
+        for (let i = 0; i < n; i++) {
+            this.clock.advance(MS_PER_TICK);
+            const timestamp = this.clock.getTimestamp();
+            const tick = this.clock.getCurrentTick();
+            const minuteOfDay = timestamp.hour * 60 + timestamp.minute;
+
+            if (timestamp.absoluteDay !== this.lastDayEmitted) {
+                this.lastDayEmitted = timestamp.absoluteDay;
+                await this.emit("newDay", { timestamp, tick });
+            }
+            if (tick !== this.lastTickEmitted) {
+                this.lastTickEmitted = tick;
+                await this.emit("newTick", { timestamp, tick });
+            }
+            if (minuteOfDay !== this.lastMinuteEmitted) {
+                this.lastMinuteEmitted = minuteOfDay;
+                await this.emit("timeChanged", { timestamp, tick });
+            }
+        }
     }
 
     private async handleSaveRequest(): Promise<void> {

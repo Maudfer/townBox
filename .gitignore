@@ -110,6 +110,13 @@ typings/
 dist/
 bin/
 
+# Playwright integration suite (task 008)
+/playwright-report/
+/test-results/
+/blob-report/
+/playwright/.cache/
+/coverage-integration/
+
 # Offline history assets (generate-history): the committed default lives at src/history/ (asset.json +
 # meta.json/manifest.json/shards). Dev generations (--dev) and the local dev pointer are never committed.
 src/history/dev/

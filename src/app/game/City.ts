@@ -1735,7 +1735,12 @@ export default class City {
             return;
         }
 
-        const vehicle = field.spawnVehicle(entrance);
+        // The car materializes ON THE STREET in front of the origin building (task 008 commute spec), never
+        // inside a footprint — the person walks out to it and boards. Entrance fallback for legacy/test
+        // worlds with no adjacent road.
+        const streetTile = origin ? field.getAdjacentRoadTile(origin) : null;
+        const streetSpot = streetTile ? Game.tileToPixelPosition(streetTile) : null;
+        const vehicle = field.spawnVehicle(streetSpot ?? entrance);
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);

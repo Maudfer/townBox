@@ -170,6 +170,48 @@ describe('PathFinder A*', () => {
         expect(path).toEqual([roadA, roadB]);
     });
 
+    // Regression (found by the task-008 integration suite): since the 3x3 footprint subdivision, a search
+    // STARTING inside a building could never leave it — every neighbor of the anchor is a cell of the same
+    // footprint (not a road, not the goal), so getValidNeighbors rejected them all and every commute froze at
+    // its first walk (Person/Vehicle setDestinationTile got an empty path, never set currentTarget, and
+    // isDestinationReached() could never become true). In the legacy 1-tile-per-structure world the anchor's
+    // neighbor WAS the adjacent road, which is why this only broke with the subdivision. The fix lets the
+    // search step through the START structure's own footprint cells on its way out.
+    test('paths OUT of a building footprint to another building via the road (the commute geometry)', () => {
+        const road = new Road(1, 1, null);          // rows 0-2, cols 0-2
+        const roadMid = new Road(1, 4, null);       // rows 0-2, cols 3-5
+        const roadEast = new Road(1, 7, null);      // rows 0-2, cols 6-8
+        const house = new Building(4, 1, null);     // rows 3-5, cols 0-2 — flush below `road`
+        const work = new Building(4, 7, null);      // rows 3-5, cols 6-8 — flush below `roadEast`
+        // Soil separates the two buildings (rows 3-5, cols 3-5), so the ONLY route is up through the roads.
+
+        const field = stampField([road, roadMid, roadEast, house, work], 6, 9, 3);
+        const pathFinder = new PathFinder(field as unknown as Field);
+
+        // Start at the house ANCHOR — exactly what Person/Vehicle pass (currentTile.getRow()/getCol() on a
+        // footprint cell returns the anchor). Goal is the destination building's anchor.
+        const path = pathFinder.findPath({ row: 4, col: 1 }, { row: 4, col: 7 });
+
+        expect(path.length).toBeGreaterThan(0);
+        expect(path[path.length - 1]).toBe(work);
+        expect(path).toEqual([house, road, roadMid, roadEast, work]);
+    });
+
+    test('reaches a goal cell on the start structure\'s own footprint (the commute car at the entrance)', () => {
+        const road = new Road(1, 1, null);      // rows 0-2, cols 0-2
+        const house = new Building(4, 1, null); // rows 3-5, cols 0-2
+
+        const field = stampField([road, house], 6, 3, 3);
+        const pathFinder = new PathFinder(field as unknown as Field);
+
+        // The commute car spawns at the building's entrance — a fine cell of the traveller's OWN footprint
+        // (bottom-center, 5-1). The walk-to-car step needs a non-empty path so walk() gets a target and can
+        // detect arrival; an empty path stalled the step forever.
+        const path = pathFinder.findPath({ row: 4, col: 1 }, { row: 5, col: 1 });
+
+        expect(path).toEqual([house]);
+    });
+
     test('a start on the grid west edge does not crash (an out-of-bounds column is simply filtered out)', () => {
         // Deliberately UNPADDED, exactly how a real Field's matrix is populated (only real rows exist as
         // keys) — using the MIDDLE row of a 3-row grid so north/south neighbors stay in-bounds and only

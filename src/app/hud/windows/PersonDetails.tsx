@@ -72,7 +72,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     const relationshipRows = Object.entries(overview.relationships).filter(([, names]) => !!names);
 
     return (
-        <Window game={game} index={index} title={person.social.getFullName()} initialSize={INITIAL_SIZE} onClose={onClose}>
+        <Window game={game} index={index} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div className="person-details" style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
                 <section>
                     <p><strong>Age:</strong> {age} &nbsp; <strong>Gender:</strong> {info.gender}</p>

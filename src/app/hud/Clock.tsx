@@ -34,6 +34,7 @@ const Clock: FC<ClockProps> = ({ game }) => {
     return (
         <div
             className="clock-widget glass"
+            data-testid="clock-widget"
             style={{ cursor: 'pointer' }}
             title="Open city overview"
             onClick={() => game.emit('CitySelected', game.city)}

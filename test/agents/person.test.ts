@@ -273,6 +273,45 @@ describe('walk(): real per-frame movement', () => {
         expect(p.getDepth()).toBe((currentTile.getRow() + 1) * 10 + 1);
     });
 
+    // Regression (task-008 integration suite): stepping out of the commute car parked at the DESTINATION's
+    // own entrance means start tile == goal tile, so A* rightly returns an empty path — but with no
+    // currentTarget, walk() could neither move nor detect arrival, and the traveller froze one step from
+    // the door forever. setDestinationTile now targets the current position when the traveller is already
+    // standing on the destination structure, so the next walk() reports arrival.
+    test('completes a walk whose destination is the structure the person is already standing on', () => {
+        const destBuilding = new Building(4, 4, null); // the person stands on this very building
+        destBuilding.calculateEntrance({ width: 48, height: 48 }, { x: 216, y: 216 }); // entrance (216, 235)
+        const gameStub = {
+            pixelToTilePosition: () => ({ row: 4, col: 4 }),
+            field: { getTile: () => destBuilding, removeVehicle: () => undefined },
+        } as unknown as GameManager;
+        // The REAL pathfinder contract for start == goal: an empty path.
+        const pathFinder = { findPath: () => [] } as unknown as PathFinder;
+
+        const p = new Person(168, 168);
+        p.setGameManager(gameStub);
+        p.setAsset({} as any);
+        p.setDestination(destBuilding); // no vehicle -> walking commute straight to the destination
+
+        p.update(destBuilding, 0, new Set(), pathFinder); // ExitingBuilding -> WalkingToDestination
+        expect((p as any).travelStep).toBe(TravelStep.WalkingToDestination);
+
+        let iterations = 0;
+        while ((p as any).travelStep === TravelStep.WalkingToDestination && iterations < 2000) {
+            p.update(destBuilding, 50, new Set(), pathFinder);
+            iterations++;
+        }
+
+        expect(iterations).toBeLessThan(2000); // advanced, not stalled
+        expect((p as any).travelStep).toBe(TravelStep.Arrived);
+        // The last leg is genuinely walked: the person ends at the building's ENTRANCE (within the < 1px
+        // arrival threshold), keeping their position coherent for the return commute.
+        const finalPosition = p.getPosition()!;
+        const entrance = destBuilding.getEntrance()!;
+        expect(Math.abs(finalPosition.x - entrance.x)).toBeLessThan(1);
+        expect(Math.abs(finalPosition.y - entrance.y)).toBeLessThan(1);
+    });
+
     test('real per-frame movement drives a WalkingToCar step past arrival to EnteringCar (no manual travelStep poking)', () => {
         // Same regression guard on the vehicle commute path: WalkingToCar must advance to EnteringCar off real
         // walk() movement alone.
