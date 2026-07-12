@@ -29,6 +29,16 @@ describe('sampleMaxChildren distribution', () => {
     test('maxChildrenForPerson is deterministic per (worldSeed, personId)', () => {
         expect(maxChildrenForPerson(99, 'p42')).toBe(maxChildrenForPerson(99, 'p42'));
     });
+
+    test('falls back to the last index when accumulated rounding leaves the roll non-negative', () => {
+        // next() can never reach exactly 1 in practice (mulberry32 outputs [0, 1)), but the loop's
+        // post-subtraction fallback (return weights.length - 1) exists as a floating-point safety net.
+        // Force it deterministically: with two equal weights summing to 1 and next() == 1, the roll lands
+        // at exactly 0 (not negative) after the final subtraction, falling through the loop.
+        const rng = new SeededRandom(1);
+        rng.next = (): number => 1;
+        expect(sampleMaxChildren(rng, [0.5, 0.5])).toBe(1);
+    });
 });
 
 describe('coarse off-map sim respects maxChildren', () => {

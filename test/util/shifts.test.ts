@@ -23,6 +23,10 @@ describe('isOnShiftAt', () => {
         expect(isOnShiftAt({ shiftStart: 9 * 60, shiftEnd: 17 * 60 }, SUN, 10 * 60)).toBe(true);
     });
 
+    test('a zero-length window (shiftStart === shiftEnd) is never on shift', () => {
+        expect(isOnShiftAt({ shiftStart: 9 * 60, shiftEnd: 9 * 60 }, MON, 9 * 60)).toBe(false);
+    });
+
     test('cross-midnight shifts belong to their START day', () => {
         // A Friday-only 22:00–06:00 night shift:
         const night = { shiftStart: 22 * 60, shiftEnd: 6 * 60, daysOfWeek: ['fri'] as const };
@@ -48,6 +52,13 @@ describe('minutesUntilShiftStart', () => {
         // From Saturday 10:00, the next Monday 09:00 is 2 days − 1 hour away.
         expect(minutesUntilShiftStart(shift, SAT, 10 * 60)).toBe(2 * 24 * 60 - 60);
         expect(minutesUntilShiftStart({ shiftStart: 9 * 60, shiftEnd: 17 * 60, daysOfWeek: [] }, MON, 0)).toBe(9 * 60);
+    });
+
+    test('returns null for a job that never works any day of the week', () => {
+        // A bogus daysOfWeek list (matches no real weekday name) means worksOnDay is false every day,
+        // so the search exhausts a full week without finding a start.
+        const neverWorks = { shiftStart: 9 * 60, shiftEnd: 17 * 60, daysOfWeek: ['nonexistent-day'] };
+        expect(minutesUntilShiftStart(neverWorks, MON, 0)).toBeNull();
     });
 });
 

@@ -20,6 +20,7 @@ import {
     triggerKindsOf,
     triggerMixCounts,
     generateRelationshipDocs,
+    isContinuous,
 } from 'util/simulationDocs';
 
 // The Action <-> Event relationship documentation (task 054): the generator's extraction logic, and the
@@ -83,6 +84,70 @@ describe('extraction', () => {
         const probabilisticTotal = Object.values(EVENTS).filter(event => triggerKindsOf(event).includes('probabilistic')).length;
         expect(manualTotal).toBeGreaterThanOrEqual(500);
         expect(probabilisticTotal).toBeGreaterThanOrEqual(500);
+    });
+});
+
+describe('isContinuous', () => {
+    test('true for continuous actions, false for discrete', () => {
+        expect(isContinuous({ label: 'x', type: 'continuous', category: 'work' } as unknown as ActionManifest[string])).toBe(true);
+        expect(isContinuous({ label: 'x', type: 'discrete', category: 'leisure' } as unknown as ActionManifest[string])).toBe(false);
+    });
+});
+
+// generateRelationshipDocs against small hand-built fixtures — exercises corners the real (already
+// checked-diff-gated) manifests don't currently reach: a triggerEvent consequence op that targets a real
+// event (the shipped data has none yet), an `atHour` automated schedule rule (the shipped data only uses
+// `afterEvent`), and a skills manifest using the ArcManifests `dependsOn` shape.
+describe('generateRelationshipDocs — fixture corners', () => {
+    const actionsFixture = {
+        ping_the_neighbor: {
+            label: 'Ping', type: 'discrete', category: 'social',
+            consequences: [{ op: 'triggerEvent', event: 'got_pinged' }],
+        },
+    } as unknown as ActionManifest;
+
+    const eventsFixture = {
+        got_pinged: { roles: {}, triggers: { manual: {} }, effects: [] },
+        daily_roll_call: { roles: {}, triggers: { automated: { rules: [{ atHour: 6 }] } }, effects: [] },
+    } as unknown as EventManifest;
+
+    const oarFixture = {} as OARTable;
+
+    const extrasFixture: ArcManifests = {
+        skills: {
+            biology: { basic: true },
+            suture_wounds: { dependsOn: [{ skill: 'biology' }] },
+        },
+        jobs: {},
+        placement: {},
+        businesses: {},
+        residences: {},
+        objects: {},
+    };
+
+    test('a triggerEvent consequence op appears in the event-sources reverse map', () => {
+        const doc = generateRelationshipDocs(actionsFixture, eventsFixture, oarFixture, extrasFixture);
+        // The reverse map's "Invoked by" cell records it as "<actionId> <op>" (plain space, task 054).
+        expect(doc).toContain('`ping_the_neighbor` triggerEvent');
+        // The consequence-ops table records the same link as a full row.
+        expect(doc).toContain('`ping_the_neighbor` | triggerEvent | `got_pinged`');
+    });
+
+    test('an atHour automated rule is described in the automated-rules section', () => {
+        const doc = generateRelationshipDocs(actionsFixture, eventsFixture, oarFixture, extrasFixture);
+        expect(doc).toContain('atHour 6');
+    });
+
+    test('a skills manifest using dependsOn counts dependents per basic skill', () => {
+        const doc = generateRelationshipDocs(actionsFixture, eventsFixture, oarFixture, extrasFixture);
+        // biology has one dependent (suture_wounds) via `dependsOn`.
+        expect(doc).toContain('| `biology` | 1 |');
+    });
+
+    test('omitting extras skips the progression-arc sections entirely', () => {
+        const doc = generateRelationshipDocs(actionsFixture, eventsFixture, oarFixture);
+        expect(doc).not.toContain('## Skills (dependency DAG summary)');
+        expect(doc).not.toContain('## Job rank ladders');
     });
 });
 

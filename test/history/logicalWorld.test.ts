@@ -5,7 +5,7 @@
 import EventEngine from 'game/events/EventEngine';
 import { generateHistoryAsset, DEFAULT_GENERATOR_PARAMS, HistoryGeneratorParams, HistoryAsset, HistoryAssetSink, ShardRef } from 'game/history/HistoryAsset';
 import { sliceAndRebase, selectStartingWorld, selectStartingWorldFromShards, AssetHeader } from 'game/history/HistoryAssetSelection';
-import LogicalWorld from 'game/history/LogicalWorld';
+import LogicalWorld, { LogicalJobMarket } from 'game/history/LogicalWorld';
 import SkillBook from 'game/skills/SkillBook';
 import { PopulationState } from 'types/Genealogy';
 import { EventLogTable } from 'types/LifeEvent';
@@ -48,6 +48,122 @@ describe('LogicalWorld — WorldAdapter surface', () => {
         expect(world.locationOf('p0')).toEqual({ kind: 'building', key: 'biz:0' });
         expect(world.peopleAt({ kind: 'building', key: 'biz:0' })).toEqual(['p0']);
     });
+
+    test('requesting the same target twice is a no-op on the reverse location index (idempotent)', () => {
+        const world = new LogicalWorld(2);
+        world.assignHome('p0', poolWith({}).people);
+        world.requestTransition('p0', { kind: 'building', key: 'biz:0' }, 5, null);
+        // Same target again: setLocationIndex's early-return branch — must not duplicate the entry.
+        world.requestTransition('p0', { kind: 'building', key: 'biz:0' }, 6, null);
+        expect(world.peopleAt({ kind: 'building', key: 'biz:0' })).toEqual(['p0']);
+    });
+
+    test('register() assigns a fresh home for a bare id (no pool lookup)', () => {
+        const world = new LogicalWorld(2);
+        world.register('solo');
+        expect(world.locationOf('solo').kind).toBe('building');
+        expect(world.peopleAt(world.locationOf('solo'))).toEqual(['solo']);
+    });
+
+    test('assignHome is idempotent — calling it again for an already-homed person is a no-op', () => {
+        const world = new LogicalWorld(2);
+        world.assignHome('p0', poolWith({}).people);
+        const before = world.locationOf('p0');
+        world.assignHome('p0', poolWith({}).people); // second call must return early, home unchanged
+        expect(world.locationOf('p0')).toEqual(before);
+    });
+});
+
+describe('LogicalWorld — schools/jobs disabled and missing-candidate guards', () => {
+    test('buildSchools is a no-op when config.schools is false — the sweep never enrolls anyone', () => {
+        const world = new LogicalWorld(3, { homes: true, schools: false, jobs: false, objects: false });
+        world.buildSchools(50);
+        const engine = new EventEngine();
+        const tick = 20 * TICKS_PER_YEAR;
+        const kidBirth = tick - 10 * TICKS_PER_YEAR;
+        const state = poolWith({
+            kid: { id: 'kid', firstName: 'K', familyName: 'Z', gender: Genders.Female, birthTick: kidBirth, deathTick: null, fatherId: null, motherId: null, partnerships: [] },
+        });
+        world.assignHome('kid', state.people);
+        world.runSchoolSweep(state, tick, TICKS_PER_YEAR, engine);
+        expect(world.schoolRegistry.assignmentOf('kid')).toBeNull();
+    });
+
+    test('runSchoolSweep is also a no-op when schools are enabled but buildSchools was never called (no seats)', () => {
+        const world = new LogicalWorld(3, { homes: true, schools: true, jobs: false, objects: false });
+        const engine = new EventEngine();
+        const tick = 20 * TICKS_PER_YEAR;
+        const kidBirth = tick - 10 * TICKS_PER_YEAR;
+        const state = poolWith({
+            kid: { id: 'kid', firstName: 'K', familyName: 'Z', gender: Genders.Female, birthTick: kidBirth, deathTick: null, fatherId: null, motherId: null, partnerships: [] },
+        });
+        world.assignHome('kid', state.people);
+        world.runSchoolSweep(state, tick, TICKS_PER_YEAR, engine); // schoolSeats.length === 0 ⇒ early return
+        expect(world.schoolRegistry.assignmentOf('kid')).toBeNull();
+    });
+
+    test('runSchoolSweep and runSkillMilestones skip candidate ids missing from state.people (defensive)', () => {
+        const world = new LogicalWorld(3, { homes: true, schools: true, jobs: false, objects: false });
+        world.buildSchools(50);
+        const engine = new EventEngine();
+        const skillBook = new SkillBook();
+        const tick = 20 * TICKS_PER_YEAR;
+        // 'ghost' is passed explicitly as a candidate id but never appears in state.people.
+        expect(() => world.runSchoolSweep(poolWith({}), tick, TICKS_PER_YEAR, engine, ['ghost'])).not.toThrow();
+        expect(() => world.runSkillMilestones(poolWith({}), tick, TICKS_PER_YEAR, skillBook, ['ghost'])).not.toThrow();
+        expect(world.schoolRegistry.assignmentOf('ghost')).toBeNull();
+    });
+
+    test('sweepIds (via runDaily) skips ids in the `living` set that were never registered (unhomed)', () => {
+        const world = new LogicalWorld(3, { homes: true, schools: true, jobs: true, objects: false });
+        world.buildSchools(50);
+        const skillBook = new SkillBook();
+        world.buildJobs(skillBook, 50);
+        const engine = new EventEngine();
+        // 'ghost' never went through assignHome/register, so homeKeyOf.has('ghost') is false — sweepIds must
+        // filter it out rather than crash on a person with no home.
+        expect(() => world.runDaily(poolWith({}), 0, 24, TICKS_PER_YEAR, skillBook, engine, new Set(['ghost']))).not.toThrow();
+    });
+
+    test('buildJobs is a no-op when config.jobs is false — tickFacts exposes no job market', () => {
+        const world = new LogicalWorld(3, { homes: true, schools: false, jobs: false, objects: false });
+        const skillBook = new SkillBook();
+        world.buildJobs(skillBook, 50);
+        const facts = world.tickFacts(skillBook, 0);
+        expect(facts.ctx.markets.jobMarket).toBeNull();
+    });
+});
+
+describe('LogicalWorld — zero-elapsed accrual windows are no-ops', () => {
+    test('a fromTick === toTick window awards no school or work-day progress', () => {
+        const world = new LogicalWorld(5, { homes: true, schools: true, jobs: true, objects: false });
+        world.buildSchools(50);
+        const skillBook = new SkillBook();
+        world.buildJobs(skillBook, 50);
+        const engine = new EventEngine();
+        const tick = 25 * TICKS_PER_YEAR;
+
+        // An enrolled school-age kid.
+        const kidBirth = tick - 10 * TICKS_PER_YEAR;
+        // An adult hired directly through the real (off-map) job market, bypassing the intra-day shift chain.
+        const adultBirth = tick - 25 * TICKS_PER_YEAR;
+        const state = poolWith({
+            kid: { id: 'kid', firstName: 'K', familyName: 'Z', gender: Genders.Female, birthTick: kidBirth, deathTick: null, fatherId: null, motherId: null, partnerships: [] },
+            adult: { id: 'adult', firstName: 'A', familyName: 'Z', gender: Genders.Male, birthTick: adultBirth, deathTick: null, fatherId: null, motherId: null, partnerships: [] },
+        });
+        world.onEnter('kid', 10, kidBirth, tick, skillBook, state.people);
+        world.onEnter('adult', 25, adultBirth, tick, skillBook, state.people);
+        const jobMarket = world.tickFacts(skillBook, tick).ctx.markets.jobMarket!;
+        expect(jobMarket.hire('adult')).toBe(true); // the self-climbing entry-grant rule guarantees SOME hire
+
+        const kidBefore = skillBook.proficiency('kid', 'math');
+        const adultRecordsBefore = JSON.stringify(skillBook.skillsOf('adult'));
+
+        world.runDaily(state, tick, tick, TICKS_PER_YEAR, skillBook, engine); // zero-length window
+        expect(skillBook.proficiency('kid', 'math')).toBe(kidBefore); // no school-day gain
+        expect(JSON.stringify(skillBook.skillsOf('adult'))).toBe(adultRecordsBefore); // no work-day gain
+        expect(jobMarket.assignmentOf('adult')!.workDaysInRank ?? 0).toBe(0); // no promotion-clock progress
+    });
 });
 
 describe('LogicalWorld — direct school accrual (task 077 §3)', () => {
@@ -87,6 +203,41 @@ describe('LogicalWorld — carried inventory filtering', () => {
         const carried = world.carriedInventoryState(new Set(['keep']));
         const owners = Object.values(carried.instances).map(i => (i.container.kind === 'possessions' ? i.container.personId : '?'));
         expect(owners).toEqual(['keep']);
+    });
+
+    test('walks nested object containers (pencil-in-backpack) up to the carrying person', () => {
+        const world = new LogicalWorld(4);
+        const inv = world.inventory;
+        const bag = inv.createInstance({ archetypeId: 'backpack', owner: { kind: 'person', personId: 'keep' }, container: { kind: 'possessions', personId: 'keep' }, tick: 0 });
+        inv.createInstance({ archetypeId: 'pencil', owner: { kind: 'person', personId: 'keep' }, container: { kind: 'object', instanceId: bag.id }, tick: 0 });
+        const carried = world.carriedInventoryState(new Set(['keep']));
+        expect(carried.instances[bag.id]).toBeDefined();
+        expect(Object.values(carried.instances).map(i => i.archetypeId).sort()).toEqual(['backpack', 'pencil']);
+    });
+
+    test('a broken containment cycle (unreachable via the live Inventory API) resolves to dropped, not an infinite loop', () => {
+        const world = new LogicalWorld(4);
+        const inv = world.inventory;
+        const bagA = inv.createInstance({ archetypeId: 'backpack', owner: { kind: 'person', personId: 'keep' }, container: { kind: 'possessions', personId: 'keep' }, tick: 0 });
+        const bagB = inv.createInstance({ archetypeId: 'backpack', owner: { kind: 'person', personId: 'keep' }, container: { kind: 'object', instanceId: bagA.id }, tick: 0 });
+        // moveInstance() rejects containment cycles — a corrupt/hand-edited state is the only way to produce
+        // one, so mutate the live state directly (getState() returns the real internal reference) to point
+        // bagA back into bagB, closing the loop A → B → A.
+        const state = inv.getState();
+        state.instances[bagA.id]!.container = { kind: 'object', instanceId: bagB.id };
+        const carried = world.carriedInventoryState(new Set(['keep']));
+        expect(carried.instances[bagA.id]).toBeUndefined();
+        expect(carried.instances[bagB.id]).toBeUndefined();
+    });
+
+    test('a dangling object-container reference (points at a nonexistent instance) resolves to dropped', () => {
+        const world = new LogicalWorld(4);
+        const inv = world.inventory;
+        const dangling = inv.createInstance({ archetypeId: 'pencil', owner: { kind: 'person', personId: 'keep' }, container: { kind: 'possessions', personId: 'keep' }, tick: 0 });
+        const state = inv.getState();
+        state.instances[dangling.id]!.container = { kind: 'object', instanceId: 'does-not-exist' };
+        const carried = world.carriedInventoryState(new Set(['keep']));
+        expect(carried.instances[dangling.id]).toBeUndefined();
     });
 });
 
@@ -260,5 +411,98 @@ describe('streaming to shards + chunked loading (task 077)', () => {
                 expect(readFiles).not.toContain(shard.file);
             }
         }
+    });
+});
+
+// --- LogicalJobMarket (task 077) — standalone unit tests -----------------------------------------------------
+// LogicalJobMarket is exported independently of LogicalWorld, so its matching/hiring logic (ported from
+// game/JobMarket.ts, minus distance scoring) can be driven directly with hand-built businesses — including
+// shapes real generated data never produces (a title with no matching job def), which is what exercises the
+// "generic, rank-less position" fallback branch of matchPosition.
+
+function fakeBusiness(key: string, title: string, requirements: string[]): ConstructorParameters<typeof LogicalJobMarket>[0][number] {
+    return {
+        key,
+        blueprintKey: 'fake',
+        positions: [{ title, salary: 1000, requirements, shiftStart: 480, shiftEnd: 960 }],
+        filled: [false],
+        position: null,
+    };
+}
+
+describe('LogicalJobMarket — generic (no matching job definition) positions', () => {
+    test('hires into a made-up title when its (empty) requirements are met', () => {
+        const skillBook = new SkillBook();
+        skillBook.grant('p1', 'reading', { toAtLeast: 1 }, 0, 'test'); // just enough for hasAny() to pass
+        const market = new LogicalJobMarket([fakeBusiness('biz:fake', 'Fake Gig', [])], skillBook);
+        expect(market.canHire('p1')).toBe(true);
+        expect(market.hire('p1')).toBe(true);
+        expect(market.assignmentOf('p1')!.title).toBe('Fake Gig');
+        expect(market.employerKeyOf('p1')).toBe('biz:fake');
+        expect(market.isEmployed('p1')).toBe(true);
+    });
+
+    test('refuses a made-up title whose requirement the candidate lacks', () => {
+        const skillBook = new SkillBook();
+        skillBook.grant('p2', 'reading', { toAtLeast: 1 }, 0, 'test');
+        const market = new LogicalJobMarket([fakeBusiness('biz:fake', 'Fake Gig', ['a_skill_p2_never_learned'])], skillBook);
+        expect(market.canHire('p2')).toBe(false);
+        expect(market.hire('p2')).toBe(false);
+        expect(market.assignmentOf('p2')).toBeNull();
+    });
+});
+
+describe('LogicalJobMarket — real ranked job, unreachable candidate', () => {
+    // A real job (Checkout Clerk) whose entry-rank entryTrainingGrant covers its own `requires` exactly, but
+    // (like every real job) leans on skill DEPENDENCIES the adult educated baseline (basics = 60) would
+    // normally satisfy. A completely bare SkillBook — no adult initialization at all — never reaches that
+    // baseline, so the entry-grant shortcut is infeasible and no rank matches.
+    function checkoutClerkBusiness() {
+        return fakeBusiness('biz:real', 'Checkout Clerk', []);
+    }
+
+    test('hire() fails when no rank is met and the entry-grant shortcut is infeasible (missing basics)', () => {
+        const skillBook = new SkillBook();
+        // A real but wholly unrelated skill — just enough for hasAny() to be true, so the failure below comes
+        // from matchPosition/shortcutFeasible actually running, not from the earlier hasAny() short-circuit.
+        const granted = skillBook.grant('p3', 'music', { toAtLeast: 1 }, 0, 'test');
+        expect(granted.ok).toBe(true);
+        expect(skillBook.hasAny('p3')).toBe(true);
+        const market = new LogicalJobMarket([checkoutClerkBusiness()], skillBook);
+        expect(market.canHire('p3')).toBe(false);
+        expect(market.hire('p3')).toBe(false);
+    });
+
+    test('bestMatch short-circuits (no work) for an already-assigned person or one with zero skills', () => {
+        const skillBook = new SkillBook();
+        const market = new LogicalJobMarket([checkoutClerkBusiness()], skillBook);
+        // No skills at all ⇒ hasAny() false ⇒ hire fails immediately, before any position is even scanned.
+        expect(market.hire('nobody')).toBe(false);
+
+        skillBook.grant('p4', 'reading', { toAtLeast: 1 }, 0, 'test');
+        skillBook.initialize('p4', 25, -25 * TICKS_PER_YEAR, 0, 1, new Set()); // adult baseline (basics = 60)
+        expect(market.hire('p4')).toBe(true); // reachable now that basics cover the dependency chain
+        // Already assigned: a second hire attempt must short-circuit false without re-scanning positions.
+        expect(market.hire('p4')).toBe(false);
+    });
+
+    test('fire() frees the position so a subsequent candidate can be hired into it', () => {
+        const skillBook = new SkillBook();
+        skillBook.initialize('p5', 25, -25 * TICKS_PER_YEAR, 0, 2, new Set());
+        skillBook.initialize('p6', 25, -25 * TICKS_PER_YEAR, 0, 3, new Set());
+        const market = new LogicalJobMarket([checkoutClerkBusiness()], skillBook);
+        expect(market.hire('p5')).toBe(true);
+        expect(market.hire('p6')).toBe(false); // the single position is filled
+        market.fire('p5');
+        expect(market.employerKeyOf('p5')).toBeNull();
+        expect(market.isEmployed('p5')).toBe(false);
+        expect(market.hire('p6')).toBe(true); // now free
+    });
+
+    test('fire() on someone never employed here is a harmless no-op', () => {
+        const skillBook = new SkillBook();
+        const market = new LogicalJobMarket([checkoutClerkBusiness()], skillBook);
+        expect(() => market.fire('never-hired')).not.toThrow();
+        expect(market.employerKeyOf('never-hired')).toBeNull();
     });
 });

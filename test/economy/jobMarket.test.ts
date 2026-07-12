@@ -126,4 +126,47 @@ describe('JobMarket', () => {
         expect(shop.getOpenPositions()).toHaveLength(1); // slot returned
         expect(shop.getEmployees()).not.toContain(person);
     });
+
+    test('firing a person who is not employed is a no-op', () => {
+        const field = makeField(40, 40);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const shop = field.loadStructure('work', 7, 7, 'w') as Workplace;
+        setBusiness(shop, 'Shop', [position('Clerk', 'assist_customers')]);
+
+        const person = materialize(field, 'p1', home);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]));
+
+        expect(() => market.fire('p1')).not.toThrow();
+        expect(shop.getOpenPositions()).toHaveLength(1); // untouched — nothing was hired
+    });
+
+    test('firing an unknown person id is a no-op', () => {
+        const field = makeField(40, 40);
+        const market = new JobMarket(new Map(), field, skillBookWith([]));
+        expect(() => market.fire('ghost')).not.toThrow();
+    });
+
+    test('an already-employed person cannot be hired again (canHire/hire both refuse)', () => {
+        const field = makeField(40, 40);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const shop = field.loadStructure('work', 7, 7, 'w') as Workplace;
+        setBusiness(shop, 'Shop', [position('Clerk', 'assist_customers'), position('Clerk', 'assist_customers')]);
+
+        const person = materialize(field, 'p1', home);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]));
+        expect(market.hire('p1')).toBe(true);
+
+        expect(shop.getOpenPositions()).toHaveLength(1); // a second slot is still open...
+        expect(market.canHire('p1')).toBe(false); // ...but the now-employed person can't take it
+        expect(market.hire('p1')).toBe(false);
+        expect(shop.getOpenPositions()).toHaveLength(1); // unchanged
+    });
+
+    test('canHire/hire on an unknown person id both refuse', () => {
+        const field = makeField(40, 40);
+        field.loadStructure('work', 7, 7, 'w');
+        const market = new JobMarket(new Map(), field, skillBookWith([]));
+        expect(market.canHire('ghost')).toBe(false);
+        expect(market.hire('ghost')).toBe(false);
+    });
 });

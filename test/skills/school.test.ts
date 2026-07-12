@@ -122,6 +122,15 @@ describe('SchoolRegistry sweep', () => {
         expect(registry.assignmentOf('a')?.schoolKey).toBe('other'); // released AND re-enrolled in one sweep
     });
 
+    test('release drops a single person\'s assignment directly', () => {
+        const registry = new SchoolRegistry();
+        registry.assign('a', 's1', 1);
+        registry.assign('b', 's1', 1);
+        registry.release('a');
+        expect(registry.assignmentOf('a')).toBeNull();
+        expect(registry.assignmentOf('b')?.schoolKey).toBe('s1'); // unaffected
+    });
+
     test('releaseSchool drops exactly that school\'s assignments (closure/bulldoze path)', () => {
         const registry = new SchoolRegistry();
         registry.assign('a', 's1', 1);
@@ -180,6 +189,26 @@ describe('the school obligation (Brain hook, real manifests)', () => {
         // 08:00: school starts and interrupts the leisure activity.
         brain.processTick(['kid'], makeDeps(at(MONDAY, 8)), [], result());
         expect(brain.getActionEngine().activeInstanceOf('kid')?.defId).toBe('attend_school');
+    });
+
+    test('a session end the hook itself observes (without completeWhen having already closed the day) interrupts the sitting instance', () => {
+        // In real play the action's own completeWhen (hourOfDay >= 14) closes the day before this hook ever
+        // sees an out-of-session tick. Driving the Brain hook directly (no ActionEngine.advance in between,
+        // the same harness pattern the other hook tests use) isolates the hook's OWN out-of-session branch:
+        // still attending + no longer in session -> it must request completion via engine.interrupt, not
+        // just silently propose nothing.
+        const { engine: eventEngine, brain, makeDeps } = harness(() => SCHOOL);
+        brain.processTick(['kid'], makeDeps(at(MONDAY, 9)), [], result());
+        const actionEngine = brain.getActionEngine();
+        expect(actionEngine.activeInstanceOf('kid')?.defId).toBe('attend_school');
+
+        brain.processTick(['kid'], makeDeps(at(MONDAY, 15)), [], result()); // past dayEndMinutes (14:00)
+
+        // The hook's interrupt() ran: no longer the active instance, and a terminal lifecycle entry landed
+        // in the log (terminal continuous instances are pruned from live state per task 078).
+        expect(actionEngine.activeInstanceOf('kid')?.defId).not.toBe('attend_school');
+        const lifecycle = eventEngine.getPersonLog('kid').filter(e => e.kind === 'action' && e.defId === 'attend_school');
+        expect(lifecycle.some(e => (e as { lifecycle?: string }).lifecycle === 'interrupted')).toBe(true);
     });
 });
 

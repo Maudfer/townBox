@@ -110,6 +110,24 @@ describe('work-day skill progression (task 065)', () => {
         service.processCommits([{ personId: 'w', eventId: 'stopped_working', seq: 2 }], state(), 2 * TICKS_PER_DAY, { engine, ticksPerYear: TICKS_PER_YEAR, assignmentOf: () => null });
         expect(skillBook.hasAny('w')).toBe(false);
     });
+
+    test('an assignment title with no matching job definition progresses nothing', () => {
+        const skillBook = new SkillBook();
+        const service = new SkillProgression(skillBook, SCHOOL, FIXTURE_JOBS);
+        const engine = new EventEngine();
+        const ghostJob: JobPosition = { title: 'Astronaut', salary: 1, requirements: [], shiftStart: 0, shiftEnd: 1, rankId: 'entry' };
+        service.processCommits([{ personId: 'w', eventId: 'stopped_working', seq: 1 }], state(), TICKS_PER_DAY, { engine, ticksPerYear: TICKS_PER_YEAR, assignmentOf: () => ghostJob });
+        expect(skillBook.hasAny('w')).toBe(false);
+    });
+
+    test('a rankId with no matching rung on the job\'s ladder progresses nothing', () => {
+        const skillBook = new SkillBook();
+        const service = new SkillProgression(skillBook, SCHOOL, FIXTURE_JOBS);
+        const engine = new EventEngine();
+        const badRank: JobPosition = { title: 'Welder', salary: 1, requirements: [], shiftStart: 0, shiftEnd: 1, rankId: 'not-a-real-rank' };
+        service.processCommits([{ personId: 'w', eventId: 'stopped_working', seq: 1 }], state(), TICKS_PER_DAY, { engine, ticksPerYear: TICKS_PER_YEAR, assignmentOf: () => badRank });
+        expect(skillBook.hasAny('w')).toBe(false);
+    });
 });
 
 describe('promotion (task 065)', () => {
@@ -155,5 +173,41 @@ describe('promotion (task 065)', () => {
         }
         expect(assignment.rankId).toBe('senior');
         expect(assignment.workDaysInRank).toBe(60);
+    });
+
+    test('a minWorkDaysInRank floor holds a qualified person past the cadence, then promotes once satisfied', () => {
+        // Same ladder, but the entry rank additionally requires 50 work days in rank before a promotion can
+        // land — even once the skill requirement is already met at the day-30 cadence evaluation.
+        const jobsWithFloor = {
+            welder: {
+                ...FIXTURE_JOBS['welder'],
+                ranks: [
+                    { ...FIXTURE_JOBS['welder']!.ranks[0]!, promotion: { evaluateEveryWorkDays: 30, minWorkDaysInRank: 50 } },
+                    FIXTURE_JOBS['welder']!.ranks[1]!,
+                ],
+            },
+        } as unknown as JobTable;
+        const skillBook = new SkillBook();
+        skillBook.grantWithPrerequisites('w', 'weld_metal', 12, 0, 'trainingGrant:welder'); // senior req met from day 1
+        const assignment: JobPosition = { title: 'Welder', salary: 1500, requirements: ['weld_metal'], shiftStart: 540, shiftEnd: 1020, rankId: 'entry', workDaysInRank: 0, totalWorkDays: 0 };
+        const engine = new EventEngine();
+        const service = new SkillProgression(skillBook, SCHOOL, jobsWithFloor);
+        const pool = state();
+        const deps = { engine, ticksPerYear: TICKS_PER_YEAR, assignmentOf: () => assignment };
+        const workDay = (day: number) => service.processCommits([{ personId: 'w', eventId: 'stopped_working', seq: day }], pool, day * TICKS_PER_DAY + 17, deps);
+
+        for (let day = 1; day <= 30; day++) {
+            workDay(day);
+        }
+        // Cadence hit at day 30, but only 30 work days in rank < the 50-day floor — held back.
+        expect(assignment.rankId).toBe('entry');
+        expect(assignment.workDaysInRank).toBe(30);
+
+        for (let day = 31; day <= 60; day++) {
+            workDay(day);
+        }
+        // Day 60: cadence hit again (60 % 30 === 0) and 60 >= the 50-day floor — promotes.
+        expect(assignment.rankId).toBe('senior');
+        expect(assignment.workDaysInRank).toBe(0);
     });
 });

@@ -2,13 +2,16 @@
 //
 // This does NOT run tests. The CI `test (<module>)` jobs each run `jest --selectProjects <module>
 // --coverage` and upload their coverage report as an artifact `coverage-<module>/`. The `coverage` job
-// downloads them all and runs this script, which reads EACH module's report independently and fails if
-// ANY module's statement coverage is below COVERAGE_THRESHOLD (jest.config.js — the single place to set
-// the number).
+// downloads them all and runs this script, which reads EACH module's report and fails if ANY module's
+// statement coverage is below COVERAGE_THRESHOLD (jest.config.js — the single place to set the number).
 //
-// These per-module numbers are the module measured by its OWN tests only, so they're far below the
-// whole-suite aggregate (integration coverage from other modules isn't counted). That's intentional —
-// the gate is a forcing function to grow each module's own unit tests.
+// IMPORTANT — why we re-filter to owned files: Jest's `collectCoverageFrom` is additive, not an
+// exclusive filter. `jest --selectProjects <m> --coverage` forces the module's own files into the report
+// but ALSO leaves in every other file the module's tests transitively `require` (ActionEngine, EventEngine,
+// Inventory, util/*, …) at whatever incidental coverage they got. Summarizing the whole report would
+// therefore DILUTE a module's real number with unrelated files. So for each report we keep only the files
+// the module OWNS (jest.config.js MODULE_COVERAGE) and compute the statement % over just those — the true
+// "module measured by its own tests" number the gate intends.
 //
 // Usage: node scripts/coverage-gate.mjs [dir]   (default: ./coverage-artifacts)
 //   dir contains one subdir per module: coverage-<module>/coverage-final.json
@@ -19,7 +22,7 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const libCoverage = require('istanbul-lib-coverage');
-const { COVERAGE_THRESHOLD } = require('../jest.config.js');
+const { COVERAGE_THRESHOLD, MODULE_COVERAGE } = require('../jest.config.js');
 
 const root = process.argv[2] ?? 'coverage-artifacts';
 
@@ -36,8 +39,23 @@ function findReports(dir, acc = []) {
 
 // Module name from the report's parent dir: coverage-artifacts/coverage-events/coverage-final.json -> events
 function moduleNameOf(reportPath) {
-  const dir = basename(dirname(reportPath));
-  return dir.replace(/^coverage-/, '');
+  return basename(dirname(reportPath)).replace(/^coverage-/, '');
+}
+
+// Turn a module's collectCoverageFrom globs into a path predicate. `foo/bar/**/*.ts` -> prefix match on
+// `foo/bar/`; an exact `foo/bar/City.ts` -> endsWith match. Coverage paths are absolute + may use `\`.
+function ownedMatcher(globs) {
+  const prefixes = [];
+  const exacts = [];
+  for (const g of globs ?? []) {
+    const star = g.indexOf('*');
+    if (star >= 0) prefixes.push(g.slice(0, star));
+    else exacts.push(g);
+  }
+  return (file) => {
+    const nf = file.split('\\').join('/');
+    return prefixes.some((p) => nf.includes(p)) || exacts.some((e) => nf.endsWith(e));
+  };
 }
 
 const reports = findReports(root);
@@ -47,15 +65,24 @@ if (reports.length === 0) {
   process.exit(0);
 }
 
-console.log(`coverage-gate: threshold ${COVERAGE_THRESHOLD}% statements (per module)\n`);
+console.log(`coverage-gate: threshold ${COVERAGE_THRESHOLD}% statements (per module, owned files only)\n`);
 console.log(`  ${'module'.padEnd(12)} ${'stmts'.padStart(7)}  ${'files'.padStart(5)}`);
 
 const results = reports
   .map((reportPath) => {
+    const module = moduleNameOf(reportPath);
+    const isOwned = ownedMatcher(MODULE_COVERAGE[module]);
     const map = libCoverage.createCoverageMap(JSON.parse(readFileSync(reportPath, 'utf8')));
     const summary = libCoverage.createCoverageSummary();
-    for (const f of map.files()) summary.merge(map.fileCoverageFor(f).toSummary());
-    return { module: moduleNameOf(reportPath), pct: summary.statements.pct, files: map.files().length };
+    let owned = 0;
+    for (const f of map.files()) {
+      if (!isOwned(f)) continue;
+      summary.merge(map.fileCoverageFor(f).toSummary());
+      owned += 1;
+    }
+    // A report with no owned files is vacuously OK (nothing of this module's own code to gate here).
+    const pct = owned === 0 ? 100 : summary.statements.pct;
+    return { module, pct, files: owned };
   })
   .sort((a, b) => a.pct - b.pct);
 

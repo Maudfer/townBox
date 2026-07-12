@@ -73,6 +73,15 @@ describe('buildGenealogyTree', () => {
         expect(fatherLinks.some(l => l.source === idxOf('kidA') && l.target === idxOf('dad'))).toBe(true);
     });
 
+    test('tolerates a seedIds list with duplicate entries (dedupes, no crash)', () => {
+        // A duplicate seed id exercises addNode's "already indexed" early return, and the BFS frontier's
+        // "already visited" skip when the same id appears twice at the same hop.
+        const tree = buildGenealogyTree(pool, ['kidA', 'kidA'], NOW, placed, 2);
+        const kidANodes = tree.nodes.filter(n => n.name.replace(' †', '') === 'kidA');
+        expect(kidANodes).toHaveLength(1);
+        expect(byName(tree.nodes, 'dad')).toBeDefined();
+    });
+
     test('respects the depth bound', () => {
         // Depth 1 from the kids reaches parents/siblings but not grandparents.
         const tree = buildGenealogyTree(pool, ['kidA'], NOW, placed, 1);

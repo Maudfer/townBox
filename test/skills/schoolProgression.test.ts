@@ -124,6 +124,26 @@ describe('credit guards and the cap', () => {
         service.processCommits([{ personId: 'kid', eventId: 'woke_up', seq: 1 }], pool, 10);
         expect(skillBook.hasAny('kid')).toBe(false);
     });
+
+    test('a commit for a person no longer in the pool (despawned/dead) is a safe no-op', () => {
+        const skillBook = new SkillBook();
+        const service = new SkillProgression(skillBook);
+        const pool = state([person('kid', 0)]);
+        service.processCommits([{ personId: 'ghost', eventId: 'completed_school_day', seq: 1 }], pool, 100 * TICKS_PER_DAY);
+        expect(skillBook.hasAny('ghost')).toBe(false);
+        expect(skillBook.hasAny('kid')).toBe(false);
+    });
+
+    test('a degenerate schedule with zero eligible school days (gain <= 0) awards nothing', () => {
+        // minAgeYears > maxAgeYears yields an empty enrollment window, so totalEligibleSchoolDays is 0 and
+        // schoolDailyGain short-circuits to 0 — the credit guard must still no-op cleanly, not divide by zero.
+        const emptySchool: SchoolConfig = { ...SCHOOL, minAgeYears: 10, maxAgeYears: 9 };
+        const skillBook = new SkillBook();
+        const service = new SkillProgression(skillBook, emptySchool);
+        const pool = state([person('kid', 0)]);
+        service.processCommits([{ personId: 'kid', eventId: 'completed_school_day', seq: 1 }], pool, 100 * TICKS_PER_DAY);
+        expect(skillBook.hasAny('kid')).toBe(false);
+    });
 });
 
 describe('shared-spine integration (mode-identical by construction)', () => {

@@ -10,11 +10,16 @@ import {
     HistoryGeneratorParams,
     DEFAULT_GENERATOR_PARAMS,
     HistoryAsset,
+    GenerationProgress,
 } from 'game/history/HistoryAsset';
-import { sliceAndRebase, reidentify, pickWindow, selectStartingWorld, validateAsset } from 'game/history/HistoryAssetSelection';
-import { decodeAsset } from 'game/history/HistoryAssetSource';
+import {
+    sliceAndRebase, reidentify, pickWindow, selectStartingWorld, validateAsset,
+    selectStartingWorldFromShards, AssetHeader,
+} from 'game/history/HistoryAssetSelection';
+import { decodeAsset, loadCommittedAsset } from 'game/history/HistoryAssetSource';
 import { PopulationState } from 'types/Genealogy';
-import { EventLogTable } from 'types/LifeEvent';
+import { EventLogTable, EventManifest } from 'types/LifeEvent';
+import { InventoryState } from 'types/Objects';
 import { Genders } from 'types/Social';
 import { compress } from 'util/compress';
 
@@ -52,6 +57,26 @@ describe('loggableEventIds', () => {
     test('includes effect-bearing and requirement-referenced events', () => {
         expect(loggable.has('pregnancy')).toBe(true); // birth effect
         expect(loggable.has('had_sex')).toBe(true);   // referenced by pregnancy's hasEvent requirement
+    });
+
+    // A fixture manifest isolates the collectHasEvent recursion (all/any/not/role-where/hasEvent) from
+    // whatever the real 698-event manifest happens to nest today, so this pins the traversal itself rather
+    // than an incidental data shape.
+    test('walks hasEvent references nested under any/role-where predicates (not just all/not)', () => {
+        const manifest: EventManifest = {
+            fake_event: {
+                roles: {
+                    subject: {
+                        where: { any: [{ role: 'partner', where: { hasEvent: 'married' } }] },
+                    },
+                },
+                triggers: { probabilistic: { perYear: 1 } },
+                effects: [], // no effects ⇒ only reachable via the role-where reference below
+            },
+        };
+        const found = loggableEventIds(manifest);
+        expect(found.has('married')).toBe(true);
+        expect(found.has('fake_event')).toBe(false);
     });
 });
 
@@ -160,6 +185,97 @@ describe('reduced-manifest generator mode (task 078)', () => {
         expect(profile.steps).toBeGreaterThan(0);
         expect(profile.agentSteps).toBeGreaterThan(0);
         expect(plain.meta.stats.profile).toBeUndefined();
+    });
+});
+
+// --- Generator safety limits, progress reporting, and warm-up-dead pruning --------------------------------
+
+describe('generator — warm-up abort + empty-pool edge cases', () => {
+    jest.setTimeout(60000);
+
+    test('aborts warm-up (never reaches recordThreshold) and still writes a valid, empty asset', async () => {
+        // Zero founders: living count is always 0, so the threshold (1) is never reached — the maxWarmupYears
+        // ceiling fires (the abort branch), epoch falls back to endTick, and the retained pool is empty (so the
+        // median-history helper hits its own empty-array branch too).
+        const params: HistoryGeneratorParams = {
+            ...DEFAULT_GENERATOR_PARAMS,
+            seed: 1, founderCount: 0, recordThreshold: 1, recordYears: 1, maxWarmupYears: 1, daysPerStep: 30,
+            keepActionLog: false,
+            populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
+            logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
+        };
+        const asset = await generateHistoryAsset(params);
+        expect(asset.meta.epochTick).toBe(asset.meta.endTick); // no threshold reached ⇒ epoch = endTick
+        expect(asset.meta.endTick).toBe(Math.round(params.maxWarmupYears * params.ticksPerYear));
+        expect(Object.keys(asset.population.people)).toHaveLength(0);
+        expect(asset.meta.stats.retainedPeople).toBe(0);
+        expect(asset.meta.stats.medianHistoryLen).toBe(0);
+    });
+
+    test('safety.maxPeople stops generation the instant the pool reaches the cap', async () => {
+        // The cap equals the founder count, so the very first safety check (before any tick runs) trips it.
+        const params: HistoryGeneratorParams = {
+            ...DEFAULT_GENERATOR_PARAMS,
+            seed: 1, founderCount: 6, recordThreshold: 100, recordYears: 1, maxWarmupYears: 5, daysPerStep: 30,
+            keepActionLog: false,
+            safety: { maxRuntimeMs: 0, maxPeople: 6 },
+            populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
+            logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
+        };
+        const asset = await generateHistoryAsset(params);
+        expect(asset.meta.endTick).toBe(0); // broke out before the first step advanced the clock
+        expect(asset.meta.stats.retainedPeople).toBe(6);
+        expect(asset.meta.stats.births).toBe(0);
+    });
+
+    test('onProgress fires per step with the phase, phase-relative ticks, and living count', async () => {
+        const params: HistoryGeneratorParams = {
+            ...DEFAULT_GENERATOR_PARAMS,
+            seed: 4242, founderCount: 30, recordThreshold: 20, recordYears: 1, daysPerStep: 30,
+            keepActionLog: false,
+            populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
+            logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
+        };
+        const reports: GenerationProgress[] = [];
+        await generateHistoryAsset(params, progress => reports.push(progress));
+        expect(reports.length).toBeGreaterThan(0);
+        // recordThreshold (20) ≤ founderCount (30) ⇒ recording starts immediately (tick 0), so every report is
+        // already in the 'recording' phase with living population intact.
+        for (const report of reports) {
+            expect(report.phase).toBe('recording');
+            expect(report.living).toBeGreaterThan(0);
+            expect(report.ticksIntoPhase).toBeGreaterThanOrEqual(0);
+        }
+    });
+
+    test('prunes people who died before the epoch (warm-up-only deaths), dropping their log entries too', async () => {
+        // recordThreshold (100) is unreachable from 6 founders within 60 years ⇒ warm-up never ends, so epoch
+        // falls back to endTick and EVERY death that happened along the way is "before the epoch" and pruned —
+        // both from the population and from the (in-memory) event log. Pinned to this exact seed/param set,
+        // which is known to produce warm-up deaths (verified empirically; deterministic per seed).
+        const params: HistoryGeneratorParams = {
+            ...DEFAULT_GENERATOR_PARAMS,
+            seed: 555, founderCount: 6, recordThreshold: 100, recordYears: 1, maxWarmupYears: 60, daysPerStep: 30,
+            keepActionLog: false,
+            populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
+            logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
+        };
+        const asset = await generateHistoryAsset(params);
+        expect(asset.meta.epochTick).toBe(asset.meta.endTick); // threshold never reached
+        expect(asset.meta.stats.deaths).toBeGreaterThan(0); // some founders/descendants died along the way
+        const totalCreated = 6 + asset.meta.stats.births; // 6 founders (3 couples) + everyone born since
+        expect(asset.meta.stats.retainedPeople).toBeLessThan(totalCreated); // the warm-up dead were pruned
+        // Nobody retained is a corpse from before the epoch — the invariant the "tiny config" suite already
+        // asserts for the reached-threshold path holds here too, for the never-reached path.
+        for (const person of Object.values(asset.population.people)) {
+            if (person.deathTick !== null) {
+                expect(person.deathTick).toBeGreaterThanOrEqual(asset.meta.epochTick);
+            }
+        }
+        // The pruned people's log entries (their death, illness, etc.) were dropped along with them.
+        for (const id of Object.keys(asset.eventLog)) {
+            expect(asset.population.people[id]).toBeDefined();
+        }
     });
 });
 
@@ -305,5 +421,107 @@ describe('asset payload decode round-trips through compression', () => {
     });
     test('garbage payload decodes to null (cold-start fallback)', () => {
         expect(decodeAsset('not-a-real-payload')).toBeNull();
+    });
+    test('a well-formed but incompatible (wrong formatVersion) payload also decodes to null', () => {
+        const asset = fixtureAsset();
+        asset.meta.formatVersion = 999;
+        expect(decodeAsset(compress(JSON.stringify(asset)))).toBeNull();
+    });
+});
+
+describe('loadCommittedAsset (single-file bundle fallback)', () => {
+    test('returns null — no small asset is embedded in this build (COMMITTED_HISTORY_ASSET is null)', () => {
+        // The constant is a permanent `null` in source (game/history/HistoryAssetSource.ts): it is only ever
+        // set by hand for a tiny bundled fixture, which this codebase does not ship. Pins that documented
+        // default so the sharded-over-HTTP path stays the only one exercised at runtime.
+        expect(loadCommittedAsset()).toBeNull();
+    });
+});
+
+describe('selection — sliceAndRebase edge cases', () => {
+    test('drops log entries for a person not retained at the window (e.g. a stray/orphaned entry)', () => {
+        const asset = fixtureAsset();
+        // p3 is not in the population at all (never existed in `people`), but a log entry references it —
+        // exercising the "log entry for someone outside the retained pool" guard.
+        asset.eventLog['p3'] = [
+            { seq: 99, tick: 1000, kind: 'event', defId: 'had_sex', roles: { subject: 'p3' }, triggerSource: 'probability', causationId: null },
+        ];
+        const sliced = sliceAndRebase(asset, 30000);
+        expect(sliced.eventLog['p3']).toBeUndefined();
+        expect(sliced.eventHistory['p3']).toBeUndefined();
+    });
+
+    test('a retained person with no skill-timeline entry at all is simply left uninstalled (no crash)', () => {
+        const asset = fixtureAsset();
+        asset.skillTimeline = { p1: [] }; // p1 is retained but has an EMPTY timeline (not just none-as-of-w)
+        const sliced = sliceAndRebase(asset, 30000);
+        expect(sliced.skillBook!.records['p1']).toBeUndefined();
+        expect(sliced.skillBook!.initialized['p1']).toBeUndefined();
+    });
+
+    test('sliceObjects keeps nested containers rooted at a retained person, and drops broken cycles', () => {
+        const asset = fixtureAsset();
+        const objects: InventoryState = {
+            instances: {
+                // A backpack in p1's possessions, with a pencil nested inside it — the chain must be walked.
+                bag: { id: 'bag', archetypeId: 'backpack', quantity: 1, owner: { kind: 'person', personId: 'p1' }, container: { kind: 'possessions', personId: 'p1' }, createdAtTick: 1000, provenance: null },
+                nested: { id: 'nested', archetypeId: 'pencil', quantity: 1, owner: { kind: 'person', personId: 'p1' }, container: { kind: 'object', instanceId: 'bag' }, createdAtTick: 1000, provenance: null },
+                // A building fixture (location container) — never carried, always dropped.
+                fixture: { id: 'fixture', archetypeId: 'pencil', quantity: 1, owner: { kind: 'world' }, container: { kind: 'location', key: 'building:x' }, createdAtTick: 1000, provenance: null },
+                // A broken cycle (two objects whose containers point at each other) — must terminate and drop,
+                // never infinite-loop. This can't arise through the live Inventory API (moveInstance rejects
+                // cycles); it stands in for a corrupt/hand-edited asset.
+                cycleA: { id: 'cycleA', archetypeId: 'backpack', quantity: 1, owner: { kind: 'person', personId: 'p1' }, container: { kind: 'object', instanceId: 'cycleB' }, createdAtTick: 1000, provenance: null },
+                cycleB: { id: 'cycleB', archetypeId: 'backpack', quantity: 1, owner: { kind: 'person', personId: 'p1' }, container: { kind: 'object', instanceId: 'cycleA' }, createdAtTick: 1000, provenance: null },
+                // A dangling reference (points at an instance id that doesn't exist) — another shape a live,
+                // consistent Inventory could never produce, but a hand-edited/corrupt asset could.
+                dangling: { id: 'dangling', archetypeId: 'pencil', quantity: 1, owner: { kind: 'person', personId: 'p1' }, container: { kind: 'object', instanceId: 'does-not-exist' }, createdAtTick: 1000, provenance: null },
+            },
+            nextInstanceSeq: 5,
+        };
+        asset.objects = objects;
+        const sliced = sliceAndRebase(asset, 30000);
+        expect(Object.keys(sliced.objects!.instances).sort()).toEqual(['bag', 'nested']);
+        expect(sliced.objects!.instances['nested']!.createdAtTick).toBe(1000 - 30000); // rebased too
+        expect(sliced.objects!.instances['dangling']).toBeUndefined();
+    });
+});
+
+describe('selectStartingWorldFromShards — direct (bypassing loadSelectedWorldFromHttp)', () => {
+    function shardHeader(overrides: Partial<AssetHeader['meta']> = {}): AssetHeader {
+        const asset = fixtureAsset();
+        return {
+            meta: { ...asset.meta, ...overrides },
+            eventLogSeq: asset.eventLogSeq,
+            sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
+            logShards: [{ file: 'log-0.tbz', minTick: 0, maxTick: 5000 }, { file: 'log-far-future.tbz', minTick: 500000, maxTick: 600000 }],
+            skillShards: [{ file: 'skills-far-future.tbz', minTick: 500000, maxTick: 600000 }],
+        };
+    }
+
+    test('rejects an incompatible format version before reading any file', () => {
+        const header = shardHeader({ formatVersion: 999 });
+        const read = (file: string): string => { throw new Error(`should never read ${file}`); };
+        expect(selectStartingWorldFromShards(header, read, 1)).toBeNull();
+    });
+
+    test('never reads a shard whose minTick is past the selected window', () => {
+        const asset = fixtureAsset();
+        const header = shardHeader();
+        const store = new Map<string, string>([
+            ['population.tbz', compress(JSON.stringify(asset.population))],
+            ['objects.tbz', compress(JSON.stringify(asset.objects ?? { instances: {}, nextInstanceSeq: 0 }))],
+            ['log-0.tbz', compress(JSON.stringify({}))],
+            // Deliberately no entry for the far-future shards — reading them throws, proving they're skipped.
+        ]);
+        const read = (file: string): string => {
+            if (!store.has(file)) {
+                throw new Error(`unexpectedly read far-future shard: ${file}`);
+            }
+            return store.get(file)!;
+        };
+        const selected = selectStartingWorldFromShards(header, read, 1);
+        expect(selected).not.toBeNull();
+        expect(selected!.window).toBeLessThan(500000);
     });
 });

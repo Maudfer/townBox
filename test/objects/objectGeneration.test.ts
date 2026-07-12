@@ -31,6 +31,12 @@ describe('the fill', () => {
         expect(created).toBeGreaterThan(20);
     });
 
+    test('a building whose tags intersect no archetype generates nothing (short-circuits before any RNG draw)', () => {
+        const { inventory, created } = fill('1-1', ['totally_bogus_placement_tag'], 'house');
+        expect(created).toBe(0);
+        expect(inventory.instancesAtLocation('building:1-1')).toHaveLength(0);
+    });
+
     test('candidates come only from the tag intersection', () => {
         const { inventory } = fill('7-7', BAKERY_TAGS, 'business');
         const manifest = inventory.getArchetypes() as Record<string, ObjectArchetype>;

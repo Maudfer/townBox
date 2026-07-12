@@ -122,4 +122,62 @@ describe('loadSelectedWorldFromHttp', () => {
         store.set(`${BASE}/${DIR}/meta.json`, JSON.stringify(header));
         expect(await loadSelectedWorldFromHttp(1, BASE, fetchText)).toBeNull();
     });
+
+    test('returns null when the pointer JSON has no "dir" field', async () => {
+        const { fetchText: realFetch } = await buildServer();
+        const fetchText = async (url: string): Promise<string | null> =>
+            (url === `${BASE}/asset.json` ? JSON.stringify({}) : realFetch(url));
+        expect(await loadSelectedWorldFromHttp(1, BASE, fetchText)).toBeNull();
+    });
+
+    test('returns null when the pointed dir has no meta.json', async () => {
+        const { fetchText: realFetch } = await buildServer();
+        const fetchText = async (url: string): Promise<string | null> =>
+            (url === `${BASE}/${DIR}/meta.json` ? null : realFetch(url));
+        expect(await loadSelectedWorldFromHttp(1, BASE, fetchText)).toBeNull();
+    });
+
+    test('returns null when a needed shard/section file 404s', async () => {
+        const { fetchText: realFetch } = await buildServer();
+        // population.tbz is always needed regardless of the chosen window.
+        const fetchText = async (url: string): Promise<string | null> =>
+            (url === `${BASE}/${DIR}/population.tbz` ? null : realFetch(url));
+        expect(await loadSelectedWorldFromHttp(1, BASE, fetchText)).toBeNull();
+    });
+
+    test('returns null (never throws) when fetchText itself throws', async () => {
+        const throwing = async (): Promise<string | null> => { throw new Error('network is down'); };
+        expect(await loadSelectedWorldFromHttp(1, BASE, throwing)).toBeNull();
+    });
+
+    test('the default fetchText (real fetch) is used when none is injected', async () => {
+        const { store } = await buildServer();
+        const originalFetch = (globalThis as { fetch?: unknown }).fetch;
+        const calls: string[] = [];
+        (globalThis as unknown as { fetch: (url: string) => Promise<{ ok: boolean; text: () => Promise<string> }> }).fetch =
+            async (url: string) => {
+                calls.push(url);
+                if (store.has(url)) {
+                    return { ok: true, text: async () => store.get(url)! };
+                }
+                return { ok: false, text: async () => '' };
+            };
+        try {
+            const selected = await loadSelectedWorldFromHttp(3, BASE); // no fetchText override ⇒ real httpFetchText
+            expect(selected).not.toBeNull();
+            expect(calls).toContain(`${BASE}/asset.json`);
+        } finally {
+            (globalThis as { fetch?: unknown }).fetch = originalFetch;
+        }
+    });
+
+    test('the default fetchText resolves to null (not a throw) on a network-level rejection', async () => {
+        const originalFetch = (globalThis as { fetch?: unknown }).fetch;
+        (globalThis as unknown as { fetch: () => Promise<never> }).fetch = async () => { throw new Error('offline'); };
+        try {
+            expect(await loadSelectedWorldFromHttp(1, BASE)).toBeNull();
+        } finally {
+            (globalThis as { fetch?: unknown }).fetch = originalFetch;
+        }
+    });
 });

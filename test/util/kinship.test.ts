@@ -76,6 +76,10 @@ describe('primary edges', () => {
         expect(parentsOf(pool, 'r1')).toEqual([]);
     });
 
+    test('parentsOf a nonexistent person is empty (no throw)', () => {
+        expect(parentsOf(pool, 'ghost')).toEqual([]);
+    });
+
     test('childrenOf finds all children', () => {
         expect(childrenOf(pool, 'pa').sort()).toEqual(['minor', 'older']);
         expect(childrenOf(pool, 'ab')).toEqual(['cousin']);
@@ -120,10 +124,19 @@ describe('life state', () => {
         expect(ageAt(at('minor'), 500, TICKS_PER_YEAR)).toBe(0); // never negative
     });
 
+    test('ageAt guards against a non-positive ticksPerYear', () => {
+        expect(ageAt(at('minor'), 650, 0)).toBe(0);
+        expect(ageAt(at('minor'), 650, -10)).toBe(0);
+    });
+
     test('spouseAt returns the ongoing partner at a tick', () => {
         expect(spouseAt(pool, 'pa', 500)).toBe('sc');
         expect(spouseAt(pool, 'pa', 100)).toBeNull(); // before the partnership started
         expect(spouseAt(pool, 'r1', 500)).toBeNull();
+    });
+
+    test('spouseAt on a nonexistent person is null (no throw)', () => {
+        expect(spouseAt(pool, 'ghost', 500)).toBeNull();
     });
 });
 
@@ -168,5 +181,13 @@ describe('relationshipLabel', () => {
     test('returns null for cousins and self', () => {
         expect(relationshipLabel(pool, 'minor', 'cousin')).toBeNull();
         expect(relationshipLabel(pool, 'minor', 'minor')).toBeNull();
+    });
+
+    test('labels a grandchild', () => {
+        expect(relationshipLabel(pool, 'gf', 'minor')).toBe(Relationships.Grandchild);
+    });
+
+    test('returns null when the subject does not exist in the pool (no throw)', () => {
+        expect(relationshipLabel(pool, 'ghost', 'r1')).toBeNull();
     });
 });

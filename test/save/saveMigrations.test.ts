@@ -89,4 +89,44 @@ describe('save migrations', () => {
         migrateSnapshot(snapshot);
         expect(snapshot.population!.people['p1']!.birthTick).toBe(birth);
     });
+
+    // v7 → v8: synthesizeEventLog is a no-op when there's nothing to synthesize FROM (no eventHistory at
+    // all) — the older aggregate-history-only saves this synthesis targets always carry SOME history table
+    // (even if empty {}), so a totally absent one means there's genuinely no log to build.
+    test('synthesizeEventLog is a no-op when the snapshot carries no eventHistory at all', () => {
+        const snapshot = v7Snapshot();
+        delete snapshot.eventHistory;
+        migrateSnapshot(snapshot);
+        expect(snapshot.eventLog).toBeUndefined();
+        expect(snapshot.eventLogSeq).toBeUndefined();
+    });
+
+    // v12 → v13 (bounded fertility): backfillMaxChildren is a no-op on a snapshot with no genealogy pool at
+    // all (e.g. a v1-era save that never picked up a population section) — nothing to backfill onto.
+    test('backfillMaxChildren is a no-op when the snapshot carries no population pool', () => {
+        const snapshot = v7Snapshot();
+        snapshot.version = 12;
+        delete snapshot.population;
+        expect(() => migrateSnapshot(snapshot)).not.toThrow();
+        expect(snapshot.version).toBe(SAVE_VERSION);
+        expect(snapshot.population).toBeUndefined();
+    });
+
+    // v10 → v11 (task 064): an existing employee whose job has no rankId yet is defaulted to their job's
+    // entry rank, with zeroed work-day counters — this is the branch where a real jobs.json match is found.
+    test('defaultJobRanks assigns the entry rank + zeroed counters to a matched, rank-less job', () => {
+        const snapshot = v7Snapshot();
+        snapshot.version = 10;
+        snapshot.people[0]!.job = {
+            title: 'Checkout Clerk', salary: 1300, requirements: [], shiftStart: 540, shiftEnd: 1020,
+        };
+
+        migrateSnapshot(snapshot);
+
+        expect(snapshot.version).toBe(SAVE_VERSION);
+        const job = snapshot.people[0]!.job!;
+        expect(job.rankId).toBe('entry');
+        expect(job.workDaysInRank).toBe(0);
+        expect(job.totalWorkDays).toBe(0);
+    });
 });

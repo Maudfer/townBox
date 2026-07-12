@@ -1,4 +1,5 @@
 import Economy from 'game/economy/Economy';
+import { EconomyState } from 'types/Economy';
 
 describe('Economy (ledger, task 017)', () => {
     test('person balances: get / set / adjust, with debt allowed', () => {
@@ -29,6 +30,17 @@ describe('Economy (ledger, task 017)', () => {
         expect(economy.getBusinessBalance('w1')).toBe(4700);
         expect(economy.getPersonBalance('p1')).toBe(1300);
         expect(economy.totalMoney()).toBe(before);
+    });
+
+    test('loadState defaults every field on a fully empty legacy payload', () => {
+        const economy = new Economy();
+        economy.setPersonBalance('stale', 999); // must be wiped by the load, not merged
+        economy.loadState({} as Partial<EconomyState> as EconomyState); // a maximally-stale legacy payload
+        expect(economy.getPersonBalance('stale')).toBe(0);
+        expect(economy.getBusinessBalance('w1')).toBe(0);
+        expect(economy.getLastEconomyMonth()).toBe(-1);
+        expect(economy.getExternalBalance()).toBe(-economy.totalMoney()); // -(local total of 0)
+        expect(economy.grandTotal()).toBe(0);
     });
 
     test('state round-trips through the constructor and loadState', () => {

@@ -1,8 +1,8 @@
-import SkillBook, { DEFAULT_SKILL_MANIFEST } from 'game/skills/SkillBook';
+import SkillBook, { DEFAULT_SKILL_MANIFEST, sortedSkillEntries } from 'game/skills/SkillBook';
 import jobsConfig from 'json/jobs.json';
 import schoolsConfig from 'json/schools.json';
 import { SchoolConfig } from 'types/School';
-import { SkillManifest } from 'types/Skill';
+import { SkillInitParams, SkillManifest } from 'types/Skill';
 import { schoolDailyGain, totalEligibleSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
 import { compileSkills } from 'util/skillGraph';
 import { TICKS_PER_YEAR } from 'util/time';
@@ -89,6 +89,23 @@ describe('SkillBook grants', () => {
         ], 3, 'trainingGrant:test');
         expect(full.ok).toBe(true);
         expect(book.proficiency('p', 'suture_wounds')).toBe(15);
+    });
+
+    test('grantClosure rejects an unknown skill anywhere in the batch, before any dependency check', () => {
+        const book = new SkillBook();
+        const result = book.grantClosure('p', [
+            { skill: 'biology', amount: { toAtLeast: 20 } },
+            { skill: 'not_a_real_skill', amount: { toAtLeast: 10 } },
+        ], 0, 'test');
+        expect(result).toEqual({ ok: false, reason: 'unknownSkill' });
+        expect(book.hasAny('p')).toBe(false);
+    });
+
+    test('grantWithPrerequisites rejects an unknown top-level skill outright', () => {
+        const book = new SkillBook();
+        const result = book.grantWithPrerequisites('p', 'not_a_real_skill', 30, 0, 'event');
+        expect(result).toEqual({ ok: false, reason: 'unknownSkill' });
+        expect(book.hasAny('p')).toBe(false);
     });
 
     test('grantWithPrerequisites tops up the whole chain (education/legacy path)', () => {
@@ -192,5 +209,38 @@ describe('initialization (task 062)', () => {
             }
         }
         expect(hireable).toBeGreaterThan(5);
+    });
+
+    test('an adult younger than every assortment band gets basics but no specific-skill assortment', () => {
+        // A custom init-params fixture whose lowest band starts well above adulthood, so `initialize`'s
+        // band lookup finds nothing and returns early (no assortment draw), leaving only the basics.
+        const initParams: SkillInitParams = {
+            adultBasicProficiency: 60,
+            milestones: [],
+            assortment: { bands: [{ minAgeYears: 90, minSkills: 2, maxSkills: 4 }], minProficiency: 20, maxProficiency: 70, jobCoreWeight: 3, flavorWeight: 1 },
+        };
+        const book = new SkillBook(DEFAULT_SKILL_MANIFEST, initParams);
+        book.initialize('young-adult', 20, bornAt(20), 0, 7, JOB_CORE);
+        for (const basic of ['math', 'reading', 'writing', 'speaking', 'biology', 'music', 'art', 'civics']) {
+            expect(book.proficiency('young-adult', basic)).toBe(60);
+        }
+        const specifics = Object.entries(book.skillsOf('young-adult')).filter(([id]) => !DEFAULT_SKILL_MANIFEST[id]!.basic);
+        expect(specifics).toEqual([]);
+    });
+});
+
+describe('sortedSkillEntries (HUD display order)', () => {
+    test('orders by descending proficiency, then ascending id as a tiebreak', () => {
+        const book = new SkillBook();
+        book.grant('p', 'biology', { toAtLeast: 40 }, 0, 'test');
+        book.grant('p', 'chemistry', { toAtLeast: 70 }, 0, 'test');
+        book.grant('p', 'physics', { toAtLeast: 40 }, 0, 'test');
+
+        const ordered = sortedSkillEntries(book.skillsOf('p'));
+        expect(ordered.map(([id]) => id)).toEqual(['chemistry', 'biology', 'physics']);
+    });
+
+    test('an empty record set sorts to an empty list', () => {
+        expect(sortedSkillEntries({})).toEqual([]);
     });
 });

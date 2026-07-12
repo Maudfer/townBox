@@ -14,6 +14,7 @@
 // in regressionGuards.test.ts (deterministic + within-run-ratio checks, always enforced). Re-baseline: see
 // perfHarness.
 
+import { gateAgainstBaselines, formatResults, FRACTION_TOLERANCE, UPDATE_BASELINES, ENFORCE_COST_GATE } from './perfHarness';
 import ActionEngine from 'game/actions/ActionEngine';
 import Brain from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
@@ -27,7 +28,6 @@ import { TICKS_PER_YEAR } from 'util/time';
 import { GenPerson, PopulationState } from 'types/Genealogy';
 import { Genders } from 'types/Social';
 
-import { gateAgainstBaselines, formatResults, FRACTION_TOLERANCE, UPDATE_BASELINES, ENFORCE_COST_GATE } from './perfHarness';
 
 function median(xs: number[]): number {
     const s = [...xs].sort((a, b) => a - b);

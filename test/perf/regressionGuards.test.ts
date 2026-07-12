@@ -3,6 +3,7 @@
 // identity for the caches/pruning, and machine-independent WITHIN-RUN COST RATIOS whose regression signal is
 // large (2–100×, not 5%) — so they never flake on a noisy CI runner and can be a strict, blocking gate.
 
+import { minMsPerOp } from './perfHarness';
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import Brain from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
@@ -16,7 +17,6 @@ import { GenPerson, PopulationState } from 'types/Genealogy';
 import { Genders } from 'types/Social';
 import { SimulationContext, Value, HasEventQuery, ObjectQuery } from 'types/Simulation';
 
-import { minMsPerOp } from './perfHarness';
 
 jest.setTimeout(60_000);
 

@@ -2,6 +2,7 @@ import { generateBusiness } from 'game/economy/BusinessGen';
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
 import { BusinessBlueprint, BusinessBlueprintTable, JobTable } from 'types/Business';
+import { DEFAULT_SHIFT_END, DEFAULT_SHIFT_START } from 'types/Work';
 
 const REAL_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const REAL_JOBS = jobsConfig as unknown as JobTable;
@@ -59,6 +60,39 @@ describe('generateBusiness', () => {
         };
         const business = generateBusiness('ghost', withGhost, jobs, 'Ghosts', 1);
         expect(business.positions).toHaveLength(0);
+    });
+
+    test('falls back to the default shift/weekdays when a job definition omits them', () => {
+        // Deliberately omits shiftStart/shiftEnd/daysOfWeek — malformed/legacy data the type normally
+        // forbids but toJobPosition() defends against at runtime; cast past the type to exercise it.
+        const bareJobs = {
+            clerk: { title: 'Bare Clerk', salary: 900, requiredSkills: ['RetailSkill'], ranks: [] },
+        } as unknown as JobTable;
+        const bareBlueprint: BusinessBlueprint = {
+            friendlyName: 'Bare Shop',
+            category: 'groceries',
+            size: { min: 1, max: 1 },
+            jobs: { clerk: { count: { mode: 'const', value: 1 } } },
+        };
+        const business = generateBusiness('bare', bareBlueprint, bareJobs, 'Bare Shop', 1);
+        const clerk = business.positions[0]!;
+        expect(clerk.shiftStart).toBe(DEFAULT_SHIFT_START);
+        expect(clerk.shiftEnd).toBe(DEFAULT_SHIFT_END);
+        expect(clerk.daysOfWeek).toEqual(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']);
+    });
+
+    test('never generates a negative position count even with a curve that dips below zero', () => {
+        const dippingJobs: JobTable = {
+            clerk: { title: 'Clerk', salary: 900, requiredSkills: ['RetailSkill'], ranks: [], shiftStart: 540, shiftEnd: 1020, daysOfWeek: ['mon'], workActions: { continuous: [], discrete: [] } },
+        };
+        const dippingBlueprint: BusinessBlueprint = {
+            friendlyName: 'Dip Shop',
+            category: 'groceries',
+            size: { min: 1, max: 10 },
+            jobs: { clerk: { count: { mode: 'linear', base: -5, perUnit: 1 } } }, // -5 + size: negative until size 5
+        };
+        const business = generateBusiness('dip', dippingBlueprint, dippingJobs, 'Dip Shop', 1); // -5 + 1 = -4
+        expect(countOf(business.positions, 'Clerk')).toBe(0); // clamped, never negative
     });
 
     test('resolves job requirements/salary/shifts from the job table', () => {

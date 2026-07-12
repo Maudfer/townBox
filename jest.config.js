@@ -30,7 +30,7 @@ const MODULES = Object.keys(MODULE_COVERAGE);
 
 // The single global coverage floor (statement %) every module must independently meet. Set it here —
 // scripts/coverage-gate.mjs imports it, so this is the one place to change the number.
-const COVERAGE_THRESHOLD = 72;
+const COVERAGE_THRESHOLD = 80;
 
 // Shared per-project settings. tsconfig emits ES modules (so `import.meta` is allowed for the Web
 // Worker, task 036), but the Node test runner needs CommonJS — override just for ts-jest. The

@@ -87,6 +87,21 @@ describe('selectHousehold — crafted scenarios', () => {
         }
     });
 
+    test('roommates: falls back past the arrangement when every available adult is a relative', () => {
+        // Only the couple is available/adult, and they're married — buildRoommates finds zero unrelated
+        // candidates and returns null, so selectHousehold falls through to its Nuclear/Single fallbacks
+        // instead of producing an empty or malformed selection.
+        const dad = person('dad', Genders.Male, 38, { partnerships: [{ partnerId: 'mom', startTick: NOW - 15 * TICKS_PER_YEAR, endTick: null }] });
+        const mom = person('mom', Genders.Female, 36, { partnerships: [{ partnerId: 'dad', startTick: NOW - 15 * TICKS_PER_YEAR, endTick: null }] });
+        const kid = person('kid', Genders.Female, 6, { fatherId: 'dad', motherId: 'mom' });
+        const state = makeState([dad, mom, kid]);
+
+        const selection = selectHousehold(state, new SeededRandom(4), NOW, CAPACITY, TICKS_PER_YEAR, weights(HouseholdArrangements.Roommates));
+
+        expect(selection.arrangement).not.toBe(HouseholdArrangements.Roommates);
+        expect(selection.memberIds.length).toBeGreaterThan(0);
+    });
+
     test('nuclear: a couple with their minor children', () => {
         const dad = person('dad', Genders.Male, 38, { partnerships: [{ partnerId: 'mom', startTick: NOW - 15 * TICKS_PER_YEAR, endTick: null }] });
         const mom = person('mom', Genders.Female, 36, { partnerships: [{ partnerId: 'dad', startTick: NOW - 15 * TICKS_PER_YEAR, endTick: null }] });
@@ -124,6 +139,45 @@ describe('selectHousehold — immigrant fallback', () => {
 
         expect(selection.memberIds).not.toContain('a');
         expect(selection.memberIds.every(id => id !== 'a')).toBe(true);
+    });
+
+    test('an immigrant family can include a spouse and children (probabilistic branches)', () => {
+        // immigrantHousehold rolls a spouse (70% chance, capacity permitting) and 0-3 children. Over a spread
+        // of seeds both branches fire, proving the spouse/children creation paths (not just the lone-head
+        // path already covered above) produce coherent, symmetric family records.
+        let sawSpouse = false;
+        let sawChild = false;
+        for (let seed = 1; seed <= 60 && !(sawSpouse && sawChild); seed++) {
+            const state = makeState([]);
+            const selection = selectHousehold(state, new SeededRandom(seed), NOW, CAPACITY, TICKS_PER_YEAR);
+            const head = state.people[selection.headId]!;
+
+            if (head.partnerships.length > 0) {
+                sawSpouse = true;
+                const spouse = state.people[head.partnerships[0]!.partnerId]!;
+                expect(spouse.partnerships.some(p => p.partnerId === head.id)).toBe(true);
+                expect(spouse.partnerships[0]!.endTick).toBeNull();
+            }
+            if (selection.memberIds.some(id => state.people[id]!.fatherId !== null || state.people[id]!.motherId !== null)) {
+                sawChild = true;
+            }
+        }
+        expect(sawSpouse).toBe(true);
+        expect(sawChild).toBe(true);
+    });
+});
+
+describe('selectHousehold — arrangement weight fallback', () => {
+    test('an empty arrangementWeights table falls back to Nuclear (pickArrangement default)', () => {
+        const dad = person('dad', Genders.Male, 38, { partnerships: [{ partnerId: 'mom', startTick: NOW - 15 * TICKS_PER_YEAR, endTick: null }] });
+        const mom = person('mom', Genders.Female, 36, { partnerships: [{ partnerId: 'dad', startTick: NOW - 15 * TICKS_PER_YEAR, endTick: null }] });
+        const state = makeState([dad, mom]);
+        const params: DrawParams = { adultAgeYears: 18, maxRoommates: 3, arrangementWeights: {} };
+
+        const selection = selectHousehold(state, new SeededRandom(1), NOW, CAPACITY, TICKS_PER_YEAR, params);
+
+        expect(selection.arrangement).toBe(HouseholdArrangements.Nuclear);
+        expect(selection.memberIds.length).toBeGreaterThan(0);
     });
 });
 

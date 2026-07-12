@@ -70,6 +70,10 @@ describe('evaluatePredicate — comparisons', () => {
     test('ordered comparisons require two numbers', () => {
         expect(evaluatePredicate({ attr: 'age', op: '>=', value: 16 }, ctx)).toBe(true);
         expect(evaluatePredicate({ attr: 'age', op: '<', value: 18 }, ctx)).toBe(false);
+        expect(evaluatePredicate({ attr: 'age', op: '<=', value: 30 }, ctx)).toBe(true);
+        expect(evaluatePredicate({ attr: 'age', op: '<=', value: 29 }, ctx)).toBe(false);
+        expect(evaluatePredicate({ attr: 'age', op: '>', value: 29 }, ctx)).toBe(true);
+        expect(evaluatePredicate({ attr: 'age', op: '>', value: 30 }, ctx)).toBe(false);
         // Non-numeric operand -> false rather than coercion.
         expect(evaluatePredicate({ attr: 'gender', op: '<', value: 'z' }, ctx)).toBe(false);
         // Missing attribute -> false for ordered ops.
@@ -112,6 +116,26 @@ describe('evaluatePredicate — hasEvent (history + cooldowns)', () => {
         // pregnancy fired 250 days ago; a 300-day cooldown blocks it, a 200-day one would not.
         expect(evaluatePredicate({ not: { hasEvent: 'pregnancy', withinTicks: 300 } }, ctx)).toBe(false);
         expect(evaluatePredicate({ not: { hasEvent: 'pregnancy', withinTicks: 200 } }, ctx)).toBe(true);
+    });
+});
+
+describe('evaluatePredicate — hasAction on a context without an action log', () => {
+    // Event-only fixtures (no action log wired) must never match a hasAction predicate rather than throw.
+    const bareCtx: SimulationContext = {
+        getAttr: () => undefined,
+        hasEvent: () => false,
+        carries: () => false,
+        objectAtLocation: () => false,
+        role: () => null,
+        // hasAction deliberately omitted.
+    };
+
+    test('evaluatePredicate treats a missing hasAction as always false', () => {
+        expect(evaluatePredicate({ hasAction: 'read_book' }, bareCtx)).toBe(false);
+    });
+
+    test('compilePredicate agrees', () => {
+        expect(compilePredicate({ hasAction: 'read_book' })(bareCtx)).toBe(false);
     });
 });
 

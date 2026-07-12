@@ -149,3 +149,67 @@ describe('compileEvents — validation', () => {
         expect(a).toEqual(b);
     });
 });
+
+describe('compileEvents — requirement-walk node kinds not otherwise exercised above', () => {
+    test('a soft (any-branch) hasEvent is not a hard dependency, but a hard positive hasEvent still depends', () => {
+        const manifest: EventManifest = {
+            base: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] },
+            maybe_related: {
+                // The hasEvent lives inside an `any` — soft, so it must NOT create a dependsOn edge.
+                roles: { subject: { where: { any: [{ hasEvent: 'base' }, { attr: 'alive', op: '==', value: true }] } } },
+                triggers: { probabilistic: { perYear: 1 } },
+                effects: [],
+            },
+        };
+        const graph = compileEvents(manifest);
+        expect(graph.dependsOn['maybe_related']).toEqual([]);
+    });
+
+    test('a nested {role, where} predicate node is walked without throwing and contributes no static requirement', () => {
+        const manifest: EventManifest = {
+            role_scoped: {
+                roles: {
+                    subject: { where: { role: 'partner', where: { attr: 'age', op: '>=', value: 18 } } },
+                    partner: { where: { attr: 'alive', op: '==', value: true } },
+                },
+                triggers: { probabilistic: { perYear: 1 } },
+                effects: [],
+            },
+        };
+        expect(() => compileEvents(manifest)).not.toThrow();
+        const graph = compileEvents(manifest);
+        expect(graph.warnings).toEqual([]);
+        expect(graph.subjectGates['role_scoped']).toEqual([]); // a role-scoped comparison is never a subject gate
+    });
+
+    test('hasAction/carries/objectAtLocation nodes are runtime-only and never enter the static graph', () => {
+        const manifest: EventManifest = {
+            action_gated: {
+                roles: { subject: { where: { all: [
+                    { attr: 'alive', op: '==', value: true },
+                    { hasAction: 'some_action' },
+                    { carries: { archetype: 'coin' } },
+                    { objectAtLocation: { archetype: 'oven' } },
+                ] } } },
+                triggers: { probabilistic: { perYear: 1 } },
+                effects: [],
+            },
+        };
+        const graph = compileEvents(manifest);
+        expect(graph.dependsOn['action_gated']).toEqual([]);
+        expect(graph.subjectGates['action_gated']).toEqual([{ attr: 'alive', op: '==', value: true }]);
+        expect(graph.warnings).toEqual([]);
+    });
+
+    test('a positive state requirement on an unknown, non-base attribute is flagged', () => {
+        const manifest: EventManifest = {
+            mystery: {
+                roles: { subject: { where: { attr: 'favoriteColor', op: '==', value: 'blue' } } },
+                triggers: { probabilistic: { perYear: 1 } },
+                effects: [],
+            },
+        };
+        const graph = compileEvents(manifest);
+        expect(graph.warnings.some(w => w.includes('favoriteColor'))).toBe(true);
+    });
+});
