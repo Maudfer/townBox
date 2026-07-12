@@ -7,6 +7,7 @@ export interface TileInfo {
     row: number;
     col: number;
     occupied?: boolean;
+    assetName?: string | null;
 }
 
 export interface PersonInfo {
@@ -55,6 +56,7 @@ export interface CityStatsLike {
 
 export interface TownboxTestApi {
     stepTicks(n?: number): Promise<void>;
+    pumpFrames(count?: number, deltaMs?: number): Promise<void>;
     pause(): void;
     resume(): void;
     getTick(): number;

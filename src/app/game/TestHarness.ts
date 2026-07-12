@@ -33,6 +33,8 @@ export interface TileInfo {
     col: number;
     // For buildings: whether it is occupied (a house with residents / a workplace with a business).
     occupied?: boolean;
+    // The current sprite key (roads change theirs with auto-tiling as neighbours appear).
+    assetName?: string | null;
 }
 
 export interface PersonInfo {
@@ -71,6 +73,10 @@ export interface TownboxTestApi {
     // Advance the simulation deterministically by `n` in-game hour ticks (default 1), awaiting each tick's
     // full newDay/newTick lifecycle. Resolves once the sim has fully processed all `n` ticks.
     stepTicks(n?: number): Promise<void>;
+    // Drives the render/movement loop deterministically: emits `count` `update` frames of `deltaMs` each, so
+    // on-map travel (people walking, cars driving via Field.update) progresses without depending on the real
+    // RAF loop (which the headless browser throttles). The clock stays paused; only positions/travel advance.
+    pumpFrames(count?: number, deltaMs?: number): Promise<void>;
     pause(): void;
     resume(): void;
     getTick(): number;
@@ -132,6 +138,13 @@ export function createTestApi(game: GameManager): TownboxTestApi {
     return {
         async stepTicks(n = 1): Promise<void> {
             await game.advanceTicks(n);
+        },
+        async pumpFrames(count = 60, deltaMs = 16): Promise<void> {
+            for (let i = 0; i < count; i++) {
+                // The clock's advanceTime handler is paused in test mode, so this drives ONLY Field.update
+                // (movement) — not the simulation clock.
+                await game.emit('update', { time: i * deltaMs, timeDelta: deltaMs });
+            }
         },
         pause(): void {
             game.pauseTime();
@@ -198,17 +211,18 @@ export function createTestApi(game: GameManager): TownboxTestApi {
                 return { type: 'none', row, col };
             }
             const tile = field.getTile(row, col);
+            const assetName = tile ? tile.getAssetName() : null;
             if (tile instanceof House) {
-                return { type: 'house', row, col, occupied: tile.getResidents().length > 0 };
+                return { type: 'house', row, col, occupied: tile.getResidents().length > 0, assetName };
             }
             if (tile instanceof Workplace) {
-                return { type: 'work', row, col, occupied: tile.getBusiness() !== null };
+                return { type: 'work', row, col, occupied: tile.getBusiness() !== null, assetName };
             }
             if (tile instanceof Road) {
-                return { type: 'road', row, col };
+                return { type: 'road', row, col, assetName };
             }
             if (tile instanceof Soil) {
-                return { type: 'soil', row, col };
+                return { type: 'soil', row, col, assetName };
             }
             return { type: 'none', row, col };
         },

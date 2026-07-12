@@ -127,6 +127,12 @@ export async function step(page: Page, n = 1): Promise<void> {
     await page.evaluate((count) => window.__townbox!.stepTicks(count), n);
 }
 
+// Drives `count` movement frames (deterministic; independent of the throttled RAF loop) so on-map travel
+// (people walking, cars driving) progresses.
+export async function pumpFrames(page: Page, count = 60, deltaMs = 16): Promise<void> {
+    await page.evaluate(([c, d]) => window.__townbox!.pumpFrames(c, d), [count, deltaMs] as const);
+}
+
 export async function getTick(page: Page): Promise<number> {
     return page.evaluate(() => window.__townbox!.getTick());
 }
@@ -153,6 +159,10 @@ export async function personById(page: Page, personId: string): Promise<PersonIn
 
 export async function cityStats(page: Page): Promise<ReturnType<TownboxTestApi['cityStats']>> {
     return page.evaluate(() => window.__townbox!.cityStats());
+}
+
+export async function vehiclesCount(page: Page): Promise<number> {
+    return page.evaluate(() => window.__townbox!.vehicles().length);
 }
 
 // Centers the camera on a tile and clicks it with a REAL canvas click at the resulting screen point.
