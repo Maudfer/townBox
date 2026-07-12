@@ -1,41 +1,45 @@
-// Aggregate per-agent / per-phase cost view of the generation spine (perf module).
+// Deterministic operation-count profile of the generation spine (perf module).
 //
-// One profiled run of the shared tick spine (game/execution/TickRunner — what the offline generator drives per
-// step) yields, via the task-079 SubProfiler, a per-phase / per-hook / per-advance-sub-phase breakdown. We turn
-// each bucket into its SHARE OF A TICK — bucket / (total − bucket) — and take the median over several fresh
-// runs. That fraction is dimensionless and JITTER-IMMUNE: numerator and denominator are measured in the same
-// run, so a machine slowdown (or the wild scheduler jitter of a 2-vCPU CI runner) scales both and cancels;
-// a component that gets slower raises its OWN share (the denominator excludes it, so no absorption → real
-// sensitivity). A regression that shifts the profile trips the gate.
-//
-// The gate ENFORCES only with PERF_ENFORCE=1 (the CI job, once its baselines are CI-measured — fractions still
-// drift ~10% across microarchitectures, so a dev baseline mustn't gate CI); otherwise it LOGS the table so the
-// trend is watchable. The TIGHT, flake-free, machine-independent protection of the specific 078/079 wins lives
-// in regressionGuards.test.ts (deterministic + within-run-ratio checks, always enforced). Re-baseline: see
-// perfHarness.
+// One metered run of the shared tick spine (game/execution/TickRunner — what the offline generator drives per
+// step) over a fixed workload (fixed seed, fixed agents, fixed tick counts) does exactly the same WORK on
+// every machine and every run. The util/perfMeter probes count that work — predicate evaluations, active-index
+// scans, context builds, event rolls, cache misses, co-location queries — and we assert the totals match the
+// committed baselines EXACTLY (no drift tolerance). Any change that makes a part of the sim do more (or less)
+// work moves a count and fails the gate, forcing a conscious `PERF_UPDATE_BASELINES=1` re-baseline. The sum of
+// these parts is the whole per-agent cost profile; a regression in any one of the 078/079 wins (unbounded
+// instance scan, whole-pool invoke rebuild, doubled free-time selection, a broken cache) shows up here as an
+// inflated count. The one thing counts can't see — a slower-per-operation regression — is guarded by the
+// predicate-precompilation timing ratio in regressionGuards.test.ts.
 
-import { gateAgainstBaselines, formatResults, FRACTION_TOLERANCE, UPDATE_BASELINES, ENFORCE_COST_GATE } from './perfHarness';
+import { gateCounts, formatCounts, UPDATE_BASELINES } from './perfHarness';
 import ActionEngine from 'game/actions/ActionEngine';
 import Brain from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
-import { runTick, TickProfiler } from 'game/execution/TickRunner';
+import { runTick } from 'game/execution/TickRunner';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 import SkillBook from 'game/skills/SkillBook';
 import SkillProgression from 'game/skills/SkillProgression';
 
+import { beginMeter, endMeter } from 'util/perfMeter';
 import { TICKS_PER_YEAR } from 'util/time';
 import { GenPerson, PopulationState } from 'types/Genealogy';
 import { Genders } from 'types/Social';
 
 
-function median(xs: number[]): number {
-    const s = [...xs].sort((a, b) => a - b);
-    const mid = Math.floor(s.length / 2);
-    return s.length % 2 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
-}
-
 jest.setTimeout(120_000);
+
+// Every ambient counter the spine is expected to touch. Seeded to 0 before the run so a counter that is
+// SILENT at baseline (e.g. an invoke that scans 0 pool entries) but starts firing on a regression is caught —
+// a brand-new counter with no baseline would otherwise slip through as "non-breaking new metric".
+const EXPECTED_COUNTERS = [
+    'predicate.evalCached',
+    'action.activeLookup', 'action.scanWalked', 'action.contextBuild', 'action.objectQuery', 'action.objectQueryMiss',
+    'event.roll', 'event.subjectEval', 'event.invokeScan',
+    'brain.freeTimeCompute',
+    'inv.contentsBuild', 'inv.carriedBuild',
+    'world.peopleAt',
+];
 
 function gen(id: string, birthTick: number): GenPerson {
     return { id, firstName: id, familyName: 'Fam', gender: Genders.Female, birthTick, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
@@ -45,9 +49,10 @@ function pool(people: GenPerson[], worldSeed = 21): PopulationState {
     return { worldSeed, people: Object.fromEntries(people.map(p => [p.id, p])), drawSeed: 1, placedIds: [], nextSeq: 100, lastSimulatedYear: 0 };
 }
 
-// The full bootstrap spine over N agents, exercised for a warm-up window then a measured window; returns each
-// profiler bucket's per-agent-step ms. Fresh engines every call so min-of-R across calls is a clean signal.
-function profiledRun(agents: number, warmupTicks: number, windowTicks: number): Record<string, number> {
+// The full bootstrap spine over N agents: a warm-up window (untimed, to reach steady state) then a metered
+// window whose operation counts we assert. Fresh engines every call. Returns the meter tally PLUS the
+// post-run live-instance count (the task-078 pruning invariant — observable, no probe needed).
+async function meteredRun(agents: number, warmupTicks: number, windowTicks: number): Promise<Record<string, number>> {
     const engine = new EventEngine();
     const actions = new ActionEngine(undefined, engine.getLifeLog());
     const brain = new Brain(actions);
@@ -62,91 +67,45 @@ function profiledRun(agents: number, warmupTicks: number, windowTicks: number): 
     const skillBook = new SkillBook();
     const service = new SkillProgression(skillBook);
     const agentIds = people.map(p => p.id);
-    const tickPlan = (tick: number, profiler?: TickProfiler) => ({
+    const tickPlan = (tick: number) => ({
         engine, actionEngine: actions, brain, inventory, state, agentIds, tick,
         ticksPerYear: TICKS_PER_YEAR, ctx: { mode: 'bootstrap' as const, world }, skillProgression: service,
-        ...(profiler ? { profiler } : {}),
     });
 
     for (let tick = 0; tick < warmupTicks; tick++) {
-        void runTick(tickPlan(tick)); // runTick resolves synchronously here (no onCommitted → no await point)
-    }
-    const profiler: TickProfiler = { actions: 0, events: 0, progression: 0, brain: 0, sub: { brainHooks: {}, brainResolve: 0, actionsAdvance: {} } };
-    for (let tick = warmupTicks; tick < warmupTicks + windowTicks; tick++) {
-        void runTick(tickPlan(tick, profiler));
+        await runTick(tickPlan(tick));
     }
 
-    const agentSteps = agents * windowTicks;
-    const sub = profiler.sub!;
-    const out: Record<string, number> = {
-        'total': (profiler.actions + profiler.events + profiler.progression + profiler.brain) / agentSteps,
-        'phase.actions': profiler.actions / agentSteps,
-        'phase.events': profiler.events / agentSteps,
-        'phase.brain': profiler.brain / agentSteps,
-        'brain.resolveIntents': sub.brainResolve / agentSteps,
-    };
-    for (const [k, v] of Object.entries(sub.brainHooks)) {
-        out[`brain.${k}`] = v / agentSteps;
+    const meter = beginMeter();
+    for (const label of EXPECTED_COUNTERS) {
+        meter.tally[label] = 0; // seed: a counter that never fires still has an exact 0 baseline
     }
-    for (const [k, v] of Object.entries(sub.actionsAdvance)) {
-        out[`advance.${k}`] = v / agentSteps;
+    for (let tick = warmupTicks; tick < warmupTicks + windowTicks; tick++) {
+        await runTick(tickPlan(tick));
     }
-    return out;
+    endMeter();
+
+    return { ...meter.tally, 'action.instancesLive': Object.keys(actions.getState().instances).length };
 }
 
-// The reliably-fired buckets we turn into per-tick fractions and LOG every run (near-zero noise buckets are
-// excluded — a % of noise is noise). `total` is the reference (the whole tick), not itself a gated fraction.
-const GATED_BUCKETS = [
-    'phase.actions', 'phase.events', 'phase.brain', 'brain.resolveIntents',
-    'brain.wokeUp', 'brain.idleFallback', 'brain.socialOpportunity', 'brain.inventoryOpportunity',
-    'brain.freeTime:loop', 'brain.freeTime:requirements', 'brain.freeTime:modifiers',
-    'advance.durationFinish', 'advance.finish:onCompleteEvent', 'advance.invoke:attempt', 'advance.pool',
-];
+describe('generation perf — deterministic operation-count gate', () => {
+    it('every counted part of the spine matches its exact baseline', async () => {
+        const measured = await meteredRun(40, 24, 72);
 
-// Of those, only the DOMINANT buckets (CI share ≳ 0.10) actually FAIL the gate. The first CI run showed these
-// within ±6% of a dev box, whereas the smaller buckets swung ±15% — too noisy to block on. A sub-component
-// that regresses still inflates its parent phase here (phase.brain/phase.events catch it), and the specific
-// 078/079 wins are caught precisely by the deterministic guards; the small buckets are logged for trend only.
-const ENFORCED_FRACTIONS = new Set([
-    'phase.actions', 'phase.events', 'phase.brain',
-    'brain.idleFallback', 'brain.freeTime:loop', 'advance.pool',
-]);
+        const results = gateCounts(measured);
+        const mode = UPDATE_BASELINES ? 'BASELINES UPDATED' : 'exact-match (deterministic; any delta is a regression)';
+        console.info(`[generation perf] operation counts · ${mode}\n${formatCounts(results)}`);
 
-describe('generation perf — per-phase cost-fraction gates', () => {
-    it('no component grows its share of a tick beyond tolerance (jitter-immune fractions)', () => {
-        // R fresh profiled runs; each bucket → its share of a tick, bucket / (total − bucket). Median over R
-        // resists both a run where the bucket itself was preempted (its fraction spikes) and one where other
-        // buckets were (its fraction dips). Fractions are within-run ratios, so runner jitter cancels.
-        const R = 7;
-        const perRunFractions: Record<string, number[]> = Object.fromEntries(GATED_BUCKETS.map(l => [l, []]));
-        for (let k = 0; k < R; k++) {
-            const buckets = profiledRun(40, 24, 72);
-            const total = buckets['total']!;
-            for (const label of GATED_BUCKETS) {
-                const b = buckets[label];
-                if (b !== undefined && total - b > 0) {
-                    perRunFractions[label]!.push(b / (total - b));
-                }
-            }
-        }
-        const measured: Record<string, number> = {};
-        for (const label of GATED_BUCKETS) {
-            if (perRunFractions[label]!.length > 0) {
-                measured[label] = median(perRunFractions[label]!);
-            }
-        }
+        const regressed = results.filter(r => r.regressed)
+            .map(r => `${r.label} (${r.baseline} → ${r.value === null ? 'gone' : r.value})`);
+        expect(regressed).toEqual([]);
+    });
 
-        const results = gateAgainstBaselines(measured, ENFORCED_FRACTIONS);
-        const mode = UPDATE_BASELINES ? 'BASELINES UPDATED' : ENFORCE_COST_GATE ? `gating '*' rows @${(FRACTION_TOLERANCE * 100).toFixed(0)}%` : 'LOG-ONLY (enforced on CI via PERF_ENFORCE)';
-        console.info(`[generation perf] per-tick cost fractions · ${mode}\n${formatResults(results)}`);
-
-        // Enforced only when the baselines match the running machine class (PERF_ENFORCE=1 on the CI job);
-        // elsewhere it's advisory, so a dev box's fractions don't gate against CI-measured baselines. Only the
-        // ENFORCED_FRACTIONS subset can set `regressed` (gateAgainstBaselines above), so the noisy small buckets
-        // are logged but never fail.
-        const regressed = results.filter(r => r.regressed).map(r => `${r.label} (+${(((r.ratio ?? 1) - 1) * 100).toFixed(1)}%)`);
-        if (ENFORCE_COST_GATE) {
-            expect(regressed).toEqual([]);
-        }
+    it('the counts are deterministic (two identical runs produce identical tallies)', async () => {
+        // Guards the whole approach: if any non-determinism (a Date.now, an unseeded RNG, Map-order-dependent
+        // work) crept into a counted path, two runs would diverge and this fails before a flaky baseline can.
+        const a = await meteredRun(40, 24, 24);
+        const b = await meteredRun(40, 24, 24);
+        expect(a).toEqual(b);
     });
 });

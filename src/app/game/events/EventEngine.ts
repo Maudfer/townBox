@@ -32,6 +32,7 @@ import { Genders, Gender } from 'types/Social';
 import { evaluateCurve, Curve } from 'util/curve';
 import { sampleMaxChildren } from 'util/fertility';
 import { isAliveAt, ageAt, spouseAt, childrenOf } from 'util/kinship';
+import { count } from 'util/perfMeter';
 import { evaluatePredicate, compareValues } from 'util/predicate';
 import { SeededRandom } from 'util/random';
 import { dayOfTick, hourOfTick } from 'util/time';
@@ -764,6 +765,7 @@ export default class EventEngine {
                 // gates then only screen the rare successful roll before it reaches the expensive work
                 // (limit, full predicate, role search). Uncached entries gate first so an implausible
                 // subject skips the per-agent factor evaluation too.
+                count('event.roll'); // perf: the one unconditional per-(agent, plan-entry) hazard draw (the event-walk size)
                 const draw = rng.next();
                 const cached = hazardCache[i]!;
                 if (cached >= 0) {
@@ -787,6 +789,7 @@ export default class EventEngine {
                 if (!this.limitAllows(agentId, entry.id, entry.limit, tick)) {
                     continue;
                 }
+                count('event.subjectEval'); // perf: events reaching the full subject predicate — gating screens most out first (task 052)
                 const subjectWhere = entry.def.roles[ROLE_SUBJECT]?.where;
                 const subjectCtx = this.makeContext(state, agentId, { [ROLE_SUBJECT]: agentId }, tick, ticksPerYear);
                 if (subjectWhere && !evaluatePredicate(subjectWhere, subjectCtx)) {
@@ -1012,6 +1015,8 @@ export default class EventEngine {
         const agents = this.invokeNeedsCandidateSearch.has(eventId)
             ? Object.keys(state.people).filter(id => isAliveAt(state.people[id]!, tick)).sort()
             : EMPTY_AGENTS;
+        // perf: pool entries an invoke scans — 0 for subject-only events (the 079 whole-pool-rebuild guard).
+        count('event.invokeScan', agents.length);
         if (sub && clock) {
             sub.actionsAdvance['invoke:pre'] = (sub.actionsAdvance['invoke:pre'] ?? 0) + (clock() - tPre);
         }

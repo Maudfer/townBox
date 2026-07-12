@@ -7,6 +7,7 @@ import Inventory from 'game/objects/Inventory';
 import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
 import { locationKey } from 'types/Objects';
+import { count } from 'util/perfMeter';
 
 export default class BootstrapWorld implements WorldAdapter {
     readonly mode: SimulationMode = 'bootstrap';
@@ -43,6 +44,7 @@ export default class BootstrapWorld implements WorldAdapter {
     }
 
     peopleAt(location: LogicalLocation): PersonId[] {
+        count('world.peopleAt'); // perf: co-location queries — social hook rolls its RNG gate BEFORE calling (task 079)
         const ids: PersonId[] = [];
         for (const [personId, current] of this.locations) {
             if (sameLocation(current, location)) {

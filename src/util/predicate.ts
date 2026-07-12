@@ -4,6 +4,7 @@
 // so it lives entirely in manifests; evaluatePredicate is pure given (pred, ctx), delegating all data access
 // to the Context interface, so it is unit-testable with a plain fixture context (no scene, no engine).
 
+import { count } from 'util/perfMeter';
 import { SimulationContext, ObjectQuery, Value } from 'types/Simulation';
 
 export type ComparisonOp = '==' | '!=' | '<' | '<=' | '>' | '>=' | 'in';
@@ -111,6 +112,7 @@ export function compilePredicate(pred: Predicate): CompiledPredicate {
 const compiledCache = new WeakMap<Predicate, CompiledPredicate>();
 
 export function evaluatePredicateCached(pred: Predicate, ctx: SimulationContext): boolean {
+    count('predicate.evalCached');
     let compiled = compiledCache.get(pred);
     if (compiled === undefined) {
         compiled = compilePredicate(pred);

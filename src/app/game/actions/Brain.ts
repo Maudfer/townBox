@@ -22,6 +22,7 @@ import { PersonId } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
 import { SchoolFacts } from 'types/School';
 import { Value } from 'types/Simulation';
+import { count } from 'util/perfMeter';
 import { evaluatePredicateCached } from 'util/predicate';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isOnShiftAtTick } from 'util/shifts';
@@ -309,6 +310,7 @@ export default class Brain {
     }
 
     private computeFreeTimeAction(personId: PersonId, deps: BrainDeps): string | null {
+        count('brain.freeTimeCompute'); // perf: free-time selections actually computed — one/person/tick if the memo holds (task 079)
         // --profile segment timers (task 079 pass 2): attribute the compute to context-build / requirement
         // predicates / modifier predicates / the rest of the loop. Null clock outside profiled runs.
         const sub = this.profileSub;

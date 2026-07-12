@@ -37,6 +37,7 @@ import { ExecutionContext, SubProfiler, TransitionHandle } from 'types/Execution
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
 import { isAliveAt } from 'util/kinship';
+import { count } from 'util/perfMeter';
 import { evaluatePredicateCached } from 'util/predicate';
 import { SeededRandom } from 'util/random';
 import { SimulationContext, HasEventQuery, ObjectQuery, Value } from 'types/Simulation';
@@ -181,6 +182,7 @@ export default class ActionEngine {
     // The person's currently active continuous instance (at most one; Brain owns the single-activity rule
     // and this engine enforces it at start).
     activeInstanceOf(personId: PersonId): ActionInstance | null {
+        count('action.activeLookup'); // perf: call frequency of the O(1)-indexed active-instance lookup (task 078)
         // O(1) via the active index (task 078): the first still-active instance for the person, in id order —
         // identical to the old full state-insertion-order scan (at most one active continuous instance exists
         // per person by the arbitration rule, so the "first" is unambiguous in practice).
@@ -242,6 +244,7 @@ export default class ActionEngine {
             && this.ctxMemo.epoch === (deps.inventory?.getMutationEpoch() ?? -1)) {
             return this.ctxMemo.context;
         }
+        count('action.contextBuild'); // perf: full requirement-context builds — proposal-phase memo misses (task 079)
         const base = deps.eventEngine.contextFor(deps.state, personId, deps.tick, deps.ticksPerYear);
         const world = deps.ctx.world ?? null;
         const inventory = deps.inventory ?? null;
@@ -313,6 +316,7 @@ export default class ActionEngine {
                 return carriedList().some(instance => matches(instance.id, query));
             },
             objectAtLocation: rawQuery => {
+                count('action.objectQuery'); // perf: objectAtLocation calls (total)
                 const query = ActionEngine.resolveQuery(rawQuery, params);
                 if (!world || !inventory || !query) {
                     return false;
@@ -332,6 +336,7 @@ export default class ActionEngine {
                 if (cached && cached.epoch === epoch) {
                     return cached.result;
                 }
+                count('action.objectQueryMiss'); // perf: objectAtLocation cache misses — actual location scans (task 079)
                 const result = objectsHereList().some(id => matches(id, query));
                 cache.set(key, { epoch, result });
                 return result;
@@ -596,14 +601,17 @@ export default class ActionEngine {
         // an array first so finishes/starts during the loop don't mutate what we're iterating.
         const tScan = clock ? clock() : 0;
         const active: ActionInstance[] = [];
+        let walked = 0;
         for (const set of this.activeByPerson.values()) {
             for (const id of set) {
+                walked++;
                 const instance = this.state.instances[id];
                 if (instance && ACTIVE_STATUSES.has(instance.status)) {
                     active.push(instance);
                 }
             }
         }
+        count('action.scanWalked', walked); // perf: instances the advance scan walks — O(active), not O(all-ever) (task 078)
         active.sort((a, b) => a.id.localeCompare(b.id));
         addSub('scan', tScan);
 

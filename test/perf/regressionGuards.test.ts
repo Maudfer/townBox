@@ -1,7 +1,10 @@
 // Deterministic (flake-free) regression guards for the specific 078/079 optimizations that must not regress.
-// Unlike the aggregate wall-clock view in generationPerf, these assert ALGORITHMIC properties — reference
-// identity for the caches/pruning, and machine-independent WITHIN-RUN COST RATIOS whose regression signal is
-// large (2–100×, not 5%) — so they never flake on a noisy CI runner and can be a strict, blocking gate.
+// These assert ALGORITHMIC properties — exact operation COUNTS (util/perfMeter) and reference identity for the
+// caches/pruning — so they're machine-independent and enforce exactly, everywhere. The SOLE exception is the
+// predicate-precompilation guard at the bottom: precompilation does the same logical work as the interpreter
+// (same node visits, same context reads), so no count can see it — only a within-run TIMING RATIO can, and a
+// ratio is machine-independent (both paths timed in the same process). It is the only timing-based check left
+// in the whole perf suite.
 
 import { minMsPerOp } from './perfHarness';
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
@@ -11,6 +14,7 @@ import BootstrapWorld from 'game/execution/BootstrapWorld';
 import { runTick } from 'game/execution/TickRunner';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
 
+import { beginMeter, endMeter } from 'util/perfMeter';
 import { evaluatePredicate, evaluatePredicateCached, Predicate } from 'util/predicate';
 import { TICKS_PER_YEAR } from 'util/time';
 import { GenPerson, PopulationState } from 'types/Genealogy';
@@ -55,23 +59,21 @@ const MICRO_PREDICATE: Predicate = {
 
 describe('perf regression guards (deterministic)', () => {
     // Task 079: EventEngine.invoke must NOT rebuild the O(whole-pool) living-agent list for a subject-only
-    // event. If it does, invoke cost scales with the pool size; gated, it is flat. Timing a big pool vs a tiny
-    // one and comparing the RATIO is machine-independent (both scale with CPU speed) and the regressed signal
-    // is enormous (~pool-size ratio), so a generous 4× bound never false-fails but catches the regression hard.
-    it('invoke of a subject-only event is O(1) in pool size (agent-list gating)', () => {
-        const invokeCost = (poolSize: number): number => {
+    // event (`woke_up` has no candidate-search role). The meter counts the pool entries invoke scans; gated,
+    // it is exactly 0 at any pool size. Deterministic and machine-independent — no timing needed. If the
+    // gating regresses (the pass-1 bug that let the subject role's `where` force the whole-pool build), this
+    // jumps straight to the pool size.
+    it('invoke of a subject-only event scans zero pool entries (agent-list gating)', () => {
+        const invokeScan = (poolSize: number): number => {
             const engine = new EventEngine();
             const state = pool(Array.from({ length: poolSize }, (_, i) => gen(`p${i}`)));
-            const K = 20_000;
-            return minMsPerOp(() => {
-                for (let i = 0; i < K; i++) {
-                    engine.invoke(state, 'woke_up', 'p0', 1000, TICKS_PER_YEAR, { source: 'action', causationId: null });
-                }
-            }, K, 8, 3);
+            const meter = beginMeter();
+            engine.invoke(state, 'woke_up', 'p0', 1000, TICKS_PER_YEAR, { source: 'action', causationId: null });
+            endMeter();
+            return meter.tally['event.invokeScan'] ?? 0;
         };
-        const ratio = invokeCost(1000) / invokeCost(10); // 100× the pool
-        console.info(`[guard] invoke cost ratio (pool 1000 / pool 10): ${ratio.toFixed(2)}× (gated ≈1×, regressed ≈100×)`);
-        expect(ratio).toBeLessThan(4);
+        expect(invokeScan(10)).toBe(0);
+        expect(invokeScan(1000)).toBe(0); // 100× the pool, still 0 — flat, not O(pool)
     });
 
     // Task 079: predicate precompilation keeps evaluatePredicateCached a clear win over the interpreter. Both

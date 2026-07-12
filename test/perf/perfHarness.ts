@@ -1,53 +1,26 @@
-// Unit performance-regression harness for the offline history generation (perf module).
+// Perf-suite harness. The gate is a DETERMINISTIC OPERATION-COUNT check: the sim does exactly the same work
+// on every machine and every run for a fixed seed, so the counts (util/perfMeter probes) are byte-identical
+// everywhere. That lets the gate demand EXACT equality — any change in how much work a part of the sim does
+// (a new event, an extra requirement check, a lost cache) shifts a count and fails the gate, forcing a
+// conscious baseline bump. There is NO drift tolerance and NO machine-class caveat: the check enforces
+// identically on a dev box and on CI, always. Re-baseline after an intentional change:
+//   PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf --runInBand   (then commit test/perf/baselines.json)
 //
-// Goal: catch regressions in the SUBCOMPONENTS of the generation spine — especially per-agent step cost —
-// that would erode the strides landed in tasks 078/079. The mentality is UNIT perf testing: measure small
-// parts, in isolation or via the profiler's per-phase breakdown, so the sum of the parts stands in for
-// benchmarking the whole flow (which we otherwise never run in CI).
-//
-// The hard problem is machine variance: CI runners (2-vCPU shared VMs) vary WILDLY at short timescales — a
-// first CI run measured a supposedly-stable pure-compute calibration swinging 12× across six samples, from
-// scheduler preemption. So absolute wall-clock, even normalized against a calibration, can't gate tightly.
-//
-// Two robust mechanisms instead, both machine-independent because they compare measurements taken in the SAME
-// run so any jitter cancels:
-//   1) DETERMINISTIC + within-run-RATIO guards (regressionGuards.test.ts): reference identity for the caches/
-//      pruning, and cost ratios with huge signals (2–100×) for the agent-list gating and precompilation.
-//   2) Per-phase COST FRACTIONS of a step (generationPerf.test.ts): each profiler bucket is expressed as
-//      bucket / (total − bucket) — a dimensionless share of the tick. A uniform machine slowdown scales both
-//      numerator and denominator equally, so the fraction is invariant; a component that gets slower raises
-//      its own fraction (the denominator excludes it, so there's no absorption → full 5% sensitivity).
-// Baselines are the committed fractions in test/perf/baselines.json; a metric fails above baseline × (1 + TOL).
-//
-// Re-baseline (after an intentional change): PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf --runInBand
+// The one residue counts cannot see — a constant-factor slowdown INSIDE an operation (same work, slower) —
+// is guarded by a single within-run TIMING RATIO in regressionGuards.test.ts (predicate precompilation). That
+// ratio is machine-independent (both paths timed in the same process) but is the sole non-count check.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-// The fraction metrics cancel machine JITTER within a run, but a component's share of a tick still moves ~±8-10%
-// CI-run-to-CI-run (the two big phases, events and brain, trade time back and forth; two early CI runs showed
-// events at 101.6% then 108.2% of a one-run baseline). Two things keep the gate from flaking on that:
-//   1. Only the DOMINANT buckets are ENFORCED (see ENFORCED_FRACTIONS in generationPerf); the small
-//      (< ~0.05-share) buckets swing even harder (±15%) and are logged for trend, not gated.
-//   2. The committed baselines are CENTERED on several CI runs (not anchored to one), so a bucket's deviation
-//      is roughly ±half the peak-to-peak swing (~±4-5%) rather than one-sided — leaving real headroom under the
-//      tolerance below. Baselines MUST be CI-measured (the same machine class), never a dev box.
-// A real regression (losing an 078/079 win) balloons a phase's share far past this; the precise, tight
-// protection of each specific win lives in the deterministic guards (regressionGuards.test.ts).
-export const FRACTION_TOLERANCE = 0.12;
 export const UPDATE_BASELINES = process.env.PERF_UPDATE_BASELINES === '1';
-
-// The aggregate fraction gate ENFORCES only when PERF_ENFORCE=1 (set on the CI `perf` job once its baselines
-// are CI-measured). Otherwise — a dev run, or CI before the baselines are trusted — it LOGS the table but
-// never fails. The deterministic + within-run-ratio GUARDS in regressionGuards.test.ts are machine-independent
-// and ALWAYS enforce (they're what makes the perf job a safe blocking check).
-export const ENFORCE_COST_GATE = process.env.PERF_ENFORCE === '1' && !UPDATE_BASELINES;
 
 const BASELINE_PATH = join(__dirname, 'baselines.json');
 
 // Time `fn` (which performs `ops` internal operations) and return the MINIMUM ms-per-op over `iterations`
 // runs, after `warmup` untimed runs. The minimum is the cleanest regression signal: a real slowdown raises
-// the best case, while GC/scheduling noise only inflates individual samples (which the min discards).
+// the best case, while GC/scheduling noise only inflates individual samples (which the min discards). Used
+// ONLY by the predicate precompilation ratio guard — the count gate needs no timing.
 export function minMsPerOp(fn: () => void, ops: number, iterations = 12, warmup = 4): number {
     for (let i = 0; i < warmup; i++) {
         fn();
@@ -64,14 +37,12 @@ export function minMsPerOp(fn: () => void, ops: number, iterations = 12, warmup 
     return min / ops;
 }
 
-// A single measured metric with its committed baseline and whether it regressed.
-export interface PerfResult {
+// A single measured operation-count against its committed baseline.
+export interface CountResult {
     label: string;
-    value: number;           // the measured fraction (dimensionless, machine-independent)
-    baseline: number | null; // committed baseline, or null when new/updating
-    ratio: number | null;    // value / baseline (>1 means the component grew its share); null when no baseline
-    enforced: boolean;       // whether crossing the tolerance FAILS the gate (vs. logged for trend only)
-    regressed: boolean;      // enforced AND over tolerance
+    value: number | null;    // measured count this run (null = a baselined counter that never fired → regression)
+    baseline: number | null; // committed baseline (null = a new counter with no baseline yet → not a regression)
+    regressed: boolean;      // value !== baseline (exact); a new counter is recorded, never failed
 }
 
 type Baselines = Record<string, number>;
@@ -87,39 +58,39 @@ function loadBaselines(): Baselines {
     }
 }
 
-// Gate (or, under PERF_UPDATE_BASELINES, rewrite) a map of measured metrics against baselines.json. Returns a
-// per-label verdict; callers assert `every(r => !r.regressed)` and log the table. `enforced` names the subset
-// whose over-tolerance FAILS the gate — everything else is measured and logged (for trend) but never fails, so
-// the small, noisy buckets don't cause flakes. New labels (no baseline yet) never fail either — they're
-// recorded on the next update, so adding a metric is non-breaking.
-export function gateAgainstBaselines(measured: Record<string, number>, enforced?: Set<string>, tolerance = FRACTION_TOLERANCE): PerfResult[] {
+// Gate (or, under PERF_UPDATE_BASELINES, rewrite) measured counts against baselines.json by EXACT equality.
+// Compares the UNION of measured and baselined keys, so both a count that grew/shrank AND a baselined counter
+// that stopped firing (value null) are regressions. A NEW counter (no baseline) is recorded on the next update
+// and never fails, so adding instrumentation is non-breaking.
+export function gateCounts(measured: Record<string, number>): CountResult[] {
     const baselines = loadBaselines();
-    const results: PerfResult[] = Object.entries(measured).map(([label, value]) => {
+    const labels = [...new Set([...Object.keys(baselines), ...Object.keys(measured)])].sort();
+    const results: CountResult[] = labels.map(label => {
+        const value = measured[label] ?? null;
         const baseline = baselines[label] ?? null;
-        const ratio = baseline !== null && baseline > 0 ? value / baseline : null;
-        const isEnforced = enforced === undefined || enforced.has(label);
-        const regressed = isEnforced && !UPDATE_BASELINES && ratio !== null && ratio > 1 + tolerance;
-        return { label, value, baseline, ratio, enforced: isEnforced, regressed };
+        const regressed = !UPDATE_BASELINES && baseline !== null && value !== baseline;
+        return { label, value, baseline, regressed };
     });
 
     if (UPDATE_BASELINES) {
-        const next: Baselines = { ...baselines };
-        for (const r of results) {
-            next[r.label] = Number(r.value.toFixed(5));
+        const next: Baselines = {};
+        for (const label of Object.keys(measured).sort()) {
+            next[label] = measured[label]!;
         }
-        writeFileSync(BASELINE_PATH, JSON.stringify(next, Object.keys(next).sort(), 2) + '\n', 'utf8');
+        writeFileSync(BASELINE_PATH, JSON.stringify(next, null, 2) + '\n', 'utf8');
     }
     return results;
 }
 
-// Pretty one-line-per-metric table for the CI log, so a failure shows exactly which component grew its share.
-export function formatResults(results: PerfResult[]): string {
+// One-line-per-metric table for the log, so a failure shows exactly which counter moved and by how much.
+export function formatCounts(results: CountResult[]): string {
     const rows = results.map(r => {
-        const base = r.baseline === null ? '  (new)' : r.baseline.toFixed(5);
-        const ratio = r.ratio === null ? '    -' : `${(r.ratio * 100).toFixed(1)}%`;
-        const tier = r.enforced ? '*' : ' '; // '*' = enforced (can fail the gate); ' ' = logged for trend only
+        const value = r.value === null ? '  (gone)' : String(r.value);
+        const base = r.baseline === null ? '  (new)' : String(r.baseline);
+        const delta = r.baseline !== null && r.value !== null && r.value !== r.baseline
+            ? `  ${r.value > r.baseline ? '+' : ''}${r.value - r.baseline}` : '';
         const flag = r.regressed ? '  <<< REGRESSED' : '';
-        return `${tier} ${r.label.padEnd(26)} frac ${r.value.toFixed(5).padStart(9)}  base ${base.padStart(9)}  ${ratio.padStart(7)}${flag}`;
+        return `  ${r.label.padEnd(24)} ${value.padStart(10)}  base ${base.padStart(10)}${delta}${flag}`;
     });
     return rows.join('\n');
 }

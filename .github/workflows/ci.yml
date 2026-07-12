@@ -120,18 +120,17 @@ jobs:
         run: npm run lint:js
 
   # Unit perf-regression gates for the offline generation spine (the `perf` jest project). Runs on EVERY change
-  # — a per-agent / subcomponent perf regression can originate anywhere in the sim — with --runInBand (serial,
-  # so timings aren't muddied by parallel workers) and NO coverage (istanbul instrumentation would skew them).
-  # Well under 10s of work. Two tiers:
-  #   - regressionGuards.test.ts: DETERMINISTIC + within-run-RATIO guards. Machine-independent and flake-free
-  #     (a first CI run confirmed it — the ratios were identical to a dev box), so they ALWAYS enforce and are
-  #     what makes THIS a safe BLOCKING check (it's in `ci-success`'s needs). This is the real protection of the
-  #     078/079 wins (agent-list gating, the caches, predicate precompilation, instance pruning).
-  #   - generationPerf.test.ts: the aggregate per-phase cost FRACTIONS (jitter-immune within a run). ENFORCED
-  #     here via PERF_ENFORCE=1, but only for the DOMINANT buckets (ENFORCED_FRACTIONS) against CI-measured
-  #     baselines (test/perf/baselines.json) — the small buckets drift too much to block on, so they're logged
-  #     for trend. Re-baseline after an intentional perf change: run this job once via workflow_dispatch with
-  #     PERF_UPDATE_BASELINES=1 (or locally on a quiet box), then commit the regenerated baselines.json.
+  # — a per-agent / subcomponent perf regression can originate anywhere in the sim — with --runInBand and NO
+  # coverage (istanbul instrumentation would skew the one timing check). Well under 10s. The gate is
+  # DETERMINISTIC OPERATION COUNTS (util/perfMeter): the sim does identical work per fixed seed on every machine,
+  # so the counts are byte-identical everywhere and are asserted EXACTLY against test/perf/baselines.json — no
+  # drift tolerance, no machine-class caveat, no PERF_ENFORCE flag (it enforces the same on a dev box and here).
+  # A count moves only when the sim's work moves, which forces a conscious re-baseline. generationPerf covers
+  # the whole spine (the sum of parts); regressionGuards pins the specific 078/079 wins (invoke agent-list = 0
+  # scanned, cache-miss counts, instance pruning) plus the ONE exception counts can't see — predicate
+  # precompilation — via a within-run timing RATIO (still machine-independent). BLOCKING (in ci-success needs).
+  # Re-baseline after an intentional perf change: PERF_UPDATE_BASELINES=1 npx jest --selectProjects perf, commit
+  # baselines.json (deterministic, so a local box suffices — CI will match).
   perf:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -143,8 +142,6 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - name: Generation perf-regression gates
-        env:
-          PERF_ENFORCE: '1' # gate the dominant cost fractions against the CI-measured baselines (this job is isolated + --runInBand)
         run: npx jest --selectProjects perf --runInBand
 
   # One concurrent job per affected test module (dynamic matrix) — fast, granular pass/fail. Each runs

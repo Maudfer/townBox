@@ -21,6 +21,7 @@ import {
     InventoryState,
 } from 'types/Objects';
 import { ObjectQuery, Value } from 'types/Simulation';
+import { count } from 'util/perfMeter';
 
 export const DEFAULT_OBJECT_ARCHETYPES: ObjectArchetypeTable = objectsConfig as unknown as ObjectArchetypeTable;
 
@@ -347,6 +348,7 @@ export default class Inventory {
         if (cached) {
             return cached;
         }
+        count('inv.contentsBuild'); // perf: contentsOf cache misses — per-container-epoch invalidation health (task 079)
         const ids = [...(this.byContainer.get(key) ?? [])].sort();
         const result = ids.map(id => this.state.instances[id]!).filter(Boolean);
         this.contentsCache.set(key, result);
@@ -386,6 +388,7 @@ export default class Inventory {
         if (cached) {
             return cached;
         }
+        count('inv.carriedBuild'); // perf: carriedInstances cache misses (task 079)
         const result: ObjectInstance[] = [];
         const walk = (container: ObjectContainerRef): void => {
             for (const instance of this.contentsOf(container)) {
