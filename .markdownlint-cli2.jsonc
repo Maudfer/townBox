@@ -21,6 +21,8 @@
     "dist",
     "coverage",
     "coverage-artifacts",
+    // Worktree-isolated spawned-agent checkouts (gitignored) — don't lint the nested repo copies.
+    ".claude",
     // Generated docs are produced by the doc generators, not hand-edited — fix the generator, not the output.
     "docs/generated",
     // The task backlog is a frozen historical record (each file is a completed/archived ticket); not worth

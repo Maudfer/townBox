@@ -22,6 +22,7 @@ export default tseslint.config(
       'coverage/**',
       'coverage-artifacts/**',
       'src/history/**',
+      '.claude/**', // worktree-isolated spawned-agent checkouts (gitignored) — don't lint the nested repo copies
       '**/*.d.ts',
     ],
   },

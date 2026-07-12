@@ -324,7 +324,7 @@ Other scripts:
 
 ```bash
 npm test               # fast unit suite (Jest + ts-jest)
-npm run test:coverage  # unit suite with the coverage-threshold gate (game/ + util/)
+npm run test:coverage  # unit suite with coverage reporting (CI gates it per module — see below)
 npm run typecheck      # strict tsc --noEmit
 npm run build-prod     # production Parcel build
 ```
@@ -332,10 +332,11 @@ npm run build-prod     # production Parcel build
 CI (`.github/workflows/ci.yml`) splits the checks into **separate concurrent jobs**: the type check, the
 production build, and one `test (<module>)` job per affected module (a `changes` job path-filters which modules a
 PR touched; foundational/shared changes fan out to all). Each `test` job emits its own coverage report, and a
-`coverage` job reads them all and fails if any module is under the threshold. A broad `lint` job (ESLint +
-markdownlint) reproduces the VS Code Problems panel and is a **blocking** required check. `coverage` stays an
-**advisory** forcing function today (visible red, but not blocking) — pressure to grow each module's tests. A
-single `ci-success` job aggregates the required checks — make that the required status check.
+`coverage` job reads them all and fails if any module's owned-file statement coverage is under **80%** (measured
+per module — the gate filters each report to the files that module owns). Lint (ESLint + markdownlint), the
+offline-generator perf gates, and coverage are all **blocking** required checks; a dependency `audit` (production
+deps only) is advisory. A single `ci-success` job aggregates the required checks — make that the required status
+check.
 
 ---
 

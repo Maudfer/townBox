@@ -52,6 +52,7 @@
     
     "include": ["./**/*.ts", "src/app/main.tsx"],
     "exclude": [
-      "node_modules/**/*"
+      "node_modules/**/*",
+      ".claude/**/*"
     ]
   }
