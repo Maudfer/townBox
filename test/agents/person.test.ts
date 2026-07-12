@@ -230,39 +230,81 @@ describe('walk() guard clauses skip movement entirely', () => {
 });
 
 describe('walk(): real per-frame movement', () => {
-    test('converges on the target curb over successive calls, switching axis and updating depth along the way', () => {
-        const road = new Road(2, 2, 'road');
-        road.calculateCurb({ width: 48, height: 48 }, { x: 120, y: 120 }); // curb corners at 100/140
+    test('real per-frame movement drives a WalkingToDestination step past arrival to Arrived (no manual travelStep poking)', () => {
+        // A walking commute (no vehicle): ExitingBuilding -> WalkingToDestination, then real per-frame walk()
+        // movement alone must carry the step to Arrived. This is the regression guard: walk() clears its
+        // target/destination the instant it arrives, so if processTravel re-queried isDestinationReached()
+        // afterwards it would read the wiped state, never see arrival, and stall in WalkingToDestination.
+        const currentTile = new Road(2, 2, 'road');
+        const destRoad = new Road(3, 3, null);
+        destRoad.calculateCurb({ width: 48, height: 48 }, { x: 168, y: 168 }); // curb corners near 148/188
+        const destBuilding = new Building(5, 5, null);
+
+        const gameStub = {
+            pixelToTilePosition: () => ({ row: 3, col: 3 }),
+            field: { getTile: () => destRoad, removeVehicle: () => undefined },
+        } as unknown as GameManager;
+        const pathFinder = { findPath: () => [destRoad] } as unknown as PathFinder;
+
         const p = new Person(0, 0);
+        p.setGameManager(gameStub);
         p.setAsset({} as any);
-        const pathFinder = { findPath: () => [road] } as unknown as PathFinder;
+        p.setDestination(destBuilding); // no vehicle -> walking commute
 
-        p.setDestinationTile(road, { row: 2, col: 2 }, pathFinder);
+        p.update(currentTile, 0, new Set(), pathFinder); // ExitingBuilding -> WalkingToDestination
+        expect((p as any).travelStep).toBe(TravelStep.WalkingToDestination);
+        expect((p as any).currentTarget).not.toBeNull();
         const target = { ...(p as any).currentTarget };
-        expect(target).not.toBeNull();
 
+        // Drive real movement only — no manual travelStep assignment — until the step advances or we time out.
         let iterations = 0;
-        while ((p as any).currentTarget !== null && iterations < 500) {
-            p.walk(road, 20);
+        while ((p as any).travelStep === TravelStep.WalkingToDestination && iterations < 2000) {
+            p.update(currentTile, 50, new Set(), pathFinder);
             iterations++;
         }
 
-        expect(iterations).toBeLessThan(500); // actually converged, not just timed out
-        // walk() never snaps to the exact target (unlike Vehicle.drive()), it only stops advancing once
-        // within the < 1px "reached" threshold, so the final position lands close to, not exactly on, it.
+        // The observable win: arrival detected during real walk() movement actually advanced the travel step.
+        expect(iterations).toBeLessThan(2000); // advanced, not stalled/timed out
+        expect((p as any).travelStep).toBe(TravelStep.Arrived);
+        // And it genuinely walked onto the target curb (within the < 1px "reached" threshold) to get there.
         const finalPosition = p.getPosition()!;
         expect(Math.abs(finalPosition.x - target.x)).toBeLessThan(1);
         expect(Math.abs(finalPosition.y - target.y)).toBeLessThan(1);
-        expect(p.getDepth()).toBe((road.getRow() + 1) * 10 + 1);
+        expect(p.getDepth()).toBe((currentTile.getRow() + 1) * 10 + 1);
+    });
 
-        // walk() clears currentTarget/currentDestination the instant it detects arrival internally. A
-        // caller-side isDestinationReached() check made right after — exactly what processTravel's
-        // WalkingToCar/WalkingToDestination cases do immediately after calling walk() — therefore reads the
-        // already-cleared state and sees a false negative. This documents real, current behavior (existing
-        // travel-flow tests, e.g. test/agents/personTravel.test.ts, work around it by forcing travelStep
-        // directly instead of driving arrival through real per-frame walk() calls).
-        expect((p as any).currentDestination).toBeNull();
-        expect(p.isDestinationReached()).toBe(false);
+    test('real per-frame movement drives a WalkingToCar step past arrival to EnteringCar (no manual travelStep poking)', () => {
+        // Same regression guard on the vehicle commute path: WalkingToCar must advance to EnteringCar off real
+        // walk() movement alone.
+        const homeTile = new Road(2, 2, 'road');
+        const vehicleRoad = new Road(3, 3, null);
+        vehicleRoad.calculateCurb({ width: 48, height: 48 }, { x: 168, y: 168 });
+        const vehicle = new Vehicle(168, 168);
+        const destBuilding = new Building(5, 5, null);
+
+        const gameStub = {
+            pixelToTilePosition: () => ({ row: 3, col: 3 }),
+            field: { getTile: () => vehicleRoad, removeVehicle: () => undefined },
+        } as unknown as GameManager;
+        const pathFinder = { findPath: () => [vehicleRoad] } as unknown as PathFinder;
+
+        const p = new Person(0, 0);
+        p.setGameManager(gameStub);
+        p.setVehicle(vehicle);
+        p.setAsset({} as any);
+        p.setDestination(destBuilding);
+
+        p.update(homeTile, 0, new Set(), pathFinder); // ExitingBuilding -> WalkingToCar
+        expect((p as any).travelStep).toBe(TravelStep.WalkingToCar);
+
+        let iterations = 0;
+        while ((p as any).travelStep === TravelStep.WalkingToCar && iterations < 2000) {
+            p.update(homeTile, 50, new Set(), pathFinder);
+            iterations++;
+        }
+
+        expect(iterations).toBeLessThan(2000); // advanced, not stalled
+        expect((p as any).travelStep).toBe(TravelStep.EnteringCar);
     });
 
     test('moves along X first, then Y, when the target is diagonal (matches the constructor default Axis.X)', () => {

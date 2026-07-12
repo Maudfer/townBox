@@ -120,9 +120,14 @@ export default class Person {
         this.social.setGender(gender);
     }
 
-    walk(currentTile: Tile, timeDelta: number): void {
+    // Moves the person one axis-step toward the current target. Returns true ONLY on the frame it detects
+    // final arrival at the destination (path exhausted + target reached). Callers must observe arrival through
+    // this return value: walk() clears currentTarget/currentDestination the instant it arrives, so a caller
+    // re-querying isDestinationReached() afterwards would read the already-wiped state and see a false negative
+    // (the bug that stalled the WalkingToCar/WalkingToDestination travel steps).
+    walk(currentTile: Tile, timeDelta: number): boolean {
         if (this.insideBuilding || !this.asset || !this.currentTarget || !this.currentDestination /*|| !(currentTile instanceof Road)*/) {
-            return;
+            return false;
         }
 
         const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
@@ -150,13 +155,15 @@ export default class Person {
         if (this.isDestinationReached()) {
             this.currentTarget = null;
             this.currentDestination = null;
-            return;
+            return true;
         }
 
         if (this.isCurrentTargetReached()) {
             this.setNextTarget(currentTile);
-            return;
+            return false;
         }
+
+        return false;
     }
 
     setNextTarget(currentTile: Tile): void {
@@ -294,8 +301,9 @@ export default class Person {
                 }
                 break;
             case TravelStep.WalkingToCar:
-                this.walk(currentTile, timeDelta);
-                if (this.isDestinationReached()) {
+                // walk() reports arrival directly: re-querying isDestinationReached() here would read the
+                // state walk() just cleared on arrival and stall this step forever (the arrival false-negative).
+                if (this.walk(currentTile, timeDelta)) {
                     this.travelStep = TravelStep.EnteringCar;
                 }
                 break;
@@ -333,8 +341,9 @@ export default class Person {
                 this.travelStep = TravelStep.WalkingToDestination;
                 break;
             case TravelStep.WalkingToDestination:
-                this.walk(currentTile, timeDelta);
-                if (this.isDestinationReached()) {
+                // Same arrival contract as WalkingToCar: trust walk()'s return, not a post-hoc
+                // isDestinationReached() read of the state it wiped on arrival.
+                if (this.walk(currentTile, timeDelta)) {
                     this.travelStep = TravelStep.Arrived;
                 }
                 break;
