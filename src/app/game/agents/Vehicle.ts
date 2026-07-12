@@ -283,9 +283,26 @@ export default class Vehicle {
             col: currentTile.getCol()
         };
 
-        this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
-        if (this.path?.length) {
+        const path = pathFinder.findPath(currentTilePosition, this.currentDestination);
+        this.path = path;
+        // Whether the whole route lies on the road segment the car is already parked on: either the path
+        // collapsed to just that segment (a same-segment destination — setNextTarget skips same-tile entries,
+        // which would leave the car targetless), or A* returned [] because the destination IS the cell we are
+        // on. A genuinely unreachable destination ([] with a DIFFERENT target cell) is deliberately excluded —
+        // that stays targetless rather than falsely signalling arrival.
+        const alreadyOnDestinationSegment =
+            (path.length > 0 && path.every(tile => tile === currentTile))
+            || (path.length === 0
+                && destination.row === currentTilePosition.row
+                && destination.col === currentTilePosition.col);
+
+        if (path.length) {
             this.setNextTarget(currentTile);
+        }
+        if (!this.currentTarget && alreadyOnDestinationSegment) {
+            // Arrive in place (task-012 live-verification fix): the car is already on the destination's road;
+            // drive() detects arrival immediately and the traveller walks the last stretch.
+            this.currentTarget = { x: this.x, y: this.y };
         }
     }
 
