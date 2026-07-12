@@ -120,12 +120,24 @@ describe('drive() guard clauses skip movement entirely', () => {
         expect(v.getPosition()).toEqual({ x: 10, y: 10 });
     });
 
-    test('does nothing when the current tile is not a Road', () => {
+    test('does nothing when the current tile is not drivable (soil)', () => {
         const v = new Vehicle(10, 10);
         v.setAsset({} as any);
         (v as any).currentTarget = { x: 50, y: 50 };
         v.drive(new Soil(0, 0, 'grass'), 100);
         expect(v.getPosition()).toEqual({ x: 10, y: 10 });
+    });
+
+    // Regression (task-008 integration suite): the commute car spawns at its owner's building ENTRANCE — a
+    // footprint cell, not a road — so drive() must move from a Building tile (pulling out of the entrance)
+    // or every commute freezes at the Driving step with the car parked forever.
+    test('drives when the current tile is a Building (pulling out of the entrance)', () => {
+        const v = new Vehicle(10, 10);
+        v.setAsset({} as any);
+        (v as any).currentTarget = { x: 50, y: 10 };
+        (v as any).movingAxis = Axis.X;
+        v.drive(new Building(0, 0, null), 100);
+        expect(v.getPosition()!.x).toBeGreaterThan(10);
     });
 });
 

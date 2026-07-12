@@ -74,8 +74,8 @@ export interface TownboxTestApi {
     // full newDay/newTick lifecycle. Resolves once the sim has fully processed all `n` ticks.
     stepTicks(n?: number): Promise<void>;
     // Drives the render/movement loop deterministically: emits `count` `update` frames of `deltaMs` each, so
-    // on-map travel (people walking, cars driving via Field.update) progresses without depending on the real
-    // RAF loop (which the headless browser throttles). The clock stays paused; only positions/travel advance.
+    // on-map travel (people walking, cars driving via Field.update) progresses a known amount per call instead
+    // of at wall-clock RAF pace. The clock stays paused; only positions/travel advance.
     pumpFrames(count?: number, deltaMs?: number): Promise<void>;
     pause(): void;
     resume(): void;

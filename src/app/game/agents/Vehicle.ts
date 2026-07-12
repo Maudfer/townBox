@@ -76,7 +76,11 @@ export default class Vehicle {
     }
 
     drive(currentTile: Tile, timeDelta: number): void {
-        if (!this.asset || !this.currentTarget || !(currentTile instanceof Road)) {
+        // A commute car spawns at its owner's building ENTRANCE (a footprint cell, not a road), so driving
+        // must be allowed from a Building tile too — pulling out of the entrance onto the street — or the
+        // commute freezes at Driving forever (found by the task-008 integration suite). Soil stays blocked.
+        const onDrivableTile = currentTile instanceof Road || currentTile instanceof Building;
+        if (!this.asset || !this.currentTarget || !onDrivableTile) {
             return;
         }
 

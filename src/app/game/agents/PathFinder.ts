@@ -15,6 +15,14 @@ export default class PathFinder {
             throw new Error(`[PathFinder] Invalid start or goal position: ${start}, ${goal}`);
         }
 
+        // The structure the search starts on. A traveller inside a building starts at its ANCHOR (every
+        // footprint cell reports the anchor via getRow()/getCol()), whose four neighbors are all cells of
+        // that same footprint — so without treating the start footprint as walkable, no path can ever LEAVE
+        // a building (the commute-freezing regression introduced by the 3x3 footprint subdivision; the
+        // legacy single-tile world had the road directly adjacent to the anchor).
+        const startTile = this.field.getTile(start.row, start.col);
+        const startIdentifier = startTile ? startTile.getIdentifier() : null;
+
         const startingPositionKey = this.getKeyFromPosition(start);
         const openSet = new Set<string>([startingPositionKey]);
         const cameFrom = new Map<string, string>();
@@ -37,7 +45,7 @@ export default class PathFinder {
             }
 
             openSet.delete(currentPositionKey);
-            const neighbors = this.getValidNeighbors(currentPosition, goal);
+            const neighbors = this.getValidNeighbors(currentPosition, goal, startIdentifier);
 
             for (const neighbor of neighbors) {
                 const tentativeGScore = (gScore.get(currentPositionKey) ?? Infinity) + 1; // Assume cost of 1 for moving from current to neighbor
@@ -80,7 +88,7 @@ export default class PathFinder {
         return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
     }
 
-    private getValidNeighbors(position: TilePosition, destination: TilePosition): TilePosition[] {
+    private getValidNeighbors(position: TilePosition, destination: TilePosition, startIdentifier: string | null): TilePosition[] {
         if (!position) {
             throw new Error(`[PathFinder] Invalid position: ${position}`);
         }
@@ -116,8 +124,12 @@ export default class PathFinder {
             // Every cell of the destination structure shares the same anchor identifier, so this lets A* step
             // through a building's footprint to reach its anchor cell from an adjacent road.
             const isDestination = (neighborTile.getIdentifier() === `${destination.row}-${destination.col}`);
+            // Cells of the START structure's own footprint are walkable too, so a traveller can step out of
+            // (or within) the building they are standing in — see the comment in findPath(). Soil is
+            // unaffected: each soil cell is its own instance, so only the start cell itself matches.
+            const isStartFootprint = (startIdentifier !== null && neighborTile.getIdentifier() === startIdentifier);
 
-            return (isRoad || isDestination);
+            return (isRoad || isDestination || isStartFootprint);
         });
 
         if (!validNeighbors) {

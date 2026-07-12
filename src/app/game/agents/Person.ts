@@ -255,6 +255,18 @@ export default class Person {
         this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
         if (this.path?.length) {
             this.setNextTarget(currentTile);
+            return;
+        }
+
+        // Already there: the destination is the structure we are standing on (e.g. stepping out of the
+        // commute car parked at the destination's own entrance — start tile == goal tile, so A* rightly
+        // returns an empty path). Without a currentTarget, walk() can neither move nor detect arrival and
+        // the travel step stalls forever (found by the task-008 integration suite). Target the building's
+        // entrance — walking the real last leg keeps the person's position coherent for the NEXT commute
+        // (the return trip starts from these pixels) — falling back to where we stand.
+        if (currentTile.getIdentifier() === `${destination.row}-${destination.col}`) {
+            const entrance = currentTile instanceof Building ? currentTile.getEntrance() : null;
+            this.currentTarget = entrance ?? { x: this.x, y: this.y };
         }
     }
 

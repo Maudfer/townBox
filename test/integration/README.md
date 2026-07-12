@@ -78,11 +78,16 @@ the app's own serializer, so every fixture is a valid `WorldSnapshot`). Keep fix
 
 ## Notes / known limits
 
-- **On-map pixel travel** (people walking, cars driving to arrival) is driven by Phaser's per-frame loop + A\*
-  pathfinding, which the headless browser throttles; positions don't advance to arrival reliably here. The
-  commute tests therefore assert the **deterministic, hook-observable** facts — the travel state machine engages
-  and a commute vehicle is assigned — not full arrival (that's exercised by the shipped game's real render loop).
-- **Phaser key input** (F1–F6 / Esc) is processed on the game loop; use `pressToolKey` (press + settle) so a
-  keypress isn't missed under headless throttling.
+- **On-map movement is asserted end to end** (the commute round-trips: home → drive → work → drive → home).
+  Movement frames are driven deterministically with `pumpFrames` after each `stepTicks` call, so travel
+  progresses a known amount per tick instead of at wall-clock RAF pace. Historical note: this suite initially
+  scoped movement down to "the travel state engages" because commutes froze — which turned out to be **three
+  real simulation regressions** (A\* couldn't path *out of* a building footprint after the 3×3 subdivision;
+  commute cars couldn't drive off a Building tile; a walk whose destination is the structure underfoot never
+  detected arrival), not a headless-browser limitation (headless Chromium is a full renderer). All three are
+  fixed and unit-guarded in `test/agents/{pathFinder,vehicle,person}.test.ts`; `canvas/movement.spec.ts` is the
+  end-to-end guard.
+- **Phaser key input** (F1–F6 / Esc) is consumed on the game loop, one keydown per processed frame; use
+  `pressToolKey` (press + short settle) so rapid presses aren't missed between frames.
 - Browser coverage (`COVERAGE=1`) is **informational** — it collects the scene/HUD surface the Jest per-module
   gate excludes and uploads it as an artifact; it does **not** gate.
