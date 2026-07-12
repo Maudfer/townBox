@@ -156,6 +156,23 @@ export default class GameManager {
             this.skipSplash = true;
         }
 
+        // Test-only boot parametrization (task 008, §3), active ONLY in test mode. `?boot=new` skips the splash
+        // straight into a fresh game; `?boot=load` skips it and queues a load from the default save slot (which
+        // the test seeds into localStorage before boot). Lets a scenario fixture boot deterministically without
+        // clicking the canvas splash buttons; the dedicated start/load HUD tests still exercise those buttons.
+        if (this.testMode) {
+            const boot = GameManager.testBootMode();
+            if (boot === 'new') {
+                this.skipSplash = true;
+            } else if (boot === 'load') {
+                const payload = GameManager.readDefaultSaveSlot();
+                if (payload) {
+                    this.pendingLoad = payload;
+                    this.skipSplash = true;
+                }
+            }
+        }
+
         const titleScene = new TitleScene(this);
 
         const phaserConfig: Phaser.Types.Core.GameConfig = {
@@ -259,6 +276,14 @@ export default class GameManager {
         }
         const worldSeed = (Math.random() * 0x100000000) >>> 0;
 
+        // Test mode (task 008): never fetch the multi-hundred-MB history asset — it is slow and its window is
+        // non-deterministic. A `?boot=new` test gets a fast cold-start pool; deterministic scenarios come from
+        // committed save fixtures (`?boot=load`), which skip this method entirely (pendingLoad is set).
+        if (this.testMode) {
+            population.generate(worldSeed);
+            return;
+        }
+
         // 1) The sharded asset served over HTTP (loads only the shards up to the chosen window).
         let selected = await loadSelectedWorldFromHttp(worldSeed);
         // 2) Fallback: a committed single-file asset (small assets / fixtures).
@@ -347,6 +372,32 @@ export default class GameManager {
             return params.has('test');
         } catch {
             return false;
+        }
+    }
+
+    // Reads the `boot` URL param in test mode: 'new' | 'load' | null. Guarded like detectTestMode.
+    private static testBootMode(): 'new' | 'load' | null {
+        try {
+            if (typeof window === 'undefined') {
+                return null;
+            }
+            const value = new URLSearchParams(window.location.search).get('boot');
+            return value === 'new' || value === 'load' ? value : null;
+        } catch {
+            return null;
+        }
+    }
+
+    // Reads the default-slot save payload straight from localStorage (the LocalStorageProvider key format), for
+    // the `?boot=load` path. Kept in sync with game/save/LocalStorageProvider.ts's `townbox:save:<slot>` key.
+    private static readDefaultSaveSlot(): string | null {
+        try {
+            if (typeof window === 'undefined' || !window.localStorage) {
+                return null;
+            }
+            return window.localStorage.getItem(`townbox:save:${DEFAULT_SAVE_SLOT}`);
+        } catch {
+            return null;
         }
     }
 

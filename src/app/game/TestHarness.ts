@@ -52,6 +52,11 @@ export interface StructureCounts {
     businesses: number;
 }
 
+export interface ScreenPoint {
+    x: number;
+    y: number;
+}
+
 export interface TownboxTestApi {
     // --- Time control ---------------------------------------------------
     // Advance the simulation deterministically by `n` in-game hour ticks (default 1), awaiting each tick's
@@ -61,6 +66,14 @@ export interface TownboxTestApi {
     resume(): void;
     getTick(): number;
     getDate(): string;
+
+    // --- Canvas targeting + save (for real clicks / fixture recording) --
+    // Centers the camera on tile (row, col) and returns the viewport pixel where that tile now sits, so a test
+    // can issue a REAL canvas click there. Returns null if the tile/camera isn't available.
+    focusTile(row: number, col: number): ScreenPoint | null;
+    // The current world serialized to the save-string format (compressed + base64). Used by the fixture
+    // recorder to capture a built scenario without going through localStorage.
+    savePayload(): string;
 
     // --- World reads ----------------------------------------------------
     tileAt(row: number, col: number): TileInfo;
@@ -111,6 +124,24 @@ export function createTestApi(game: GameManager): TownboxTestApi {
         },
         getDate(): string {
             return game.clock ? formatTimestamp(game.clock.getTimestamp()) : '';
+        },
+
+        focusTile(row: number, col: number): ScreenPoint | null {
+            const pixel = game.tileToPixelPosition({ row, col });
+            if (!pixel || !game.scene) {
+                return null;
+            }
+            game.scene.centerCameraOn(pixel.x, pixel.y);
+            const canvas = typeof document !== 'undefined' ? document.querySelector('canvas') : null;
+            if (!canvas) {
+                return null;
+            }
+            const rect = canvas.getBoundingClientRect();
+            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        },
+
+        savePayload(): string {
+            return game.saveManager.serialize();
         },
 
         tileAt(row: number, col: number): TileInfo {
