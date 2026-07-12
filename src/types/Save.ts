@@ -35,7 +35,11 @@ import { JobPosition } from 'types/Work';
 //          save runs the fill once per existing building (SaveManager's load sweep) and marks them.
 // v12 → v13: bounded fertility — every pool person gains an innate `maxChildren`. Older saves backfill it
 //          deterministically from (worldSeed, personId) in migrations.
-export const SAVE_VERSION = 13;
+// v13 → v14: lazy history hydration (task 012 follow-up). `historyHydration` pins which asset dir/window the
+//          game was selected from + who has already been hydrated, so households placed AFTER a load keep
+//          receiving pre-game histories. Additive optional field; older saves load with hydration disabled
+//          (people placed later simply arrive without pre-game logs — the sim itself never needed them).
+export const SAVE_VERSION = 14;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -142,4 +146,17 @@ export interface WorldSnapshot {
     // Skill proficiency records (v10, tasks 059–062). Optional: older saves reconstruct via deterministic
     // re-initialization + the legacy mapping (save/legacySkills.ts).
     skillBook?: SkillBookState;
+    // Lazy history hydration (v14, task 012 follow-up): the asset ref (dir/window/createdAt fingerprint) plus
+    // who has already been hydrated. Optional: absent = hydration disabled (cold-start worlds, older saves).
+    historyHydration?: HistoryHydrationSave;
+}
+
+// See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was
+// selected from; `window` is the selected present tick (per-person rebasing depends on it); `hydratedIds` are
+// the people whose pre-game histories are already installed (their logs live in the save itself).
+export interface HistoryHydrationSave {
+    dir: string;
+    window: number;
+    createdAt: string;
+    hydratedIds: string[];
 }

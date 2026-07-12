@@ -8,3 +8,7 @@ docs/generated/event-classification.md text eol=lf
 # committed bytes are identical on every platform.
 test/integration/fixtures/*.txt text eol=lf
 
+
+# History-asset payloads are base64 chunk files whose exact bytes matter (person files are newline-separated
+# compressed chunks); never EOL-convert them.
+src/history/**/*.tbz text eol=lf

@@ -34,16 +34,22 @@ async function driveCommute(page: Page, personId: string, homeKey: string): Prom
     };
     for (let tick = 0; tick < MAX_TICKS; tick++) {
         await step(page, 1);
-        await pumpFrames(page, FRAMES_PER_TICK, 16);
-        const person = (await personById(page, personId))!;
-        if (person.travelStep === 'driving') {
-            result.sawDriving = true;
-            if (person.indoors) {
-                result.sawSpriteVanishWhileDriving = true;
+        // Pump the tick's movement frames in small chunks, sampling between them — the whole drive can
+        // complete within a single large pump (the car covers the town in a few hundred frames), so a
+        // once-per-tick sample would never observe the transient `driving` state.
+        let person = (await personById(page, personId))!;
+        for (let chunk = 0; chunk < 8; chunk++) {
+            await pumpFrames(page, FRAMES_PER_TICK / 8, 16);
+            person = (await personById(page, personId))!;
+            if (person.travelStep === 'driving') {
+                result.sawDriving = true;
+                if (person.indoors) {
+                    result.sawSpriteVanishWhileDriving = true;
+                }
             }
-        }
-        if (await vehiclesCount(page) > 0) {
-            result.sawVehicle = true;
+            if (!result.sawVehicle && await vehiclesCount(page) > 0) {
+                result.sawVehicle = true;
+            }
         }
         if (result.arrivedWorkTick < 0 && person.currentBuilding && person.currentBuilding !== homeKey) {
             result.arrivedWorkTick = tick;

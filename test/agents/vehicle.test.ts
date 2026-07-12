@@ -1,8 +1,10 @@
 import PathFinder from 'game/agents/PathFinder';
 import Vehicle from 'game/agents/Vehicle';
 import Building from 'game/world/Building';
+import Field from 'game/world/Field';
 import Road from 'game/world/Road';
 import Soil from 'game/world/Soil';
+import Tile from 'game/world/Tile';
 import { Direction, Axis } from 'types/Movement';
 
 // Vehicle.updateDestination() reads the global Phaser.Math.RND — stub it (mirrors
@@ -10,6 +12,30 @@ import { Direction, Axis } from 'types/Movement';
 beforeAll(() => {
     (global as unknown as { Phaser: unknown }).Phaser = { Math: { RND: { pick: (items: unknown[]) => items[0] } } };
 });
+
+// Stamps structures onto an otherwise-soil fine grid (every footprint cell references the same instance), the
+// minimal Field surface PathFinder needs — mirrors test/agents/pathFinder.test.ts.
+function stampField(structures: Tile[], rows: number, cols: number): Field {
+    const matrix: { [row: number]: { [col: number]: Tile } } = {};
+    for (let row = 0; row < rows; row++) {
+        matrix[row] = {};
+        for (let col = 0; col < cols; col++) {
+            matrix[row]![col] = new Soil(row, col, 'grass');
+        }
+    }
+    for (const structure of structures) {
+        for (const cell of structure.getFootprintCells(3)) {
+            if (cell && cell.row >= 0 && cell.row < rows && cell.col >= 0 && cell.col < cols) {
+                matrix[cell.row]![cell.col] = structure;
+            }
+        }
+    }
+    return {
+        matrix: matrix as unknown as Field['matrix'],
+        isValidPosition: (row: number, col: number) => row >= 0 && row < rows && col >= 0 && col < cols,
+        getTile: (row: number, col: number) => matrix[row]?.[col] ?? null,
+    } as unknown as Field;
+}
 
 describe('Vehicle construction defaults and simple accessors', () => {
     test('starts uncontrolled, facing East, at depth 0, with no asset', () => {
@@ -459,6 +485,44 @@ describe('setDestinationTile()', () => {
 
         expect((v as any).currentDestination).toEqual({ row: 5, col: 5 });
         expect((v as any).currentTarget).toBeNull();
+    });
+
+    // Regression (task-012 live verification): a trip whose destination street cell sits on the SAME road
+    // segment the car is parked on (e.g. visiting a building across/along the same supertile) produced a path
+    // that collapsed to just the car's own road footprint. setNextTarget rightly skips same-tile entries, but
+    // that left the car TARGETLESS: drive() couldn't move and isDestinationReached() could never become true,
+    // freezing every same-segment leisure trip (and stacking idle cars on the street). The car should instead
+    // arrive in place — it is already on the destination's road; the traveller walks the last stretch.
+    test('arrives in place when the destination is another cell of the road segment the car is on', () => {
+        const road = new Road(1, 1, null); // rows 0-2, cols 0-2 — one supertile segment
+        const field = stampField([road], 3, 3);
+        const pathFinder = new PathFinder(field);
+
+        const v = new Vehicle(24, 40); // parked somewhere on the segment
+        v.setAsset({} as any);
+        v.board();
+
+        v.setDestinationTile(road, { row: 2, col: 0 }, pathFinder); // another fine cell of the SAME segment
+
+        expect((v as any).currentTarget).not.toBeNull();
+        v.drive(road, 16);
+        expect(v.isDestinationReached()).toBe(true); // person's Driving step can advance to ExitingCar
+    });
+
+    test('arrives in place when the destination IS the anchor cell the car is on (empty path)', () => {
+        const road = new Road(1, 1, null);
+        const field = stampField([road], 3, 3);
+        const pathFinder = new PathFinder(field);
+
+        const v = new Vehicle(24, 24);
+        v.setAsset({} as any);
+        v.board();
+
+        v.setDestinationTile(road, { row: 1, col: 1 }, pathFinder); // start == goal → A* returns []
+
+        expect((v as any).currentTarget).not.toBeNull();
+        v.drive(road, 16);
+        expect(v.isDestinationReached()).toBe(true);
     });
 });
 

@@ -17,11 +17,11 @@
 
 import { fakerPT_BR } from '@faker-js/faker';
 
-import { HistoryAsset, HistoryAssetMeta, ShardRef, HISTORY_ASSET_FORMAT_VERSION } from 'game/history/HistoryAsset';
+import { HistoryAsset, HistoryAssetMeta, HISTORY_ASSET_FORMAT_VERSION } from 'game/history/HistoryAsset';
 import { PopulationState, PersonId, GenPerson } from 'types/Genealogy';
-import { EventHistoryTable, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
+import { EventHistory, EventHistoryTable, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
 import { InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
-import { SkillBookState, PersonSkills, SkillSnapshot , SkillTimeline } from 'types/Skill';
+import { SkillBookState, PersonSkills, SkillSnapshot } from 'types/Skill';
 import { Genders } from 'types/Social';
 import { decompress } from 'util/compress';
 import { SeededRandom } from 'util/random';
@@ -106,27 +106,13 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
         if (!(id in people)) {
             continue;
         }
-        const kept: PersonLogEntry[] = [];
-        for (const entry of entries) {
-            if (entry.tick > w) {
-                continue;
-            }
-            const rebasedEntry = { ...entry, tick: entry.tick - w } as PersonLogEntry;
-            kept.push(rebasedEntry);
-            maxSeq = Math.max(maxSeq, entry.seq);
-            if (rebasedEntry.kind === 'event') {
-                const record = (eventHistory[id] ??= {});
-                const existing = record[rebasedEntry.defId];
-                if (!existing) {
-                    record[rebasedEntry.defId] = { count: 1, lastTick: rebasedEntry.tick };
-                } else {
-                    existing.count += 1;
-                    existing.lastTick = Math.max(existing.lastTick, rebasedEntry.tick);
-                }
-            }
+        const windowed = windowPersonLog(entries, w);
+        maxSeq = Math.max(maxSeq, windowed.maxSeq);
+        if (windowed.entries.length > 0) {
+            eventLog[id] = windowed.entries;
         }
-        if (kept.length > 0) {
-            eventLog[id] = kept;
+        if (Object.keys(windowed.history).length > 0) {
+            eventHistory[id] = windowed.history;
         }
     }
 
@@ -151,13 +137,9 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
         const records: Record<PersonId, PersonSkills> = {};
         const initialized: Record<PersonId, true> = {};
         for (const id of Object.keys(people)) {
-            const snapshot = latestSnapshotAt(asset.skillTimeline[id], w);
-            if (!snapshot) {
+            const rebasedSkills = windowPersonSkills(asset.skillTimeline[id], w);
+            if (!rebasedSkills) {
                 continue; // no snapshot as of w → live init handles this person (age-appropriate)
-            }
-            const rebasedSkills: PersonSkills = {};
-            for (const [skillId, record] of Object.entries(snapshot.skills)) {
-                rebasedSkills[skillId] = { ...record, firstAcquiredTick: record.firstAcquiredTick - w, lastProgressedTick: record.lastProgressedTick - w };
             }
             records[id] = rebasedSkills;
             initialized[id] = true;
@@ -169,6 +151,53 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
     }
 
     return result;
+}
+
+// Windows ONE person's log at w: keeps entries with tick ≤ w, rebases their ticks by −w, and derives the
+// person's aggregate event history from the kept entries. The single source of the per-entry transform,
+// shared by eager selection (sliceAndRebase) and lazy per-person hydration (task 012 follow-up).
+export interface WindowedPersonLog {
+    entries: PersonLogEntry[];
+    history: EventHistory;
+    maxSeq: number;
+}
+
+export function windowPersonLog(entries: PersonLogEntry[], w: number): WindowedPersonLog {
+    const kept: PersonLogEntry[] = [];
+    const history: EventHistory = {};
+    let maxSeq = -1;
+    for (const entry of entries) {
+        if (entry.tick > w) {
+            continue;
+        }
+        const rebasedEntry = { ...entry, tick: entry.tick - w } as PersonLogEntry;
+        kept.push(rebasedEntry);
+        maxSeq = Math.max(maxSeq, entry.seq);
+        if (rebasedEntry.kind === 'event') {
+            const existing = history[rebasedEntry.defId];
+            if (!existing) {
+                history[rebasedEntry.defId] = { count: 1, lastTick: rebasedEntry.tick };
+            } else {
+                existing.count += 1;
+                existing.lastTick = Math.max(existing.lastTick, rebasedEntry.tick);
+            }
+        }
+    }
+    return { entries: kept, history, maxSeq };
+}
+
+// Windows ONE person's skill timeline at w: the latest snapshot with tick ≤ w, ticks rebased by −w. Null when
+// no snapshot exists as of w (e.g. a young child) — live initialize() handles them age-appropriately.
+export function windowPersonSkills(timeline: SkillSnapshot[] | undefined, w: number): PersonSkills | null {
+    const snapshot = latestSnapshotAt(timeline, w);
+    if (!snapshot) {
+        return null;
+    }
+    const rebased: PersonSkills = {};
+    for (const [skillId, record] of Object.entries(snapshot.skills)) {
+        rebased[skillId] = { ...record, firstAcquiredTick: record.firstAcquiredTick - w, lastProgressedTick: record.lastProgressedTick - w };
+    }
+    return rebased;
 }
 
 // The latest snapshot with tick <= w (timeline is ascending by tick), or null if none.
@@ -265,67 +294,91 @@ export function selectStartingWorld(asset: HistoryAsset, gameSeed: number): Sele
     return { ...sliced, window };
 }
 
-// --- Sharded / chunked loading (task 077 streaming) -------------------------------------------------------
+// --- Person-keyed lazy loading (format v2 — the task-012 follow-up) ---------------------------------------
 //
 // A streamed asset is a directory: a small header (below) + compressed section files (population/objects/
-// eventHistory) + `log-*`/`skills-*` shards. Selection at window `w` reads only the shards whose range starts
-// at/before `w` — future shards are never fetched — so both the generator (writing) and the game (loading)
-// stay memory-bounded regardless of how long the history is. `read` maps a shard/section file name to its
-// compressed payload (Node fs in tests; a bundled fetch in the browser).
+// eventHistory) + ONE `person-<id>.tbz` file per retained person carrying their whole log + skill timeline as
+// newline-separated compressed chunks (one chunk per generator flush). A new game fetches ONLY the small boot
+// sections — never the person files — and each person's history is hydrated on demand when they materialize
+// (City.setupHousehold), so neither boot time nor memory scale with the asset's total size. `read` maps a
+// section file name to its compressed payload (Node fs in tests; an HTTP fetch in the browser).
 
 export interface AssetHeader {
     meta: HistoryAssetMeta;
     eventLogSeq: number;
     sections: { population: string; objects: string; eventHistory: string };
-    logShards: ShardRef[];
-    skillShards: ShardRef[];
+    // personId → the person's history file. Doubles as the existence check, so hydration never round-trips
+    // for people the asset doesn't know (newborns, immigrant-fallback households).
+    people: Record<PersonId, string>;
+}
+
+// One newline-separated line of a person file: a compressed chunk holding a slice of that person's log
+// entries and/or skill snapshots (whatever the generator flush drained). Chunks are chronological.
+export interface PersonChunk {
+    log?: PersonLogEntry[];
+    skills?: SkillSnapshot[];
+}
+
+// A person's windowed pre-game history, ready to install at materialization: log entries + the derived
+// aggregate (ticks rebased to the game's axis), and their skills as of the window (null → live init).
+export interface HydratedPerson {
+    personId: PersonId;
+    log: PersonLogEntry[];
+    history: EventHistory;
+    skills: PersonSkills | null;
 }
 
 function decodeSection<T>(payload: string): T {
     return JSON.parse(decompress(payload)) as T;
 }
 
-// The full sharded Part B pipeline: pick w, read only the ≤ w shards, assemble, slice/rebase/re-identify.
-export function selectStartingWorldFromShards(header: AssetHeader, read: (file: string) => string, gameSeed: number): SelectedWorld | null {
+// Decodes one person file (newline-separated compressed chunks) and windows it at w. Loops rather than
+// spreads — a person's log can hold tens of thousands of entries.
+export function decodePersonFile(personId: PersonId, payload: string, w: number): HydratedPerson {
+    const log: PersonLogEntry[] = [];
+    const timeline: SkillSnapshot[] = [];
+    for (const line of payload.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            continue;
+        }
+        const chunk = JSON.parse(decompress(trimmed)) as PersonChunk;
+        for (const entry of chunk.log ?? []) {
+            log.push(entry);
+        }
+        for (const snapshot of chunk.skills ?? []) {
+            timeline.push(snapshot);
+        }
+    }
+    const windowed = windowPersonLog(log, w);
+    return {
+        personId,
+        log: windowed.entries,
+        history: windowed.history,
+        skills: windowPersonSkills(timeline.length > 0 ? timeline : undefined, w),
+    };
+}
+
+// The boot-time Part B pipeline for a person-keyed asset: pick w, read ONLY the population + objects sections,
+// slice/rebase/re-identify. Logs, aggregates and skills are deliberately absent — they hydrate per person at
+// materialization (GameManager.hydratePeople). `eventLogSeq` is the generator's end-of-run counter: it upper-
+// bounds every entry that could ever be hydrated, so live commits never collide with pre-game seqs.
+export function selectStartingWorldFromSections(header: AssetHeader, read: (file: string) => string, gameSeed: number): SelectedWorld | null {
     if (!validateAsset({ meta: header.meta }).ok) {
         return null;
     }
     const w = pickWindow(header.meta, gameSeed);
 
-    // Merge only the log shards that can hold entries at/before w (minTick <= w). Entries after w are
-    // truncated by sliceAndRebase; shards entirely after w are never read.
-    const eventLog: EventLogTable = {};
-    for (const shard of header.logShards) {
-        if (shard.minTick > w) {
-            continue;
-        }
-        const table = decodeSection<EventLogTable>(read(shard.file));
-        for (const [id, entries] of Object.entries(table)) {
-            (eventLog[id] ??= []).push(...entries);
-        }
-    }
-    const skillTimeline: SkillTimeline = {};
-    for (const shard of header.skillShards) {
-        if (shard.minTick > w) {
-            continue;
-        }
-        const timeline = decodeSection<SkillTimeline>(read(shard.file));
-        for (const [id, snapshots] of Object.entries(timeline)) {
-            (skillTimeline[id] ??= []).push(...snapshots);
-        }
-    }
-
     const asset: HistoryAsset = {
         meta: header.meta,
         population: decodeSection<PopulationState>(read(header.sections.population)),
         objects: decodeSection<InventoryState>(read(header.sections.objects)),
-        eventHistory: {}, // rebuilt from the windowed log by sliceAndRebase
-        eventLog,
+        eventHistory: {},
+        eventLog: {},
         eventLogSeq: header.eventLogSeq,
         eventSchedule: { queue: [], nextScheduleSeq: 0 },
-        skillTimeline,
     };
     const sliced = sliceAndRebase(asset, w);
     reidentify(sliced.population, gameSeed);
-    return { ...sliced, window: w };
+    return { ...sliced, eventLogSeq: header.eventLogSeq, window: w };
 }

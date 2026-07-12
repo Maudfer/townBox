@@ -84,7 +84,9 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         };
 
         resetD3Containers(tags);
-        const familyTreeGraph = createFamilyTree(nodes, links, size, tags);
+        // Lay out against the SVG's actual dimensions (0.8 × window), not the window size — otherwise the
+        // centre/bounds are off and the outer nodes clip past the right/bottom edges (task-012 fix).
+        const familyTreeGraph = createFamilyTree(nodes, links, { width: size.width * 0.8, height: size.height * 0.8 }, tags);
 
         return () => {
             familyTreeGraph?.stop();

@@ -40,7 +40,11 @@ import { TICKS_PER_DAY } from 'util/time';
 const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
 
 // The asset schema version — bump on shape changes (drives the load-time compatibility check, Part B).
-export const HISTORY_ASSET_FORMAT_VERSION = 1;
+// v2 (task 012 follow-up): the person-keyed lazy layout — the event log + skill timeline are streamed to ONE
+// file per retained person (`person-<id>.tbz`, newline-separated compressed chunks) instead of time-ranged
+// shards, so the game fetches only the small boot sections up-front and hydrates each person's history
+// on demand at materialization. A v1 (time-sharded) asset is rejected → cold-start fallback.
+export const HISTORY_ASSET_FORMAT_VERSION = 2;
 // The generator version — bump when the sim/events change materially, so re-runs are distinguishable.
 // 077.1: the logical-economy world (off-map schools/jobs/objects → the asset carries lived skills/possessions).
 // 077.2: per-window skill snapshotting (a per-person skill timeline instead of an end-of-generation snapshot).
@@ -179,27 +183,18 @@ export interface HistoryAsset {
     // skill timeline (per-window snapshotting) lets selection pick each person's skills as of the window.
     skillTimeline?: SkillTimeline;
     objects?: InventoryState;
-    // When STREAMED to a sink (task 077), the event log + skill timeline live in these sharded files instead
-    // of inline; `eventLog`/`skillTimeline` are then empty and chunked loading reads only the shards it needs.
-    logShards?: ShardRef[];
-    skillShards?: ShardRef[];
-}
-
-// A written shard's descriptor (task 077 streaming): the file it went to + the tick range it covers, so
-// chunked loading can skip shards entirely past the selected window.
-export interface ShardRef {
-    file: string;
-    minTick: number;
-    maxTick: number;
+    // When STREAMED to a sink (task 077), the event log + skill timeline live in per-person files instead of
+    // inline (`eventLog`/`skillTimeline` are then empty) — the sink owns the on-disk layout (format v2).
 }
 
 // The disk sink the CLI provides so the generator can stream the two big, ever-growing sections (event log +
-// skill timeline) to sharded files as it goes, instead of holding the whole centuries-long history in RAM.
-// Each call writes one compressed shard and returns its descriptor. Implemented in scripts/ (Node/fs); the
-// generator core stays browser-safe (no fs import). Absent = in-memory generation (small runs + tests).
+// skill timeline) as it goes, instead of holding the whole centuries-long history in RAM. Each flush hands the
+// sink the drained tables; the sink splits them per person and appends a compressed chunk line to each
+// person's file (format v2 — the person-keyed lazy layout). Implemented in scripts/ (Node/fs); the generator
+// core stays browser-safe (no fs import). Absent = in-memory generation (small runs + tests).
 export interface HistoryAssetSink {
-    logShard(table: EventLogTable): ShardRef;
-    skillShard(timeline: SkillTimeline): ShardRef;
+    logChunk(table: EventLogTable): void;
+    skillChunk(timeline: SkillTimeline): void;
 }
 
 export type GenerationPhase = 'warmup' | 'recording';
@@ -346,12 +341,10 @@ export async function generateHistoryAsset(
     let deaths = 0;
     let epochTick: number | null = null;
 
-    // Streaming state (task 077): when a sink is provided, periodically flush the log + skill timeline to disk
-    // shards so RAM never holds the whole centuries-long history. `logCounts` tracks per-person log lengths for
-    // the median stat (the in-RAM log is drained away). The `loggable` filter (declared above) is applied at
-    // flush time.
-    const logShards: ShardRef[] = [];
-    const skillShards: ShardRef[] = [];
+    // Streaming state (task 077): when a sink is provided, periodically flush the log + skill timeline to the
+    // sink (per-person files, format v2) so RAM never holds the whole centuries-long history. `logCounts`
+    // tracks per-person log lengths for the median stat (the in-RAM log is drained away). The `loggable`
+    // filter (declared above) is applied at flush time.
     const logCounts = new Map<PersonId, number>();
     let lastFlushBucket = 0;
     const slimLog = (table: EventLogTable): EventLogTable => {
@@ -372,12 +365,12 @@ export async function generateHistoryAsset(
         }
         const logTable = slimLog(engine.drainLog());
         if (Object.keys(logTable).length > 0) {
-            logShards.push(sink.logShard(logTable));
+            sink.logChunk(logTable);
         }
         if (logical) {
             const timeline = logical.drainSkillTimeline();
             if (Object.keys(timeline).length > 0) {
-                skillShards.push(sink.skillShard(timeline));
+                sink.skillChunk(timeline);
             }
         }
     };
@@ -602,10 +595,7 @@ export async function generateHistoryAsset(
     if (logical && skillBook) {
         asset.objects = logical.carriedInventoryState(retainedSet);
     }
-    if (sink) {
-        asset.logShards = logShards;
-        asset.skillShards = skillShards;
-    } else if (skillTimeline) {
+    if (!sink && skillTimeline) {
         asset.skillTimeline = skillTimeline;
     }
 

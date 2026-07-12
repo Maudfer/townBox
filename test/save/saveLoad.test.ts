@@ -252,6 +252,32 @@ describe('SaveManager round-trip', () => {
 
         expect(await manager.load('missing')).toBe(false);
     });
+
+    // Lazy history hydration (v14, task 012 follow-up): the asset ref + hydrated set round-trips, so
+    // households placed after a load keep receiving pre-game histories.
+    test('the historyHydration ref round-trips (v14) and clears when absent', async () => {
+        const provider = new MemoryProvider();
+        const source = makeWorld(9, 9);
+        const hydrationState = {
+            dir: './', window: 123456, createdAt: '2026-07-12T00:00:00.000Z', hydratedIds: ['p1', 'p7'],
+        };
+        (source.game as unknown as { getHistoryHydrationState: () => unknown }).getHistoryHydrationState = () => hydrationState;
+        await new SaveManager(source.game, provider).save('slot');
+
+        const target = makeWorld(9, 9);
+        const received: unknown[] = [];
+        (target.game as unknown as { setHistoryHydrationState: (state: unknown) => void }).setHistoryHydrationState =
+            (state: unknown) => received.push(state);
+        await new SaveManager(target.game, provider).load('slot');
+        expect(received).toEqual([hydrationState]);
+
+        // A cold-start world saves no ref → deserialize passes undefined (clearing any stale hydration).
+        const coldSource = makeWorld(9, 9);
+        await new SaveManager(coldSource.game, provider).save('cold');
+        received.length = 0;
+        await new SaveManager(target.game, provider).load('cold');
+        expect(received).toEqual([undefined]);
+    });
 });
 
 describe('legacy skill migration (v<10, tasks 059-062)', () => {

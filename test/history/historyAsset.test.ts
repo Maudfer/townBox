@@ -11,10 +11,11 @@ import {
     DEFAULT_GENERATOR_PARAMS,
     HistoryAsset,
     GenerationProgress,
+    HISTORY_ASSET_FORMAT_VERSION,
 } from 'game/history/HistoryAsset';
 import {
     sliceAndRebase, reidentify, pickWindow, selectStartingWorld, validateAsset,
-    selectStartingWorldFromShards, AssetHeader,
+    selectStartingWorldFromSections, decodePersonFile, AssetHeader,
 } from 'game/history/HistoryAssetSelection';
 import { decodeAsset, loadCommittedAsset } from 'game/history/HistoryAssetSource';
 import { PopulationState } from 'types/Genealogy';
@@ -297,7 +298,7 @@ function fixtureAsset(): HistoryAsset {
     };
     return {
         meta: {
-            formatVersion: 1, generatorVersion: 'test', seed: 1, params: { ...DEFAULT_GENERATOR_PARAMS, warmMarginYears: 0 },
+            formatVersion: HISTORY_ASSET_FORMAT_VERSION, generatorVersion: 'test', seed: 1, params: { ...DEFAULT_GENERATOR_PARAMS, warmMarginYears: 0 },
             createdAt: '', gitCommit: null, epochTick: 0, endTick: 100000, ticksPerYear: 8640,
             stats: { retainedPeople: 4, livingAtEnd: 2, births: 0, deaths: 0, medianHistoryLen: 0, trajectory: [], runtimeMs: 0, rawBytes: 0, compressedBytes: 0 },
         },
@@ -487,41 +488,84 @@ describe('selection — sliceAndRebase edge cases', () => {
     });
 });
 
-describe('selectStartingWorldFromShards — direct (bypassing loadSelectedWorldFromHttp)', () => {
-    function shardHeader(overrides: Partial<AssetHeader['meta']> = {}): AssetHeader {
+describe('selectStartingWorldFromSections — direct (bypassing loadSelectedWorldFromHttp)', () => {
+    function sectionsHeader(overrides: Partial<AssetHeader['meta']> = {}): AssetHeader {
         const asset = fixtureAsset();
         return {
             meta: { ...asset.meta, ...overrides },
             eventLogSeq: asset.eventLogSeq,
             sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
-            logShards: [{ file: 'log-0.tbz', minTick: 0, maxTick: 5000 }, { file: 'log-far-future.tbz', minTick: 500000, maxTick: 600000 }],
-            skillShards: [{ file: 'skills-far-future.tbz', minTick: 500000, maxTick: 600000 }],
+            people: { p1: 'person-p1.tbz' },
         };
     }
 
     test('rejects an incompatible format version before reading any file', () => {
-        const header = shardHeader({ formatVersion: 999 });
+        const header = sectionsHeader({ formatVersion: 999 });
         const read = (file: string): string => { throw new Error(`should never read ${file}`); };
-        expect(selectStartingWorldFromShards(header, read, 1)).toBeNull();
+        expect(selectStartingWorldFromSections(header, read, 1)).toBeNull();
     });
 
-    test('never reads a shard whose minTick is past the selected window', () => {
+    test('reads ONLY the population + objects sections — never a person file or the eventHistory section', () => {
         const asset = fixtureAsset();
-        const header = shardHeader();
+        const header = sectionsHeader();
         const store = new Map<string, string>([
             ['population.tbz', compress(JSON.stringify(asset.population))],
             ['objects.tbz', compress(JSON.stringify(asset.objects ?? { instances: {}, nextInstanceSeq: 0 }))],
-            ['log-0.tbz', compress(JSON.stringify({}))],
-            // Deliberately no entry for the far-future shards — reading them throws, proving they're skipped.
+            // Deliberately no person/eventHistory entries — reading them throws, proving they're never touched.
         ]);
         const read = (file: string): string => {
             if (!store.has(file)) {
-                throw new Error(`unexpectedly read far-future shard: ${file}`);
+                throw new Error(`unexpectedly read: ${file}`);
             }
             return store.get(file)!;
         };
-        const selected = selectStartingWorldFromShards(header, read, 1);
+        const selected = selectStartingWorldFromSections(header, read, 1);
         expect(selected).not.toBeNull();
-        expect(selected!.window).toBeLessThan(500000);
+        // Boot installs no logs/skills (they hydrate per person later) and carries the header's log seq.
+        expect(selected!.eventLog).toEqual({});
+        expect(selected!.skillBook).toBeUndefined();
+        expect(selected!.eventLogSeq).toBe(header.eventLogSeq);
+    });
+});
+
+describe('decodePersonFile — the per-person lazy hydration decode', () => {
+    test('merges chunk lines, windows/rebases the log, derives the aggregate, and picks skills as of w', () => {
+        const w = 1000;
+        const entryAt = (tick: number, seq: number, defId: string): unknown =>
+            ({ kind: 'event', defId, tick, seq, source: 'probabilistic' });
+        const chunk1 = compress(JSON.stringify({
+            log: [entryAt(100, 1, 'fell_ill'), entryAt(400, 2, 'recovered')],
+            skills: [{ tick: 200, skills: { music: { proficiency: 10, firstAcquiredTick: 100, lastProgressedTick: 200, provenance: ['school'] } } }],
+        }));
+        const chunk2 = compress(JSON.stringify({
+            log: [entryAt(900, 3, 'fell_ill'), entryAt(1500, 4, 'died')], // 1500 > w → truncated
+            skills: [
+                { tick: 950, skills: { music: { proficiency: 25, firstAcquiredTick: 100, lastProgressedTick: 950, provenance: ['school'] } } },
+                { tick: 1400, skills: { music: { proficiency: 90, firstAcquiredTick: 100, lastProgressedTick: 1400, provenance: ['school'] } } }, // past w → ignored
+            ],
+        }));
+        const hydrated = decodePersonFile('p7', `${chunk1}\n${chunk2}\n`, w);
+
+        // Windowed + rebased log (entry at 1500 dropped; ticks −w).
+        expect(hydrated.log.map(entry => entry.tick)).toEqual([100 - w, 400 - w, 900 - w]);
+        // Aggregate derived from the kept entries.
+        expect(hydrated.history).toEqual({
+            fell_ill: { count: 2, lastTick: 900 - w },
+            recovered: { count: 1, lastTick: 400 - w },
+        });
+        // Skills: the LATEST snapshot at tick ≤ w (950), rebased — never the future one.
+        expect(hydrated.skills).toEqual({
+            music: { proficiency: 25, firstAcquiredTick: 100 - w, lastProgressedTick: 950 - w, provenance: ['school'] },
+        });
+    });
+
+    test('a person with no snapshot as of w gets skills: null (live init handles them)', () => {
+        const w = 100;
+        const chunk = compress(JSON.stringify({
+            skills: [{ tick: 500, skills: { music: { proficiency: 10, firstAcquiredTick: 400, lastProgressedTick: 500, provenance: ['school'] } } }],
+        }));
+        const hydrated = decodePersonFile('p8', `${chunk}\n`, w);
+        expect(hydrated.skills).toBeNull();
+        expect(hydrated.log).toEqual([]);
     });
 });

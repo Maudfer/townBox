@@ -21,8 +21,15 @@ import SchoolRegistry from 'game/skills/SchoolRegistry';
 import SkillBook from 'game/skills/SkillBook';
 import SocialLife from 'game/population/SocialLife';
 import SaveManager from 'game/save/SaveManager';
-import { loadCommittedAsset, loadSelectedWorldFromHttp } from 'game/history/HistoryAssetSource';
+import {
+    HistoryHydrationRef,
+    HistoryHydrationSource,
+    loadCommittedAsset,
+    loadSelectedWorldFromHttp,
+    reopenHydrationSource,
+} from 'game/history/HistoryAssetSource';
 import { selectStartingWorld, SelectedWorld } from 'game/history/HistoryAssetSelection';
+import { PersonId } from 'types/Genealogy';
 import config from 'json/config.json';
 import toolAssets from 'json/toolAssets.json';
 import { Toolbelt } from 'types/Cursor';
@@ -30,7 +37,7 @@ import { EventListeners, Handler } from 'types/EventListener';
 import { EventPayloads, UpdateEvent } from 'types/Events';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { PixelPosition, TilePosition } from 'types/Position';
-import { DEFAULT_SAVE_SLOT } from 'types/Save';
+import { DEFAULT_SAVE_SLOT, HistoryHydrationSave } from 'types/Save';
 import { MS_PER_TICK } from 'util/time';
 
 export default class GameManager {
@@ -67,6 +74,15 @@ export default class GameManager {
     // control API is installed on `window.__townbox` once the game is initialized.
     private testMode: boolean;
     private timePaused: boolean;
+
+    // Lazy history hydration (task 012 follow-up): which asset generation/window this world was selected from,
+    // who already has their pre-game history installed, and the live reader (rebuilt on demand after a load).
+    private historyHydration: {
+        ref: HistoryHydrationRef;
+        hydrated: Set<PersonId>;
+        source: HistoryHydrationSource | null;
+        reopenAttempted: boolean;
+    } | null;
 
     constructor() {
         // Fail loudly on invalid data files before anything consumes them (task 039). The registry validated
@@ -148,6 +164,7 @@ export default class GameManager {
         // Detect opt-in test mode. Pause time up front so no ticks slip through before the harness installs.
         this.testMode = GameManager.detectTestMode();
         this.timePaused = this.testMode;
+        this.historyHydration = null;
 
         // Debug auto-load: if a build ships with an embedded save, queue it and skip the splash screen.
         const autoLoad = config.debug.autoLoad;
@@ -157,12 +174,13 @@ export default class GameManager {
         }
 
         // Test-only boot parametrization (task 008, §3), active ONLY in test mode. `?boot=new` skips the splash
-        // straight into a fresh game; `?boot=load` skips it and queues a load from the default save slot (which
-        // the test seeds into localStorage before boot). Lets a scenario fixture boot deterministically without
-        // clicking the canvas splash buttons; the dedicated start/load HUD tests still exercise those buttons.
+        // straight into a fresh game (cold-start pool); `?boot=asset` does the same but through the REAL
+        // history-asset path (lazy hydration and all); `?boot=load` skips it and queues a load from the default
+        // save slot (which the test seeds into localStorage before boot). Lets a scenario fixture boot
+        // deterministically without clicking the canvas splash buttons.
         if (this.testMode) {
             const boot = GameManager.testBootMode();
-            if (boot === 'new') {
+            if (boot === 'new' || boot === 'asset') {
                 this.skipSplash = true;
             } else if (boot === 'load') {
                 const payload = GameManager.readDefaultSaveSlot();
@@ -274,24 +292,34 @@ export default class GameManager {
         if (!population) {
             return;
         }
-        const worldSeed = (Math.random() * 0x100000000) >>> 0;
+        // `?seed=N` pins the world seed (and therefore the asset window) — test mode only.
+        const worldSeed = (this.testMode ? GameManager.testSeed() : null) ?? ((Math.random() * 0x100000000) >>> 0);
 
-        // Test mode (task 008): never fetch the multi-hundred-MB history asset — it is slow and its window is
-        // non-deterministic. A `?boot=new` test gets a fast cold-start pool; deterministic scenarios come from
-        // committed save fixtures (`?boot=load`), which skip this method entirely (pendingLoad is set). A
-        // `?seed=N` param pins the pool so the fixture recorder can reproduce a world.
-        if (this.testMode) {
-            population.generate(GameManager.testSeed() ?? worldSeed);
+        // Test mode (task 008): `?boot=new` gets a fast cold-start pool (no asset fetch, deterministic per
+        // `?seed=N`); `?boot=asset` exercises the REAL person-keyed asset path below, so the integration suite
+        // can cover boot + lazy hydration end to end.
+        if (this.testMode && GameManager.testBootMode() !== 'asset') {
+            population.generate(worldSeed);
             return;
         }
 
-        // 1) The sharded asset served over HTTP (loads only the shards up to the chosen window).
-        let selected = await loadSelectedWorldFromHttp(worldSeed);
-        // 2) Fallback: a committed single-file asset (small assets / fixtures).
-        if (!selected) {
-            const asset = loadCommittedAsset();
-            selected = asset ? selectStartingWorld(asset, worldSeed) : null;
+        // 1) The person-keyed asset served over HTTP (task 012 follow-up): boot fetches ONLY the small
+        //    population/objects sections; each drawn person's history hydrates on demand (hydratePeople).
+        const loaded = await loadSelectedWorldFromHttp(worldSeed);
+        if (loaded) {
+            this.installSelectedWorld(loaded.selected);
+            this.historyHydration = {
+                ref: loaded.hydration.ref,
+                hydrated: new Set(),
+                source: loaded.hydration,
+                reopenAttempted: true,
+            };
+            return;
         }
+
+        // 2) Fallback: a committed single-file asset (small assets / fixtures) — eager, no hydration needed.
+        const asset = loadCommittedAsset();
+        const selected = asset ? selectStartingWorld(asset, worldSeed) : null;
         if (selected) {
             this.installSelectedWorld(selected);
             return;
@@ -300,6 +328,71 @@ export default class GameManager {
         // 3) No committed asset — cold-start a plain generated pool (the pre-036 behaviour).
         console.info("[GameManager] No committed history asset; starting from a cold-start pool.");
         population.generate(worldSeed);
+    }
+
+    // Lazy per-person history hydration (task 012 follow-up): installs the given people's pre-game skills,
+    // aggregate event history, and log entries from the history asset. Called by City.setupHousehold BEFORE
+    // materialization so SkillBook.initialize() sees their lived skills as `initialized`. Idempotent per
+    // person; people the asset doesn't know (newborns, immigrants, cold-start worlds) are skipped silently.
+    async hydratePeople(personIds: PersonId[]): Promise<void> {
+        const hydration = this.historyHydration;
+        if (!hydration) {
+            return;
+        }
+        const pending = personIds.filter(id => !hydration.hydrated.has(id));
+        if (pending.length === 0) {
+            return;
+        }
+
+        // After a load the live reader is gone; rebuild it once from the save's pinned ref. A missing or
+        // regenerated (createdAt-mismatched) asset disables hydration for the session — graceful degradation.
+        if (!hydration.source && !hydration.reopenAttempted) {
+            hydration.reopenAttempted = true;
+            hydration.source = await reopenHydrationSource(hydration.ref);
+            if (!hydration.source) {
+                console.info('[GameManager] History asset unavailable for this save; pre-game histories disabled.');
+            }
+        }
+        const source = hydration.source;
+        if (!source) {
+            return;
+        }
+
+        // Mark everyone up front (including ids the asset doesn't know) so no person is ever fetched twice.
+        for (const id of pending) {
+            hydration.hydrated.add(id);
+        }
+        const present = pending.filter(id => source.has(id));
+        if (present.length === 0) {
+            return;
+        }
+        const bundles = await source.fetchPeople(present);
+        for (const bundle of bundles) {
+            if (bundle.skills) {
+                this.skillBook?.installPerson(bundle.personId, bundle.skills);
+            }
+            this.eventEngine?.installPersonHistory(bundle.personId, bundle.history);
+            this.eventEngine?.installPersonLog(bundle.personId, bundle.log);
+        }
+    }
+
+    // Save/load surface for the hydration state (SaveManager, v14).
+    getHistoryHydrationState(): HistoryHydrationSave | undefined {
+        if (!this.historyHydration) {
+            return undefined;
+        }
+        return { ...this.historyHydration.ref, hydratedIds: [...this.historyHydration.hydrated] };
+    }
+
+    setHistoryHydrationState(state: HistoryHydrationSave | undefined): void {
+        this.historyHydration = state
+            ? {
+                ref: { dir: state.dir, window: state.window, createdAt: state.createdAt },
+                hydrated: new Set(state.hydratedIds),
+                source: null,
+                reopenAttempted: false,
+            }
+            : null;
     }
 
     // Installs a selected asset window into the live systems. Installing the SkillBook (with its `initialized`
@@ -393,14 +486,14 @@ export default class GameManager {
         }
     }
 
-    // Reads the `boot` URL param in test mode: 'new' | 'load' | null. Guarded like detectTestMode.
-    private static testBootMode(): 'new' | 'load' | null {
+    // Reads the `boot` URL param in test mode: 'new' | 'asset' | 'load' | null. Guarded like detectTestMode.
+    private static testBootMode(): 'new' | 'asset' | 'load' | null {
         try {
             if (typeof window === 'undefined') {
                 return null;
             }
             const value = new URLSearchParams(window.location.search).get('boot');
-            return value === 'new' || value === 'load' ? value : null;
+            return value === 'new' || value === 'asset' || value === 'load' ? value : null;
         } catch {
             return null;
         }
