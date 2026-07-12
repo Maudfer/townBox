@@ -115,7 +115,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 60
+                "perYear": 12
             }
         },
         "effects": []
@@ -362,7 +362,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 4
+                "perYear": 26
             }
         },
         "effects": [
@@ -610,6 +610,18 @@
                             "attr": "health",
                             "op": "<",
                             "value": 1
+                        },
+                        {
+                            "not": {
+                                "hasEvent": "fell_ill",
+                                "withinTicks": 48
+                            }
+                        },
+                        {
+                            "not": {
+                                "hasEvent": "injury",
+                                "withinTicks": 48
+                            }
                         }
                     ]
                 }
@@ -617,7 +629,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 24
+                "perYear": 18
             }
         },
         "effects": [
@@ -802,7 +814,7 @@
                                 },
                                 {
                                     "at": 8,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 20,
@@ -1663,6 +1675,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "!=",
+                            "value": "married"
                         }
                     ]
                 }
@@ -1727,6 +1744,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "!=",
+                            "value": "married"
                         }
                     ]
                 }
@@ -2040,6 +2062,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "==",
+                            "value": "married"
                         }
                     ]
                 }
@@ -2072,6 +2099,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "==",
+                            "value": "married"
                         }
                     ]
                 }
@@ -2448,6 +2480,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "marital",
+                            "op": "==",
+                            "value": "married"
                         }
                     ]
                 }
@@ -2565,9 +2602,28 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "gender",
+                            "op": "==",
+                            "value": "female"
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 16
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 45
+                        }
+                    ]
                 }
             }
         },
@@ -2628,9 +2684,22 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "gender",
+                            "op": "==",
+                            "value": "female"
+                        },
+                        {
+                            "hasEvent": "became_pregnant",
+                            "withinTicks": 2160
+                        }
+                    ]
                 }
             }
         },
@@ -2650,9 +2719,23 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 25
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 55
+                        }
+                    ]
                 }
             }
         },
@@ -2867,9 +2950,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "became_parent"
+                        }
+                    ]
                 }
             }
         },
@@ -2913,9 +3003,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "became_parent"
+                        }
+                    ]
                 }
             }
         },
@@ -3186,9 +3283,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "became_parent"
+                        }
+                    ]
                 }
             }
         },
@@ -4133,6 +4237,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -4567,6 +4676,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -4660,6 +4774,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -4692,6 +4811,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -5188,7 +5312,12 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 5
+                            "value": 7
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 17
                         }
                     ]
                 }
@@ -5220,7 +5349,12 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 5
+                            "value": 7
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 17
                         }
                     ]
                 }
@@ -5252,7 +5386,12 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 5
+                            "value": 7
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 17
                         }
                     ]
                 }
@@ -5316,7 +5455,12 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 5
+                            "value": 7
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 17
                         }
                     ]
                 }
@@ -5975,7 +6119,12 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 5
+                            "value": 7
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 17
                         }
                     ]
                 }
@@ -6928,7 +7077,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -6941,7 +7090,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -6973,7 +7122,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -6986,7 +7135,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7018,7 +7167,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7031,7 +7180,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7063,7 +7212,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7076,7 +7225,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7108,7 +7257,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7121,7 +7270,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7153,7 +7302,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7166,7 +7315,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7218,7 +7367,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7231,7 +7380,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7263,7 +7412,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7276,7 +7425,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7307,7 +7456,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7320,7 +7469,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7352,7 +7501,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7365,7 +7514,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7397,7 +7546,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7410,7 +7559,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7442,7 +7591,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7455,7 +7604,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7487,7 +7636,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7500,7 +7649,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7532,7 +7681,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7545,7 +7694,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7577,7 +7726,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7590,7 +7739,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7621,7 +7770,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7634,7 +7783,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7666,7 +7815,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7679,7 +7828,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7711,7 +7860,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7724,7 +7873,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7796,7 +7945,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7809,7 +7958,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7840,7 +7989,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7853,7 +8002,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7884,7 +8033,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7897,7 +8046,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7928,7 +8077,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7941,7 +8090,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -7973,7 +8122,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -7986,7 +8135,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -8018,7 +8167,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -8031,7 +8180,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -8062,7 +8211,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -8075,7 +8224,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -8106,7 +8255,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -8119,7 +8268,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -8150,7 +8299,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0,
+                "perYear": 2,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -8163,7 +8312,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -9860,7 +10009,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -9914,7 +10063,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -9968,7 +10117,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10021,7 +10170,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10075,7 +10224,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10129,7 +10278,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10183,7 +10332,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10236,7 +10385,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10290,7 +10439,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10344,7 +10493,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10397,7 +10546,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10451,7 +10600,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10505,7 +10654,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10558,7 +10707,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10612,7 +10761,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10666,7 +10815,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10720,7 +10869,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10774,7 +10923,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10828,7 +10977,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10882,7 +11031,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10935,7 +11084,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -10989,7 +11138,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11043,7 +11192,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11097,7 +11246,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11151,7 +11300,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11205,7 +11354,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11259,7 +11408,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11313,7 +11462,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11366,7 +11515,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11420,7 +11569,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -11609,9 +11758,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
                 }
             }
         },
@@ -11632,9 +11790,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 16
+                        }
+                    ]
                 }
             }
         },
@@ -11655,9 +11822,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
                 }
             }
         },
@@ -12246,9 +12422,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
                 }
             }
         },
@@ -12338,9 +12523,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -12589,9 +12791,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
+                        }
+                    ]
                 }
             }
         },
@@ -12642,7 +12853,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -12695,7 +12906,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -12778,7 +12989,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -12832,7 +13043,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -12886,7 +13097,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -12940,7 +13151,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -12993,7 +13204,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13047,7 +13258,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13101,7 +13312,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13155,7 +13366,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13209,7 +13420,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13263,7 +13474,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13317,7 +13528,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13371,7 +13582,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13425,7 +13636,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13507,7 +13718,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13619,7 +13830,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13672,7 +13883,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13704,7 +13915,7 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 8
+                            "value": 18
                         }
                     ]
                 }
@@ -13725,7 +13936,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13758,7 +13969,7 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 8
+                            "value": 18
                         }
                     ]
                 }
@@ -13779,7 +13990,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13833,7 +14044,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13916,7 +14127,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -13969,7 +14180,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14022,7 +14233,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14105,7 +14316,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14159,7 +14370,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14213,7 +14424,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14266,7 +14477,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14320,7 +14531,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14373,7 +14584,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14404,8 +14615,13 @@
                         },
                         {
                             "attr": "age",
-                            "op": "<",
-                            "value": 13
+                            "op": ">=",
+                            "value": 5
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 12
                         }
                     ]
                 }
@@ -14426,7 +14642,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14480,7 +14696,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14534,7 +14750,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14588,7 +14804,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14642,7 +14858,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14696,7 +14912,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14750,7 +14966,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14804,7 +15020,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14886,7 +15102,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14940,7 +15156,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -14993,7 +15209,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15047,7 +15263,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15101,7 +15317,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15154,7 +15370,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15207,7 +15423,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15261,7 +15477,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15315,7 +15531,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15369,7 +15585,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15423,7 +15639,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15477,7 +15693,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -15531,7 +15747,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16482,7 +16698,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16593,7 +16809,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16647,7 +16863,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16700,7 +16916,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16754,7 +16970,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16808,7 +17024,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16861,7 +17077,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16914,7 +17130,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -16968,7 +17184,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17022,7 +17238,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17076,7 +17292,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17129,7 +17345,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17182,7 +17398,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17236,7 +17452,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17290,7 +17506,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17344,7 +17560,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17397,7 +17613,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17450,7 +17666,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17504,7 +17720,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17558,7 +17774,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17611,7 +17827,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17693,7 +17909,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17747,7 +17963,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17820,7 +18036,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17865,7 +18081,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17910,7 +18126,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -17975,7 +18191,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18019,7 +18235,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18063,7 +18279,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18107,7 +18323,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18151,7 +18367,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18195,7 +18411,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18240,7 +18456,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18284,9 +18500,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
                 }
             }
         },
@@ -18305,7 +18530,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18349,9 +18574,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
                 }
             }
         },
@@ -18370,7 +18604,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18394,9 +18628,18 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
                 }
             }
         },
@@ -18415,7 +18658,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18479,7 +18722,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18543,7 +18786,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18587,7 +18830,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18632,7 +18875,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18677,7 +18920,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18722,7 +18965,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18766,7 +19009,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18811,7 +19054,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18875,7 +19118,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -18928,7 +19171,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19011,7 +19254,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19093,7 +19336,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19146,7 +19389,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19199,7 +19442,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19282,7 +19525,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19336,7 +19579,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19418,7 +19661,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19471,7 +19714,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19554,7 +19797,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19607,7 +19850,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19661,7 +19904,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19715,7 +19958,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19768,7 +20011,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19822,7 +20065,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19876,7 +20119,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19929,7 +20172,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -19982,7 +20225,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20036,7 +20279,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20090,7 +20333,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20152,7 +20395,7 @@
                         {
                             "attr": "age",
                             "op": ">=",
-                            "value": 12
+                            "value": 18
                         }
                     ]
                 }
@@ -20173,7 +20416,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20227,7 +20470,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20271,7 +20514,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20316,7 +20559,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20360,7 +20603,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20405,7 +20648,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20450,7 +20693,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20515,7 +20758,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20560,7 +20803,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20605,7 +20848,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20650,7 +20893,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20755,7 +20998,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20799,7 +21042,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20843,7 +21086,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20888,7 +21131,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20933,7 +21176,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -20978,7 +21221,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21062,7 +21305,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21126,7 +21369,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21170,7 +21413,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21214,7 +21457,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21259,7 +21502,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21304,7 +21547,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21348,9 +21591,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21369,7 +21629,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21393,9 +21653,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21414,7 +21691,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21438,9 +21715,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "adopted_dog"
+                        }
+                    ]
                 }
             }
         },
@@ -21459,7 +21743,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21483,9 +21767,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "adopted_dog"
+                        }
+                    ]
                 }
             }
         },
@@ -21504,7 +21795,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21527,9 +21818,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21548,7 +21856,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21572,9 +21880,17 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "pet_ran_away",
+                            "withinTicks": 1440
+                        }
+                    ]
                 }
             }
         },
@@ -21593,7 +21909,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21657,7 +21973,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21680,9 +21996,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21701,7 +22034,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21725,9 +22058,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21746,7 +22096,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21790,9 +22140,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21811,7 +22178,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21855,9 +22222,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -21876,7 +22260,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21919,9 +22303,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "adopted_cat"
+                        }
+                    ]
                 }
             }
         },
@@ -21940,7 +22331,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -21963,9 +22354,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "adopted_dog"
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 7
+                        },
+                        {
+                            "attr": "age",
+                            "op": "<=",
+                            "value": 17
+                        }
+                    ]
                 }
             }
         },
@@ -21984,7 +22392,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22008,9 +22416,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -22029,7 +22454,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22093,7 +22518,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22138,7 +22563,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22161,9 +22586,26 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "adopted_dog"
+                                },
+                                {
+                                    "hasEvent": "adopted_cat"
+                                },
+                                {
+                                    "hasEvent": "adopted_goldfish"
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -22182,7 +22624,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22206,9 +22648,17 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "entered_pet_show",
+                            "withinTicks": 720
+                        }
+                    ]
                 }
             }
         },
@@ -22227,7 +22677,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22251,9 +22701,16 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "hasEvent": "adopted_cat"
+                        }
+                    ]
                 }
             }
         },
@@ -22272,7 +22729,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22317,7 +22774,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22362,7 +22819,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22407,7 +22864,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22492,7 +22949,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22557,7 +23014,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22601,7 +23058,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22646,7 +23103,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22691,7 +23148,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22736,7 +23193,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22781,7 +23238,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22826,7 +23283,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22871,7 +23328,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22915,7 +23372,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -22960,7 +23417,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23025,7 +23482,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23070,7 +23527,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23134,7 +23591,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23179,7 +23636,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23224,7 +23681,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23268,7 +23725,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23312,7 +23769,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23357,7 +23814,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23402,7 +23859,7 @@
                                 },
                                 {
                                     "at": 7,
-                                    "value": 1.0
+                                    "value": 1
                                 },
                                 {
                                     "at": 22,
@@ -23433,7 +23890,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23456,7 +23913,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23479,7 +23936,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23501,7 +23958,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23523,7 +23980,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23546,7 +24003,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23569,7 +24026,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23611,7 +24068,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23633,7 +24090,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23656,7 +24113,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23699,7 +24156,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23721,7 +24178,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23743,7 +24200,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23765,7 +24222,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23788,7 +24245,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23811,7 +24268,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23834,7 +24291,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23856,7 +24313,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23898,7 +24355,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23940,7 +24397,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             }
         },
         "limit": {
@@ -23962,7 +24419,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -23985,7 +24442,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -24008,7 +24465,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },
@@ -24031,7 +24488,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.0
+                "perYear": 2
             },
             "manual": {}
         },

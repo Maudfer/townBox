@@ -72,7 +72,7 @@ describe('per-year incidence bands (task 048)', () => {
         const ill = counts['fell_ill'] ?? 0;
         expect(ill).toBeGreaterThanOrEqual(20); // 2/yr × 70 people, recovery re-arms eligibility
         expect(ill).toBeLessThanOrEqual(280);
-        expect(counts['recovered'] ?? 0).toBeGreaterThanOrEqual(Math.floor(ill * 0.5)); // 24/yr recovery is fast
+        expect(counts['recovered'] ?? 0).toBeGreaterThanOrEqual(Math.floor(ill * 0.5)); // 18/yr recovery (+2-day floor, task 080) is still fast
     });
 
     test('the pregnancy limit prevents machine-gun conceptions', () => {
