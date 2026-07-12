@@ -24,13 +24,16 @@
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-// The fraction metrics cancel machine JITTER within a run, but they still drift a little across DIFFERENT
-// microarchitectures (a component's share of a tick depends on how that CPU weights its op mix). So the gate
-// is strict but not razor-thin, and — critically — the committed baselines are measured on the same machine
-// class that runs the gate (CI), not a dev box: the first CI run of the DOMINANT buckets landed within ±6% of
-// a dev box, while the small (< ~0.05-share) buckets swung ±15%. So only the dominant buckets are ENFORCED
-// (see ENFORCED_FRACTIONS in generationPerf), at a tolerance with headroom over that ±6% for CI-to-CI noise;
-// the small buckets are logged for trend and covered precisely by the deterministic guards.
+// The fraction metrics cancel machine JITTER within a run, but a component's share of a tick still moves ~±8-10%
+// CI-run-to-CI-run (the two big phases, events and brain, trade time back and forth; two early CI runs showed
+// events at 101.6% then 108.2% of a one-run baseline). Two things keep the gate from flaking on that:
+//   1. Only the DOMINANT buckets are ENFORCED (see ENFORCED_FRACTIONS in generationPerf); the small
+//      (< ~0.05-share) buckets swing even harder (±15%) and are logged for trend, not gated.
+//   2. The committed baselines are CENTERED on several CI runs (not anchored to one), so a bucket's deviation
+//      is roughly ±half the peak-to-peak swing (~±4-5%) rather than one-sided — leaving real headroom under the
+//      tolerance below. Baselines MUST be CI-measured (the same machine class), never a dev box.
+// A real regression (losing an 078/079 win) balloons a phase's share far past this; the precise, tight
+// protection of each specific win lives in the deterministic guards (regressionGuards.test.ts).
 export const FRACTION_TOLERANCE = 0.12;
 export const UPDATE_BASELINES = process.env.PERF_UPDATE_BASELINES === '1';
 

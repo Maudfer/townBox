@@ -2,16 +2,16 @@
   "advance.durationFinish": 0.02382,
   "advance.finish:onCompleteEvent": 0.01264,
   "advance.invoke:attempt": 0.00827,
-  "advance.pool": 0.1137,
-  "brain.freeTime:loop": 0.1885,
+  "advance.pool": 0.11774,
+  "brain.freeTime:loop": 0.17929,
   "brain.freeTime:modifiers": 0.05786,
   "brain.freeTime:requirements": 0.04695,
-  "brain.idleFallback": 0.1764,
+  "brain.idleFallback": 0.16754,
   "brain.inventoryOpportunity": 0.05709,
   "brain.resolveIntents": 0.04884,
   "brain.socialOpportunity": 0.06669,
   "brain.wokeUp": 0.03301,
-  "phase.actions": 0.18684,
-  "phase.brain": 0.66271,
-  "phase.events": 0.79782
+  "phase.actions": 0.18549,
+  "phase.brain": 0.63404,
+  "phase.events": 0.83034
 }
