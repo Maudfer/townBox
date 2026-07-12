@@ -590,12 +590,18 @@ export default class ActionEngine {
         const world = deps.ctx.world;
         // Per-instance override (task 046): a shared work action's location is the person's OWN workplace,
         // supplied by the caller (Brain/Orchestrator) rather than authored on the shared definition.
-        const requiredLocation = instance.locationOverride ?? def.location;
+        let requiredLocation = instance.locationOverride ?? def.location;
+        // Follow-the-person targeting (task 085): 'person:<id>' resolves to that person's CURRENT location,
+        // re-read on every materialize pass so a moved target re-routes the transition below.
+        if (requiredLocation?.startsWith('person:') && world) {
+            requiredLocation = locationKey(world.locationOf(requiredLocation.slice('person:'.length)));
+        }
         if (requiredLocation && world) {
             const at = locationKey(world.locationOf(instance.personId));
             if (at !== requiredLocation) {
                 let handle = this.handles.get(instance.id) ?? null;
-                if (!handle || handle.status === 'cancelled') {
+                const stale = handle && handle.status === 'arrived' && locationKey(handle.target) !== requiredLocation;
+                if (!handle || handle.status === 'cancelled' || stale) {
                     handle = world.requestTransition(instance.personId, parseLocationKey(requiredLocation), deps.tick, instance.causationId);
                     this.handles.set(instance.id, handle);
                     instance.transitionHandleId = handle.id;

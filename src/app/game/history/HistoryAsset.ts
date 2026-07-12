@@ -25,6 +25,7 @@ import BootstrapWorld from 'game/execution/BootstrapWorld';
 import { runTick } from 'game/execution/TickRunner';
 import LogicalWorld, { LogicalWorldConfig } from 'game/history/LogicalWorld';
 import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/population/Population';
+import Agenda from 'game/actions/Agenda';
 import Needs from 'game/population/Needs';
 import SocialGraph from 'game/population/SocialGraph';
 import SkillBook from 'game/skills/SkillBook';
@@ -316,6 +317,8 @@ export async function generateHistoryAsset(
     const socialGraph = logical ? logical.socialGraph : bootstrapSocial!;
     const bootstrapNeeds = logical ? null : new Needs();
     const needsLedger = logical ? logical.needs : bootstrapNeeds!;
+    const bootstrapAgenda = logical ? null : new Agenda();
+    const agendaLedger = logical ? logical.agenda : bootstrapAgenda!;
     if (logical && skillBook) {
         logical.buildSchools(params.recordThreshold);
         logical.buildJobs(skillBook, params.recordThreshold);
@@ -396,6 +399,7 @@ export async function generateHistoryAsset(
             logical?.onDeath(id);
             bootstrapSocial?.removePerson(id);
             bootstrapNeeds?.removePerson(id);
+            bootstrapAgenda?.removePerson(id);
             deaths++;
         }
     };
@@ -435,7 +439,7 @@ export async function generateHistoryAsset(
             agentIds,
             tick,
             ticksPerYear: tpy,
-            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger } },
+            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger } },
             ...(facts ? { inventory: facts.inventory } : {}),
             ticksPerStep: step,
         });

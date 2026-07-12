@@ -11,7 +11,7 @@ import { EventManifest } from 'types/LifeEvent';
 const DISPOSITIONS = ['consumed', 'retained', 'transformed', 'required'];
 const OWNERSHIP_TARGETS = ['person', 'targetPerson', 'employer', 'world', 'none'];
 const CONTAINERS = ['possessions', 'location'];
-const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'triggerEvent', 'scheduleEvent'];
+const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'planJointActivity', 'triggerEvent', 'scheduleEvent'];
 
 function validateObjectQuery(issues: IssueCollector, path: string, query: unknown): void {
     if (!checkRecord(issues, path, query)) {
@@ -128,6 +128,13 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                     checkEnum(issues, `${opPath}.kind`, op['kind'], ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'ex_partner']);
                 }
                 break;
+            case 'planJointActivity':
+                // Task 085/D3: mirrored agenda entries from a consented invitation.
+                checkUnknownKeys(issues, opPath, op, ['op', 'activityParam', 'afterTicks', 'windowTicks']);
+                checkString(issues, `${opPath}.activityParam`, op['activityParam']);
+                checkNumber(issues, `${opPath}.afterTicks`, op['afterTicks'], { min: 0, integer: true });
+                checkNumber(issues, `${opPath}.windowTicks`, op['windowTicks'], { min: 1, integer: true });
+                break;
             case 'triggerEvent':
                 checkUnknownKeys(issues, opPath, op, ['op', 'event']);
                 checkString(issues, `${opPath}.event`, op['event']);
@@ -164,6 +171,10 @@ export function validateConsequenceOpsSemantics(issues: IssueCollector, path: st
         if (op.op === 'adjustRelationship' && !declaredParams.has('target')) {
             // Task 083: the edge is actor↔target; without a target parameter the op can never plan.
             issues.add(opPath, `adjustRelationship requires the action to declare a "target" parameter`);
+        }
+        if (op.op === 'planJointActivity' && !declaredParams.has('target')) {
+            // Task 085: the mirrored entries need both sides; without a target the op can never plan.
+            issues.add(opPath, `planJointActivity requires the action to declare a "target" parameter`);
         }
     });
 }

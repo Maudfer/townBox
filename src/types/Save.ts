@@ -5,6 +5,7 @@ import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { Direction } from 'types/Movement';
+import { AgendaState } from 'types/Agenda';
 import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
 import { SocialGraphState } from 'types/Relationship';
@@ -159,6 +160,8 @@ export interface WorldSnapshot {
     socialGraph?: SocialGraphState;
     // The needs ledger (v16, task 084). Optional so older saves lazily re-seed per person.
     needs?: NeedsState;
+    // The agenda (v16, task 085). Optional so older saves load with no pending plans (routines re-plan).
+    agenda?: AgendaState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

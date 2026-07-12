@@ -14,6 +14,7 @@
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
+import { plannerHook } from 'game/actions/Planner';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import { ActionDefinition } from 'types/Action';
@@ -129,6 +130,7 @@ export default class Brain {
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
+            plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
             wokeUpHook,
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)

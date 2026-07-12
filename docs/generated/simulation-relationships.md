@@ -9,7 +9,7 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 261 | 67 continuous / 194 discrete |
+| `actions.json` | 262 | 67 continuous / 195 discrete |
 | `events.json` | 709 | 173 probabilistic, 165 manual, 369 probabilistic + manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
@@ -135,6 +135,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `gave_object_to_person` | ask first | failParent | `action_declined` | w 0.12, cd 72 |
 | `greeted_person` | no consent | — | — | w 1.5, cd 2 |
 | `hugged_person` | ask first | skipStep | — | w 0.6, cd 8 |
+| `invite_to_activity` | ask first | skipStep | — | w 0.3, cd 48 |
 | `invited_person_over` | ask first | skipStep | — | w 0.2, cd 48 |
 | `kissed_partner` | ask first | skipStep | — | w 0.8, cd 6 |
 | `lent_an_object` | ask first | failParent | `action_declined` | w 0.2, cd 48 |

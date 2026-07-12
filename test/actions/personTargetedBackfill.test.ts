@@ -46,12 +46,12 @@ const personTargeted = Object.entries(ACTIONS)
 
 // The ratified posture table: consent is asked where imposition is real (affection, transfers, borrowing,
 // invitations, teaching); greetings/casual talk don't ask, and NOBODY consents to the hostile set.
-const ASK_FIRST = ['gave_object_to_person', 'kissed_partner', 'hugged_person', 'invited_person_over', 'lent_an_object', 'returned_borrowed_object', 'shared_food_with_person', 'taught_person_something'];
+const ASK_FIRST = ['gave_object_to_person', 'invite_to_activity', 'kissed_partner', 'hugged_person', 'invited_person_over', 'lent_an_object', 'returned_borrowed_object', 'shared_food_with_person', 'taught_person_something'];
 const TRANSFERS = ['gave_object_to_person', 'lent_an_object', 'returned_borrowed_object', 'shared_food_with_person'];
 
 describe('the curated contract table', () => {
     test('every person-targeted action is contracted with the ratified askFirst posture', () => {
-        expect(personTargeted.length).toBe(20); // 18 pre-074 + hugged_person + kissed_partner (083)
+        expect(personTargeted.length).toBe(21); // 18 pre-074 + hugged_person + kissed_partner (083) + invite_to_activity (085)
         for (const actionId of personTargeted) {
             const contract = ACTIONS[actionId]!.interaction!;
             expect(contract.targetParam).toBe('target');

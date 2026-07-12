@@ -13,6 +13,7 @@
 // deterministic (seeded from the world seed; its RNG is forked so it never perturbs the event/action streams).
 
 import { generateBusiness } from 'game/economy/BusinessGen';
+import Agenda from 'game/actions/Agenda';
 import Needs from 'game/population/Needs';
 import SocialGraph from 'game/population/SocialGraph';
 import EventEngine from 'game/events/EventEngine';
@@ -75,7 +76,7 @@ interface LogicalBusiness {
 // TickRunner only needs the world + markets (jobMarket for get_job/layoff, skills for education) + inventory —
 // no jobOf/schoolOf/skillProgression facts.
 export interface LogicalTickFacts {
-    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs } };
+    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda } };
     inventory: Inventory;
 }
 
@@ -101,6 +102,7 @@ export default class LogicalWorld implements WorldAdapter {
     // The elective social graph (task 083): off-map interactions grow the same edges live play does.
     readonly socialGraph = new SocialGraph();
     readonly needs = new Needs();
+    readonly agenda = new Agenda();
     readonly schoolRegistry: SchoolRegistry;
     private schoolSeats: SchoolSeat[] = [];
     private jobMarket: LogicalJobMarket | null = null;
@@ -217,6 +219,7 @@ export default class LogicalWorld implements WorldAdapter {
         this.jobMarket?.fire(personId);
         this.socialGraph.removePerson(personId); // death dissolves elective bonds (task 083)
         this.needs.removePerson(personId);
+        this.agenda.removePerson(personId);
         this.schoolRegistry.release(personId);
         this.locationNow.delete(personId);
         // Remove from the co-location index so peopleAt never returns the dead (homeKeyOf is kept; the
@@ -445,7 +448,7 @@ export default class LogicalWorld implements WorldAdapter {
     tickFacts(skillBook: SkillBook, tick: number): LogicalTickFacts {
         const skillRegistry = new SkillRegistry(skillBook, tick);
         return {
-            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs } },
+            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda } },
             inventory: this.inventory,
         };
     }

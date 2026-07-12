@@ -384,6 +384,34 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 });
                 break;
             }
+            case 'planJointActivity': {
+                // Joint plans (task 085 / D3): a consented invitation installs mirrored agenda entries. The
+                // activity id and target come from the action's params; missing either is a plan failure.
+                const guestId = ctx.params['target'];
+                const activityId = ctx.params[op.activityParam];
+                if (typeof guestId !== 'string' || typeof activityId !== 'string') {
+                    return null;
+                }
+                steps.push(() => {
+                    const agenda = ctx.deps.ctx.markets?.agenda ?? null;
+                    if (!agenda) {
+                        return; // no planning substrate (pure tests) — benign no-op
+                    }
+                    const linkId = `l${ctx.causationId ?? ctx.deps.tick}`;
+                    const window = {
+                        enqueuedAtTick: ctx.deps.tick,
+                        earliestTick: ctx.deps.tick + op.afterTicks,
+                        latestTick: ctx.deps.tick + op.afterTicks + op.windowTicks,
+                        linkId,
+                        causationId: ctx.causationId,
+                        source: 'jointActivity',
+                    };
+                    // Host at home; guest follows the host.
+                    agenda.enqueue({ ...window, personId: ctx.personId, actionId: activityId, locationOverride: 'home' });
+                    agenda.enqueue({ ...window, personId: guestId, actionId: activityId, locationOverride: `person:${ctx.personId}` });
+                });
+                break;
+            }
             case 'triggerEvent': {
                 steps.push(() => {
                     const { result } = ctx.deps.eventEngine.invoke(

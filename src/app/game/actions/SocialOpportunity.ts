@@ -17,6 +17,10 @@ import { SeededRandom, hashStringToSeed } from 'util/random';
 export const SOCIAL_SALT = 0x50c;
 const SOCIAL_CHANCE_PER_TICK = 0.15;
 
+// The joint activities an invitation may propose (task 085/D3). A code list for now — each must be a
+// continuous social/leisure action; a follow-up data pass can move this onto the action schema.
+export const JOINT_ACTIVITIES = ['catching_up_over_coffee', 'watching_television', 'hosting_gathering', 'taking_a_walk'] as const;
+
 // The person-targeted candidate set (task 079): which actions the social hook can even consider — an
 // `interaction` block and a positive base weight — depends only on the manifest, so it is computed once per
 // manifest instead of re-scanning all ~260 actions (mostly non-interaction) on every eligible tick. The
@@ -118,11 +122,13 @@ export const socialOpportunityHook: BrainHook = {
                 && company.includes(instance.owner.personId))
             .sort((a, b) => a.id.localeCompare(b.id));
 
-        const candidates: { actionId: string; weight: number; objectParam: string | null }[] = [];
+        const candidates: { actionId: string; weight: number; objectParam: string | null; activityParam: string | null }[] = [];
         for (const { actionId, def } of socialCandidates(engine.getManifest())) {
-            // The hook can bind the target and (for return-style actions) ONE borrowed object instance;
-            // any other required parameter is unbindable here — never propose an unstartable intent.
+            // The hook can bind the target, (for return-style actions) ONE borrowed object instance, and
+            // (for invitations, task 085) an 'activity' string from the joint-activity list; any other
+            // required parameter is unbindable here — never propose an unstartable intent.
             let objectParam: string | null = null;
+            let activityParam: string | null = null;
             let bindable = true;
             for (const [name, spec] of Object.entries(def.parameters ?? {})) {
                 if (!spec.required || name === def.interaction!.targetParam) {
@@ -130,6 +136,8 @@ export const socialOpportunityHook: BrainHook = {
                 }
                 if (spec.type === 'objectInstance' && objectParam === null && borrowed.length > 0) {
                     objectParam = name;
+                } else if (spec.type === 'string' && name === 'activity' && activityParam === null) {
+                    activityParam = name;
                 } else {
                     bindable = false;
                 }
@@ -155,7 +163,7 @@ export const socialOpportunityHook: BrainHook = {
                 weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
             }
             if (weight > 0) {
-                candidates.push({ actionId, weight, objectParam });
+                candidates.push({ actionId, weight, objectParam, activityParam });
             }
         }
         addSeg('social:loop', tLoop);
@@ -182,6 +190,10 @@ export const socialOpportunityHook: BrainHook = {
             params[picked.objectParam] = instance.id;
         } else {
             params[targetParam] = pickedTarget;
+        }
+        // Invitations (task 085): bind a seeded joint-activity pick.
+        if (picked.activityParam !== null) {
+            params[picked.activityParam] = JOINT_ACTIVITIES[rng.nextInt(0, JOINT_ACTIVITIES.length - 1)]!;
         }
         return [{
             actionId: picked.actionId,

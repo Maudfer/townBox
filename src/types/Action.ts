@@ -212,6 +212,11 @@ export type ConsequenceOp =
     // (acquaintance → friend, …) fire their authored events (json/relationships.json ladder) for BOTH sides,
     // chained to this commit. No-op without a graph in context (pure tests).
     | { op: 'adjustRelationship'; delta: number; kind?: string }
+    // Install MIRRORED agenda entries for the actor and the action's target (task 085 / proposal D3): both
+    // plan the activity named by `activityParam` inside [now+afterTicks, +windowTicks], the guest following
+    // the host ('person:<actor>'). This is the consented joint-plan mechanism — couple walks, dinner guests —
+    // riding two linked instances instead of a multi-person action. No-op without an agenda in context.
+    | { op: 'planJointActivity'; activityParam: string; afterTicks: number; windowTicks: number }
     // Fire a manual Event now / schedule an automated one — both through the Event engine, with causation.
     | { op: 'triggerEvent'; event: string }
     | { op: 'scheduleEvent'; event: string; afterTicks: number };

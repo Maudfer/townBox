@@ -4,6 +4,7 @@ import City from './City';
 
 import Clock from 'game/Clock';
 import ActionEngine from 'game/actions/ActionEngine';
+import Agenda from 'game/actions/Agenda';
 import Brain from 'game/actions/Brain';
 import { assertValidData } from 'game/data/schemas';
 import Economy from 'game/economy/Economy';
@@ -59,6 +60,7 @@ export default class GameManager {
     public skillBook: SkillBook | null;
     public socialGraph: SocialGraph | null;
     public needs: Needs | null;
+    public agenda: Agenda | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -159,6 +161,7 @@ export default class GameManager {
         this.skillBook = null;
         this.socialGraph = null;
         this.needs = null;
+        this.agenda = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -271,6 +274,10 @@ export default class GameManager {
             // The needs ledger (task 084): per-person motivational meters, serialized (save v16). Lazily
             // seeded per person on first read; a load restores levels during deserialize.
             this.needs = new Needs();
+
+            // The agenda (task 085): persisted planned intents (routines, visits, joint plans).
+            // A load restores entries during deserialize.
+            this.agenda = new Agenda();
 
             // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.

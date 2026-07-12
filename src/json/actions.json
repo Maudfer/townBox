@@ -4782,5 +4782,45 @@
         "satisfies": {
             "social": 10
         }
+    },
+    "invite_to_activity": {
+        "label": "Invited someone to spend time together",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            },
+            "activity": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "consequences": [
+            {
+                "op": "planJointActivity",
+                "activityParam": "activity",
+                "afterTicks": 4,
+                "windowTicks": 14
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 1.5
+            }
+        ],
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 48
+        },
+        "satisfies": {
+            "social": 4
+        }
     }
 }

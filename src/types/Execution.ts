@@ -5,6 +5,7 @@
 // request resolves immediately — both emit identical lifecycle records. `mode` exists for logging/metrics
 // only and must NEVER gate game logic.
 
+import { AgendaAccess } from 'types/Agenda';
 import { PersonId } from 'types/Genealogy';
 import { JobMarket, MoneyLedger, HousingMarket, SkillRegistry } from 'types/LifeEvent';
 import { NeedsReader } from 'types/Needs';
@@ -60,6 +61,9 @@ export interface SimulationMarkets {
     // The needs ledger (task 084): action commits credit their `satisfies`, selection reads urgency.
     // Null/absent = pre-needs contexts (pure tests) — selection multipliers read as 1.
     needs?: NeedsReader | null;
+    // The agenda (task 085): the planner hook reads due entries; producers and the joint-activity
+    // consequence enqueue. Null/absent = no planning (pure tests).
+    agenda?: AgendaAccess | null;
 }
 
 export interface ExecutionContext {

@@ -29,6 +29,7 @@ import {
 import { validateObjectGenerationStructure, validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
 import { validateNeedsSemantics, validateNeedsStructure } from 'game/data/validators/needs';
 import { validateRelationshipsSemantics, validateRelationshipsStructure } from 'game/data/validators/relationships';
+import { validateRoutinesSemantics, validateRoutinesStructure } from 'game/data/validators/routines';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
     validateSkillInitSemantics,
@@ -57,6 +58,7 @@ import placementConfig from 'json/placement.json';
 import populationConfig from 'json/population.json';
 import relationshipsConfig from 'json/relationships.json';
 import residencesConfig from 'json/residences.json';
+import routinesConfig from 'json/routines.json';
 import schoolsConfig from 'json/schools.json';
 import skillInitConfig from 'json/skillInit.json';
 import skillsConfig from 'json/skills.json';
@@ -93,6 +95,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'schools', version: 1, data: schoolsConfig, validateStructure: validateSchoolsStructure, validateSemantics: validateSchoolsSemantics },
         { name: 'relationships', version: 1, data: relationshipsConfig, validateStructure: validateRelationshipsStructure, validateSemantics: validateRelationshipsSemantics },
         { name: 'needs', version: 1, data: needsConfig, validateStructure: validateNeedsStructure, validateSemantics: validateNeedsSemantics },
+        { name: 'routines', version: 1, data: routinesConfig, validateStructure: validateRoutinesStructure, validateSemantics: validateRoutinesSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
         { name: 'config', version: 1, data: config, validateStructure: validateConfigStructure },
         { name: 'input', version: 1, data: inputConfig, validateStructure: validateInputStructure },
