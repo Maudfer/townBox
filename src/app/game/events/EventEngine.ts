@@ -444,6 +444,25 @@ export default class EventEngine {
                 return partnerId;
             }
         }
+        // Romance-arc binds (task 090 / proposal B4), read from the elective social graph:
+        // partnerOrDatingOf — the genealogy spouse first, else the strongest dating/engaged edge; engagedOf —
+        // the strongest engaged edge only (the marriage event's gate: no engagement, no wedding).
+        if (relation === 'partnerOrDatingOf' || relation === 'engagedOf') {
+            if (relation === 'partnerOrDatingOf') {
+                const partnerId = spouseAt(state.people, baseId, tick);
+                if (partnerId && state.people[partnerId] && isAliveAt(state.people[partnerId]!, tick)) {
+                    return partnerId;
+                }
+            }
+            const kinds = relation === 'engagedOf' ? ['engaged'] : ['dating', 'engaged'];
+            const edges = this.social?.edgesOf(baseId, tick)
+                .filter(edge => kinds.includes(edge.view.kind)
+                    && state.people[edge.otherId] && isAliveAt(state.people[edge.otherId]!, tick)) ?? [];
+            if (edges.length > 0) {
+                const best = edges.reduce((top, edge) => edge.view.strength > top.view.strength ? edge : top);
+                return best.otherId;
+            }
+        }
         return null;
     }
 
@@ -582,6 +601,9 @@ export default class EventEngine {
                     this.marry(state, subjectId, partnerId, tick);
                     this.setOverlay(subjectId, 'marital', 'married');
                     this.setOverlay(partnerId, 'marital', 'married');
+                    // The wedding consumes the engagement edge (task 090): spouse standing derives from the
+                    // genealogy from here on — without this, engagedOf could re-marry a divorced pair forever.
+                    this.social?.removeEdgeBetween?.(subjectId, partnerId);
                 }
                 return true;
             }
@@ -591,6 +613,9 @@ export default class EventEngine {
                 this.setOverlay(subjectId, 'marital', 'divorced');
                 if (partnerId) {
                     this.setOverlay(partnerId, 'marital', 'divorced');
+                    // Exes stay in each other's stories (task 090): a lingering ex_partner edge seasons
+                    // future consent/targeting without any scripting.
+                    this.social?.setKind(subjectId, partnerId, 'ex_partner', tick, 20);
                 }
                 return true;
             }

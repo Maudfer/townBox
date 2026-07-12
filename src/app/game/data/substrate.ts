@@ -140,7 +140,7 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
         if ('to' in q) {
             checkString(issues, `${path}.relationship.to`, q['to']);
         }
-        const STANDINGS = ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'ex_partner', 'spouse', 'family', 'none'];
+        const STANDINGS = ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'engaged', 'ex_partner', 'spouse', 'family', 'none'];
         if (checkArray(issues, `${path}.relationship.kinds`, q['kinds'])) {
             const kinds = q['kinds'] as unknown[];
             if (kinds.length === 0) {

@@ -28,7 +28,7 @@ import { isAliveAt, parentsOf, siblingsOf, spouseAt } from 'util/kinship';
 export const RELATIONSHIPS_CONFIG = relationshipsConfig as unknown as RelationshipsConfig;
 
 const TICKS_PER_DAY = 24;
-const FRIENDLY_KINDS: ReadonlySet<EdgeKind> = new Set(['acquaintance', 'friend', 'close_friend', 'dating', 'ex_partner']);
+const FRIENDLY_KINDS: ReadonlySet<EdgeKind> = new Set(['acquaintance', 'friend', 'close_friend', 'dating', 'engaged', 'ex_partner']);
 
 export function pairKey(a: PersonId, b: PersonId): string {
     return a < b ? `${a}|${b}` : `${b}|${a}`;
@@ -193,6 +193,12 @@ export default class SocialGraph implements RelationshipGraph {
             edge.provenance = provenance ?? edge.provenance;
         }
         return edge;
+    }
+
+    // Removes the edge between two people (marriage consumes the engagement — spouse standing derives from
+    // the genealogy thereafter, task 090).
+    removeEdgeBetween(a: PersonId, b: PersonId): void {
+        delete this.state.edges[pairKey(a, b)];
     }
 
     // Removes every edge touching a person (death cleanup).

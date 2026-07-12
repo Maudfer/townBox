@@ -3,7 +3,7 @@
 // bonds people choose. Edges decay closed-form from lastInteractionTick (no per-tick mutation — the K2
 // stride-tolerance rule), and kind transitions are authored policy in json/relationships.json, never code.
 
-export type EdgeKind = 'acquaintance' | 'friend' | 'close_friend' | 'rival' | 'dating' | 'ex_partner';
+export type EdgeKind = 'acquaintance' | 'friend' | 'close_friend' | 'rival' | 'dating' | 'engaged' | 'ex_partner';
 
 // What a relationship query can name: a graph edge kind, or one of the derived standings a context resolves
 // from the genealogy ('spouse', 'family') or the absence of any tie ('none').
@@ -42,6 +42,7 @@ export interface RelationshipGraph {
         flipped?: EdgeKind;
     };
     setKind(a: string, b: string, kind: EdgeKind, tick: number, strength?: number, provenance?: number | null): SocialEdge;
+    removeEdgeBetween?(a: string, b: string): void;
     removePerson(personId: string): void;
 }
 

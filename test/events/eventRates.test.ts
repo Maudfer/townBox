@@ -1,4 +1,5 @@
 import EventEngine from 'game/events/EventEngine';
+import SocialGraph from 'game/population/SocialGraph';
 import { PopulationState, GenPerson } from 'types/Genealogy';
 import { Genders, Gender } from 'types/Social';
 import { TICKS_PER_DAY, TICKS_PER_YEAR, hourOfTick } from 'util/time';
@@ -35,6 +36,12 @@ function fixturePool(): PopulationState {
 describe('per-year incidence bands (task 048)', () => {
     const engine = new EventEngine();
     const state = fixturePool();
+    // Task 090: marriage binds through the engaged edge. Engage five single pairs up front; the rest of
+    // the singles stay unattached (and must NOT marry — the no-engagement-no-wedding rule).
+    const social = new SocialGraph();
+    for (let i = 0; i < 10; i += 2) {
+        social.setKind('s' + String(i).padStart(2, '0'), 's' + String(i + 1).padStart(2, '0'), 'engaged', 0, 60);
+    }
     const counts: Record<string, number> = {};
     let births = 0;
     let deaths = 0;
@@ -43,7 +50,7 @@ describe('per-year incidence bands (task 048)', () => {
         const agents = Object.keys(state.people);
         for (let tick = 0; tick < TICKS_PER_YEAR; tick += TICKS_PER_DAY) {
             const living = agents.filter(id => state.people[id]!.deathTick === null);
-            const result = engine.simulateTick(state, living, tick, TICKS_PER_YEAR, {}, TICKS_PER_DAY);
+            const result = engine.simulateTick(state, living, tick, TICKS_PER_YEAR, { markets: { social } }, TICKS_PER_DAY);
             births += result.born.length;
             deaths += result.died.length;
             for (const commit of result.committed) {
@@ -58,9 +65,10 @@ describe('per-year incidence bands (task 048)', () => {
         expect(deaths).toBeLessThanOrEqual(4);
     });
 
-    test('marriages form at a believable clip among 20 singles', () => {
-        expect(counts['marriage'] ?? 0).toBeGreaterThanOrEqual(1);
-        expect(counts['marriage'] ?? 0).toBeLessThanOrEqual(15); // ~0.1/yr × age curve × 30 singles + newlywed chains
+    test('engaged couples marry within the year; the unengaged never do (task 090)', () => {
+        // 5 engaged pairs at perYear 6 → expect most to wed; each wedding consumes the pair.
+        expect(counts['marriage'] ?? 0).toBeGreaterThanOrEqual(2);
+        expect(counts['marriage'] ?? 0).toBeLessThanOrEqual(5);
     });
 
     test('fertile couples produce children (and not absurdly many)', () => {

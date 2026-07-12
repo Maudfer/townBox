@@ -74,7 +74,7 @@ export const plannerHook: BrainHook = {
             if (routine.action === 'visiting_friends') {
                 const social = deps.ctx.markets?.social ?? null;
                 const friends = social?.edgesOf(personId, deps.tick)
-                    .filter(edge => ['friend', 'close_friend'].includes(edge.view.kind) && edge.view.strength >= VISIT_EDGE_MIN_STRENGTH) ?? [];
+                    .filter(edge => ['friend', 'close_friend', 'dating', 'engaged'].includes(edge.view.kind) && edge.view.strength >= VISIT_EDGE_MIN_STRENGTH) ?? [];
                 if (friends.length > 0) {
                     const best = friends.reduce((top, edge) => edge.view.strength > top.view.strength ? edge : top);
                     agenda.enqueue({ ...entry, locationOverride: `person:${best.otherId}` });

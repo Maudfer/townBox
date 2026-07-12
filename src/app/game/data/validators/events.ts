@@ -13,7 +13,7 @@ import { KNOWN_SIGNALS } from 'util/notifications';
 
 const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category'];
 const ROLE_KEYS = ['where', 'bind'];
-const BIND_RELATIONS = ['partnerOf']; // EventEngine.resolveBind's vocabulary
+const BIND_RELATIONS = ['partnerOf', 'partnerOrDatingOf', 'engagedOf']; // EventEngine.resolveBind's vocabulary
 
 // Per-effect-kind field rules ('type' and 'target' are always allowed; target must name a declared role).
 const EFFECT_RULES: Record<string, { required: readonly string[]; optional: readonly string[] }> = {

@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 263 | 67 continuous / 196 discrete |
-| `events.json` | 709 | 173 probabilistic, 165 manual, 369 probabilistic + manual, 2 manual + automated |
+| `actions.json` | 265 | 67 continuous / 198 discrete |
+| `events.json` | 709 | 173 probabilistic, 168 manual, 366 probabilistic + manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -72,9 +72,9 @@ Of the 536 manual-triggered events, 521 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 369 |
+| probabilistic + manual | 366 |
 | probabilistic | 173 |
-| manual | 165 |
+| manual | 168 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
@@ -129,6 +129,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `argued_with_person` | no consent | — | — | w 0.15, cd 24 |
 | `asked_for_advice` | no consent | — | — | w 0.4, cd 12 |
 | `asked_for_help` | no consent | — | — | w 0.4, cd 12 |
+| `asked_person_out` | ask first | skipStep | — | w 0.15, cd 168 |
 | `celebrated_with_person` | no consent | — | — | w 0.3, cd 24 |
 | `complimented_person` | no consent | — | — | w 0.6, cd 8 |
 | `consoled_person` | no consent | — | — | w 0.2, cd 24 |
@@ -141,6 +142,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `lent_an_object` | ask first | failParent | `action_declined` | w 0.2, cd 48 |
 | `offered_job_lead` | no consent | — | — | w 0.1, cd 48 |
 | `played_with_person` | no consent | — | — | w 0.5, cd 8 |
+| `proposed_marriage` | ask first | skipStep | — | w 0.08, cd 720 |
 | `returned_borrowed_object` | ask first | failParent | — | w 3, cd 12 |
 | `shared_food_with_person` | ask first | failParent | — | w 0.4, cd 12 |
 | `talked_to_person` | no consent | — | — | w 1.2, cd 2 |

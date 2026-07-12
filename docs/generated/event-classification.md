@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 709 events — **16 vital**, **33 wired**, **519 texture**, **141 reserved**.
+Totals: 709 events — **16 vital**, **36 wired**, **516 texture**, **141 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -21,7 +21,7 @@ Totals: 709 events — **16 vital**, **33 wired**, **519 texture**, **141 reserv
 | argued_with_partner | romance | probabilistic+manual | texture | — |
 | argued_with_sibling | family | probabilistic+manual | texture | — |
 | argument | social | probabilistic+manual | vital | argued_with_person.onCompleteTarget |
-| asked_someone_out | romance | probabilistic+manual | texture | — |
+| asked_someone_out | romance | manual | wired | asked_person_out.onComplete |
 | assembled_flatpack | possessions | probabilistic+manual | texture | — |
 | ate_at_restaurant | food | probabilistic+manual | texture | — |
 | ate_questionable_leftover | food | probabilistic+manual | texture | — |
@@ -243,7 +243,7 @@ Totals: 709 events — **16 vital**, **33 wired**, **519 texture**, **141 reserv
 | got_detention | education | probabilistic+manual | texture | — |
 | got_divorced | romance | probabilistic+manual | texture | — |
 | got_drivers_license | milestone | probabilistic+manual | texture | — |
-| got_engaged | romance | probabilistic+manual | texture | — |
+| got_engaged | romance | manual | wired | proposed_marriage.onComplete, proposed_marriage.onCompleteTarget |
 | got_food_poisoning | health | probabilistic+manual | texture | — |
 | got_hearing_aids | aging | probabilistic+manual | texture | — |
 | got_hip_replacement | aging | probabilistic+manual | texture | — |
@@ -679,7 +679,7 @@ Totals: 709 events — **16 vital**, **33 wired**, **519 texture**, **141 reserv
 | went_fishing | hobby | probabilistic+manual | texture | — |
 | went_fully_gray | aging | probabilistic | texture | — |
 | went_grocery_shopping | food | probabilistic+manual | wired | shopping_trip.onComplete |
-| went_on_first_date | romance | probabilistic+manual | texture | — |
+| went_on_first_date | romance | manual | wired | asked_person_out.onCompleteTarget |
 | went_on_vacation | travel | probabilistic | texture | — |
 | went_stargazing | travel | probabilistic+manual | texture | — |
 | went_straight | crime-mischief | probabilistic | texture | — |

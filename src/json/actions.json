@@ -4958,5 +4958,165 @@
         "satisfies": {
             "food": 5
         }
+    },
+    "asked_person_out": {
+        "label": "Asked someone out",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 16
+                },
+                {
+                    "attr": "marital",
+                    "op": "!=",
+                    "value": "married"
+                },
+                {
+                    "not": {
+                        "relationship": {
+                            "to": "target",
+                            "kinds": [
+                                "dating",
+                                "engaged",
+                                "spouse",
+                                "family",
+                                "rival"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 12,
+                "kind": "dating"
+            }
+        ],
+        "events": {
+            "onComplete": {
+                "event": "asked_someone_out",
+                "params": {
+                    "with": "$params.target"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "went_on_first_date",
+                "params": {
+                    "with": "$actor"
+                }
+            }
+        },
+        "selection": {
+            "weight": 0.15,
+            "cooldownTicks": 168,
+            "modifiers": [
+                {
+                    "when": {
+                        "relationship": {
+                            "to": "target",
+                            "kinds": [
+                                "friend",
+                                "close_friend"
+                            ],
+                            "minStrength": 20
+                        }
+                    },
+                    "multiply": 4
+                }
+            ]
+        },
+        "satisfies": {
+            "social": 8
+        },
+        "affinity": [
+            "social",
+            "thrill"
+        ]
+    },
+    "proposed_marriage": {
+        "label": "Proposed marriage",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "marital",
+                    "op": "!=",
+                    "value": "married"
+                },
+                {
+                    "relationship": {
+                        "to": "target",
+                        "kinds": [
+                            "dating"
+                        ],
+                        "minStrength": 45
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 15,
+                "kind": "engaged"
+            }
+        ],
+        "events": {
+            "onComplete": {
+                "event": "got_engaged",
+                "params": {
+                    "with": "$params.target"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "got_engaged",
+                "params": {
+                    "with": "$actor"
+                }
+            }
+        },
+        "selection": {
+            "weight": 0.08,
+            "cooldownTicks": 720
+        },
+        "satisfies": {
+            "social": 15
+        }
     }
 }

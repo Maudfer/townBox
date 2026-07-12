@@ -125,7 +125,7 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                 checkUnknownKeys(issues, opPath, op, ['op', 'delta', 'kind']);
                 checkNumber(issues, `${opPath}.delta`, op['delta']);
                 if ('kind' in op) {
-                    checkEnum(issues, `${opPath}.kind`, op['kind'], ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'ex_partner']);
+                    checkEnum(issues, `${opPath}.kind`, op['kind'], ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'engaged', 'ex_partner']);
                 }
                 break;
             case 'planJointActivity':

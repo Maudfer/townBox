@@ -110,7 +110,7 @@
                 }
             },
             "partner": {
-                "bind": "partnerOf:subject"
+                "bind": "partnerOrDatingOf:subject"
             }
         },
         "triggers": {
@@ -235,46 +235,12 @@
                 }
             },
             "partner": {
-                "where": {
-                    "all": [
-                        {
-                            "attr": "alive",
-                            "op": "==",
-                            "value": true
-                        },
-                        {
-                            "attr": "age",
-                            "op": ">=",
-                            "value": 18
-                        },
-                        {
-                            "attr": "marital",
-                            "op": "in",
-                            "value": [
-                                "single",
-                                "divorced",
-                                "widowed"
-                            ]
-                        }
-                    ]
-                }
+                "bind": "engagedOf:subject"
             }
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.1,
-                "factors": [
-                    {
-                        "driver": "subject.age",
-                        "curve": {
-                            "mode": "logistic",
-                            "floor": 0.2,
-                            "ceiling": 1,
-                            "midpoint": 26,
-                            "steepness": 0.3
-                        }
-                    }
-                ]
+                "perYear": 6
             }
         },
         "effects": [
@@ -1668,15 +1634,17 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.6
-            },
             "manual": {}
         },
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "parameters": {
+            "with": {
+                "type": "string"
+            }
+        }
     },
     "developed_crush": {
         "label": "Developed a crush",
@@ -1737,15 +1705,17 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.6
-            },
             "manual": {}
         },
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "parameters": {
+            "with": {
+                "type": "string"
+            }
+        }
     },
     "was_turned_down": {
         "label": "Was turned down",
@@ -1865,15 +1835,17 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.6
-            },
             "manual": {}
         },
         "limit": {
             "withinTicks": 720
         },
-        "effects": []
+        "effects": [],
+        "parameters": {
+            "with": {
+                "type": "string"
+            }
+        }
     },
     "proposal_rejected": {
         "label": "Proposed and was rejected",

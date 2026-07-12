@@ -6,7 +6,7 @@ import { checkNumber, checkRecord, checkUnknownKeys } from 'game/data/checks';
 import { IssueCollector } from 'game/data/registry';
 import { EventManifest } from 'types/LifeEvent';
 
-const EDGE_KINDS = ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'ex_partner'];
+const EDGE_KINDS = ['acquaintance', 'friend', 'close_friend', 'rival', 'dating', 'engaged', 'ex_partner'];
 const STANDINGS = [...EDGE_KINDS, 'spouse', 'family', 'none'];
 
 export function validateRelationshipsStructure(data: unknown, issues: IssueCollector): void {

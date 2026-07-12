@@ -496,6 +496,15 @@ export default class ActionEngine {
                     return { ok: false, reason: 'targetNotPresent' };
                 }
             }
+        }
+        // Requirements gate BEFORE consent (task 090): "am I even in a position to do this" is the actor's
+        // own question — nobody gets asked to be kissed by someone who fails the dating gate. Relationship
+        // predicates resolve against the bound params, so target-conditioned gates work here.
+        if (def.requirements && !evaluatePredicateCached(def.requirements, this.contextFor(personId, deps, params))) {
+            return { ok: false, reason: 'requirementsUnmet' };
+        }
+        if (def.interaction) {
+            const targetId = params[def.interaction.targetParam] as PersonId;
             // Consent (task 073): askFirst actions consult the TARGET's decision layer before anything
             // commits. A decline is a real, traceable outcome — a 'failed' log entry with the reason and the
             // full params snapshot — never a silent skip; it also counts toward the actor's action history,
@@ -523,9 +532,6 @@ export default class ActionEngine {
                     return { ok: false, reason: 'consentDeclined' };
                 }
             }
-        }
-        if (def.requirements && !evaluatePredicateCached(def.requirements, this.contextFor(personId, deps, params))) {
-            return { ok: false, reason: 'requirementsUnmet' };
         }
 
         if (def.type === 'discrete') {
