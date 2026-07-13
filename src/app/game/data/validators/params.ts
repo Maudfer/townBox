@@ -34,12 +34,13 @@ export function validateFireStructure(data: unknown, issues: IssueCollector): vo
         return;
     }
     const config = data as Record<string, unknown>;
-    checkUnknownKeys(issues, 'fire', config, ['wearPerDay', 'conditionFloor', 'ignitionPerYearAtFullCondition', 'ignitionPerYearAtFloor', 'responseTicks', 'injuryChancePerOccupant', 'damage']);
+    checkUnknownKeys(issues, 'fire', config, ['wearPerDay', 'conditionFloor', 'ignitionPerYearAtFullCondition', 'ignitionPerYearAtFloor', 'responseTicks', 'crewForFullResponse', 'injuryChancePerOccupant', 'damage']);
     checkNumber(issues, 'fire.wearPerDay', config['wearPerDay'], { min: 0 });
     checkNumber(issues, 'fire.conditionFloor', config['conditionFloor'], { min: 0, max: 100 });
     checkNumber(issues, 'fire.ignitionPerYearAtFullCondition', config['ignitionPerYearAtFullCondition'], { min: 0 });
     checkNumber(issues, 'fire.ignitionPerYearAtFloor', config['ignitionPerYearAtFloor'], { min: 0 });
     checkNumber(issues, 'fire.responseTicks', config['responseTicks'], { min: 1, integer: true });
+    checkNumber(issues, 'fire.crewForFullResponse', config['crewForFullResponse'], { min: 1, integer: true });
     checkNumber(issues, 'fire.injuryChancePerOccupant', config['injuryChancePerOccupant'], { min: 0, max: 1 });
     if (checkRecord(issues, 'fire.damage', config['damage'])) {
         const damage = config['damage'] as Record<string, unknown>;

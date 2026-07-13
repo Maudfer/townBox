@@ -18,6 +18,7 @@ export interface FireConfig {
     ignitionPerYearAtFullCondition: number; // a kept-up building almost never ignites
     ignitionPerYearAtFloor: number; // a derelict one is a hazard
     responseTicks: number; // how long a fire burns before the outcome resolves
+    crewForFullResponse: number; // firefighters ON SCENE at resolution for the full arrival factor (task 110)
     injuryChancePerOccupant: number;
     damage: { extinguished: number; damaged: number };
 }

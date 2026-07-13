@@ -1575,9 +1575,28 @@ export default class City {
         }
     }
 
-    // Burning fires resolve after the response window (task 102): the outcome curve rides FIRE COVERAGE —
-    // a staffed station mostly extinguishes, a town without one watches buildings burn. Lingerers who never
-    // evacuated risk the injury roll; a destroyed building leaves through the same coherent teardown
+    // The effective response quality at a burning building (task 110): system capacity (fire coverage) ×
+    // whether the crew PHYSICALLY made it (firefighters on scene / crewForFullResponse, capped at 1). A
+    // town with no firefighters employed at all leaves arrival unmeasured — pure coverage, the 102
+    // behavior; a town WITH a crew that never arrives (off shift at 3am, stuck across town) burns at the
+    // baseline odds no matter what the ledger claims. Never a hardcoded outcome — always the measured path.
+    public fireResponseAt(key: string): number {
+        const coverage = this.services.coverageOf('fire');
+        const firefighters = [...this.indexMaterialized().entries()]
+            .filter(([, person]) => person.work.getJob()?.title === 'Firefighter')
+            .map(([id]) => id);
+        if (firefighters.length === 0) {
+            return coverage;
+        }
+        const onScene = new Set(this.world.peopleAt({ kind: 'building', key }));
+        const arrived = firefighters.filter(id => onScene.has(id)).length;
+        return coverage * Math.min(1, arrived / FIRE_CONFIG.crewForFullResponse);
+    }
+
+    // Burning fires resolve after the response window (task 102): the outcome curve rides the EFFECTIVE
+    // RESPONSE (task 110: coverage × who physically arrived — fireResponseAt above) — a staffed station
+    // whose crew makes it mostly extinguishes, a town without one watches buildings burn. Lingerers who
+    // never evacuated risk the injury roll; a destroyed building leaves through the same coherent teardown
     // bulldozing uses (residents rehoused or homeless, businesses closed), and the lot heals via 037.
     public resolveFires(tick: number): void {
         const incidents = Game.incidents;
@@ -1599,17 +1618,29 @@ export default class City {
             if (!structure) {
                 continue; // already gone (bulldozed mid-fire)
             }
-            // Lingerers: whoever is STILL inside when the outcome lands rolls the injury die.
+            // Lingerers: whoever is STILL physically inside when the outcome lands rolls the injury die —
+            // the responding crew included (task 110: firefighting is an occupational hazard, not a pass)
+            // and residents inside their OWN home (their locationOf reads 'home', so the plain building
+            // query misses them — the same wart the evacuation hook works around).
             const rng = new SeededRandom((worldSeed ^ hashStringToSeed('fireOutcome#' + incident.id)) >>> 0);
-            for (const occupantId of this.world.peopleAt({ kind: 'building', key }).sort()) {
+            const inside = new Set(this.world.peopleAt({ kind: 'building', key }));
+            if (structure instanceof House) {
+                for (const resident of structure.getResidents()) {
+                    const residentId = resident.social.getPersonId();
+                    if (residentId && resident.getCurrentBuilding() === structure) {
+                        inside.add(residentId);
+                    }
+                }
+            }
+            for (const occupantId of [...inside].sort()) {
                 if (rng.next() < FIRE_CONFIG.injuryChancePerOccupant) {
                     this.fireMilestone('injury', occupantId, tick);
                 }
             }
-            const coverage = this.services.coverageOf('fire');
+            const response = this.fireResponseAt(key);
             const roll = rng.next();
-            const extinguishChance = Math.min(0.92, 0.25 + 0.6 * coverage);
-            const destroyChance = Math.max(0.05, 0.45 - 0.5 * coverage);
+            const extinguishChance = Math.min(0.92, 0.25 + 0.6 * response);
+            const destroyChance = Math.max(0.05, 0.45 - 0.5 * response);
             if (roll < extinguishChance) {
                 conditions.damage(key, FIRE_CONFIG.damage.extinguished, tick);
                 this.announce('fire', tick, 'The fire was put out — minor damage', null);

@@ -6470,6 +6470,15 @@
             "weight": 0
         }
     },
+    "responding_to_fire": {
+        "label": "Fighting the fire",
+        "type": "continuous",
+        "category": "work",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
+    },
     "visiting_the_pet_shop": {
         "label": "Visiting the pet shop",
         "type": "continuous",

@@ -57,6 +57,12 @@ export default class CityIncidents implements IncidentsReader {
         return open.length > 0 ? open.sort((a, b) => a.id - b.id)[0]! : null;
     }
 
+    // Fire dispatch (task 110): the oldest burning building — where the responding crew drives to.
+    oldestOpenFire(): IncidentRecord | null {
+        const fires = this.state.incidents.filter(incident => incident.status === 'open' && incident.kind === 'fire');
+        return fires.length > 0 ? fires.sort((a, b) => a.id - b.id)[0]! : null;
+    }
+
     openFireAt(locationKey: string): boolean {
         return this.state.incidents.some(incident => incident.status === 'open' && incident.kind === 'fire' && incident.locationKey === locationKey);
     }

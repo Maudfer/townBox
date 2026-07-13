@@ -12,6 +12,7 @@ import House from 'game/world/House';
 import { PopulationState, GenPerson } from 'types/Genealogy';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Genders } from 'types/Social';
+import { JobPosition } from 'types/Work';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 
 // Building condition & fire (task 102 / proposal H4): condition wears closed-form and takes damage in
@@ -153,6 +154,114 @@ describe('ignition & resolution', () => {
         const covered = outcomes(1);
         expect(covered.extinguished).toBeGreaterThan(uncovered.extinguished * 2);
         expect(uncovered.destroyed).toBeGreaterThan(covered.destroyed * 3);
+    });
+
+    test('arrival scales the response (task 110): unmeasured crew → coverage; a crew that never arrived → 0; on scene → full', () => {
+        const world = makeGame();
+        const state: PopulationState = { worldSeed: WORLD_SEED, people: { f1: gen('f1'), f2: gen('f2') }, drawSeed: 0, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+        world.population.loadState(state);
+        world.clock.setElapsedMs(TICK_NOW * HOUR_MS);
+        const house = world.field.loadStructure('house', 10, 10, 'house_1') as House;
+        const key = house.getIdentifier();
+
+        // No firefighters employed anywhere → arrival is unmeasured → pure coverage (the 102 behavior).
+        expect(world.city.fireResponseAt(key)).toBe(0.5); // unmeasured coverage reads neutral
+
+        // A crew exists but nobody physically made it → the ledger's coverage means nothing.
+        const job = { title: 'Firefighter', salary: 0, requirements: [], shiftStart: 480, shiftEnd: 1020 } as JobPosition;
+        const f1 = world.field.loadPerson(200, 200);
+        f1.social.setPersonId('f1');
+        f1.work.setJob(job);
+        const f2 = world.field.loadPerson(220, 200);
+        f2.social.setPersonId('f2');
+        f2.work.setJob(job);
+        expect(world.city.fireResponseAt(key)).toBe(0);
+
+        // Half the crew on scene → half the factor; the full crew → pure coverage again.
+        f1.setCurrentBuilding(house);
+        expect(world.city.fireResponseAt(key)).toBeCloseTo(0.25, 6); // 0.5 coverage × 1/2 crew
+        f2.setCurrentBuilding(house);
+        expect(world.city.fireResponseAt(key)).toBeCloseTo(0.5, 6);
+    });
+
+    test('who physically arrived decides the outcome: same fire, same coverage — crew on scene saves the house (task 110)', () => {
+        // Pick a fire id whose draws land: draw #1 (crew absent — no one inside, the outcome is the first
+        // draw) DESTROYS at response 0 (∈ [0.25, 0.70)), while draw #3 (two crew inside consume two injury
+        // draws first) EXTINGUISHES at response 0.5 (< 0.55).
+        let fireId = 0;
+        for (let id = 1; id < 2000; id++) {
+            const rng = new SeededRandom((WORLD_SEED ^ hashStringToSeed(`fireOutcome#${id}`)) >>> 0);
+            const first = rng.next();
+            rng.next();
+            const third = rng.next();
+            if (first >= 0.25 && first < 0.70 && third < 0.55) {
+                fireId = id;
+                break;
+            }
+        }
+        expect(fireId).toBeGreaterThan(0);
+
+        const scenario = (crewOnScene: boolean): boolean => {
+            const world = makeGame();
+            const state: PopulationState = { worldSeed: WORLD_SEED, people: { f1: gen('f1'), f2: gen('f2') }, drawSeed: 0, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+            world.population.loadState(state);
+            world.clock.setElapsedMs(TICK_NOW * HOUR_MS);
+            const house = world.field.loadStructure('house', 10, 10, 'house_1') as House;
+            const key = house.getIdentifier();
+            const job = { title: 'Firefighter', salary: 0, requirements: [], shiftStart: 480, shiftEnd: 1020 } as JobPosition;
+            for (const id of ['f1', 'f2']) {
+                const fighter = world.field.loadPerson(200, 200);
+                fighter.social.setPersonId(id);
+                fighter.work.setJob(job);
+                if (crewOnScene) {
+                    fighter.setCurrentBuilding(house);
+                }
+            }
+            for (let id = 1; id < fireId; id++) {
+                const dummy = world.incidents.report('shoplifting', 0, 'outside', 'nobody', 0);
+                world.incidents.resolve(dummy.id, 0);
+            }
+            world.incidents.report('fire', TICK_NOW, `building:${key}`, null, 0);
+            world.city.resolveFires(TICK_NOW + FIRE_CONFIG.responseTicks);
+            return world.field.getStructures().some(s => s instanceof House); // still standing?
+        };
+
+        expect(scenario(true)).toBe(true); // the crew made it — extinguished
+        expect(scenario(false)).toBe(false); // same fire, same coverage, crew across town — burned down
+    });
+
+    test('a resident inside their OWN burning home rolls the injury die (the home-wart, closed — task 110)', () => {
+        // locationOf reads 'home' for a resident in their own house, so the plain building query missed
+        // them entirely under 102 — no evacuation, no injury, no stakes. Pick a fire id whose first draw
+        // lands under the injury chance.
+        let fireId = 0;
+        for (let id = 1; id < 2000; id++) {
+            const roll = new SeededRandom((WORLD_SEED ^ hashStringToSeed(`fireOutcome#${id}`)) >>> 0).next();
+            if (roll < FIRE_CONFIG.injuryChancePerOccupant) {
+                fireId = id;
+                break;
+            }
+        }
+        expect(fireId).toBeGreaterThan(0);
+
+        const world = makeGame();
+        const state: PopulationState = { worldSeed: WORLD_SEED, people: { res: gen('res') }, drawSeed: 0, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+        world.population.loadState(state);
+        world.clock.setElapsedMs(TICK_NOW * HOUR_MS);
+        const house = world.field.loadStructure('house', 10, 10, 'house_1') as House;
+        const person = world.field.loadPerson(200, 200);
+        person.social.setPersonId('res');
+        person.social.setHome(house);
+        house.addResident(person);
+        person.setCurrentBuilding(house); // physically inside their own home
+
+        for (let id = 1; id < fireId; id++) {
+            const dummy = world.incidents.report('shoplifting', 0, 'outside', 'nobody', 0);
+            world.incidents.resolve(dummy.id, 0);
+        }
+        world.incidents.report('fire', TICK_NOW, `building:${house.getIdentifier()}`, null, 0);
+        world.city.resolveFires(TICK_NOW + FIRE_CONFIG.responseTicks);
+        expect(world.eventEngine.getPersonLog('res').some(e => e.kind === 'event' && e.defId === 'injury')).toBe(true);
     });
 
     test('a destroyed home tears down coherently: lost_home_to_fire logged, the structure gone', () => {

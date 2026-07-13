@@ -32,6 +32,8 @@ export interface IncidentsReader {
     // Fire queries (task 102): the evacuation hook asks about HERE; the firefighter rush about anywhere.
     openFireAt(locationKey: string): boolean;
     anyOpenFire(): boolean;
+    // Fire dispatch (task 110): the oldest burning building — the crew's destination.
+    oldestOpenFire(): IncidentRecord | null;
     // Wanted = named suspect of an open, WITNESSED incident (unwitnessed crimes are unknowable to police).
     isWanted(personId: PersonId): boolean;
 }

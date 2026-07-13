@@ -1,16 +1,19 @@
 import ActionEngine from 'game/actions/ActionEngine';
 import Brain, { BrainDeps, JobFacts } from 'game/actions/Brain';
+import { evacuationHook } from 'game/actions/FireResponse';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import CityIncidents from 'game/economy/CityIncidents';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
+import { WorldAdapter } from 'types/Execution';
 import { PopulationState, GenPerson } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
 import { Genders } from 'types/Social';
 
-// The fire hooks (task 102 / proposal H4): evacuation is the survival-band showcase — a fire at YOUR
-// building interrupts anything and puts you on the street — and on-duty firefighters drop the station
-// routine to rush the alarm. Both end in escaped_a_fire / visible ambulatory runs.
+// The fire hooks (task 102 / proposal H4, dispatch task 110): evacuation is the survival-band showcase —
+// a fire at the building you are PHYSICALLY in interrupts anything and puts you on the street (your own
+// home included: the hook reads objectLocationOf, not the 'home' wart) — and on-duty firefighters are
+// DISPATCHED to the oldest burning building, where they stay and fight instead of being chased back out.
 
 const TPY = 8640;
 
@@ -78,19 +81,57 @@ describe('evacuation (survival band)', () => {
         brain.processTick(['resident'], makeDeps(10), [], result());
         expect(actions.activeInstanceOf('resident')?.defId).not.toBe('evacuating');
     });
+
+    test('the hook reads PHYSICAL presence: a resident whose locationOf says \'home\' still flees their own burning house (110)', () => {
+        // Mimic LiveWorld's at-home resident: logical place 'home', physical building 5-5. The 102 hook
+        // read locationOf and silently skipped the family whose own house was burning.
+        const incidents = new CityIncidents();
+        incidents.report('fire', 5, 'building:5-5', null, 0);
+        const { brain, makeDeps } = harness(() => null, incidents);
+        const atHome = {
+            locationOf: () => ({ kind: 'home' }),
+            objectLocationOf: () => ({ kind: 'building', key: '5-5' }),
+            peopleAt: () => [],
+        } as unknown as WorldAdapter;
+        const deps = makeDeps(10);
+        deps.ctx = { ...deps.ctx, world: atHome };
+        const intents = evacuationHook.propose({ personId: 'resident', deps, brain });
+        expect(intents.map(intent => intent.actionId)).toEqual(['evacuating']);
+    });
 });
 
-describe('the firefighter rush', () => {
-    test('an on-duty firefighter drops the station routine for any open fire; off-duty stays put', () => {
+describe('the firefighter dispatch (task 110)', () => {
+    test('an on-duty firefighter is dispatched TO the oldest burning building; off-duty stays put', () => {
         const incidents = new CityIncidents();
         incidents.report('fire', 5, 'building:7-7', null, 0);
-        const { actions, brain, makeDeps } = harness(id => (id === 'fighter' ? FIREFIGHTER : null), incidents);
+        const { actions, brain, world, makeDeps } = harness(id => (id === 'fighter' ? FIREFIGHTER : null), incidents);
         brain.processTick(['fighter'], makeDeps(10), [], result()); // Monday 10:00, on shift
-        expect(actions.activeInstanceOf('fighter')?.defId).toBe('rushing_to_the_fire');
+        expect(actions.activeInstanceOf('fighter')?.defId).toBe('responding_to_fire');
+        // Bootstrap transitions resolve immediately — the crew is physically AT the fire.
+        expect(world.locationOf('fighter')).toEqual({ kind: 'building', key: '7-7' });
 
         const sunday = 6 * 24 + 10;
         const rested = harness(id => (id === 'fighter' ? FIREFIGHTER : null), incidents);
         rested.brain.processTick(['fighter'], rested.makeDeps(sunday), [], result());
-        expect(rested.actions.activeInstanceOf('fighter')?.defId).not.toBe('rushing_to_the_fire');
+        expect(rested.actions.activeInstanceOf('fighter')?.defId).not.toBe('responding_to_fire');
+    });
+
+    test('the responding crew is not chased back out by the evacuation alarm', () => {
+        const incidents = new CityIncidents();
+        incidents.report('fire', 5, 'building:7-7', null, 0);
+        const { actions, brain, makeDeps } = harness(id => (id === 'fighter' ? FIREFIGHTER : null), incidents);
+        brain.processTick(['fighter'], makeDeps(10), [], result());
+        expect(actions.activeInstanceOf('fighter')?.defId).toBe('responding_to_fire');
+        // Inside the burning building on purpose: the next tick must NOT flip them to 'evacuating'.
+        brain.processTick(['fighter'], makeDeps(11), [], result());
+        expect(actions.activeInstanceOf('fighter')?.defId).toBe('responding_to_fire');
+    });
+
+    test('a fire with no building address falls back to the generic outside run', () => {
+        const incidents = new CityIncidents();
+        incidents.report('fire', 5, 'outside', null, 0);
+        const { actions, brain, makeDeps } = harness(id => (id === 'fighter' ? FIREFIGHTER : null), incidents);
+        brain.processTick(['fighter'], makeDeps(10), [], result());
+        expect(actions.activeInstanceOf('fighter')?.defId).toBe('rushing_to_the_fire');
     });
 });

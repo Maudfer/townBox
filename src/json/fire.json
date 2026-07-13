@@ -4,6 +4,7 @@
     "ignitionPerYearAtFullCondition": 0.06,
     "ignitionPerYearAtFloor": 1.2,
     "responseTicks": 6,
+    "crewForFullResponse": 2,
     "injuryChancePerOccupant": 0.15,
     "damage": {
         "extinguished": 15,

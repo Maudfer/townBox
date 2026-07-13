@@ -1,8 +1,10 @@
-// Fire hooks (task 102 / proposal H4): the survival-band showcase. When the building someone is IN has an
-// open fire, they EVACUATE — a survival intent that interrupts anything (dinner included; resumable
-// activities pause through the normal L5 machinery and pick back up after). On-duty firefighters RUSH to
-// any open fire — obligation-band ambulatory runs, visibly tearing down the street (the chase tech at
-// emergency pace). People who fail to leave in time risk the injury roll when the outcome resolves.
+// Fire hooks (task 102 / proposal H4, dispatch task 110): the survival-band showcase. When the building
+// someone is IN has an open fire, they EVACUATE — a survival intent that interrupts anything (dinner
+// included; resumable activities pause through the normal L5 machinery and pick back up after). On-duty
+// firefighters are DISPATCHED to the oldest burning building (`responding_to_fire` with a locationOverride
+// — the normal commute machinery drives them there, and resolveFires counts who physically made it; the
+// generic outside run stays as the no-address fallback texture). People who fail to leave in time risk the
+// injury roll when the outcome resolves — the responding crew included.
 
 import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
 import { locationKey } from 'types/Objects';
@@ -20,12 +22,17 @@ export const evacuationHook: BrainHook = {
         if (!incidents || !world) {
             return [];
         }
-        const here = world.locationOf(personId);
+        // Physical presence, not logical place (task 110): objectLocationOf resolves a resident AT HOME to
+        // their house's real key, so a fire in your own home puts your own family on the street too. (The
+        // plain locationOf reads 'home' there — the pre-070 people-location wart — and 102 silently skipped
+        // them.) Off-map the bootstrap key is 'home', which never matches a building fire — mode-safe.
+        const here = world.objectLocationOf(personId);
         if (here.kind !== 'building' || !incidents.openFireAt(locationKey(here))) {
             return [];
         }
         const active = ctx.brain.getActionEngine().activeInstanceOf(personId);
-        if (active?.defId === 'evacuating') {
+        if (active?.defId === 'evacuating' || active?.defId === 'responding_to_fire') {
+            // The responding crew is inside on purpose (task 110) — the alarm doesn't chase them back out.
             return [];
         }
         return [{
@@ -54,8 +61,24 @@ export const fireResponseHook: BrainHook = {
             return [];
         }
         const active = ctx.brain.getActionEngine().activeInstanceOf(personId);
-        if (active?.defId === 'rushing_to_the_fire') {
+        if (active?.defId === 'rushing_to_the_fire' || active?.defId === 'responding_to_fire') {
             return [];
+        }
+        // DISPATCH (task 110): the crew drives to the oldest burning building (the normal commute
+        // machinery) and fights it THERE — resolveFires counts who physically made it. The generic
+        // outside run stays as the fallback texture for a fire with no building address.
+        const fire = incidents.oldestOpenFire();
+        if (fire && fire.locationKey.startsWith('building:')) {
+            return [{
+                actionId: 'responding_to_fire',
+                locationOverride: fire.locationKey,
+                sourceHook: 'fireResponse',
+                priority: 220, // above the shift and the beat — the alarm bell owns the day
+                necessity: 'required',
+                band: 'obligation',
+                mayInterrupt: true,
+                causationId: null,
+            }];
         }
         return [{
             actionId: 'rushing_to_the_fire',

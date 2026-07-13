@@ -133,7 +133,7 @@ describe('action reachability (task 076/M3)', () => {
         'taking_a_walk_together',                                           // joint plans (085/093 — agenda-proposed)
         'fleeing_the_police', 'chasing_a_suspect',                          // the pursuit hook (099)
         'serving_time',                                                     // the detained hook (100)
-        'evacuating', 'rushing_to_the_fire',                                // the fire hooks (102)
+        'evacuating', 'rushing_to_the_fire', 'responding_to_fire',          // the fire hooks (102/110)
         'responding_to_incident', 'visiting_the_detained',                  // dispatch + jail visits (109; the visit is planner-enqueued)
     ]);
 
