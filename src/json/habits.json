@@ -1,0 +1,6 @@
+{
+    "halfLifeDays": 30,
+    "escalationPerLevel": 0.35,
+    "practiceBump": 1,
+    "maxLevel": 10
+}

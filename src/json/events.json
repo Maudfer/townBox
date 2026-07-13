@@ -26055,5 +26055,139 @@
             "once": "perDay"
         },
         "effects": []
+    },
+    "depressive_episode": {
+        "label": "Sank into a depressive episode",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 14
+                        },
+                        {
+                            "attr": "depressed",
+                            "op": "==",
+                            "value": false
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 1.2,
+                "factors": [
+                    {
+                        "driver": "subject.mood",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 5
+                                },
+                                {
+                                    "at": 25,
+                                    "value": 1.5
+                                },
+                                {
+                                    "at": 45,
+                                    "value": 0
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "manual": {}
+        },
+        "limit": {
+            "withinTicks": 2160
+        },
+        "valence": -2,
+        "effects": [
+            {
+                "type": "setAttr",
+                "attr": "depressed",
+                "value": true
+            },
+            {
+                "type": "emit",
+                "signal": "depressiveEpisode",
+                "target": "subject"
+            }
+        ]
+    },
+    "lifted_spirits": {
+        "label": "Came out of the darkness — spirits lifted",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "depressed",
+                            "op": "==",
+                            "value": true
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 4,
+                "factors": [
+                    {
+                        "driver": "subject.mood",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.25
+                                },
+                                {
+                                    "at": 35,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 55,
+                                    "value": 3
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "manual": {}
+        },
+        "valence": 2,
+        "effects": [
+            {
+                "type": "setAttr",
+                "attr": "depressed",
+                "value": false
+            },
+            {
+                "type": "emit",
+                "signal": "liftedSpirits",
+                "target": "subject"
+            }
+        ]
     }
 }

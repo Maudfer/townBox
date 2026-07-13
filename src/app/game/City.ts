@@ -691,7 +691,7 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, mood: Game.mood ?? null } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, mood: Game.mood ?? null } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
                 // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.
@@ -700,6 +700,7 @@ export default class City {
                     Game.needs?.removePerson(deceased);
                     Game.agenda?.removePerson(deceased);
                     Game.mood?.removePerson(deceased);
+                    Game.habits?.removePerson(deceased);
                 }
                 await this.materializeNewborns(result.born, personByGenId);
                 // City-overview vital tallies (task 031).

@@ -12,7 +12,7 @@ import {
 import { validateEventsSemantics, validateEventsStructure } from 'game/data/validators/events';
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
-import { validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
+import { validateHabitsStructure, validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
 import { validatePlacementSemantics } from 'game/data/validators/placement';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
@@ -77,7 +77,7 @@ describe('data validation (task 039)', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
             'actions', 'arbitration', 'assets', 'businesses', 'config', 'demand', 'economy',
-            'events', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials', 'mood',
+            'events', 'habits', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials', 'mood',
             'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'relationships', 'residences', 'routines', 'schools', 'skillInit', 'skills', 'toolAssets', 'traits',
         ]);
     });
@@ -360,6 +360,12 @@ describe('params validation', () => {
             safety: { maxRuntimeMs: 0, maxPeople: 0 },
         };
         expect(messagesOf(structure(validateHistoryGeneratorStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
+    });
+
+    test('habits rejects a missing half-life and unknown keys (task 095)', () => {
+        const output = messagesOf(structure(validateHabitsStructure, { escalationPerLevel: 0.35, practiceBump: 1, maxLevel: 10, bogus: true }));
+        expect(output).toMatch(/habits\.halfLifeDays/);
+        expect(output).toMatch(/habits\.bogus: unknown key/);
     });
 });
 

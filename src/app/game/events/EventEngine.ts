@@ -410,6 +410,10 @@ export default class EventEngine {
             case 'retired':
                 // Set true by the retirement event (task 032); gates get_job so retirees aren't re-hired.
                 return (this.overlay[id]?.['retired'] as boolean) ?? false;
+            case 'depressed':
+                // Depression state (task 095): set by depressive_episode, cleared by lifted_spirits. The
+                // withdrawal modifiers in the action data gate on it; unset reads false, never undefined.
+                return (this.overlay[id]?.['depressed'] as boolean) ?? false;
             case 'mood':
                 // Morale 0–100 (task 091): baseline without a bound ledger. Vice/withdrawal data gates on it.
                 return this.moodLedger ? this.moodLedger.moodOf(id, tick) : MOOD_CONFIG.baseline;

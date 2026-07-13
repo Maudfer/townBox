@@ -207,3 +207,16 @@ export function validateMoodStructure(data: unknown, issues: IssueCollector): vo
     checkNumber(issues, 'mood.maxActiveImpulses', config['maxActiveImpulses'], { min: 1, integer: true });
     checkNumber(issues, 'mood.pruneBelow', config['pruneBelow'], { min: 0 });
 }
+
+// json/habits.json (task 095): vice-counter cooling/escalation policy.
+export function validateHabitsStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'habits', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'habits', config, ['halfLifeDays', 'escalationPerLevel', 'practiceBump', 'maxLevel']);
+    checkNumber(issues, 'habits.halfLifeDays', config['halfLifeDays'], { min: 0.1 });
+    checkNumber(issues, 'habits.escalationPerLevel', config['escalationPerLevel'], { min: 0 });
+    checkNumber(issues, 'habits.practiceBump', config['practiceBump'], { min: 0 });
+    checkNumber(issues, 'habits.maxLevel', config['maxLevel'], { min: 1 });
+}

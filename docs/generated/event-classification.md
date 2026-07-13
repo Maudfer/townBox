@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 711 events — **17 vital**, **37 wired**, **515 texture**, **142 reserved**.
+Totals: 713 events — **19 vital**, **37 wired**, **515 texture**, **142 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -138,6 +138,7 @@ Totals: 711 events — **17 vital**, **37 wired**, **515 texture**, **142 reserv
 | decluttered_house | possessions | probabilistic+manual | wired | cleaning_house.onComplete |
 | defaulted_on_loan | finance | manual | reserved | — |
 | delivered_eulogy | death | manual | reserved | — |
+| depressive_episode | health | probabilistic+manual | vital | — |
 | developed_crush | romance | probabilistic+manual | texture | — |
 | developed_hearing_loss | aging | probabilistic | texture | — |
 | developed_insomnia | health | probabilistic+manual | texture | — |
@@ -376,6 +377,7 @@ Totals: 711 events — **17 vital**, **37 wired**, **515 texture**, **142 reserv
 | lent_money_to_friend | finance | probabilistic+manual | texture | — |
 | let_lawn_go_wild | housing | probabilistic | texture | — |
 | let_slip_secret | social | probabilistic | texture | — |
+| lifted_spirits | health | probabilistic+manual | vital | — |
 | lit_candles_in_outage | weather-reaction | manual | reserved | — |
 | locked_out_of_house | housing | probabilistic+manual | texture | — |
 | lost_argument | social | manual | reserved | — |

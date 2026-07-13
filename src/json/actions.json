@@ -98,6 +98,14 @@
                         "value": 65
                     },
                     "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -527,6 +535,14 @@
                         "value": 25
                     },
                     "multiply": 0.5
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -617,6 +633,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -721,6 +745,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 35
+                    },
+                    "multiply": 4
                 }
             ]
         },
@@ -758,7 +790,8 @@
         "affinity": [
             "social",
             "indulgent"
-        ]
+        ],
+        "habit": "drinking"
     },
     "shopping_trip": {
         "label": "Going on a shopping trip",
@@ -902,6 +935,14 @@
                         "value": 30
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -1908,6 +1949,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -2308,6 +2357,14 @@
                         ]
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -3101,6 +3158,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -3231,6 +3296,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -3320,6 +3393,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -3423,6 +3504,14 @@
                         "value": 0.6
                     },
                     "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -5315,6 +5404,14 @@
                         "value": 60
                     },
                     "multiply": 0.4
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -5377,7 +5474,17 @@
         },
         "selection": {
             "weight": 0.9,
-            "cooldownTicks": 16
+            "cooldownTicks": 16,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
         },
         "children": {
             "mode": "pool",
@@ -5492,6 +5599,14 @@
                         "value": 16
                     },
                     "multiply": 0.1
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -5561,6 +5676,14 @@
                         ]
                     },
                     "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -5618,6 +5741,14 @@
                         ]
                     },
                     "multiply": 1.6
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -5654,7 +5785,17 @@
         "durationTicks": 3,
         "resumable": true,
         "selection": {
-            "weight": 0
+            "weight": 0,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
         },
         "children": {
             "mode": "pool",
@@ -5706,5 +5847,99 @@
         "satisfies": {
             "social": 3
         }
+    },
+    "drank_alone": {
+        "label": "Drinking alone",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "home",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 18
+        },
+        "selection": {
+            "weight": 0.1,
+            "cooldownTicks": 24,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 40
+                    },
+                    "multiply": 5
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 19
+                    },
+                    "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": "<=",
+                        "value": 15
+                    },
+                    "multiply": 0.1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 5
+        },
+        "habit": "drinking",
+        "affinity": [
+            "indulgent",
+            "solitary"
+        ]
+    },
+    "stayed_in_bed_all_day": {
+        "label": "Stayed in bed all day",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "home",
+        "durationTicks": 8,
+        "selection": {
+            "weight": 0.05,
+            "cooldownTicks": 48,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 12
+                },
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 25
+                    },
+                    "multiply": 4
+                }
+            ]
+        },
+        "satisfies": {
+            "rest": 30
+        },
+        "affinity": [
+            "solitary",
+            "cozy"
+        ]
     }
 }

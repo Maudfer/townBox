@@ -125,6 +125,9 @@ export interface ActionDefinition {
     // the street network (the wander machinery at the named gait). Live-mode only — bootstrap/logical worlds
     // have no streets to walk; the lifecycle records are identical either way (the 040 seam holds).
     ambulatory?: 'stroll' | 'jog' | 'run';
+    // Habit linkage (task 095 / G3): committing this action practices the named habit; the habit level
+    // multiplies this action's selection weight (escalation). Cooling is authored in json/habits.json.
+    habit?: string;
     // Trait affinity tags (task 087 / proposal M2): which temperament axes this action appeals to, mapped
     // through json/traits.json — a high-orderliness person actually keeps their house clean.
     affinity?: string[];

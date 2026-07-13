@@ -26,6 +26,7 @@ import { runTick } from 'game/execution/TickRunner';
 import LogicalWorld, { LogicalWorldConfig } from 'game/history/LogicalWorld';
 import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/population/Population';
 import Agenda from 'game/actions/Agenda';
+import Habits from 'game/population/Habits';
 import Mood from 'game/population/Mood';
 import Needs from 'game/population/Needs';
 import SocialGraph from 'game/population/SocialGraph';
@@ -322,6 +323,8 @@ export async function generateHistoryAsset(
     const bootstrapAgenda = logical ? null : new Agenda();
     const bootstrapMood = logical ? null : new Mood();
     const moodLedger = logical ? logical.mood : bootstrapMood!;
+    const bootstrapHabits = logical ? null : new Habits();
+    const habitsLedger = logical ? logical.habits : bootstrapHabits!;
     const agendaLedger = logical ? logical.agenda : bootstrapAgenda!;
     const traits = new Traits(() => ({ worldSeed: state.worldSeed, people: state.people }));
     if (logical) {
@@ -409,6 +412,7 @@ export async function generateHistoryAsset(
             bootstrapNeeds?.removePerson(id);
             bootstrapAgenda?.removePerson(id);
             bootstrapMood?.removePerson(id);
+            bootstrapHabits?.removePerson(id);
             deaths++;
         }
     };
@@ -448,7 +452,7 @@ export async function generateHistoryAsset(
             agentIds,
             tick,
             ticksPerYear: tpy,
-            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger, traits, mood: moodLedger } },
+            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger, traits, habits: habitsLedger, mood: moodLedger } },
             ...(facts ? { inventory: facts.inventory } : {}),
             ticksPerStep: step,
         });

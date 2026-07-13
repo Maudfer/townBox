@@ -568,6 +568,10 @@ export default class ActionEngine {
             if (def.satisfies) {
                 deps.ctx.markets?.needs?.satisfy(personId, def.satisfies, deps.tick, deps.state.worldSeed);
             }
+            // Habit practice (task 095): committing a habit-linked action bumps its counter.
+            if (def.habit) {
+                deps.ctx.markets?.habits?.practice(personId, def.habit, deps.tick);
+            }
             this.fireEvent(def.events?.onStart, personId, seq, deps, result, params);
             this.fireEvent(def.events?.onComplete, personId, seq, deps, result, params);
             // Counterpart event (task 082): the target's half of the interaction, chained to the same seq.
@@ -886,6 +890,10 @@ export default class ActionEngine {
             // (interruptions/blocks credit nothing — finishing matters).
             if (def.satisfies) {
                 deps.ctx.markets?.needs?.satisfy(instance.personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            // Habit practice (task 095): only a COMPLETED instance practices — same discipline as needs.
+            if (def.habit) {
+                deps.ctx.markets?.habits?.practice(instance.personId, def.habit, deps.tick);
             }
             const tEvent = fclock ? fclock() : 0;
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);

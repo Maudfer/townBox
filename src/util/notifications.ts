@@ -20,6 +20,8 @@ const FEED_MESSAGES: Record<string, (name: string, params?: Record<string, strin
     graduated: name => ({ kind: 'education', message: `${name} earned a new qualification` }),
     madeFriend: name => ({ kind: 'social', message: `${name} made a new friend` }),
     hadArgument: name => ({ kind: 'social', message: `${name} had a falling-out` }),
+    depressiveEpisode: name => ({ kind: 'health', message: `${name} sank into a depression` }),
+    liftedSpirits: name => ({ kind: 'health', message: `${name} is feeling like themselves again` }),
 };
 
 // Signals the City consumes directly (world reconciliation) without a feed mapping.

@@ -408,6 +408,7 @@ export default class Brain {
         const context = this.actionEngine.contextFor(personId, deps);
         const needsLedger = deps.ctx.markets?.needs ?? null;
         const traitsReader = deps.ctx.markets?.traits ?? null;
+        const habitsReader = deps.ctx.markets?.habits ?? null;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
@@ -431,6 +432,10 @@ export default class Brain {
             }
             if (traitsReader && def.affinity) {
                 weight *= traitsReader.affinityMultiplier(personId, def.affinity);
+            }
+            // Habit escalation (task 095): a practiced vice's own weight climbs — coping loops emerge.
+            if (habitsReader && def.habit) {
+                weight *= habitsReader.selectionMultiplier(personId, def.habit, deps.tick);
             }
             if (weight > 0) {
                 candidates.push({ actionId, weight });
@@ -484,6 +489,7 @@ export default class Brain {
         addSeg('freeTime:context', tCtx);
         const needsLedger = deps.ctx.markets?.needs ?? null;
         const traitsReader = deps.ctx.markets?.traits ?? null;
+        const habitsReader = deps.ctx.markets?.habits ?? null;
         const tLoop = clock ? clock() : 0;
         let reqMs = 0;
         let modMs = 0;
@@ -522,6 +528,11 @@ export default class Brain {
             // Trait affinity (task 087): temperament scales what this PERSON gravitates toward.
             if (traitsReader && def.affinity) {
                 weight *= traitsReader.affinityMultiplier(personId, def.affinity);
+            }
+            // Habit escalation (task 095): repeated practice raises the vice's own weight — the addiction
+            // positive-feedback loop, in the same selection math as everything else. Cooling is closed-form.
+            if (habitsReader && def.habit) {
+                weight *= habitsReader.selectionMultiplier(personId, def.habit, deps.tick);
             }
             if (weight > 0) {
                 candidates.push({ actionId, weight });
