@@ -135,7 +135,8 @@
         },
         "affinity": [
             "solitary"
-        ]
+        ],
+        "ambulatory": "stroll"
     },
     "bake_cake": {
         "label": "Baking a cake",
@@ -2182,7 +2183,8 @@
         "affinity": [
             "solitary",
             "active"
-        ]
+        ],
+        "ambulatory": "stroll"
     },
     "listening_to_music": {
         "label": "Listening to music",
@@ -5247,6 +5249,428 @@
         },
         "events": {
             "onStart": "called_in_sick"
+        }
+    },
+    "jogging": {
+        "label": "Jogging",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "jog",
+        "durationTicks": 2,
+        "resumable": true,
+        "requirements": {
+            "attr": "health",
+            "op": ">=",
+            "value": 0.6
+        },
+        "selection": {
+            "weight": 0.7,
+            "cooldownTicks": 20,
+            "modifiers": [
+                {
+                    "when": {
+                        "any": [
+                            {
+                                "all": [
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": ">=",
+                                        "value": 6
+                                    },
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": "<=",
+                                        "value": 8
+                                    }
+                                ]
+                            },
+                            {
+                                "all": [
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": ">=",
+                                        "value": 18
+                                    },
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": "<=",
+                                        "value": 20
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "multiply": 2.2
+                },
+                {
+                    "when": {
+                        "attr": "age",
+                        "op": ">=",
+                        "value": 60
+                    },
+                    "multiply": 0.4
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "jogged_a_lap",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "did_stretches",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "pulled_a_muscle",
+                    "chancePerTick": 0.04,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 12,
+            "purpose": 15
+        },
+        "affinity": [
+            "active"
+        ]
+    },
+    "riding_skateboard": {
+        "label": "Riding a skateboard",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "jog",
+        "durationTicks": 2,
+        "resumable": true,
+        "requirements": {
+            "all": [
+                {
+                    "carries": {
+                        "archetype": "skateboard"
+                    }
+                },
+                {
+                    "attr": "age",
+                    "op": "<=",
+                    "value": 45
+                },
+                {
+                    "attr": "health",
+                    "op": ">=",
+                    "value": 0.6
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0.9,
+            "cooldownTicks": 16
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.25
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 25
+        },
+        "affinity": [
+            "thrill",
+            "active"
+        ]
+    },
+    "cleaning_the_sidewalk": {
+        "label": "Cleaning the sidewalk",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "outside",
+        "durationTicks": 2,
+        "requirements": {
+            "carries": {
+                "archetype": "broom"
+            }
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 72,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 8
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 18
+                            }
+                        ]
+                    },
+                    "multiply": 1.5
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "swept_the_floor",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.25
+                }
+            ]
+        },
+        "satisfies": {
+            "purpose": 18,
+            "hygiene": 6
+        },
+        "affinity": [
+            "tidy",
+            "industrious"
+        ]
+    },
+    "evening_stroll": {
+        "label": "An evening stroll",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 2,
+        "resumable": true,
+        "selection": {
+            "weight": 0.6,
+            "cooldownTicks": 20,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 17
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 21
+                            }
+                        ]
+                    },
+                    "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": "<",
+                        "value": 16
+                    },
+                    "multiply": 0.1
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "watched_the_clouds",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.2
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 10,
+            "rest": 6
+        },
+        "affinity": [
+            "cozy"
+        ]
+    },
+    "street_games": {
+        "label": "Playing street games",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 5
+                },
+                {
+                    "attr": "age",
+                    "op": "<=",
+                    "value": 14
+                }
+            ]
+        },
+        "selection": {
+            "weight": 1.4,
+            "cooldownTicks": 10,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 15
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 19
+                            }
+                        ]
+                    },
+                    "multiply": 2
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "ran_around",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "laughed_together",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "climbed_the_structure",
+                    "chancePerTick": 0.15
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 30,
+            "social": 12
+        },
+        "affinity": [
+            "active",
+            "social"
+        ]
+    },
+    "window_shopping": {
+        "label": "Window shopping",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 2,
+        "resumable": true,
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 30,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 10
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 19
+                            }
+                        ]
+                    },
+                    "multiply": 1.6
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "checked_a_price_tag",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "invented_a_story_about_a_stranger",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.2
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 12
+        },
+        "affinity": [
+            "indulgent"
+        ]
+    },
+    "taking_a_walk_together": {
+        "label": "Taking a walk together",
+        "type": "continuous",
+        "category": "social",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 3,
+        "resumable": true,
+        "selection": {
+            "weight": 0
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "chatted_with_friend",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "laughed_together",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.3
+                }
+            ]
+        },
+        "satisfies": {
+            "social": 25,
+            "fun": 12
         }
     }
 }

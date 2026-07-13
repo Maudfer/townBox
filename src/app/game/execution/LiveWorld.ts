@@ -112,6 +112,24 @@ export default class LiveWorld implements WorldAdapter {
         };
 
         const person = this.findPerson(personId);
+        // Stepping OUTSIDE (task 093 / E1): pre-093 this cancelled and outdoor actions blocked in live mode.
+        // Now the person steps out the door — visible at the entrance, no longer in the building — and the
+        // handle resolves immediately (the walk itself is the ambulatory action's business, not a commute).
+        if (person && target.kind === 'outside') {
+            const building = person.getCurrentBuilding();
+            if (building) {
+                // Optional calls: the scene-facing bits are absent on minimal test doubles (arcScenarios).
+                const entrance = building.getEntrance?.();
+                if (entrance) {
+                    person.setPosition?.(entrance.x, entrance.y);
+                }
+                person.setIndoors?.(false);
+                person.setCurrentBuilding?.(null);
+            }
+            handle.status = 'arrived';
+            handle.resolvedAtTick = tick;
+            return handle;
+        }
         const destination = person ? this.targetBuilding(person, target) : null;
         if (!person || !destination) {
             handle.status = 'cancelled';

@@ -1744,6 +1744,23 @@ export default class City {
     // minute cadence so arrivals resolve promptly between hourly ticks.
     public handleCommute(event: TimeChangedEvent): void {
         this.world.pump(event.tick);
+
+        // Ambulatory sweep (task 093 / E1): each in-game minute, flag residents whose ACTIVE action is
+        // authored `ambulatory` so the field's wander machinery visibly walks them — joggers jog, strollers
+        // stroll. Derived state (never serialized); clears itself when the activity ends.
+        const actionEngine = Game.actionEngine;
+        const field = Game.field;
+        if (actionEngine && field) {
+            for (const person of field.getPeople()) {
+                const personId = person.social.getPersonId();
+                if (!personId) {
+                    continue;
+                }
+                const active = actionEngine.activeInstanceOf(personId);
+                const def = active && active.status === 'running' ? actionEngine.getDefinition(active.defId) : null;
+                person.setAmbulatory(def?.ambulatory !== undefined);
+            }
+        }
     }
 
     private startCommute(person: Person, destination: Building): void {

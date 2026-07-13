@@ -10,7 +10,7 @@ import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/da
 import { ActionManifest } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies', 'resumable', 'affinity'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies', 'resumable', 'affinity', 'ambulatory'];
 // The closed need vocabulary (task 084) — mirrors types/Needs.ts NEED_IDS.
 const NEED_KEYS = ['food', 'rest', 'social', 'fun', 'hygiene', 'purpose'];
 const ACTION_TYPES = ['discrete', 'continuous'];
@@ -96,6 +96,16 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
             checkBoolean(issues, `${id}.resumable`, action['resumable']);
             if (action['type'] !== 'continuous') {
                 issues.add(`${id}.resumable`, 'only continuous actions can pause/resume (discrete commits are instant)');
+            }
+        }
+        if ('ambulatory' in action) {
+            // Street roaming (task 093): a gait for a continuous OUTDOOR action.
+            checkEnum(issues, `${id}.ambulatory`, action['ambulatory'], ['stroll', 'jog', 'run']);
+            if (action['type'] !== 'continuous') {
+                issues.add(`${id}.ambulatory`, 'only continuous actions can roam (discrete commits are instant)');
+            }
+            if (action['location'] !== 'outside') {
+                issues.add(`${id}.ambulatory`, 'an ambulatory action must be located outside (streets are the venue)');
             }
         }
         if ('affinity' in action) {

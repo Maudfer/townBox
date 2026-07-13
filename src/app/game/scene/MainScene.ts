@@ -41,6 +41,8 @@ export default class MainScene extends Phaser.Scene {
 
         Game.on("tileSpawned", { callback: this.drawTile, context: this });
         Game.on("personSpawned", { callback: this.drawPerson, context: this });
+        // Activity bubbles (task 093 / J2): refresh label text/visibility once per in-game minute.
+        Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
 
         Game.on("windowDragStart", { callback: () => {
@@ -400,6 +402,39 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    // Activity bubbles (task 093 / J2): a small label over each visible OUTDOOR person naming their
+    // current activity — the street narrates itself. Text refreshes per in-game minute; position follows
+    // the sprite each frame via the person's redraw closure.
+    private activityLabels = new Map<Person, Phaser.GameObjects.Text>();
+
+    private refreshActivityLabels(): void {
+        const field = Game.field;
+        const engine = Game.actionEngine;
+        if (!field || !engine) {
+            return;
+        }
+        const roster = new Set(field.getPeople());
+        for (const [person, text] of this.activityLabels) {
+            if (!roster.has(person)) {
+                text.destroy();
+                this.activityLabels.delete(person);
+            }
+        }
+        for (const person of roster) {
+            const text = this.activityLabels.get(person);
+            const personId = person.social.getPersonId();
+            if (!text || !personId) {
+                continue;
+            }
+            const active = engine.activeInstanceOf(personId);
+            const show = !!active && active.status === 'running' && !person.isIndoors();
+            if (show) {
+                text.setText(engine.getActionLabel(active!.defId));
+            }
+            text.setVisible(show);
+        }
+    }
+
     private drawPerson(person: Person): void {
         const position: PixelPosition = person.getPosition();
         if (position === null) {
@@ -437,6 +472,13 @@ export default class MainScene extends Phaser.Scene {
             personAsset.setRotation(rotation);
             personAsset.setPosition(position.x, position.y);
             personAsset.setDepth(person.getDepth());
+
+            // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
+            const bubble = this.activityLabels.get(person);
+            if (bubble && bubble.visible) {
+                bubble.setPosition(position.x, position.y - 12);
+                bubble.setDepth(person.getDepth() + 2);
+            }
         });
     }
 

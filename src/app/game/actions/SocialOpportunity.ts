@@ -19,7 +19,7 @@ const SOCIAL_CHANCE_PER_TICK = 0.15;
 
 // The joint activities an invitation may propose (task 085/D3). A code list for now — each must be a
 // continuous social/leisure action; a follow-up data pass can move this onto the action schema.
-export const JOINT_ACTIVITIES = ['catching_up_over_coffee', 'watching_television', 'hosting_gathering', 'taking_a_walk'] as const;
+export const JOINT_ACTIVITIES = ['catching_up_over_coffee', 'watching_television', 'hosting_gathering', 'taking_a_walk_together'] as const;
 
 // The person-targeted candidate set (task 079): which actions the social hook can even consider — an
 // `interaction` block and a positive base weight — depends only on the manifest, so it is computed once per

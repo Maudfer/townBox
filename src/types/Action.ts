@@ -121,6 +121,10 @@ export interface ActionDefinition {
     // later resumed, same instance id) instead of killing it — the walk continues after the chase. The
     // resume window is authored in json/arbitration.json; past it, the pause becomes a real interruption.
     resumable?: boolean;
+    // Continuous outdoor only (task 093 / proposal E1): while the instance runs, the person visibly roams
+    // the street network (the wander machinery at the named gait). Live-mode only — bootstrap/logical worlds
+    // have no streets to walk; the lifecycle records are identical either way (the 040 seam holds).
+    ambulatory?: 'stroll' | 'jog' | 'run';
     // Trait affinity tags (task 087 / proposal M2): which temperament axes this action appeals to, mapped
     // through json/traits.json — a high-orderliness person actually keeps their house clean.
     affinity?: string[];
