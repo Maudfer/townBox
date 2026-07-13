@@ -125,8 +125,8 @@ export interface HookContext {
     personId: PersonId;
     deps: BrainDeps;
     brain: Brain;
-    // For onEventCommitted: the committing event.
-    event?: { eventId: string; seq: number };
+    // For onEventCommitted: the committing event (params carry the payload — reactions bind targets off it).
+    event?: { eventId: string; seq: number; params?: Record<string, string | number | boolean> };
     // For onActionFailed (task 073): the declined/failed attempt being observed.
     failure?: { actionId: string; reason: string };
     // Optional --profile sub-timer (task 079 pass 2): hooks may attribute their internal segments into it
@@ -173,6 +173,7 @@ export default class Brain {
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
             wokeUpHook,
+            reactionsHook, // authored answers to committed events — thanks, hugs back, retorts (task 094)
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
             socialOpportunityHook, // person-targeted intents with bound targets (task 072)
             inventoryOpportunityHook,
@@ -215,11 +216,39 @@ export default class Brain {
     // Lifecycle phase 7 (038 §3.1): run hooks for every agent, resolve intents, and execute through the
     // Action engine (phase 8). `committed` carries the tick's event commits for onEventCommitted hooks.
     processTick(agentIds: PersonId[], deps: BrainDeps, committed: TickResult['committed'], result: TickResult, sub?: SubProfiler): void {
-        const committedByPerson = new Map<PersonId, { eventId: string; seq: number }[]>();
+        const committedByPerson = new Map<PersonId, { eventId: string; seq: number; params?: Record<string, string | number | boolean> }[]>();
         for (const commit of committed) {
             const list = committedByPerson.get(commit.personId) ?? [];
-            list.push({ eventId: commit.eventId, seq: commit.seq });
+            list.push({ eventId: commit.eventId, seq: commit.seq, ...(commit.params ? { params: commit.params } : {}) });
             committedByPerson.set(commit.personId, list);
+        }
+
+        // Witnesses (task 094 / C4): co-located third parties log the scene. Runs off the ORIGINAL commit
+        // list (built above), so witnessed entries never dispatch reactions — the one-level rule holds
+        // structurally. Capped at 3 witnesses per scene, once per witness per day (the event's own limit).
+        const world = deps.ctx.world ?? null;
+        if (world) {
+            const agentSet = new Set(agentIds);
+            for (const commit of committed) {
+                if (!deps.eventEngine.getManifest()[commit.eventId]?.witnessable) {
+                    continue;
+                }
+                const witnesses = world.peopleAt(world.locationOf(commit.personId))
+                    .filter(id => id !== commit.personId && agentSet.has(id))
+                    .sort()
+                    .slice(0, 3);
+                for (const witnessId of witnesses) {
+                    const { result: witnessResult } = deps.eventEngine.invoke(
+                        deps.state, 'witnessed_a_scene', witnessId, deps.tick, deps.ticksPerYear,
+                        { source: 'system', causationId: commit.seq }, {}, deps.ctx,
+                        { about: commit.personId, event: commit.eventId }
+                    );
+                    result.died.push(...witnessResult.died);
+                    result.born.push(...witnessResult.born);
+                    result.signals.push(...witnessResult.signals);
+                    result.committed.push(...witnessResult.committed);
+                }
+            }
         }
 
         // Optional --profile sub-timing (task 079): per-hook + arbitration wall-clock. `clock` is null (and the
@@ -553,6 +582,50 @@ const wokeUpHook: BrainHook = {
             mayInterrupt: false,
             causationId: event.seq,
         }] : [];
+    },
+};
+
+// Reactions (task 094 / C3): the subject of a committed event may answer it — a thank-you for a gift, a hug
+// back, a retort to an argument. Authored on the EVENT (reactions[]); rolls are seeded per (tick, person,
+// seq); targets bind from the event's payload; the action's own gates (co-location, consent, requirements)
+// do the rest. One level deep by construction: reaction commits never re-dispatch (see processTick).
+const reactionsHook: BrainHook = {
+    id: 'reactions',
+    kind: 'onEventCommitted',
+    propose({ personId, deps, event }): ActionIntent[] {
+        if (!event) {
+            return [];
+        }
+        const reactions = deps.eventEngine.getManifest()[event.eventId]?.reactions ?? [];
+        if (reactions.length === 0) {
+            return [];
+        }
+        const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x4ea).fork(event.seq);
+        const intents: ActionIntent[] = [];
+        for (const reaction of reactions) {
+            if (!rng.chance(reaction.chance)) {
+                continue;
+            }
+            let params: Record<string, Value> | undefined;
+            if (reaction.targetParam) {
+                const other = event.params?.[reaction.targetParam];
+                if (typeof other !== 'string') {
+                    continue; // no counterpart in the payload — nothing to react at
+                }
+                params = { target: other };
+            }
+            intents.push({
+                actionId: reaction.action,
+                ...(params ? { params } : {}),
+                sourceHook: 'reactions',
+                priority: 25,
+                necessity: 'optional',
+                band: 'opportunity',
+                mayInterrupt: false,
+                causationId: event.seq,
+            });
+        }
+        return intents;
     },
 };
 

@@ -143,6 +143,13 @@ export interface EventDefinition {
     parameters?: Record<string, EventParameterSpec>;
     // Occurrence limit across ALL trigger paths (optional).
     limit?: OccurrenceLimit;
+    // Reactions (task 094 / C3): what the SUBJECT of this commit may do about it, same tick, one level
+    // deep (a reaction's own events never re-dispatch reactions — chains are structurally impossible).
+    // targetParam names the event parameter holding the counterpart person ('from' on received_gift).
+    reactions?: { action: string; chance: number; targetParam?: string }[];
+    // Witnesses (task 094 / C4): co-located third parties log witnessed_a_scene when this commits (capped,
+    // once per witness per day). Cheap Dwarf-Fortress-grade texture; reputation (104) builds on it.
+    witnessable?: boolean;
     // Mood valence (task 091 / G1): −3…+3 — this commit's emotional weight on its subject. Magnitude picks
     // the impulse's half-life (a ±1 ripple fades in days, a ±3 blow shadows months). 0/absent = neutral.
     valence?: number;
@@ -226,7 +233,7 @@ export interface TickResult {
     born: { id: string; motherId: string; fatherId: string }[];
     signals: { signal: string; personId: string | null; tick: number; eventId: string; causationId: number; params?: Record<string, string | number | boolean> }[];
     // Every event commit this tick (task 046): Brain's onEventCommitted hooks consume these.
-    committed: { personId: string; eventId: string; seq: number }[];
+    committed: { personId: string; eventId: string; seq: number; params?: Record<string, string | number | boolean> }[];
 }
 
 // The money adapter the event runtime consults so the pure engine can read wealth (the `money` Context

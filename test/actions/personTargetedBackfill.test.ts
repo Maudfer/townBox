@@ -51,7 +51,7 @@ const TRANSFERS = ['gave_object_to_person', 'lent_an_object', 'returned_borrowed
 
 describe('the curated contract table', () => {
     test('every person-targeted action is contracted with the ratified askFirst posture', () => {
-        expect(personTargeted.length).toBe(23); // 18 pre-074 + hugged_person + kissed/invite (083/085) + asked_person_out/proposed_marriage (090)
+        expect(personTargeted.length).toBe(24); // 18 pre-074 + hugged_person + kissed/invite (083/085) + ask-out/proposal (090) + thanked_person (094)
         for (const actionId of personTargeted) {
             const contract = ACTIONS[actionId]!.interaction!;
             expect(contract.targetParam).toBe('target');

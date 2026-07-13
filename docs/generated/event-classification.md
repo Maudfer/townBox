@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 710 events — **17 vital**, **37 wired**, **515 texture**, **141 reserved**.
+Totals: 711 events — **17 vital**, **37 wired**, **515 texture**, **142 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -688,6 +688,7 @@ Totals: 710 events — **17 vital**, **37 wired**, **515 texture**, **141 reserv
 | went_to_work | career | manual | reserved | — |
 | went_trick_or_treating | childhood | probabilistic+manual | texture | — |
 | whistled_all_day | emotion-mood | probabilistic | texture | — |
+| witnessed_a_scene | social | manual | reserved | — |
 | witnessed_crime | crime-mischief | probabilistic+manual | texture | — |
 | woke_up | daily | manual | wired | sleep.onComplete |
 | woke_up_grumpy | emotion-mood | probabilistic | texture | — |

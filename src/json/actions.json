@@ -3930,7 +3930,12 @@
             "cooldownTicks": 24
         },
         "events": {
-            "onCompleteTarget": "argument"
+            "onCompleteTarget": {
+                "event": "argument",
+                "params": {
+                    "with": "$actor"
+                }
+            }
         },
         "consequences": [
             {
@@ -5671,6 +5676,35 @@
         "satisfies": {
             "social": 25,
             "fun": 12
+        }
+    },
+    "thanked_person": {
+        "label": "Thanked someone",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ],
+        "selection": {
+            "weight": 0.2,
+            "cooldownTicks": 4
+        },
+        "satisfies": {
+            "social": 3
         }
     }
 }

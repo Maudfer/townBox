@@ -159,7 +159,7 @@ describe('the C2 flagship rewires (real manifests)', () => {
         expect(EVENTS['gave_gift']!.triggers.probabilistic).toBeUndefined();
         // The argument event became invokable so argued_with_person can land it on the target.
         expect(EVENTS['argument']!.triggers.manual).toBeDefined();
-        expect(ACTIONS['argued_with_person']!.events?.onCompleteTarget).toBe('argument');
+        expect((ACTIONS['argued_with_person']!.events?.onCompleteTarget as { event: string }).event).toBe('argument');
     });
 
     test('the flagship set all carries counterpart links', () => {

@@ -255,7 +255,8 @@
                 "target": "subject"
             }
         ],
-        "valence": 3
+        "valence": 3,
+        "witnessable": true
     },
     "divorce": {
         "label": "Got divorced",
@@ -828,7 +829,8 @@
                 "type": "string"
             }
         },
-        "valence": 1
+        "valence": 1,
+        "witnessable": true
     },
     "argument": {
         "label": "Had a falling-out",
@@ -881,7 +883,25 @@
                 "target": "subject"
             }
         ],
-        "valence": -1
+        "valence": -1,
+        "parameters": {
+            "with": {
+                "type": "string"
+            }
+        },
+        "reactions": [
+            {
+                "action": "argued_with_person",
+                "chance": 0.3,
+                "targetParam": "with"
+            },
+            {
+                "action": "apologized_to_person",
+                "chance": 0.1,
+                "targetParam": "with"
+            }
+        ],
+        "witnessable": true
     },
     "woke_up": {
         "label": "Woke up",
@@ -1726,7 +1746,15 @@
                 "type": "string"
             }
         },
-        "valence": 2
+        "valence": 2,
+        "reactions": [
+            {
+                "action": "hugged_person",
+                "chance": 0.35,
+                "targetParam": "with"
+            }
+        ],
+        "witnessable": true
     },
     "developed_crush": {
         "label": "Developed a crush",
@@ -1933,7 +1961,20 @@
                 "type": "string"
             }
         },
-        "valence": 2
+        "valence": 2,
+        "reactions": [
+            {
+                "action": "hugged_person",
+                "chance": 0.6,
+                "targetParam": "with"
+            },
+            {
+                "action": "celebrated_with_person",
+                "chance": 0.4,
+                "targetParam": "with"
+            }
+        ],
+        "witnessable": true
     },
     "proposal_rejected": {
         "label": "Proposed and was rejected",
@@ -4706,7 +4747,8 @@
             "once": "perDay"
         },
         "valence": -1,
-        "effects": []
+        "effects": [],
+        "witnessable": true
     },
     "late_for_work": {
         "label": "Was late for work",
@@ -5922,7 +5964,14 @@
                 "type": "string"
             }
         },
-        "valence": 1
+        "valence": 1,
+        "reactions": [
+            {
+                "action": "thanked_person",
+                "chance": 0.5,
+                "targetParam": "from"
+            }
+        ]
     },
     "got_scholarship": {
         "label": "Got a scholarship",
@@ -7798,7 +7847,8 @@
             "withinTicks": 240
         },
         "effects": [],
-        "valence": 1
+        "valence": 1,
+        "witnessable": true
     },
     "received_gift": {
         "label": "Received a gift",
@@ -7824,7 +7874,19 @@
                 "type": "string"
             }
         },
-        "valence": 1
+        "valence": 1,
+        "reactions": [
+            {
+                "action": "thanked_person",
+                "chance": 0.8,
+                "targetParam": "from"
+            },
+            {
+                "action": "hugged_person",
+                "chance": 0.25,
+                "targetParam": "from"
+            }
+        ]
     },
     "regifted_present": {
         "label": "Re-gifted a present",
@@ -25734,7 +25796,14 @@
                 "type": "string"
             }
         },
-        "effects": []
+        "effects": [],
+        "reactions": [
+            {
+                "action": "thanked_person",
+                "chance": 0.7,
+                "targetParam": "from"
+            }
+        ]
     },
     "object_lost": {
         "label": "Lost an object",
@@ -25857,7 +25926,14 @@
             }
         },
         "effects": [],
-        "valence": 1
+        "valence": 1,
+        "reactions": [
+            {
+                "action": "hugged_person",
+                "chance": 0.3,
+                "targetParam": "from"
+            }
+        ]
     },
     "became_close_friends": {
         "label": "Became close friends",
@@ -25886,7 +25962,8 @@
                 "target": "subject"
             }
         ],
-        "valence": 2
+        "valence": 2,
+        "witnessable": true
     },
     "fell_seriously_ill": {
         "label": "Fell seriously ill",
@@ -25950,5 +26027,33 @@
                 "target": "subject"
             }
         ]
+    },
+    "witnessed_a_scene": {
+        "label": "Witnessed a scene",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "parameters": {
+            "about": {
+                "type": "string"
+            },
+            "event": {
+                "type": "string"
+            }
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": []
     }
 }

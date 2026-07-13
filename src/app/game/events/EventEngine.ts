@@ -285,6 +285,11 @@ export default class EventEngine {
         return this.lifeLog.getPersonLog(personId);
     }
 
+    // The loaded manifest (read-only) — reaction/witness dispatch (task 094) reads authored fields off it.
+    getManifest(): EventManifest {
+        return this.manifest;
+    }
+
     getNextLogSeq(): number {
         return this.lifeLog.getNextSeq();
     }
@@ -1005,7 +1010,7 @@ export default class EventEngine {
             return null;
         }
         const seq = this.recordEvent(subjectId, eventId, tick, roleMap, source, causationId, params);
-        result.committed.push({ personId: subjectId, eventId, seq });
+        result.committed.push({ personId: subjectId, eventId, seq, ...(params ? { params } : {}) });
         for (const pending of pendingSignals) {
             // The payload rides the signal (067) so feed builders can interpolate it.
             result.signals.push({ ...pending, eventId, causationId: seq, ...(params ? { params } : {}) });
