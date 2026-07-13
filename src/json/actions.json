@@ -2221,6 +2221,11 @@
                         "op": ">=",
                         "value": 60
                     }
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -5538,6 +5543,14 @@
                         ]
                     },
                     "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "objectAtLocation": {
+                            "archetype": "gum_wrapper"
+                        }
+                    },
+                    "multiply": 3
                 }
             ]
         },
@@ -5551,6 +5564,10 @@
                 {
                     "action": "greeted_neighbor",
                     "chancePerTick": 0.25
+                },
+                {
+                    "action": "picked_up_litter",
+                    "chancePerTick": 0.5
                 }
             ]
         },
@@ -5624,6 +5641,11 @@
                 {
                     "action": "greeted_neighbor",
                     "chancePerTick": 0.2
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -5701,6 +5723,11 @@
                 {
                     "action": "climbed_the_structure",
                     "chancePerTick": 0.15
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -5766,6 +5793,11 @@
                 {
                     "action": "nodded_at_a_passerby",
                     "chancePerTick": 0.2
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -6326,5 +6358,89 @@
         "label": "Stared at the wall",
         "type": "discrete",
         "category": "obligation"
+    },
+    "dropped_a_wrapper": {
+        "label": "Dropped a wrapper on the street",
+        "type": "discrete",
+        "category": "leisure",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "gum_wrapper",
+                "owner": "none",
+                "container": "location"
+            }
+        ]
+    },
+    "collection_rounds": {
+        "label": "On the collection route",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 4,
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "picked_up_litter",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "swept_up_butts",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.1
+                }
+            ]
+        }
+    },
+    "picked_up_litter": {
+        "label": "Picked up litter",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "gum_wrapper"
+            }
+        },
+        "consequences": [
+            {
+                "op": "consumeObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "gum_wrapper"
+                    }
+                },
+                "quantity": 1
+            }
+        ]
+    },
+    "swept_up_butts": {
+        "label": "Swept up cigarette butts",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "cigarette_butt"
+            }
+        },
+        "consequences": [
+            {
+                "op": "consumeObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "cigarette_butt"
+                    }
+                },
+                "quantity": 1
+            }
+        ]
     }
 }

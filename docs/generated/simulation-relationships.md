@@ -9,7 +9,7 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 291 | 83 continuous / 208 discrete |
+| `actions.json` | 295 | 84 continuous / 211 discrete |
 | `events.json` | 723 | 170 probabilistic, 372 probabilistic + manual, 179 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
@@ -201,6 +201,7 @@ Every job carries a full authored ladder (064/066) with an explicit entry-rank t
 | `electronics_technician` | Trainee Electronics Technician → Technician → Senior Technician | 2 skills | every 30 work days |
 | `engineer` | Trainee Engineer → Engineer → Senior Engineer → Principal Engineer | 2 skills | every 30 work days |
 | `fitness_trainer` | Trainee Fitness Trainer → Fitness Trainer → Head Trainer | 2 skills | every 30 work days |
+| `garbage_collector` | Collection Crew → Route Collector → Route Supervisor | 2 skills | every 30 work days |
 | `hairdresser` | Trainee Hairdresser → Hair Stylist → Salon Stylist | 2 skills | every 30 work days |
 | `hardware_clerk` | Trainee Hardware Clerk → Hardware Clerk → Floor Supervisor | 2 skills | every 30 work days |
 | `housekeeper` | Trainee Housekeeper → Housekeeper → Head Housekeeper | 2 skills | every 30 work days |
@@ -254,7 +255,7 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `farm` | building | 31 | 1 |
 | `fire-station` | building | 24 | 1 |
 | `fishing-pier` | building | 26 | 1 |
-| `garage` | building | 33 | 2 |
+| `garage` | building | 33 | 3 |
 | `gym` | building | 30 | 1 |
 | `hair-salon` | building | 31 | 1 |
 | `hardware-store` | building | 32 | 1 |
@@ -265,7 +266,7 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `library` | building | 28 | 1 |
 | `living-room` | building | 34 | 1 |
 | `music-studio` | building | 30 | 1 |
-| `office` | building | 34 | 15 |
+| `office` | building | 34 | 16 |
 | `park` | building | 31 | 1 |
 | `pet-shop` | building | 28 | 1 |
 | `pharmacy` | building | 30 | 1 |
@@ -280,5 +281,5 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `swimming-pool` | building | 27 | 1 |
 | `toy-store` | building | 31 | 1 |
 | `veterinary-clinic` | building | 25 | 1 |
-| `warehouse` | building | 27 | 2 |
+| `warehouse` | building | 27 | 3 |
 | `workshop` | building | 36 | 3 |

@@ -1964,5 +1964,44 @@
                 "perUnit": 1100
             }
         }
+    },
+    "sanitation_depot": {
+        "friendlyName": "Sanitation Depot",
+        "category": "services",
+        "tags": [
+            "warehouse",
+            "garage",
+            "office"
+        ],
+        "size": {
+            "min": 1,
+            "max": 4
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "garbage_collector": {
+                "count": {
+                    "mode": "linear",
+                    "base": 3,
+                    "perUnit": 2,
+                    "max": 12
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.2,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1600,
+                "perUnit": 900
+            }
+        }
     }
 }

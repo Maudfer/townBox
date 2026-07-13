@@ -8149,5 +8149,168 @@
                 }
             ]
         }
+    },
+    "garbage_collector": {
+        "title": "Garbage Collector",
+        "salary": 1700,
+        "requiredSkills": [
+            "mop_and_sweep_floors",
+            "empty_and_sort_waste"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Collection Crew",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "empty_and_sort_waste",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "empty_and_sort_waste",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 0.25
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "mop_and_sweep_floors",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "empty_and_sort_waste",
+                            "toProficiency": 10
+                        }
+                    ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Route Collector",
+                "requires": [
+                    {
+                        "skill": "mop_and_sweep_floors",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "empty_and_sort_waste",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "empty_and_sort_waste",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 0.5
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Route Supervisor",
+                "requires": [
+                    {
+                        "skill": "empty_and_sort_waste",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "minProficiency": 25
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "schedule_cleaning_rounds",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "sanitize_surfaces",
+                        "multiplier": 0.5
+                    }
+                ]
+            }
+        ],
+        "physicalStrain": 0.8,
+        "mentalStrain": 0.3,
+        "socialAdmiration": 0.4,
+        "shiftStart": 360,
+        "shiftEnd": 840,
+        "daysOfWeek": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+        ],
+        "workActions": {
+            "continuous": [
+                {
+                    "action": "collection_rounds",
+                    "chancePerTick": 1
+                },
+                {
+                    "action": "doing_rounds",
+                    "chancePerTick": 0.4
+                }
+            ],
+            "discrete": [
+                {
+                    "action": "checked_the_clock",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "complained_about_the_time",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.05
+                }
+            ]
+        }
     }
 }
