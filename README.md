@@ -53,6 +53,17 @@ life stories, then surfacing them.
   layoffs → unemployment → household **arrears** → **eviction → homelessness** → recovery through re-employment.
   Vacated shops and homes heal over time (re-occupancy, move-out). Nobody scripted these outcomes; they fall out
   of the numbers.
+- **People with an inner life.** Every person carries **needs** (hunger, rest, company, fun…), a **mood** that
+  grief and joy move, **traits** that make two neighbors in the same circumstances live differently, an elective
+  **social graph** (friends, rivals, partners — beyond kinship), **habits**, and an **agenda** of plans and
+  routines — all read by a reworked **Brain** that arbitrates by priority bands. Behavior stops being a dice roll
+  and becomes rhythm: hungry people cook and eat, the lonely visit friends, courtship grows into marriage, a
+  death in the family can spiral into drinking, and none of those chains is scripted — they emerge from data
+  multipliers. Interactions are **reciprocal** (the receiver logs and reacts; bystanders witness and gossip), and
+  the town has **services** with teeth: no doctor means the sick recover slower and die more; crime gates on
+  desperation and police **chase suspects down the street**; fires need firefighters to *arrive*; jail is a place
+  you live, not a flag. A **construction menu** lets you place the civic buildings the town is missing, and a
+  **services nagbar** tells you when it lacks them.
 - **Inspect any life.** A universal Select tool opens inspectors for a person (identity, age, job, skills,
   relationships, and a dated **life-event log**), a business (positions, employees, balance, P&L), or a
   household (an interactive family tree). A city dashboard and a live event feed narrate the emergent story.
@@ -407,8 +418,24 @@ hook — covering start/save/load, the toolbar, inspector windows, the feed and 
 bulldozing, commute engagement, and end-to-end scenarios — plus browser coverage of the scene/HUD gap. It runs
 as a separate, **non-blocking** CI job.
 
+The **080–106 simulation-aliveness arc** then rewired the corpus so systems *feed* each other (proposal:
+[`docs/proposals/simulation-aliveness.md`](docs/proposals/simulation-aliveness.md)): **needs** driving selection,
+an elective **social graph** with consent v2, **counterpart events & reactions**, the **planner/agenda** with
+routines and joint plans, the **Brain rework** (priority bands, one utility currency, pause/resume), **traits**,
+object **capacity & the real market**, **mood**, **illness with teeth**, **street life**, **vices/habits/
+depression**, the **city-services ledger**, **employment flow & entrepreneurship**, **career retcons**,
+**crime/police/the chase**, **jail**, **garbage**, **fire**, **pets**, **reputation & gossip**, a **two-band
+generator**, and a validation keystone. The **107–118 simulation-visibility arc** (bundled into the same PR;
+proposal [`docs/proposals/simulation-visibility.md`](docs/proposals/simulation-visibility.md)) put the **player's
+hands on the levers** (a construction menu, civic placement, a services nagbar) and **grounded the glue
+physically** — venues resolve to real buildings, officers *drive* to crimes, firefighters *arrive* at fires, the
+sick *go* to the hospital, garbage *leaves* the house, groceries come from *that* supermarket — closed with a
+generator perf pass. Both arcs are broken down file-by-file in [`docs/tasks/`](docs/tasks/README.md) (080–118).
+
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/)):
 
+- **117** — the observation & balancing pass: the debug scaffolding (a time-throttle + vitals overlay) shipped;
+  the human playtest, its balancing-notes deliverable, and the one full asset regeneration remain.
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).
 

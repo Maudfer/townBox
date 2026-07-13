@@ -25,6 +25,15 @@ code (see `CLAUDE.md` §5.1). This README is the index.
   pre-055 audit-remediation hardening.
 - **056–075** — the progression & context arc: calendar/weekends, school, skill proficiency + a 335-skill DAG,
   job rank ladders + promotions, placement tags + object generation, and interaction contracts/consent.
+- **080–106** — the simulation-aliveness arc (proposal `docs/proposals/simulation-aliveness.md`): needs, the
+  social graph, counterpart events & reactions, the planner, the Brain rework (bands + one utility currency +
+  pause/resume), traits, object capacity + the real market, mood, illness with teeth, street life, vices/habits/
+  depression, city services, employment flow + entrepreneurship, career retcons, crime/police/jail, garbage,
+  fire, pets, reputation & gossip, the two-band generator, and the validation keystone. One PR.
+- **107–118** — the simulation-visibility arc (proposal `docs/proposals/simulation-visibility.md`, same PR):
+  venue grounding, the construction menu & civic placement, the police/fire/hospital/garbage/market end-to-end
+  chains, the services nagbar, street pets, fire particles, the observation scaffolding, and the generator perf
+  pass.
 
 ## Index
 
@@ -109,6 +118,49 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [077](077-offline-logical-economy-world_DONE.md) | ✅ | [Feature] Offline logical-economy world — off-map jobs/schools/objects during history generation |
 | [078](078-offline-generator-perf-optimization_DONE.md) | ✅ | [Perf] Offline history-generator — per-agent step-cost optimization |
 | [079](079-offline-generator-perf-brain-actions_DONE.md) | ✅ | [Perf] Offline history-generator — the brain/actions per-agent pass |
+| [080](080-aliveness-quickwins-and-decode-diagnostic_DONE.md) | ✅ | [Data/Tooling] Aliveness quick-wins + the person-history decode diagnostic |
+| [081](081-legibility-inspector-and-feed_DONE.md) | ✅ | [Feature/HUD] Legibility — inspector "Now:" line, day strip & feed filters |
+| [082](082-reciprocity-counterpart-events_DONE.md) | ✅ | [Core] Reciprocity — counterpart events & fake-double rewires |
+| [083](083-social-graph-and-consent-v2_DONE.md) | ✅ | [Framework] The social graph & consent v2 |
+| [084](084-needs-engine_DONE.md) | ✅ | [Framework] The needs engine — the motivational substrate |
+| [085](085-planner-routines-and-joint-plans_DONE.md) | ✅ | [Framework] The planner, routines & joint plans |
+| [086](086-arbitration-v2-bands_DONE.md) | ✅ | [Core] Arbitration v2 — priority bands & the one utility currency |
+| [087](087-pause-resume-and-traits_DONE.md) | ✅ | [Core/Framework] Pause & resume + traits |
+| [088](088-object-capacity-and-stow-fetch_DONE.md) | ✅ | [Feature] Object capacity, stow/fetch & the curiosity hook |
+| [089](089-retail-materialization-and-spoilage_DONE.md) | ✅ | [Feature] Retail materialization + spoilage & stock ceilings |
+| [090](090-romance-arc_DONE.md) | ✅ | [Feature] The romance arc — courtship, dating, proposal |
+| [091](091-mood-and-valence_DONE.md) | ✅ | [Feature] Mood + the event-valence pass |
+| [092](092-illness-with-teeth_DONE.md) | ✅ | [Feature] Illness with teeth |
+| [093](093-street-life-and-map-bubbles_DONE.md) | ✅ | [Feature] Street life — ambulatory actions & map activity bubbles |
+| [094](094-reactions-and-witnesses_DONE.md) | ✅ | [Feature] Reactions & witnesses |
+| [095](095-vices-habits-and-depression_DONE.md) | ✅ | [Feature] Vices, habits & depression arcs |
+| [096](096-city-services-ledger_DONE.md) | ✅ | [Feature] The city-services coverage ledger |
+| [097](097-employment-flow-and-entrepreneurship_DONE.md) | ✅ | [Feature] Employment flow — seeking, matching & entrepreneurship |
+| [098](098-career-retcons-at-hydration_DONE.md) | ✅ | [Feature] Career retcons at hydration |
+| [099](099-crime-incidents-and-police-chase_DONE.md) | ✅ | [Feature] Crime, incidents, police & the visible chase |
+| [100](100-jail-and-detention_DONE.md) | ✅ | [Feature] Jail & detention as a lived state |
+| [101](101-garbage-service_DONE.md) | ✅ | [Feature] The garbage service — litter, collection rounds, the depot |
+| [102](102-building-condition-and-fire_DONE.md) | ✅ | [Feature] Building condition, fire & the fire service |
+| [103](103-pets_DONE.md) | ✅ | [Feature] Pets — small companions |
+| [104](104-reputation-and-gossip_DONE.md) | ✅ | [Feature] Reputation & gossip — the town remembers |
+| [105](105-generator-two-band-and-regeneration_DONE.md) | ✅ | [Perf/Feature] Generator two-band recording + logical venues |
+| [106](106-aliveness-validation-keystone_DONE.md) | ✅ | [Test] The aliveness validation keystone |
+| [107](107-venue-grounding_DONE.md) | ✅ | [Foundation] Venue grounding — `venue:*` resolves to real placed buildings |
+| [108](108-construction-menu-and-civic-placement_DONE.md) | ✅ | [Feature/HUD] The construction menu & civic placement |
+| [109](109-police-end-to-end_DONE.md) | ✅ | [Feature] Police, end to end — dispatch, arrest, sentence, visits |
+| [110](110-fire-end-to-end_DONE.md) | ✅ | [Feature] Fire, end to end — dispatch to the blaze, arrival-scaled outcomes |
+| [111](111-hospitals-end-to-end_DONE.md) | ✅ | [Feature] Hospitals, end to end — treatment as lived behavior |
+| [112](112-household-garbage_DONE.md) | ✅ | [Feature] Household garbage — produce, take out, collect, dispose |
+| [113](113-market-end-to-end_DONE.md) | ✅ | [Feature] The market, end to end — the shelf is the truth |
+| [114](114-services-nagbar_DONE.md) | ✅ | [Feature/HUD] The services nagbar |
+| [115](115-pets-on-the-street_DONE.md) | ✅ | [Feature] Pets on the street — the dog trails the walk |
+| [116](116-fire-particles_DONE.md) | ✅ | [Feature] Fire particles |
+| [117](117-observation-and-balancing-pass.md) | 🚧 | [Task] The observation & balancing pass (scaffolding done; session pending) |
+| [118](118-generator-perf-pass_DONE.md) | ✅ | [Perf] Generator perf pass — the hot band runs 2× faster |
 
 ## Open work
+
+- **[117](117-observation-and-balancing-pass.md)** — the observation & balancing pass. The debug scaffolding
+  (the `T` time-throttle + vitals overlay) shipped with the visibility arc; the human playtest session and its
+  `docs/proposals/visibility-balancing-notes.md` deliverable remain the maintainer's pass.
 
