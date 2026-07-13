@@ -27,6 +27,8 @@ export interface IncidentsState {
 
 // The surface the Brain's pursuit hook consults through SimulationMarkets.incidents.
 export interface IncidentsReader {
+    // Dispatch (task 109): the oldest open, WITNESSED incident — where the responding officers drive to.
+    oldestOpenCase(): IncidentRecord | null;
     // Fire queries (task 102): the evacuation hook asks about HERE; the firefighter rush about anywhere.
     openFireAt(locationKey: string): boolean;
     anyOpenFire(): boolean;

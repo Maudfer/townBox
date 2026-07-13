@@ -971,10 +971,15 @@ export default class City {
                 // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
                 // about either of them. The heard_gossip counterpart already landed the listener's log line.
                 for (const commit of result.committed) {
-                    if (commit.eventId !== 'shared_gossip' || typeof commit.params?.['target'] !== 'string') {
-                        continue;
+                    if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
+                        this.transferGossip(commit.personId, commit.params['target'], event.tick);
+                    } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
+                        // The jail visit's counterpart (task 109): the visit travels TO its target, so it
+                        // can't be an interaction contract (those require co-location at START); the
+                        // detainee's half rides the payload instead, chained to the visitor's commit.
+                        Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], event.tick, ticksPerYear,
+                            { source: 'system', causationId: commit.seq });
                     }
-                    this.transferGossip(commit.personId, commit.params['target'], event.tick);
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
                 this.announceCityEvents(result, personByGenId, event.tick);
@@ -1274,7 +1279,7 @@ export default class City {
             catchChance += 0.15;
         }
         if (rng.next() < catchChance) {
-            this.convictSuspect(suspectId, tick);
+            this.arrestSuspect(suspectId, tick, ticksPerYear);
         } else {
             this.fireMilestone('evaded_the_police', suspectId, tick);
         }
@@ -1320,6 +1325,55 @@ export default class City {
         }
     }
 
+    // The arrest (task 109): the officer's act and the criminal's counterpart land causation-linked; the
+    // family hears (relative_arrested fan-out); the suspect is ESCORTED to the facility — logically riding
+    // along (offered_a_ride / got_a_ride texture on the same causation; the vehicle system is untouched) —
+    // and conviction bookkeeping (record, fine/sentence) runs as always.
+    private arrestSuspect(suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (!engine || !population) {
+            this.convictSuspect(suspectId, tick);
+            return;
+        }
+        const state = population.getState();
+        // The arresting officer: the first on-duty police officer, deterministic by id.
+        const byGenId = this.indexMaterialized();
+        const officerId = [...byGenId.entries()]
+            .filter(([, person]) => person.work.getJob()?.title === 'Police Officer')
+            .map(([id]) => id)
+            .sort()[0] ?? null;
+        let arrestSeq: number | null = null;
+        if (officerId) {
+            const { outcome } = engine.invoke(state, 'arrested_suspect', officerId, tick,
+                ticksPerYear, { source: 'system', causationId: null }, {}, {}, { target: suspectId });
+            arrestSeq = outcome.ok ? outcome.seq : null;
+        }
+        engine.invoke(state, 'was_arrested', suspectId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq });
+        // The family hears — the same kinship fan-out the death milestones use.
+        const pool = state.people;
+        const kin = new Set<PersonId>();
+        const spouse = spouseAt(pool, suspectId, tick);
+        if (spouse) {
+            kin.add(spouse);
+        }
+        for (const id of [...childrenOf(pool, suspectId), ...parentsOf(pool, suspectId)]) {
+            kin.add(id);
+        }
+        for (const relativeId of [...kin].sort()) {
+            this.fireMilestone('relative_arrested', relativeId, tick);
+        }
+        // Escort: taken to the facility in the car — the ride texture logs both sides; the transition
+        // physically moves them (live: the commute; the detained hook then holds them there).
+        const facility = this.detentionFacility();
+        if (facility && officerId) {
+            engine.invoke(state, 'offered_a_ride', officerId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq }, {}, {}, { target: suspectId });
+            engine.invoke(state, 'got_a_ride', suspectId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq });
+            this.world.requestTransition(suspectId, { kind: 'building', key: facility.getIdentifier() }, tick, arrestSeq);
+        }
+        this.convictSuspect(suspectId, tick);
+    }
+
     // Conviction (task 099): every open case against the suspect closes, the fine moves through the ledger
     // (mirrored against the external sector - conserved), got_caught lands in the log (the criminal record
     // the JobMarket reads), and the feed hears about it.
@@ -1341,7 +1395,14 @@ export default class City {
         if (isRepeat && Game.detention) {
             const facility = this.detentionFacility();
             if (facility) {
-                Game.detention.detain(suspectId, tick + DEFAULT_ECONOMY_PARAMS.detentionDays * 24, facility.getIdentifier());
+                // Sentences scale with the record (task 109): a second offense serves detentionDays; a
+                // third-and-later serves the long stretch. First offenses stay fine-only.
+                const hardened = engine && population
+                    ? engine.contextFor(population.getState(), suspectId, tick, Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear)
+                        .hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS, minCount: 2 })
+                    : false;
+                const days = hardened ? DEFAULT_ECONOMY_PARAMS.detentionDaysRepeat : DEFAULT_ECONOMY_PARAMS.detentionDays;
+                Game.detention.detain(suspectId, tick + days * 24, facility.getIdentifier());
                 this.fireMilestone('was_detained', suspectId, tick);
             }
         }
@@ -1367,7 +1428,15 @@ export default class City {
             return;
         }
         void ticksPerYear;
-        incidents.sweepCold(tick);
+        for (const wentCold of incidents.sweepCold(tick)) {
+            // Impunity (task 109): a WANTED suspect whose case went cold got away with it — a real log line,
+            // and the emboldening it carries makes the next one likelier. A town without police teaches
+            // crime. Unwitnessed crimes stay unknowable end to end (the 099 contract): no witnesses, no
+            // jeopardy, no log line — the crime action's own habit practice already did the reinforcing.
+            if (wentCold.suspectId && wentCold.witnesses > 0) {
+                this.fireMilestone('got_away_with_it', wentCold.suspectId, tick);
+            }
+        }
         const coverage = this.services.coverageOf('police');
         if (coverage <= 0) {
             return;

@@ -14012,56 +14012,21 @@
     },
     "was_arrested": {
         "label": "Was arrested",
-        "category": "crime-mischief",
+        "category": "crime",
         "roles": {
             "subject": {
                 "where": {
-                    "all": [
-                        {
-                            "attr": "alive",
-                            "op": "==",
-                            "value": true
-                        },
-                        {
-                            "attr": "age",
-                            "op": ">=",
-                            "value": 8
-                        }
-                    ]
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
                 }
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.25,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
-        "limit": {
-            "withinTicks": 1440
-        },
+        "valence": -3,
+        "witnessable": true,
         "effects": []
     },
     "paid_fine": {
@@ -14392,31 +14357,20 @@
     },
     "got_away_with_it": {
         "label": "Got away with it",
-        "category": "crime-mischief",
+        "category": "crime",
         "roles": {
             "subject": {
                 "where": {
-                    "all": [
-                        {
-                            "attr": "alive",
-                            "op": "==",
-                            "value": true
-                        },
-                        {
-                            "attr": "age",
-                            "op": ">=",
-                            "value": 8
-                        }
-                    ]
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
                 }
             }
         },
         "triggers": {
             "manual": {}
         },
-        "limit": {
-            "withinTicks": 1440
-        },
+        "valence": 1,
         "effects": []
     },
     "turned_themselves_in": {
@@ -26509,6 +26463,129 @@
             "manual": {}
         },
         "valence": 1,
+        "effects": []
+    },
+    "arrested_suspect": {
+        "label": "Made an arrest",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "relative_arrested": {
+        "label": "A family member was arrested",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -2,
+        "effects": []
+    },
+    "offered_a_ride": {
+        "label": "Offered someone a ride",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "got_a_ride": {
+        "label": "Got a ride",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "visited_person_in_jail": {
+        "label": "Visited a loved one in jail",
+        "category": "crime",
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -1,
+        "effects": []
+    },
+    "received_a_visitor": {
+        "label": "Received a visitor inside",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 2,
         "effects": []
     }
 }

@@ -15,6 +15,7 @@
 import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
 import routinesConfig from 'json/routines.json';
 import { RoutinesConfig } from 'types/Agenda';
+import { spouseAt, childrenOf, parentsOf } from 'util/kinship';
 import { evaluatePredicateCached } from 'util/predicate';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { TICKS_PER_DAY, hourOfTick } from 'util/time';
@@ -84,11 +85,54 @@ export const plannerHook: BrainHook = {
             agenda.enqueue(entry);
         }
 
+        // The jail visit (task 109, closing the 100 deferral): a detained close relative gets visited —
+        // once per stretch (the visit action's own recency gates re-planning), at the facility.
+        const detentionOf = deps.detentionOf;
+        if (detentionOf && !agenda.hasPendingRoutine(personId, 'jail_visit', deps.tick)
+            && !hasAction('visiting_the_detained', { withinTicks: 5 * TICKS_PER_DAY })) {
+            const pool = deps.state.people;
+            const kin: string[] = [];
+            const spouse = spouseAt(pool, personId, deps.tick);
+            if (spouse) {
+                kin.push(spouse);
+            }
+            kin.push(...childrenOf(pool, personId), ...parentsOf(pool, personId));
+            const detained = kin.sort().find(relativeId => detentionOf(relativeId) !== null);
+            if (detained) {
+                const facility = detentionOf(detained)!;
+                const hour = hourOfTick(deps.tick);
+                const dayStart = deps.tick - hour;
+                const targetDay = hour <= 18 ? dayStart : dayStart + TICKS_PER_DAY;
+                agenda.enqueue({
+                    personId,
+                    actionId: 'visiting_the_detained',
+                    params: { target: detained },
+                    enqueuedAtTick: deps.tick,
+                    earliestTick: targetDay + 9,
+                    latestTick: targetDay + 18,
+                    locationOverride: 'building:' + facility.locationKey,
+                    routineId: 'jail_visit',
+                    causationId: null,
+                    source: 'routine',
+                });
+            }
+        }
+
         // --- Proposal: the oldest due entry ------------------------------------------------------------
         const due = agenda.dueEntriesOf(personId, deps.tick, hasAction);
         for (const entry of due) {
             if (entry.prerequisites && !evaluatePredicateCached(entry.prerequisites, context)) {
                 continue; // deferred — maybe later in the window
+            }
+            // Don't propose the currently-impossible (task 109 fix): an entry whose ACTION requirements
+            // aren't satisfiable right now (no cleaning supplies, no ingredients) must not starve the due
+            // entries behind it all day — skip it, keep it pending, and let the next one through.
+            const def = engine.getManifest()[entry.actionId];
+            if (def?.requirements) {
+                const entryContext = entry.params ? engine.contextFor(personId, deps, entry.params) : context;
+                if (!evaluatePredicateCached(def.requirements, entryContext)) {
+                    continue;
+                }
             }
             return [{
                 actionId: entry.actionId,

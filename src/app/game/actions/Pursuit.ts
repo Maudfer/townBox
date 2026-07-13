@@ -68,6 +68,25 @@ export const pursuitHook: BrainHook = {
         const suspectFleeing = world.peopleAt({ kind: 'outside' })
             .some(otherId => incidents.isWanted(otherId) && engine.activeInstanceOf(otherId)?.defId === 'fleeing_the_police');
         if (!suspectHere && !suspectFleeing) {
+            // DISPATCH (task 109): no suspect in sight, but an open witnessed case somewhere in town — the
+            // officer drives to the scene (the normal commute machinery); on arrival the co-location logic
+            // above takes over if the suspect is still around.
+            if (active?.defId === 'responding_to_incident') {
+                return [];
+            }
+            const openCase = incidents.oldestOpenCase();
+            if (openCase && openCase.locationKey.startsWith('building:')) {
+                return [{
+                    actionId: 'responding_to_incident',
+                    locationOverride: openCase.locationKey,
+                    sourceHook: 'pursuit',
+                    priority: 120, // above the beat walk, below the live chase
+                    necessity: 'required',
+                    band: 'obligation',
+                    mayInterrupt: true,
+                    causationId: null,
+                }];
+            }
             return [];
         }
         return [{

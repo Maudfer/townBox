@@ -13,5 +13,6 @@
     "foundingCapitalThreshold": 1500,
     "foundingChancePerMonth": 0.35,
     "crimeFineAmount": 120,
-    "detentionDays": 10
+    "detentionDays": 10,
+    "detentionDaysRepeat": 30
 }

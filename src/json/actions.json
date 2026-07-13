@@ -6182,7 +6182,8 @@
         },
         "affinity": [
             "thrill"
-        ]
+        ],
+        "habit": "crime"
     },
     "pocketed_merchandise": {
         "label": "Pocketed merchandise without paying",
@@ -6277,7 +6278,8 @@
         },
         "affinity": [
             "thrill"
-        ]
+        ],
+        "habit": "crime"
     },
     "fleeing_the_police": {
         "label": "Running from the police!",
@@ -6690,5 +6692,40 @@
         "affinity": [
             "social"
         ]
+    },
+    "responding_to_incident": {
+        "label": "Responding to an incident",
+        "type": "continuous",
+        "category": "work",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
+    },
+    "visiting_the_detained": {
+        "label": "Visiting a loved one in custody",
+        "type": "continuous",
+        "category": "social",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "events": {
+            "onComplete": {
+                "event": "visited_person_in_jail",
+                "params": {
+                    "target": "$params.target"
+                }
+            }
+        },
+        "satisfies": {
+            "social": 15
+        },
+        "parameters": {
+            "target": {
+                "type": "string",
+                "required": true
+            }
+        }
     }
 }

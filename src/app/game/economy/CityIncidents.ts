@@ -39,13 +39,22 @@ export default class CityIncidents implements IncidentsReader {
         }
     }
 
-    // Cold-case sweep: open incidents past the trail window go cold (a caller runs this on the day cadence).
-    sweepCold(tick: number): void {
+    // Cold-case sweep: open incidents past the trail window go cold (a caller runs this on the day
+    // cadence). Returns the newly-cold records — City turns each into the suspect's got_away_with_it (109).
+    sweepCold(tick: number): IncidentRecord[] {
+        const wentCold: IncidentRecord[] = [];
         for (const incident of this.state.incidents) {
             if (incident.status === 'open' && tick - incident.tick > INCIDENT_COLD_AFTER_TICKS) {
                 incident.status = 'cold';
+                wentCold.push(incident);
             }
         }
+        return wentCold;
+    }
+
+    oldestOpenCase(): IncidentRecord | null {
+        const open = this.state.incidents.filter(incident => incident.status === 'open' && incident.witnesses > 0 && incident.suspectId !== null);
+        return open.length > 0 ? open.sort((a, b) => a.id - b.id)[0]! : null;
     }
 
     openFireAt(locationKey: string): boolean {

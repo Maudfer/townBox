@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 303 | 89 continuous / 214 discrete |
-| `events.json` | 728 | 169 probabilistic, 369 probabilistic + manual, 188 manual, 2 manual + automated |
+| `actions.json` | 305 | 91 continuous / 214 discrete |
+| `events.json` | 734 | 169 probabilistic, 368 probabilistic + manual, 195 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -72,7 +72,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 559 manual-triggered events, 537 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 565 manual-triggered events, 543 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -85,16 +85,16 @@ Of the 559 manual-triggered events, 537 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 369 |
-| manual | 188 |
+| probabilistic + manual | 368 |
+| manual | 195 |
 | probabilistic | 169 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
 |---|---|
-| cooldown window | 633 |
+| cooldown window | 631 |
 | once: ever | 50 |
-| — | 39 |
+| — | 47 |
 | once: perDay | 6 |
 
 ## Object-action transformations

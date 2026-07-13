@@ -134,6 +134,7 @@ describe('action reachability (task 076/M3)', () => {
         'fleeing_the_police', 'chasing_a_suspect',                          // the pursuit hook (099)
         'serving_time',                                                     // the detained hook (100)
         'evacuating', 'rushing_to_the_fire',                                // the fire hooks (102)
+        'responding_to_incident', 'visiting_the_detained',                  // dispatch + jail visits (109; the visit is planner-enqueued)
     ]);
 
     test('every action is reachable via some proposal path', () => {
