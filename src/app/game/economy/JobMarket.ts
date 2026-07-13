@@ -106,6 +106,48 @@ export default class JobMarket implements IJobMarket {
         return true;
     }
 
+    // Founder hire (task 097/I3): hire into ONE specific workplace — the business the person just founded —
+    // taking the best position there they can fill. Same rank/grant machinery as the open-market path.
+    hireInto(personId: PersonId, workplace: Workplace): boolean {
+        const person = this.byGenId.get(personId);
+        if (!person || person.work.getJob() !== null) {
+            return false;
+        }
+        let best: { position: JobPosition; rankMatch: RankMatch } | null = null;
+        for (const position of workplace.getOpenPositions()) {
+            const rankMatch = this.matchPosition(personId, position);
+            if (rankMatch && (!best || rankMatch.fit > best.rankMatch.fit)) {
+                best = { position, rankMatch };
+            }
+        }
+        if (!best) {
+            return false;
+        }
+        const chosen = best;
+        const job = workplace.hire(person, requirements => this.positionFillable(personId, requirements, chosen.rankMatch));
+        if (!job) {
+            return false;
+        }
+        if (chosen.rankMatch.rank) {
+            job.rankId = chosen.rankMatch.rank.rankId;
+            job.workDaysInRank = 0;
+            job.totalWorkDays = 0;
+        }
+        person.work.setJob(job);
+        person.work.setWorkplace(workplace);
+        return true;
+    }
+
+    // Does the person STRICTLY qualify (no training grant) for the named jobs.json job at any rank? The
+    // entrepreneurship gate (task 097/I3): founders must actually know the trade they open shop in.
+    strictlyQualifiesFor(personId: PersonId, jobKey: string): boolean {
+        const def = JOBS[jobKey];
+        if (!def || def.ranks.length === 0) {
+            return false;
+        }
+        return def.ranks.some(rank => this.skillBook.meets(personId, rank.requires));
+    }
+
     fire(personId: PersonId): void {
         const person = this.byGenId.get(personId);
         if (!person || person.work.getJob() === null) {

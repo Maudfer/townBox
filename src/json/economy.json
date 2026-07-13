@@ -9,5 +9,7 @@
     "bankruptcyMonths": 3,
     "reoccupancyMonths": 2,
     "evictionArrearsMonths": 3,
-    "recoveryFunds": 800
+    "recoveryFunds": 800,
+    "foundingCapitalThreshold": 1500,
+    "foundingChancePerMonth": 0.35
 }

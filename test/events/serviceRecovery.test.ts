@@ -18,8 +18,11 @@ function person(id: string): GenPerson {
     return { id, firstName: id, familyName: 'Fam', gender: Genders.Female, birthTick: -30 * TPY, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
 }
 
+// Seed chosen for a strictly separating stream: covered-vs-uncovered can legitimately TIE on many seeds
+// (the winning draw lands below both hazards — the factor can only ever make recovery earlier-or-equal),
+// so the strict assertion pins a seed where the gap actually shows (day ~2 vs day ~21 here).
 function makeState(): PopulationState {
-    return { worldSeed: 21, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+    return { worldSeed: 55, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
 }
 
 const reader = (ratio: number): ServiceCoverageReader => ({ coverageOf: () => ratio });

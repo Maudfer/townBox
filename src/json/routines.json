@@ -2,43 +2,108 @@
     "weekly_shopping": {
         "action": "shopping_trip",
         "cadenceDays": 6,
-        "window": [9, 19],
+        "window": [
+            9,
+            19
+        ],
         "adoption": 0.8,
-        "requires": { "attr": "age", "op": ">=", "value": 16 }
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 16
+        }
     },
     "call_the_family": {
         "action": "called_a_relative",
         "cadenceDays": 5,
-        "window": [10, 21],
+        "window": [
+            10,
+            21
+        ],
         "adoption": 0.7,
-        "requires": { "attr": "age", "op": ">=", "value": 12 }
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 12
+        }
     },
     "hobby_time": {
         "action": "working_on_hobby",
         "cadenceDays": 4,
-        "window": [17, 22],
+        "window": [
+            17,
+            22
+        ],
         "adoption": 0.55,
-        "requires": { "attr": "age", "op": ">=", "value": 10 }
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 10
+        }
     },
     "see_friends": {
         "action": "visiting_friends",
         "cadenceDays": 5,
-        "window": [15, 21],
+        "window": [
+            15,
+            21
+        ],
         "adoption": 0.75,
-        "requires": { "attr": "age", "op": ">=", "value": 8 }
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 8
+        }
     },
     "housekeeping_day": {
         "action": "cleaning_house",
         "cadenceDays": 6,
-        "window": [9, 17],
+        "window": [
+            9,
+            17
+        ],
         "adoption": 0.65,
-        "requires": { "attr": "age", "op": ">=", "value": 14 }
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 14
+        }
     },
     "a_proper_walk": {
         "action": "taking_a_walk",
         "cadenceDays": 3,
-        "window": [7, 20],
+        "window": [
+            7,
+            20
+        ],
         "adoption": 0.5,
-        "requires": { "attr": "age", "op": ">=", "value": 6 }
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 6
+        }
+    },
+    "job_seeking": {
+        "action": "job_hunting",
+        "cadenceDays": 2,
+        "window": [
+            9,
+            17
+        ],
+        "adoption": 1,
+        "requires": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "employed",
+                    "op": "==",
+                    "value": false
+                }
+            ]
+        }
     }
 }

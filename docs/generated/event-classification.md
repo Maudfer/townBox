@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 713 events — **19 vital**, **37 wired**, **515 texture**, **142 reserved**.
+Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -17,6 +17,7 @@ Totals: 713 events — **19 vital**, **37 wired**, **515 texture**, **142 reserv
 | adopted_goldfish | pet | probabilistic+manual | texture | — |
 | apologized_first | social | probabilistic+manual | texture | — |
 | apologized_for_snapping | emotion-mood | probabilistic+manual | texture | — |
+| application_rejected | career | probabilistic+manual | texture | — |
 | argued_with_coworker | career | probabilistic+manual | texture | — |
 | argued_with_partner | romance | probabilistic+manual | texture | — |
 | argued_with_sibling | family | probabilistic+manual | texture | — |
@@ -219,6 +220,7 @@ Totals: 713 events — **19 vital**, **37 wired**, **515 texture**, **142 reserv
 | found_mold | housing | probabilistic+manual | texture | — |
 | found_money_on_street | finance | probabilistic+manual | wired | found_coin.onComplete |
 | found_shortcut | travel | probabilistic+manual | texture | — |
+| founded_business | career | manual | vital | — |
 | framed_first_dollar | achievement | manual | reserved | — |
 | fridge_went_empty | food | manual | reserved | — |
 | gained_weight | health | probabilistic+manual | texture | — |

@@ -5941,5 +5941,105 @@
             "solitary",
             "cozy"
         ]
+    },
+    "job_hunting": {
+        "label": "Out looking for work",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 3,
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "employed",
+                    "op": "==",
+                    "value": false
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 24,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 9
+                    },
+                    "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 18
+                    },
+                    "multiply": 0.1
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 150
+                    },
+                    "multiply": 2.5
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "applied_for_a_job",
+                    "chancePerTick": 0.55,
+                    "cooldownTicks": 1
+                },
+                {
+                    "action": "asked_about_openings",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.15
+                }
+            ]
+        },
+        "satisfies": {
+            "purpose": 12
+        },
+        "affinity": [
+            "industrious"
+        ]
+    },
+    "applied_for_a_job": {
+        "label": "Applied for a job",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "employed",
+                    "op": "==",
+                    "value": false
+                }
+            ]
+        }
+    },
+    "asked_about_openings": {
+        "label": "Asked around about openings",
+        "type": "discrete",
+        "category": "maintenance"
     }
 }

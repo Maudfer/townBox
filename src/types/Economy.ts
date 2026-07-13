@@ -33,6 +33,8 @@ export interface EconomyParams {
     reoccupancyMonths: number; // months a work building stays vacant before it can attract a new business (task 037)
     evictionArrearsMonths: number; // consecutive months of arrears before a household is evicted (task 022)
     recoveryFunds: number; // pooled funds a homeless household needs to occupy a vacant home again (task 022)
+    foundingCapitalThreshold: number; // savings a qualified unemployed adult needs to found a business (task 097/I3)
+    foundingChancePerMonth: number; // deterministic monthly founding chance when a candidate + lot + demand line up (097)
 }
 
 export type AccountKind = 'person' | 'business';

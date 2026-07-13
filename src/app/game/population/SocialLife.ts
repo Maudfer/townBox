@@ -113,6 +113,10 @@ export default class SocialLife {
         return `${this.firstName} ${this.familyName}`;
     }
 
+    getFirstName(): string {
+        return this.firstName;
+    }
+
     getHome(): Home {
         return this.home;
     }

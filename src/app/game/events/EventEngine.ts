@@ -71,6 +71,9 @@ export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as 
 
 const ROLE_SUBJECT = 'subject';
 
+// Recency window for the jobApplications attribute (task 097): applications older than a week stop counting.
+const JOB_APPLICATION_WINDOW_TICKS = 168;
+
 // Shared empty agent list for invoke() on events with no candidate-search role (task 079). resolveRoles only
 // reads agentIds (never mutates), so a single shared instance is safe and avoids a per-call allocation.
 const EMPTY_AGENTS: PersonId[] = [];
@@ -425,6 +428,11 @@ export default class EventEngine {
                 // The services ledger (task 096): recovery hazards read it as a factor. Unmeasured contexts
                 // read the neutral level, at which the published curves pass through 1 (no ledger, no effect).
                 return this.servicesReader ? this.servicesReader.coverageOf('healthcare') : SERVICES_CONFIG.neutralCoverage;
+            case 'jobApplications':
+                // Job seeking made visible (task 097 / I1): recent applied_for_a_job commits in the shared
+                // log. get_job's hazard factor reads it (an active applicant is hired in days, not months)
+                // and application_rejected gates on it. Zero without seeking — the status-quo rate holds.
+                return this.lifeLog.countRecentActions(id, 'applied_for_a_job', tick - JOB_APPLICATION_WINDOW_TICKS);
             case 'hourOfDay':
                 // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
                 // at dinner time) and predicates. Derived from the tick, identical in both execution modes.

@@ -332,7 +332,41 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 26
+                "perYear": 26,
+                "factors": [
+                    {
+                        "driver": "subject.jobApplications",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 1,
+                                    "value": 4
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "driver": "subject.money",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1.35
+                                },
+                                {
+                                    "at": 250,
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
             }
         },
         "effects": [
@@ -26226,6 +26260,77 @@
             {
                 "type": "emit",
                 "signal": "liftedSpirits",
+                "target": "subject"
+            }
+        ]
+    },
+    "application_rejected": {
+        "label": "Got turned down for a job",
+        "category": "career",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": false
+                        },
+                        {
+                            "attr": "jobApplications",
+                            "op": ">=",
+                            "value": 1
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 14
+            },
+            "manual": {}
+        },
+        "limit": {
+            "withinTicks": 96
+        },
+        "valence": -1,
+        "effects": []
+    },
+    "founded_business": {
+        "label": "Founded a business",
+        "category": "career",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 3,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "businessFounded",
                 "target": "subject"
             }
         ]

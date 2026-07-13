@@ -405,7 +405,7 @@ export default class City {
     // (generation ≥ 1) draws a *different* business. Optionally constrains the draw to a demand `category`
     // (task 037 re-occupancy). Picks a blueprint, draws a size, names it, seeds capital, advances the lot's
     // generation count, and clears its vacancy clock.
-    private openBusiness(workplace: Workplace, category?: string): BusinessInstance | null {
+    private openBusiness(workplace: Workplace, category?: string, options: { blueprintKey?: string; name?: string } = {}): BusinessInstance | null {
         const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS);
         if (blueprintKeys.length === 0) {
             return null;
@@ -420,12 +420,39 @@ export default class City {
         const rng = new SeededRandom(seed);
         fakerPT_BR.seed(seed);
 
-        const candidates = category ? blueprintKeys.filter(blueprintKey => BUSINESS_BLUEPRINTS[blueprintKey]!.category === category) : blueprintKeys;
-        const pool = candidates.length > 0 ? candidates : blueprintKeys;
-        const blueprintKey = rng.pick(pool);
+        let blueprintKey: string;
+        if (options.blueprintKey) {
+            // A forced blueprint (task 097/I3: the founder opens the trade they know).
+            blueprintKey = options.blueprintKey;
+        } else if (category) {
+            const candidates = blueprintKeys.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === category);
+            blueprintKey = rng.pick(candidates.length > 0 ? candidates : blueprintKeys);
+        } else {
+            // First-placement matching (task 097/I2): an unconstrained draw prefers categories the town's
+            // demand actually lacks, weighted by unmet demand. With no positive deficit anywhere (an empty
+            // map) the draw falls back to the legacy uniform pick — same seed, same stream, same business.
+            const { deficits } = this.categorySupplyAndDeficits();
+            const weighted = [...deficits.entries()].filter(([, deficit]) => deficit > 0).sort((a, b) => a[0].localeCompare(b[0]));
+            if (weighted.length === 0) {
+                blueprintKey = rng.pick(blueprintKeys);
+            } else {
+                const total = weighted.reduce((sum, [, deficit]) => sum + deficit, 0);
+                let roll = rng.next() * total;
+                let picked = weighted[weighted.length - 1]![0];
+                for (const [candidateCategory, deficit] of weighted) {
+                    roll -= deficit;
+                    if (roll <= 0) {
+                        picked = candidateCategory;
+                        break;
+                    }
+                }
+                const candidates = blueprintKeys.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === picked);
+                blueprintKey = rng.pick(candidates.length > 0 ? candidates : blueprintKeys);
+            }
+        }
         const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
         const size = rng.nextInt(blueprint.size.min, blueprint.size.max);
-        const name = fakerPT_BR.company.name();
+        const name = options.name ?? fakerPT_BR.company.name();
 
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
@@ -875,6 +902,8 @@ export default class City {
         economy.setLastEconomyMonth(month);
         this.runPayroll(tick);
         this.runBusinessEconomics(tick);
+        // Entrepreneurs get first pick of vacant lots (task 097/I3), before generic re-occupancy.
+        this.runEntrepreneurship(tick);
         this.runReoccupancy(tick);
         this.runCostOfLiving(tick);
         this.runEvictions(tick);
@@ -1058,26 +1087,118 @@ export default class City {
     // reoccupancyMonths, then attracts a *new, different* business — but only in a category with unmet demand,
     // so the city heals where investment is warranted instead of re-flooding an oversupplied market. Runs after
     // runBusinessEconomics so it sees this month's closures and post-closure supply. Deterministic.
-    private runReoccupancy(tick: number): void {
+    // Entrepreneurship (task 097/I3): a qualified unemployed adult with savings may FOUND a business on a
+    // vacant work lot, in the category with the largest unmet demand, in the trade they strictly know (no
+    // training-grant founders — you don't open a clinic on a shortcut). At most one founding per month,
+    // behind a deterministic seeded roll, so it stays a town event rather than a monthly certainty. The
+    // founder's own capital seeds the business (the external sector only tops up the standard amount), they
+    // hire themselves at their matched rank, the shop takes their name, and `founded_business` lands in
+    // their log with a feed line. Towns grow their own economy instead of waiting for the player.
+    private runEntrepreneurship(tick: number): void {
         const field = Game.field;
         const economy = Game.economy;
-        if (!field || !economy) {
+        const skillBook = Game.skillBook;
+        const population = Game.population;
+        if (!field || !economy || !skillBook || !population) {
+            return;
+        }
+        const { deficits, vacant } = this.categorySupplyAndDeficits();
+        if (vacant.length === 0) {
+            return;
+        }
+        const openCategories = [...deficits.entries()]
+            .filter(([, deficit]) => deficit > 0)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        if (openCategories.length === 0) {
+            return;
+        }
+        const byGenId = this.indexMaterialized();
+        const jobMarket = new JobMarket(byGenId, field, skillBook, tick);
+        const threshold = DEFAULT_ECONOMY_PARAMS.foundingCapitalThreshold;
+        // Age from the pool record (the source of truth), not the sprite — clock-exact and harness-safe.
+        const ticksPerYear = Game.clock ? Game.clock.getTicksPerYear() : DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        const pool = population.getState().people;
+        const candidates = [...byGenId.entries()]
+            .filter(([id, person]) => {
+                const record = pool[id];
+                return record !== undefined
+                    && ageAt(record, tick, ticksPerYear) >= ADULT_AGE_YEARS
+                    && person.work.getJob() === null
+                    && economy.getPersonBalance(id) >= threshold;
+            })
+            .map(([id]) => id)
+            .sort();
+        if (candidates.length === 0) {
             return;
         }
 
-        // Blueprints grouped by category, so a chosen category always has something to build.
-        const blueprintsByCategory = new Map<string, string[]>();
-        for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
-            const keys = blueprintsByCategory.get(blueprint.category) ?? [];
-            keys.push(blueprintKey);
-            blueprintsByCategory.set(blueprint.category, keys);
+        // The first (deficit-ranked, then deterministic) trade someone in town actually knows.
+        let pick: { category: string; blueprintKey: string; founderId: PersonId } | null = null;
+        for (const [category] of openCategories) {
+            const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS)
+                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category)
+                .sort();
+            for (const blueprintKey of blueprintKeys) {
+                const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
+                const coreJobs = Object.keys(blueprint.jobs).filter(jobKey => jobKey !== 'manager' && jobKey !== 'janitor');
+                const trades = coreJobs.length > 0 ? coreJobs : Object.keys(blueprint.jobs);
+                const founderId = candidates.find(candidate => trades.some(jobKey => jobMarket.strictlyQualifiesFor(candidate, jobKey)));
+                if (founderId) {
+                    pick = { category, blueprintKey, founderId };
+                    break;
+                }
+            }
+            if (pick) {
+                break;
+            }
+        }
+        if (!pick) {
+            return;
         }
 
-        const population = field.getPeople().length;
-        // Potential supply per category from operating businesses (full establishment: positions × throughput),
-        // so we don't over-build while an existing understaffed business still has room to hire up.
+        const month = Math.floor(tick / TICKS_PER_MONTH);
+        const rng = new SeededRandom((population.getState().worldSeed ^ hashStringToSeed(`founding#${month}`)) >>> 0);
+        if (rng.next() >= DEFAULT_ECONOMY_PARAMS.foundingChancePerMonth) {
+            return; // the spark didn't catch this month
+        }
+
+        const lot = vacant[0]!;
+        const founder = byGenId.get(pick.founderId)!;
+        const blueprint = BUSINESS_BLUEPRINTS[pick.blueprintKey]!;
+        // The shop takes the founder's name — from the pool record, the identity source of truth.
+        const founderName = pool[pick.founderId]?.firstName || founder.social.getFirstName();
+        const business = this.openBusiness(lot, pick.category, {
+            blueprintKey: pick.blueprintKey,
+            name: `${blueprint.friendlyName} de ${founderName}`,
+        });
+        if (!business) {
+            return;
+        }
+        // The founder's savings seed the shop; the external-sector standard seed shrinks by the same amount,
+        // so total starting capital is unchanged but genuinely SOURCED from the founder (conserved).
+        const lotKey = lot.getIdentifier();
+        const contribution = Math.min(economy.getPersonBalance(pick.founderId), DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * business.size);
+        economy.transfer({ kind: 'person', id: pick.founderId }, { kind: 'business', id: lotKey }, contribution);
+        economy.adjustBusiness(lotKey, -contribution);
+        jobMarket.hireInto(pick.founderId, lot);
+        this.fireMilestone('founded_business', pick.founderId, tick);
+        this.announce('career', tick, `${founder.social.getFullName()} founded ${business.name}`, founder);
+        Game.emit("tileSpawned", lot);
+    }
+
+    // The shared demand-gap scan (tasks 037/097): potential supply per category from operating businesses
+    // (full establishment: positions × throughput — don't over-build while an understaffed business still has
+    // room to hire up), the unmet-demand deficit per blueprint-buildable category, and the vacant lots.
+    // Consumed by re-occupancy (037), the weighted first-placement draw (097/I2), and entrepreneurship (I3).
+    private categorySupplyAndDeficits(): { supply: Record<string, number>; deficits: Map<string, number>; vacant: Workplace[] } {
+        const field = Game.field;
         const supply: Record<string, number> = {};
         const vacant: Workplace[] = [];
+        const deficits = new Map<string, number>();
+        if (!field) {
+            return { supply, deficits, vacant };
+        }
+        const categories = new Set(Object.values(BUSINESS_BLUEPRINTS).map(blueprint => blueprint.category));
         for (const structure of field.getStructures()) {
             if (!(structure instanceof Workplace)) {
                 continue;
@@ -1094,6 +1215,32 @@ export default class City {
             const throughput = DEMAND_TABLE[blueprint.category]?.throughputPerEmployee ?? 0;
             supply[blueprint.category] = (supply[blueprint.category] ?? 0) + business.positions.length * throughput;
         }
+        const population = field.getPeople().length;
+        for (const category of categories) {
+            const demand = population * (DEMAND_TABLE[category]?.perCapita ?? 0);
+            deficits.set(category, demand - (supply[category] ?? 0));
+        }
+        vacant.sort((a, b) => a.getIdentifier().localeCompare(b.getIdentifier()));
+        return { supply, deficits, vacant };
+    }
+
+    private runReoccupancy(tick: number): void {
+        const field = Game.field;
+        const economy = Game.economy;
+        if (!field || !economy) {
+            return;
+        }
+
+        // Blueprints grouped by category, so a chosen category always has something to build.
+        const blueprintsByCategory = new Map<string, string[]>();
+        for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
+            const keys = blueprintsByCategory.get(blueprint.category) ?? [];
+            keys.push(blueprintKey);
+            blueprintsByCategory.set(blueprint.category, keys);
+        }
+
+        const { supply, vacant } = this.categorySupplyAndDeficits();
+        const population = field.getPeople().length;
 
         for (const workplace of vacant) {
             workplace.setVacantMonths(workplace.getVacantMonths() + 1);
