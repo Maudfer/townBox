@@ -6467,5 +6467,178 @@
         "selection": {
             "weight": 0
         }
+    },
+    "visiting_the_pet_shop": {
+        "label": "Visiting the pet shop",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:pet_shop",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 16
+        },
+        "selection": {
+            "weight": 0.15,
+            "cooldownTicks": 240,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 10
+                    },
+                    "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 20
+                    },
+                    "multiply": 0.1
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "petted_the_puppies",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "adopted_a_pet",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 15
+        },
+        "affinity": [
+            "cozy"
+        ]
+    },
+    "petted_the_puppies": {
+        "label": "Petted the puppies",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "fun": 5
+        }
+    },
+    "adopted_a_pet": {
+        "label": "Adopted a pet",
+        "type": "discrete",
+        "category": "leisure",
+        "requirements": {
+            "attr": "petCount",
+            "op": "<",
+            "value": 2
+        },
+        "events": {
+            "onComplete": "adopted_a_pet"
+        }
+    },
+    "walking_the_dog": {
+        "label": "Walking the dog",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "petCount",
+            "op": ">=",
+            "value": 1
+        },
+        "selection": {
+            "weight": 0.7,
+            "cooldownTicks": 20,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 7
+                    },
+                    "multiply": 1.6
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 22
+                    },
+                    "multiply": 0.2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.6
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.25
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 12,
+            "purpose": 8
+        },
+        "affinity": [
+            "active",
+            "cozy"
+        ]
+    },
+    "caring_for_the_pet": {
+        "label": "Feeding and caring for the pet",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "home",
+        "durationTicks": 1,
+        "requirements": {
+            "attr": "petCount",
+            "op": ">=",
+            "value": 1
+        },
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 20
+        },
+        "satisfies": {
+            "purpose": 10
+        },
+        "affinity": [
+            "cozy"
+        ]
     }
 }

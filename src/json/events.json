@@ -21829,31 +21829,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.5,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
         "limit": {
@@ -21875,31 +21850,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.5,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
         "limit": {
@@ -21921,31 +21871,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.5,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
         "limit": {
@@ -22536,67 +22461,22 @@
         "valence": 1
     },
     "pet_passed_away": {
-        "label": "Lost a pet",
+        "label": "Their pet passed away",
         "category": "pet",
         "roles": {
             "subject": {
                 "where": {
-                    "all": [
-                        {
-                            "attr": "alive",
-                            "op": "==",
-                            "value": true
-                        },
-                        {
-                            "any": [
-                                {
-                                    "hasEvent": "adopted_dog"
-                                },
-                                {
-                                    "hasEvent": "adopted_cat"
-                                },
-                                {
-                                    "hasEvent": "adopted_goldfish"
-                                }
-                            ]
-                        }
-                    ]
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
                 }
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.5,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
-        "limit": {
-            "withinTicks": 720
-        },
-        "effects": [],
-        "valence": -2
+        "valence": -3,
+        "effects": []
     },
     "buried_pet_in_yard": {
         "label": "Buried a pet in the yard",
@@ -26556,5 +26436,38 @@
         },
         "valence": -3,
         "effects": []
+    },
+    "adopted_a_pet": {
+        "label": "Adopted a pet",
+        "category": "pet",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "petCount",
+                            "op": "<",
+                            "value": 2
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 2,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "petAdopted",
+                "target": "subject"
+            }
+        ]
     }
 }

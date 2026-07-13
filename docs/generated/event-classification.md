@@ -4,17 +4,18 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 725 events — **26 vital**, **39 wired**, **516 texture**, **144 reserved**.
+Totals: 726 events — **27 vital**, **39 wired**, **512 texture**, **148 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
 | aced_final | education | probabilistic+manual | texture | — |
 | action_declined | social | manual | wired | lent_an_object.onDecline, gave_object_to_person.onDecline |
 | action_failed | mishap | manual | reserved | — |
-| adopted_cat | pet | probabilistic+manual | texture | — |
+| adopted_a_pet | pet | manual | vital | adopted_a_pet.onComplete |
+| adopted_cat | pet | manual | reserved | — |
 | adopted_child | family | probabilistic+manual | texture | — |
-| adopted_dog | pet | probabilistic+manual | texture | — |
-| adopted_goldfish | pet | probabilistic+manual | texture | — |
+| adopted_dog | pet | manual | reserved | — |
+| adopted_goldfish | pet | manual | reserved | — |
 | apologized_first | social | probabilistic+manual | texture | — |
 | apologized_for_snapping | emotion-mood | probabilistic+manual | texture | — |
 | application_rejected | career | probabilistic+manual | texture | — |
@@ -471,7 +472,7 @@ Totals: 725 events — **26 vital**, **39 wired**, **516 texture**, **144 reserv
 | pet_got_sick | pet | probabilistic+manual | texture | — |
 | pet_had_litter | pet | probabilistic | texture | — |
 | pet_learned_trick | pet | probabilistic+manual | texture | — |
-| pet_passed_away | pet | probabilistic+manual | texture | — |
+| pet_passed_away | pet | manual | reserved | — |
 | pet_ran_away | pet | probabilistic+manual | texture | — |
 | pet_recovered | pet | manual | reserved | — |
 | pet_won_ribbon | pet | probabilistic+manual | texture | — |

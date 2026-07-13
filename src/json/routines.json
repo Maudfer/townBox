@@ -105,5 +105,19 @@
                 }
             ]
         }
+    },
+    "pet_care": {
+        "action": "caring_for_the_pet",
+        "cadenceDays": 1,
+        "window": [
+            7,
+            21
+        ],
+        "adoption": 1,
+        "requires": {
+            "attr": "petCount",
+            "op": ">=",
+            "value": 1
+        }
     }
 }

@@ -23,6 +23,8 @@ import {
     validateArbitrationStructure,
     validateInventoryTuningStructure,
     validateFireStructure,
+    validatePetsStructure,
+    validatePetsSemantics,
     validateHabitsStructure,
     validateMoodStructure,
     validateHistoryGeneratorStructure,
@@ -67,6 +69,7 @@ import needsConfig from 'json/needs.json';
 import oarConfig from 'json/object-action-relationships.json';
 import objectsConfig from 'json/objects.json';
 import objectGenerationConfig from 'json/objectGeneration.json';
+import petsConfig from 'json/pets.json';
 import placementConfig from 'json/placement.json';
 import populationConfig from 'json/population.json';
 import relationshipsConfig from 'json/relationships.json';
@@ -115,6 +118,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'mood', version: 1, data: moodConfig, validateStructure: validateMoodStructure },
         { name: 'habits', version: 1, data: habitsConfig, validateStructure: validateHabitsStructure },
         { name: 'fire', version: 1, data: fireConfig, validateStructure: validateFireStructure },
+        { name: 'pets', version: 1, data: petsConfig, validateStructure: validatePetsStructure, validateSemantics: validatePetsSemantics },
         { name: 'services', version: 1, data: servicesConfig, validateStructure: validateServicesStructure, validateSemantics: validateServicesSemantics },
         { name: 'retcons', version: 1, data: retconsConfig, validateStructure: validateRetconsStructure, validateSemantics: validateRetconsSemantics },
         { name: 'traits', version: 1, data: traitsConfig, validateStructure: validateTraitsStructure, validateSemantics: validateTraitsSemantics },

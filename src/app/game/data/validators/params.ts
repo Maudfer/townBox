@@ -48,6 +48,43 @@ export function validateFireStructure(data: unknown, issues: IssueCollector): vo
     }
 }
 
+// json/pets.json (task 103): the companion policy. Semantics: each species' texture event must exist with
+// a manual trigger (the adoption fires it — C2-wired, never free-rolled).
+export function validatePetsStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'pets', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'pets', config, ['maxPerOwner', 'species']);
+    checkNumber(issues, 'pets.maxPerOwner', config['maxPerOwner'], { min: 1, integer: true });
+    if (!checkRecord(issues, 'pets.species', config['species'])) {
+        return;
+    }
+    for (const [species, spec] of Object.entries(config['species'] as Record<string, unknown>)) {
+        const path = 'pets.species.' + species;
+        if (!checkRecord(issues, path, spec)) {
+            continue;
+        }
+        const record = spec as Record<string, unknown>;
+        checkUnknownKeys(issues, path, record, ['weight', 'lifespanYears', 'event']);
+        checkNumber(issues, path + '.weight', record['weight'], { min: 0 });
+        checkNumber(issues, path + '.lifespanYears', record['lifespanYears'], { min: 1 });
+    }
+}
+
+export function validatePetsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
+    const config = data as { species?: Record<string, { event?: string }> };
+    const events = (peers['events'] ?? {}) as Record<string, { triggers?: { manual?: unknown } }>;
+    for (const [species, spec] of Object.entries(config.species ?? {})) {
+        const event = spec.event !== undefined ? events[spec.event] : undefined;
+        if (!event) {
+            issues.add('pets.species.' + species + '.event', 'unknown event "' + spec.event + '" (not in events.json)');
+        } else if (!event.triggers?.manual) {
+            issues.add('pets.species.' + species + '.event', 'event "' + spec.event + '" declares no manual trigger — the adoption cannot fire it');
+        }
+    }
+}
+
 export function validatePopulationStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
         return;

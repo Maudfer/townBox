@@ -18,9 +18,6 @@ function person(id: string): GenPerson {
     return { id, firstName: id, familyName: 'Fam', gender: Genders.Female, birthTick: -30 * TPY, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
 }
 
-// Seed chosen for a strictly separating stream: covered-vs-uncovered can legitimately TIE on many seeds
-// (the winning draw lands below both hazards — the factor can only ever make recovery earlier-or-equal),
-// so the strict assertion pins a seed where the gap actually shows (day ~2 vs day ~21 here).
 function makeState(): PopulationState {
     return { worldSeed: 55, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
 }
@@ -44,13 +41,39 @@ function recoveryTick(services: ServiceCoverageReader | null): number {
 }
 
 describe('coverage → recovery speed', () => {
-    test('full coverage recovers no later than none, and strictly earlier on this seed', () => {
-        const uncovered = recoveryTick(reader(0));
-        const covered = recoveryTick(reader(1));
-        expect(covered).toBeLessThanOrEqual(uncovered);
-        expect(covered).toBeLessThan(uncovered); // the 0.75 vs 1.4 factor gap shows on this seed
-        // The illness minimum-duration gate (task 092) still holds under full coverage.
-        expect(covered).toBeGreaterThan(48);
+    // Cohort frequencies, not a single pair (the jobSeeking lesson): one sick person's recovery tick can
+    // legitimately TIE across coverages (the winning draw lands below both hazards), and per-seed draws are
+    // correlated. Thirty sick people give each agent its own draw slot per tick — the covered town must
+    // recover decisively more of them within the window (hazard 0.0029 vs 0.0016/tick → ≈52% vs ≈32% by
+    // tick 300).
+    test('a covered town recovers decisively more of a sick cohort within the window', () => {
+        const recoveredCount = (ratio: number): number => {
+            const engine = new EventEngine(EVENTS);
+            const ids = Array.from({ length: 30 }, (_, index) => `p${String(index).padStart(2, '0')}`);
+            const people: Record<string, GenPerson> = {};
+            for (const id of ids) {
+                people[id] = person(id);
+            }
+            const state: PopulationState = { worldSeed: 55, people, drawSeed: 1, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+            for (const id of ids) {
+                engine.invoke(state, 'fell_ill', id, 0, TPY, { source: 'system', causationId: null });
+            }
+            for (let tick = 1; tick <= 300; tick++) {
+                engine.simulateTick(state, ids, tick, TPY, { markets: { services: reader(ratio) } });
+            }
+            return ids.filter(id => engine.getPersonLog(id).some(entry => entry.kind === 'event' && entry.defId === 'recovered')).length;
+        };
+        const covered = recoveredCount(1);
+        const uncovered = recoveredCount(0);
+        expect(covered).toBeGreaterThan(uncovered);
+        // And the minimum-duration gate (092) holds: nobody recovers within two days even fully covered.
+        const engine = new EventEngine(EVENTS);
+        const state = makeState();
+        engine.invoke(state, 'fell_ill', 'a', 0, TPY, { source: 'system', causationId: null });
+        for (let tick = 1; tick <= 48; tick++) {
+            engine.simulateTick(state, ['a'], tick, TPY, { markets: { services: reader(1) } });
+        }
+        expect(engine.getPersonLog('a').some(entry => entry.kind === 'event' && entry.defId === 'recovered')).toBe(false);
     });
 
     test('an unmeasured context reads the neutral coverage (factor ×1) — no ledger, no effect', () => {

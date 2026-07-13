@@ -13,6 +13,7 @@ import CityIncidents from 'game/economy/CityIncidents';
 import BuildingConditions from 'game/economy/BuildingConditions';
 import DetentionRegistry from 'game/economy/DetentionRegistry';
 import Habits from 'game/population/Habits';
+import PetRegistry from 'game/population/PetRegistry';
 import Mood from 'game/population/Mood';
 import Needs from 'game/population/Needs';
 import Population from 'game/population/Population';
@@ -73,6 +74,7 @@ export default class GameManager {
     public incidents: CityIncidents | null;
     public detention: DetentionRegistry | null;
     public buildingConditions: BuildingConditions | null;
+    public pets: PetRegistry | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -180,6 +182,7 @@ export default class GameManager {
         this.incidents = null;
         this.detention = null;
         this.buildingConditions = null;
+        this.pets = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -314,6 +317,9 @@ export default class GameManager {
 
             // Building condition (task 102): the wear/fire substrate, serialized (v16 family).
             this.buildingConditions = new BuildingConditions();
+
+            // Pets (task 103): lightweight companions, serialized (v16 family).
+            this.pets = new PetRegistry();
 
             // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.

@@ -10,6 +10,7 @@ import { HabitsState } from 'types/Habits';
 import { IncidentsState } from 'types/Incidents';
 import { DetentionState } from 'types/Detention';
 import { BuildingConditionsState } from 'types/Fire';
+import { PetsState } from 'types/Pets';
 import { MoodState } from 'types/Mood';
 import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
@@ -177,6 +178,8 @@ export interface WorldSnapshot {
     detention?: DetentionState;
     // Building condition (task 102, v16 family) — absent in older saves (everything reads pristine).
     buildingConditions?: BuildingConditionsState;
+    // Pets (task 103, v16 family) — absent in older saves (no companions yet).
+    pets?: PetsState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

@@ -12,6 +12,7 @@ import { HabitsReader } from 'types/Habits';
 import { IncidentsReader } from 'types/Incidents';
 import { MoodReader } from 'types/Mood';
 import { NeedsReader } from 'types/Needs';
+import { PetsReader } from 'types/Pets';
 import { RelationshipGraph } from 'types/Relationship';
 import { ServiceCoverageReader } from 'types/Services';
 import { TraitsReader } from 'types/Traits';
@@ -73,6 +74,8 @@ export interface SimulationMarkets {
     incidents?: IncidentsReader | null;
     // Habits (task 095): vice practice bumps counters; selection reads the escalation multiplier.
     habits?: HabitsReader | null;
+    // Pets (task 103): the petCount context attribute (adoption caps, dog-walk gates) reads it.
+    pets?: PetsReader | null;
     // Mood (task 091): event valence lands impulses; consent/selection/vice gates read the meter.
     mood?: MoodReader | null;
     // City services (task 096): coverage ratios the hazards read (healthcare -> recovery). Derived daily.

@@ -27,6 +27,7 @@ import { ServiceInputs } from 'types/Services';
 import { RetconConfig } from 'types/Retcon';
 import { locationKey } from 'types/Objects';
 import { FIRE_CONFIG } from 'game/economy/BuildingConditions';
+import { PETS_CONFIG } from 'game/population/PetRegistry';
 import { Tool } from 'types/Cursor';
 
 import businessesConfig from 'json/businesses.json';
@@ -608,6 +609,9 @@ export default class City {
         // The ignition sweep (task 102): worn buildings are hazards; kept-up ones almost never ignite.
         this.runFireHazard(event.tick);
 
+        // Pet lifespans (task 103): old companions pass, and it genuinely hurts (a -3 mood impulse).
+        this.runPetLifecycle(event.tick);
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
     }
@@ -891,7 +895,7 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, mood: Game.mood ?? null, services: this.services } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, pets: Game.pets ?? null, mood: Game.mood ?? null, services: this.services } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
                 // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.
@@ -903,6 +907,7 @@ export default class City {
                     Game.habits?.removePerson(deceased);
                     Game.incidents?.removePerson(deceased);
                     Game.detention?.removePerson(deceased);
+                    Game.pets?.removeOwner(deceased);
                 }
                 await this.materializeNewborns(result.born, personByGenId);
                 // City-overview vital tallies (task 031).
@@ -947,6 +952,9 @@ export default class City {
                     } else if (signal.signal === 'chaseConcluded') {
                         // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
                         this.resolveChase(signal.personId, event.tick, ticksPerYear);
+                    } else if (signal.signal === 'petAdopted') {
+                        // The pet-shop adoption (task 103): draw the species, name it, register it.
+                        this.resolveAdoption(signal.personId, event.tick);
                     }
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
@@ -1355,6 +1363,68 @@ export default class City {
             if (rng.next() < chance) {
                 this.convictSuspect(incident.suspectId, tick);
             }
+        }
+    }
+
+    // The pet-shop adoption lands (task 103 / N): the adopted_a_pet event (cap-gated by petCount) emitted
+    // petAdopted; City draws the species (weighted, deterministic), names the companion (faker), registers
+    // it, and fires the species texture event — adopted_dog and friends are C2-wired now, never free-rolled.
+    public resolveAdoption(ownerId: PersonId, tick: number): void {
+        const pets = Game.pets;
+        const population = Game.population;
+        if (!pets || !population || pets.countOf(ownerId) >= PETS_CONFIG.maxPerOwner) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed('pet#' + ownerId + '#' + tick)) >>> 0);
+        const entries = Object.entries(PETS_CONFIG.species).sort(([a], [b]) => a.localeCompare(b));
+        const total = entries.reduce((sum, [, spec]) => sum + spec.weight, 0);
+        let roll = rng.next() * total;
+        let picked = entries[entries.length - 1]!;
+        for (const entry of entries) {
+            roll -= entry[1].weight;
+            if (roll <= 0) {
+                picked = entry;
+                break;
+            }
+        }
+        fakerPT_BR.seed((worldSeed ^ hashStringToSeed('petname#' + ownerId + '#' + tick)) >>> 0);
+        const name = fakerPT_BR.person.firstName();
+        pets.adopt(ownerId, picked[0], name, tick);
+        this.fireMilestone(picked[1].event, ownerId, tick);
+        const owner = Game.population?.getPerson(ownerId)?.firstName ?? 'Someone';
+        this.announce('pet', tick, owner + ' adopted a ' + picked[0] + ' named ' + name, this.indexMaterialized().get(ownerId) ?? null);
+    }
+
+    // Pet lifespans (task 103): past the species lifespan, each day rolls a small deterministic passing
+    // chance. The owner's log takes pet_passed_away — valence -3, a REAL grief impulse (091's machinery).
+    public runPetLifecycle(tick: number): void {
+        const pets = Game.pets;
+        const population = Game.population;
+        const clock = Game.clock;
+        if (!pets || !population || !clock) {
+            return;
+        }
+        const ticksPerYear = clock.getTicksPerYear();
+        const worldSeed = population.getState().worldSeed;
+        const day = Math.floor(tick / 24);
+        for (const pet of pets.all()) {
+            const spec = PETS_CONFIG.species[pet.species];
+            if (!spec) {
+                continue;
+            }
+            const ageYears = (tick - pet.birthTick) / ticksPerYear;
+            if (ageYears < spec.lifespanYears) {
+                continue;
+            }
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('petDeath#' + pet.id + '#' + day)) >>> 0);
+            if (rng.next() >= 0.05) {
+                continue;
+            }
+            pets.removePet(pet.id);
+            this.fireMilestone('pet_passed_away', pet.ownerId, tick);
+            const owner = Game.population?.getPerson(pet.ownerId)?.firstName ?? 'Someone';
+            this.announce('pet', tick, owner + "'s " + pet.species + ' ' + pet.name + ' passed away', this.indexMaterialized().get(pet.ownerId) ?? null);
         }
     }
 
