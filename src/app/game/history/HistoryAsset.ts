@@ -24,7 +24,7 @@ import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import { runTick } from 'game/execution/TickRunner';
 import LogicalWorld, { LogicalWorldConfig } from 'game/history/LogicalWorld';
-import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/population/Population';
+import { createFounders, DEFAULT_FOUNDER_PARAMS, pairUnpartneredAdults } from 'game/population/Population';
 import Agenda from 'game/actions/Agenda';
 import Habits from 'game/population/Habits';
 import Mood from 'game/population/Mood';
@@ -42,6 +42,7 @@ import { InventoryState } from 'types/Objects';
 import { SkillTimeline } from 'types/Skill';
 import { ageAt } from 'util/kinship';
 import { Predicate } from 'util/predicate';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 import { TICKS_PER_DAY, dayOfTick } from 'util/time';
 
 const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
@@ -61,7 +62,7 @@ export const HISTORY_ASSET_FORMAT_VERSION = 2;
 // 078.0: reduced-manifest generator mode (default) — the probabilistic walk is restricted to loggable events,
 //        dropping the ~680 effect-free texture events. A per-agent perf win that CHANGES the RNG stream, so
 //        assets differ byte-wise from 077.4 (same content in kind); still deterministic per seed.
-export const HISTORY_GENERATOR_VERSION = '078.0';
+export const HISTORY_GENERATOR_VERSION = '119.0';
 
 // The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -77,6 +78,13 @@ export interface PopulationControlConfig {
     band: number;          // deadband fraction: pivots at target*(1±band)
     suppressLevel: number; // childrenNeed multiplier while suppressing (0 = no births, 1 = no influence)
     allowLevel: number;    // childrenNeed multiplier while allowing (typically 1)
+    // Off-map courtship rate (extinction remedy): the per-single annual marriage hazard the generator pairs
+    // unpartnered adults at while below target (the thermostat handles the ceiling via pregnancy). 0 disables
+    // it (the pre-fix behaviour — a population that goes extinct once the pre-married founders age out).
+    // Generator-only; LiveWorld never pairs (real courtship on the map is untouched). See pairUnpartneredAdults.
+    // Optional so programmatic callers (tests) may omit it — absent means 0 (the pre-fix, extinction-prone
+    // behaviour); the shipped json/historyGenerator.json sets it, which the validator requires.
+    pairRatePerYear?: number;
 }
 
 export interface GeneratorSafety {
@@ -440,6 +448,10 @@ export async function generateHistoryAsset(
         if (!inRecording && tick >= Math.round(params.maxWarmupYears * tpy)) {
             break; // threshold never reached — stop and write whatever grew (a valid, shorter asset)
         }
+        if (!inRecording && living.size === 0) {
+            break; // extinct during warm-up: a 0-population never recovers — don't grind the remaining years
+                   // (the pre-fix collapse wasted ~300 empty warm-up years of fixed per-step overhead here).
+        }
         if (params.safety.maxRuntimeMs > 0 && Date.now() - startedAt > params.safety.maxRuntimeMs) {
             break;
         }
@@ -471,6 +483,18 @@ export async function generateHistoryAsset(
             ticksPerStep: effectiveStep,
         });
         applyResult(result, tick);
+        // Off-map courtship (extinction remedy): the romance arc gates pregnancy on a spouse and had_sex on a
+        // partner-or-dating edge — edges the logical world pairs far too rarely, so the pre-married founders
+        // reproduce then age out and the population collapses. Pair a bounded, deterministic fraction of
+        // compatible unpartnered adults each step so the second generation reproduces on the normal path;
+        // the rate runs full while below target and drops to a trickle above it (the thermostat caps the
+        // ceiling via pregnancy). Poisson-honest per `effectiveStep`, so the daily and hot bands agree.
+        const pairRate = params.populationControl.pairRatePerYear ?? 0;
+        if (pairRate > 0) {
+            const boost = living.size < params.populationControl.target * (1 + params.populationControl.band) ? 1 : 0.1;
+            const pairRng = new SeededRandom((params.seed ^ hashStringToSeed('pair#' + tick)) >>> 0);
+            pairUnpartneredAdults(state, living, tick, tpy, pairRng, pairRate * boost, effectiveStep);
+        }
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
