@@ -53,6 +53,15 @@ const base = {
 };
 
 module.exports = {
+  // Memory safety (local dev). This machine has 32 logical CPUs, so Jest's default maxWorkers (CPUs - 1 = 31)
+  // spins up ~31 ts-jest worker processes for a full `npm test` sweep — each holding the heavy simulation
+  // module graph (faker + the object/event manifests + the sim core) — which spikes NodeJS RAM to ~20GB and
+  // thrashes the Windows page file. Cap the pool and give each worker a heap ceiling so a bloated worker is
+  // recycled between test files. Override with `--maxWorkers=<n>` when you have headroom. CI runs modules as
+  // separate `--selectProjects` jobs (few files each), so this cap doesn't slow it.
+  maxWorkers: process.env.JEST_MAX_WORKERS ? Number(process.env.JEST_MAX_WORKERS) : 4,
+  workerIdleMemoryLimit: '1GB',
+
   projects: [
     ...MODULES.map((name) => ({
       ...base,
