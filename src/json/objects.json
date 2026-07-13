@@ -845,7 +845,16 @@
         },
         "tags": [
             "medical"
-        ]
+        ],
+        "placement": [
+            "pharmacy"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 6,
+            "ownershipDefault": "building"
+        }
     },
     "teddy_bear": {
         "label": "Teddy Bear",
@@ -1590,7 +1599,16 @@
         },
         "tags": [
             "ingredient"
-        ]
+        ],
+        "placement": [
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 3,
+            "ownershipDefault": "building"
+        }
     },
     "egg": {
         "label": "Egg",
@@ -1612,6 +1630,15 @@
         "tags": [
             "ingredient"
         ],
+        "placement": [
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 6,
+            "ownershipDefault": "building"
+        },
         "expiresAfterTicks": 480
     },
     "cream_jar": {
@@ -1633,7 +1660,16 @@
         },
         "tags": [
             "ingredient"
-        ]
+        ],
+        "placement": [
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 3,
+            "ownershipDefault": "building"
+        }
     },
     "baked_dough": {
         "label": "Baked Dough",
@@ -3306,7 +3342,8 @@
         ],
         "placement": [
             "bus-stop",
-            "playground"
+            "playground",
+            "supermarket"
         ],
         "generation": {
             "kind": "consumable",

@@ -57,6 +57,10 @@ export interface WorldAdapter {
     // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
     // places and always exist — the seam's only sanctioned difference is physical backing.
     hasVenue(venue: string): boolean;
+    // The business hosting this location, if any (task 113): live worlds answer with the occupying
+    // business's key so purchases at a REAL shop consume real stock (the conjuring fallback is retired
+    // there). Optional — off-map worlds leave it undefined and keep the abstract-venue fallback.
+    businessAt?(location: LogicalLocation): string | null;
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle;
 }
 

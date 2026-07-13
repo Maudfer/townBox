@@ -281,7 +281,7 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `office` | building | 34 | 16 |
 | `park` | building | 31 | 1 |
 | `pet-shop` | building | 28 | 1 |
-| `pharmacy` | building | 30 | 1 |
+| `pharmacy` | building | 31 | 1 |
 | `playground` | building | 28 | 1 |
 | `police-station` | building | 27 | 2 |
 | `post-office` | building | 25 | 1 |
@@ -289,7 +289,7 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `school-cafeteria` | building | 28 | 1 |
 | `sports-field` | building | 31 | 1 |
 | `street-sidewalk` | building | 26 | 1 |
-| `supermarket` | building | 34 | 1 |
+| `supermarket` | building | 38 | 1 |
 | `swimming-pool` | building | 27 | 1 |
 | `toy-store` | building | 31 | 1 |
 | `veterinary-clinic` | building | 25 | 1 |

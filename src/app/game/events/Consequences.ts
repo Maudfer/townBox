@@ -435,7 +435,11 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                         .sort();
                     return candidates[0] ?? null;
                 };
-                if (stockId() === null && op.fallback === undefined) {
+                // At a REAL shop (task 113: a live world answers businessAt with the occupying business)
+                // the shelf is the truth — the conjuring fallback is retired, and missing stock is a typed
+                // plan failure. Off-map worlds leave businessAt undefined and keep the abstract fallback.
+                const atRealShop = world?.businessAt?.(world.objectLocationOf(ctx.personId)) != null;
+                if (stockId() === null && (op.fallback === undefined || atRealShop)) {
                     return null;
                 }
                 if (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback))) {
@@ -451,7 +455,7 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                         ledger?.recordPurchase?.(ctx.personId, businessKey, op.price);
                         return;
                     }
-                    if (op.fallback !== undefined && inventory) {
+                    if (op.fallback !== undefined && !atRealShop && inventory) {
                         inventory.createInstance({
                             archetypeId: op.fallback,
                             quantity: op.fallbackQuantity ?? 1,

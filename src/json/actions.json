@@ -2561,6 +2561,14 @@
                 "price": 12,
                 "fallback": "tomato",
                 "fallbackQuantity": 2
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "cream_jar"
+                },
+                "price": 8,
+                "fallback": "cream_jar"
             }
         ]
     },

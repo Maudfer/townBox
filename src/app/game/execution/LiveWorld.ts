@@ -160,6 +160,16 @@ export default class LiveWorld implements WorldAdapter {
         });
     }
 
+    // The business occupying this building, if any (task 113): a purchase made HERE is at a real shop —
+    // its shelf is the truth, and the conjuring fallback is retired.
+    businessAt(location: LogicalLocation): string | null {
+        if (location.kind !== 'building') {
+            return null;
+        }
+        const building = this.deps.buildingByKey(location.key);
+        return building instanceof Workplace && building.getBusiness() ? location.key : null;
+    }
+
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
         const handle: TransitionHandle = {
             id: this.nextHandleId++,
