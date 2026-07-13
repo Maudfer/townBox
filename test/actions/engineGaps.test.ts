@@ -104,6 +104,7 @@ describe('ActionEngine gaps', () => {
             objectLocationOf: () => ({ kind: 'outside' }),
             peopleAt: () => [],
             objectsAt: () => [],
+            hasVenue: () => true,
             requestTransition: (personId, target, tick, causationId): TransitionHandle =>
                 ({ id: 0, personId, target, status: 'cancelled', requestedAtTick: tick, resolvedAtTick: null, causationId }),
         };
@@ -334,6 +335,7 @@ describe('Brain arbitration gaps', () => {
             objectLocationOf: () => ({ kind: 'outside' }),
             peopleAt: () => [],
             objectsAt: () => [],
+            hasVenue: () => true,
             requestTransition: (personId, target, tick, causationId) => {
                 handle = { id: 0, personId, target, status: 'pending', requestedAtTick: tick, resolvedAtTick: null, causationId };
                 return handle;

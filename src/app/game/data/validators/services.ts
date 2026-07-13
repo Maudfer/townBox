@@ -101,6 +101,44 @@ export function validateRetconsSemantics(data: unknown, peers: Record<string, un
     }
 }
 
+// json/venues.json (task 107): venue kind -> hosting blueprint keys. Semantics both ways: every
+// venue:<kind> any action targets must be mapped (an unmapped kind can never resolve in live mode), and
+// every mapped blueprint must exist.
+export function validateVenuesStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'venues', data)) {
+        return;
+    }
+    for (const [venue, hosts] of Object.entries(data as Record<string, unknown>)) {
+        if (checkArray(issues, 'venues.' + venue, hosts)) {
+            (hosts as unknown[]).forEach((host, index) => checkString(issues, 'venues.' + venue + '[' + index + ']', host));
+            if ((hosts as unknown[]).length === 0) {
+                issues.add('venues.' + venue, 'a venue must name at least one hosting blueprint');
+            }
+        }
+    }
+}
+
+export function validateVenuesSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
+    const venues = data as Record<string, string[]>;
+    const blueprints = new Set(Object.keys((peers['businesses'] ?? {}) as Record<string, unknown>));
+    for (const [venue, hosts] of Object.entries(venues)) {
+        for (const host of hosts) {
+            if (!blueprints.has(host)) {
+                issues.add('venues.' + venue, 'unknown blueprint "' + host + '" (not in businesses.json)');
+            }
+        }
+    }
+    const actions = (peers['actions'] ?? {}) as Record<string, { location?: string }>;
+    for (const [actionId, def] of Object.entries(actions)) {
+        if (typeof def.location === 'string' && def.location.startsWith('venue:')) {
+            const kind = def.location.slice('venue:'.length);
+            if (!(kind in venues)) {
+                issues.add('venues', actionId + ' targets venue:' + kind + ' but no hosting blueprints are mapped — it could never resolve in live play');
+            }
+        }
+    }
+}
+
 export function validateServicesSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const config = data as { services?: Record<string, { providerJobs?: unknown[]; facilityBlueprints?: unknown[] }> };
     const jobs = new Set(Object.keys((peers['jobs'] ?? {}) as Record<string, unknown>));

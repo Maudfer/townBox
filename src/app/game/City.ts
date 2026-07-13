@@ -118,6 +118,8 @@ export default class City {
                 return null;
             },
             startCommute: (person, destination) => this.startCommute(person, destination),
+            // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
+            listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,
         });
 

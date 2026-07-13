@@ -402,11 +402,11 @@ export default class Brain {
     // The continuous, non-work/obligation, positive-base-weight actions eligible to be free-time picks. Static
     // per manifest, so computed once and reused (task 078) — already sorted by actionId so the downstream
     // weighted pick sees the same order as the prior full-manifest scan (byte-identical selection).
-    private getFreeTimeCandidates(): { actionId: string; def: ActionDefinition; baseWeight: number }[] {
+    private getFreeTimeCandidates(): { actionId: string; def: ActionDefinition; baseWeight: number; venueKind?: string }[] {
         if (this.freeTimeCandidates) {
             return this.freeTimeCandidates;
         }
-        const candidates: { actionId: string; def: ActionDefinition; baseWeight: number }[] = [];
+        const candidates: { actionId: string; def: ActionDefinition; baseWeight: number; venueKind?: string }[] = [];
         for (const [actionId, def] of Object.entries(this.actionEngine.getManifest())) {
             if (def.type !== 'continuous' || def.category === 'work' || def.category === 'obligation') {
                 continue; // obligations are hook-driven, never free-time picks
@@ -415,7 +415,8 @@ export default class Brain {
             if (baseWeight <= 0) {
                 continue; // not selectable
             }
-            candidates.push({ actionId, def, baseWeight });
+            const venueKind = typeof def.location === 'string' && def.location.startsWith('venue:') ? def.location.slice('venue:'.length) : undefined;
+            candidates.push({ actionId, def, baseWeight, ...(venueKind !== undefined ? { venueKind } : {}) });
         }
         candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
         this.freeTimeCandidates = candidates;
@@ -431,9 +432,12 @@ export default class Brain {
         const traitsReader = deps.ctx.markets?.traits ?? null;
         const habitsReader = deps.ctx.markets?.habits ?? null;
         const candidates: { actionId: string; weight: number }[] = [];
-        for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
+        for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
                 continue;
+            }
+            if (venueKind !== undefined && deps.ctx.world && !deps.ctx.world.hasVenue(venueKind)) {
+                continue; // no such place in this town (task 107) — don't propose the unreachable
             }
             const selection = def.selection;
             let weight = baseWeight;
@@ -515,11 +519,14 @@ export default class Brain {
         let reqMs = 0;
         let modMs = 0;
         const candidates: { actionId: string; weight: number }[] = [];
-        for (const { actionId, def, baseWeight } of this.getFreeTimeCandidates()) {
+        for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
             let weight = baseWeight;
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue; // anti-repetition
+            }
+            if (venueKind !== undefined && deps.ctx.world && !deps.ctx.world.hasVenue(venueKind)) {
+                continue; // no such place in this town (task 107) — don't propose the unreachable
             }
             if (def.requirements) {
                 const tReq = clock ? clock() : 0;

@@ -88,6 +88,10 @@ class ScriptedWorld implements WorldAdapter {
         return [];
     }
 
+    hasVenue(): boolean {
+        return true;
+    }
+
     requestTransition(personId: string, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
         const status = this.scripted.shift() ?? 'arrived';
         const handle: TransitionHandle = { id: this.nextHandleId++, personId, target, status, requestedAtTick: tick, resolvedAtTick: status === 'pending' ? null : tick, causationId };

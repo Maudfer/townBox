@@ -53,6 +53,10 @@ export interface WorldAdapter {
     // Object instance ids physically at the location (task 041) — the query "is there something pocketable
     // here" style requirements resolve through. Ids resolve against the Inventory (game/Inventory.ts).
     objectsAt(location: LogicalLocation): string[];
+    // Venue availability (task 107): does this world HOST the venue kind? Live: a placed, occupied business
+    // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
+    // places and always exist — the seam's only sanctioned difference is physical backing.
+    hasVenue(venue: string): boolean;
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle;
 }
 

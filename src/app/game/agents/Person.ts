@@ -438,6 +438,10 @@ export default class Person {
         return { x: this.x, y: this.y };
     }
 
+    getPixelPosition(): { x: number; y: number } {
+        return { x: this.x, y: this.y };
+    }
+
     setPosition(x: number, y: number): void {
         this.x = x;
         this.y = y;
