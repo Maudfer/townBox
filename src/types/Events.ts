@@ -7,6 +7,7 @@ import Tile from 'game/world/Tile';
 import Workplace from 'game/world/Workplace';
 import { Tool } from "types/Cursor";
 import { TilePosition, PixelPosition } from "types/Position";
+import { ServiceCoverage } from "types/Services";
 import { TimeChangedEvent, NewTickEvent, NewDayEvent } from "types/Time";
 
 export type UpdateEvent = {
@@ -58,6 +59,10 @@ export interface EventPayloads {
     "PersonSelected": Person;
     "WorkplaceSelected": Workplace;
     "CitySelected": GameManager["city"];
+    // The daily coverage sweep's output (task 114): the nagbar reads it live; the Services window opens
+    // from the banner via ServicesSelected (same City payload the dashboard uses).
+    "servicesChanged": ServiceCoverage[];
+    "ServicesSelected": GameManager["city"];
     "hudReady": void;
     "saveGameRequest": void;
     "gameSaved": void;

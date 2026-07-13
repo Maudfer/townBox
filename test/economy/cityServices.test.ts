@@ -1,5 +1,12 @@
+import City from 'game/City';
+import Clock from 'game/Clock';
 import CityServices, { SERVICES_CONFIG, computeCoverage } from 'game/economy/CityServices';
-import { ServiceInputs } from 'types/Services';
+import Economy from 'game/economy/Economy';
+import GameManager from 'game/GameManager';
+import Population from 'game/population/Population';
+import Field from 'game/world/Field';
+import { PixelPosition, TilePosition } from 'types/Position';
+import { ServiceCoverage, ServiceInputs } from 'types/Services';
 
 // The city-services coverage ledger (task 096 / proposal H1–H2): pure ratio derivation over what actually
 // exists (facilities + practicing providers + school seats), the reader's neutral-until-measured contract
@@ -72,5 +79,42 @@ describe('config ↔ factor-curve contract', () => {
         // neutral level MUST land in the ×1 band or every unmeasured context would drift.
         expect(SERVICES_CONFIG.neutralCoverage).toBeGreaterThanOrEqual(0.4);
         expect(SERVICES_CONFIG.neutralCoverage).toBeLessThan(0.8);
+    });
+});
+
+describe('the nagbar plumbing (task 114)', () => {
+    test('the daily sweep publishes servicesChanged with exactly the ledger lines the dashboard shows', () => {
+        const rows = 40;
+        const cols = 40;
+        const emitted: { name: string; payload: unknown }[] = [];
+        const game = {
+            field: null,
+            population: new Population(),
+            clock: new Clock(),
+            economy: new Economy(),
+            gridParams: { rows, cols, cells: { width: 16, height: 16 }, footprint: { tiles: 3, width: 48, height: 48 } },
+            tileToPixelPosition: (position: TilePosition) => (position === null ? null : { x: position.col * 16 + 8, y: position.row * 16 + 8 }),
+            pixelToTilePosition: (pixel: PixelPosition) => {
+                if (pixel === null) {
+                    return null;
+                }
+                const row = Math.floor(pixel.y / 16);
+                const col = Math.floor(pixel.x / 16);
+                return row < 0 || row >= rows || col < 0 || col >= cols ? null : { row, col };
+            },
+            emit: (name: string, payload: unknown) => emitted.push({ name, payload }),
+            emitSingle: () => {}, on: () => {}, toolbelt: {},
+        } as unknown as GameManager;
+        const field = new Field(game, rows, cols);
+        (game as unknown as { field: Field }).field = field;
+        const city = new City(game);
+
+        city.recomputeServices(24);
+        const events = emitted.filter(event => event.name === 'servicesChanged');
+        expect(events).toHaveLength(1);
+        const payload = events[0]!.payload as ServiceCoverage[];
+        // The nagbar derives from EXACTLY what the ledger holds — the same lines the city dashboard shows.
+        expect(payload.length).toBe(Object.keys(SERVICES_CONFIG.services).length);
+        expect(payload).toEqual(city.getCityStats().services);
     });
 });

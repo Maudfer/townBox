@@ -398,6 +398,11 @@ describe('params validation', () => {
         expect(output).toMatch(/unknown job "astronaut"/);
         expect(output).toMatch(/unknown blueprint "moon_base"/);
     });
+
+    test('services rejects a line without its nagbar warning copy (task 114)', () => {
+        const noWarning = { neutralCoverage: 0.5, advisoryBelow: 0.25, services: { education: { label: 'E', providerJobs: [], facilityBlueprints: [], residentsPerProvider: 30 } } };
+        expect(messagesOf(structure(validateServicesStructure, noWarning))).toMatch(/education\.warning/);
+    });
 });
 
 // ---------- actions ----------

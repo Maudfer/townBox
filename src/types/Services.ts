@@ -13,6 +13,8 @@ export interface ServiceDefinition {
     providerJobs: string[];
     facilityBlueprints: string[];
     residentsPerProvider: number; // one practicing provider covers this many residents
+    // The nagbar copy (task 114): what the player reads when this line sits below the advisory threshold.
+    warning: string;
 }
 
 export interface ServicesConfig {

@@ -46,6 +46,7 @@ export enum WindowTypes {
     "GameOptions",
     "AvailableBuildings",
     "ConstructionMenu",
+    "ServicesDetails",
 };
 
 export type WindowData = {

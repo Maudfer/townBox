@@ -12,7 +12,8 @@
                 "hospital",
                 "clinic"
             ],
-            "residentsPerProvider": 40
+            "residentsPerProvider": 40,
+            "warning": "Your town has no working healthcare - the sick recover slowly, and more of them die."
         },
         "education": {
             "label": "Education",
@@ -22,7 +23,8 @@
             "facilityBlueprints": [
                 "school"
             ],
-            "residentsPerProvider": 30
+            "residentsPerProvider": 30,
+            "warning": "Your town has no school seats - children grow up without their basics."
         },
         "police": {
             "label": "Police",
@@ -32,7 +34,8 @@
             "facilityBlueprints": [
                 "police_station"
             ],
-            "residentsPerProvider": 60
+            "residentsPerProvider": 60,
+            "warning": "Your town is unpoliced - crimes go unanswered, and people learn they can get away with it."
         },
         "fire": {
             "label": "Fire protection",
@@ -42,7 +45,8 @@
             "facilityBlueprints": [
                 "fire_station"
             ],
-            "residentsPerProvider": 80
+            "residentsPerProvider": 80,
+            "warning": "Your town has no fire protection - fires burn buildings to the ground."
         },
         "garbage": {
             "label": "Garbage collection",
@@ -52,7 +56,8 @@
             "facilityBlueprints": [
                 "sanitation_depot"
             ],
-            "residentsPerProvider": 70
+            "residentsPerProvider": 70,
+            "warning": "Your town has no garbage collection - trash piles up on the curbs."
         },
         "jail": {
             "label": "Jail capacity",
@@ -62,7 +67,8 @@
             "facilityBlueprints": [
                 "jail"
             ],
-            "residentsPerProvider": 200
+            "residentsPerProvider": 200,
+            "warning": "Your town has no jail - sentences are served in the police station holding cell."
         }
     }
 }

@@ -7,7 +7,7 @@ import { checkArray, checkNumber, checkRecord, checkString, checkUnknownKeys } f
 import { IssueCollector } from 'game/data/registry';
 
 const CONFIG_KEYS = ['neutralCoverage', 'advisoryBelow', 'services'];
-const SERVICE_KEYS = ['label', 'providerJobs', 'facilityBlueprints', 'residentsPerProvider'];
+const SERVICE_KEYS = ['label', 'providerJobs', 'facilityBlueprints', 'residentsPerProvider', 'warning'];
 
 export function validateServicesStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, 'services', data)) {
@@ -32,6 +32,8 @@ export function validateServicesStructure(data: unknown, issues: IssueCollector)
         const service = spec as Record<string, unknown>;
         checkUnknownKeys(issues, path, service, SERVICE_KEYS);
         checkString(issues, `${path}.label`, service['label']);
+        // The nagbar copy (task 114): every service must say what its absence costs the town.
+        checkString(issues, `${path}.warning`, service['warning']);
         checkNumber(issues, `${path}.residentsPerProvider`, service['residentsPerProvider'], { min: 1 });
         for (const listKey of ['providerJobs', 'facilityBlueprints'] as const) {
             if (checkArray(issues, `${path}.${listKey}`, service[listKey])) {

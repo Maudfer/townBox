@@ -681,6 +681,8 @@ export default class City {
         const schoolSeats = this.listSchools().reduce((sum, school) => sum + school.seats, 0);
         const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren };
         const coverages = this.services.update(inputs);
+        // The live surface (task 114): the nagbar derives its warnings from exactly what the ledger holds.
+        Game.emit('servicesChanged', this.services.latest());
 
         const month = Math.floor(Math.floor(tick / 24) / 30);
         if (month !== this.lastServicesAdvisoryMonth && people.length > 0) {
