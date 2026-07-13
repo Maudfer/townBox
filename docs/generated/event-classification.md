@@ -429,7 +429,7 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | needed_reading_glasses | aging | probabilistic | texture | — |
 | never_paid_back | finance | probabilistic | texture | — |
 | notarized_document | legal | probabilistic+manual | texture | — |
-| nursing_school | education | probabilistic | vital | — |
+| nursing_school | education | probabilistic+manual | vital | — |
 | object_acquired | possessions | manual | wired | grab.onComplete |
 | object_consumed | possessions | manual | reserved | — |
 | object_given | possessions | manual | reserved | — |
@@ -621,7 +621,7 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | took_up_smoking | health | probabilistic | texture | — |
 | took_up_woodworking | hobby | probabilistic | texture | — |
 | tped_neighbors_tree | crime-mischief | probabilistic+manual | texture | — |
-| trade_school | education | probabilistic | vital | — |
+| trade_school | education | probabilistic+manual | vital | — |
 | trained_new_coworker | career | probabilistic+manual | texture | — |
 | trespassed_empty_lot | crime-mischief | probabilistic | texture | — |
 | tried_exotic_food | food | probabilistic+manual | texture | — |

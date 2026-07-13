@@ -24,6 +24,7 @@ import { CityStats } from 'types/City';
 import { NewDayEvent, NewTickEvent, TimeChangedEvent } from 'types/Time';
 import { SchoolConfig, SchoolFacts } from 'types/School';
 import { ServiceInputs } from 'types/Services';
+import { RetconConfig } from 'types/Retcon';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -32,6 +33,7 @@ import materialsConfig from 'json/materials.json';
 import demandConfig from 'json/demand.json';
 import schoolsConfig from 'json/schools.json';
 import residencesConfig from 'json/residences.json';
+import retconsConfig from 'json/retcons.json';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { Household, HouseholdArrangements } from 'types/Household';
 import { TickResult } from 'types/LifeEvent';
@@ -55,6 +57,7 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
+const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
 // (manager/teacher/janitor) remain ordinary employment.
 const SCHOOL_BLUEPRINT_KEY = 'school';
@@ -338,8 +341,74 @@ export default class City {
         // unreachable until a round-trip).
         this.fillBuildingObjects(house);
 
+        // Career retcon (task 098 / I4): if the town critically lacks a service, this draw MAY gain a
+        // plausible injected chapter. Runs after skill initialization so the grant tops up either entry path.
+        this.applyCareerRetcon(house.getIdentifier(), selection.memberIds, currentTick, ticksPerYear);
+
         this.population += personByGenId.size;
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
+    }
+
+    // The bounded, history-coherent career retcon (task 098 / proposal I4). When the coverage ledger reports
+    // a critical gap that has an authored template (json/retcons.json), a deterministic per-household roll
+    // may pick ONE age-band member and commit the template's education event at a plausible PAST tick —
+    // through the normal EventEngine.invoke + SkillRegistry machinery, so eligibility, the log entry, the
+    // aggregate history, and the dependency-valid skill grants are all real. Nothing is overwritten: family,
+    // possessions, and every existing entry stay; the person just ALSO went to nursing school at 24, and the
+    // JobMarket can now staff the clinic. At most one retcon per household; members who already hold the
+    // template's skills are never re-schooled.
+    public applyCareerRetcon(houseKey: string, memberIds: PersonId[], currentTick: number, ticksPerYear: number): void {
+        const population = Game.population;
+        const engine = Game.eventEngine;
+        const skillBook = Game.skillBook;
+        if (!population || !engine || !skillBook) {
+            return;
+        }
+        // Measure the town NOW (a brand-new session is otherwise unmeasured until the first day sweep).
+        this.recomputeServices(currentTick);
+        // A retcon answers a STAFFING gap, not a missing building: without a facility the chapter would
+        // create a nurse with nowhere to practice (build the clinic first; the next draws can staff it).
+        const gaps = this.services.latest()
+            .filter(line => line.ratio < RETCON_CONFIG.coverageBelow && line.facilities > 0 && RETCON_CONFIG.templates[line.service] !== undefined)
+            .sort((a, b) => a.ratio - b.ratio || a.service.localeCompare(b.service));
+        if (gaps.length === 0) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`retcon#${houseKey}`)) >>> 0);
+        if (rng.next() >= RETCON_CONFIG.chancePerHousehold) {
+            return; // the bounded fraction: most households arrive exactly as recorded
+        }
+        const pool = population.getState().people;
+        const state = population.getState();
+        for (const gap of gaps) {
+            const template = RETCON_CONFIG.templates[gap.service]!;
+            const definition = engine.getManifest()[template.event];
+            const grantedSkills = (definition?.effects ?? [])
+                .filter((effect): effect is { type: 'acquireSkill'; value: string; proficiency?: number } => effect.type === 'acquireSkill')
+                .map(effect => ({ skill: effect.value, floor: effect.proficiency ?? 25 }));
+            for (const memberId of [...memberIds].sort()) {
+                const record = pool[memberId];
+                if (!record) {
+                    continue;
+                }
+                const age = ageAt(record, currentTick, ticksPerYear);
+                if (age < RETCON_CONFIG.minAgeYears || age > RETCON_CONFIG.maxAgeYears) {
+                    continue;
+                }
+                // Someone who already holds the chapter's skills doesn't need the chapter.
+                if (grantedSkills.length > 0 && grantedSkills.every(grant => skillBook.proficiency(memberId, grant.skill) >= grant.floor)) {
+                    continue;
+                }
+                const pastTick = Math.min(record.birthTick + template.atAgeYears * ticksPerYear, currentTick - 1);
+                const registry = new SkillRegistry(skillBook, pastTick);
+                const { outcome } = engine.invoke(state, template.event, memberId, pastTick, ticksPerYear,
+                    { source: 'system', causationId: null }, {}, { markets: { skills: registry } });
+                if (outcome.ok) {
+                    return; // at most one retcon per household
+                }
+            }
+        }
     }
 
     // Fills a freshly placed/occupied building with contextual Object Instances (task 070). Idempotent via the

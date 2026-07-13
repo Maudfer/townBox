@@ -13,7 +13,7 @@ import { validateEventsSemantics, validateEventsStructure } from 'game/data/vali
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
 import { validateHabitsStructure, validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
-import { validateServicesSemantics, validateServicesStructure } from 'game/data/validators/services';
+import { validateRetconsSemantics, validateRetconsStructure, validateServicesSemantics, validateServicesStructure } from 'game/data/validators/services';
 import { validatePlacementSemantics } from 'game/data/validators/placement';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
@@ -79,7 +79,7 @@ describe('data validation (task 039)', () => {
         expect(names).toEqual([
             'actions', 'arbitration', 'assets', 'businesses', 'config', 'demand', 'economy',
             'events', 'habits', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials', 'mood',
-            'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'relationships', 'residences', 'routines', 'schools', 'services', 'skillInit', 'skills', 'toolAssets', 'traits',
+            'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'relationships', 'residences', 'retcons', 'routines', 'schools', 'services', 'skillInit', 'skills', 'toolAssets', 'traits',
         ]);
     });
 
@@ -367,6 +367,18 @@ describe('params validation', () => {
         const output = messagesOf(structure(validateHabitsStructure, { escalationPerLevel: 0.35, practiceBump: 1, maxLevel: 10, bogus: true }));
         expect(output).toMatch(/habits\.halfLifeDays/);
         expect(output).toMatch(/habits\.bogus: unknown key/);
+    });
+
+    test('retcons rejects an unschoolable template: dangling refs, no manual trigger, no grants (task 098)', () => {
+        const structureBad = { coverageBelow: 0.4, chancePerHousehold: 0.25, minAgeYears: 22, maxAgeYears: 55, templates: { healthcare: { event: 'nursing_school', atAgeYears: 24 } } };
+        expect(messagesOf(structure(validateRetconsStructure, structureBad))).toMatch(/must be below retcons\.minAgeYears/);
+
+        const dangling = { templates: { moon_medicine: { event: 'ghost_event' }, healthcare: { event: 'base_event' } } };
+        const peers = { services: { services: { healthcare: {} } }, events: manifestWith({}) };
+        const output = messagesOf(semantics(validateRetconsSemantics, dangling, peers));
+        expect(output).toMatch(/unknown service "moon_medicine"/);
+        expect(output).toMatch(/unknown event "ghost_event"/);
+        expect(output).toMatch(/declares no manual trigger/);
     });
 
     test('services rejects a missing education service and dangling job/blueprint refs (task 096)', () => {

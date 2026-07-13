@@ -33,7 +33,7 @@ import {
 import { validateObjectGenerationStructure, validatePlacementSemantics, validatePlacementStructure, validateResidencesStructure } from 'game/data/validators/placement';
 import { validateNeedsSemantics, validateNeedsStructure } from 'game/data/validators/needs';
 import { validateRelationshipsSemantics, validateRelationshipsStructure } from 'game/data/validators/relationships';
-import { validateServicesSemantics, validateServicesStructure } from 'game/data/validators/services';
+import { validateRetconsSemantics, validateRetconsStructure, validateServicesSemantics, validateServicesStructure } from 'game/data/validators/services';
 import { validateRoutinesSemantics, validateRoutinesStructure } from 'game/data/validators/routines';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import { validateTraitsSemantics, validateTraitsStructure } from 'game/data/validators/traits';
@@ -69,6 +69,7 @@ import placementConfig from 'json/placement.json';
 import populationConfig from 'json/population.json';
 import relationshipsConfig from 'json/relationships.json';
 import residencesConfig from 'json/residences.json';
+import retconsConfig from 'json/retcons.json';
 import routinesConfig from 'json/routines.json';
 import schoolsConfig from 'json/schools.json';
 import skillInitConfig from 'json/skillInit.json';
@@ -112,6 +113,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'mood', version: 1, data: moodConfig, validateStructure: validateMoodStructure },
         { name: 'habits', version: 1, data: habitsConfig, validateStructure: validateHabitsStructure },
         { name: 'services', version: 1, data: servicesConfig, validateStructure: validateServicesStructure, validateSemantics: validateServicesSemantics },
+        { name: 'retcons', version: 1, data: retconsConfig, validateStructure: validateRetconsStructure, validateSemantics: validateRetconsSemantics },
         { name: 'traits', version: 1, data: traitsConfig, validateStructure: validateTraitsStructure, validateSemantics: validateTraitsSemantics },
         { name: 'routines', version: 1, data: routinesConfig, validateStructure: validateRoutinesStructure, validateSemantics: validateRoutinesSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },
