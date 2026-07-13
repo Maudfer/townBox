@@ -8,6 +8,7 @@ import { Direction } from 'types/Movement';
 import { AgendaState } from 'types/Agenda';
 import { HabitsState } from 'types/Habits';
 import { IncidentsState } from 'types/Incidents';
+import { DetentionState } from 'types/Detention';
 import { MoodState } from 'types/Mood';
 import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
@@ -171,6 +172,8 @@ export interface WorldSnapshot {
     habits?: HabitsState;
     // City incidents (task 099, v16 family) — absent in older saves (a clean blotter).
     incidents?: IncidentsState;
+    // Detention (task 100, v16 family) — absent in older saves (nobody is serving time).
+    detention?: DetentionState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

@@ -132,6 +132,7 @@ describe('action reachability (task 076/M3)', () => {
         'resting_at_home_sick',                                             // jobOrchestrator's fitness gate (092)
         'taking_a_walk_together',                                           // joint plans (085/093 — agenda-proposed)
         'fleeing_the_police', 'chasing_a_suspect',                          // the pursuit hook (099)
+        'serving_time',                                                     // the detained hook (100)
     ]);
 
     test('every action is reachable via some proposal path', () => {

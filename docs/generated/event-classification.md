@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 721 events — **24 vital**, **38 wired**, **516 texture**, **143 reserved**.
+Totals: 723 events — **26 vital**, **38 wired**, **516 texture**, **143 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -525,6 +525,7 @@ Totals: 721 events — **24 vital**, **38 wired**, **516 texture**, **143 reserv
 | regifted_present | social | probabilistic | texture | — |
 | regretted_leftover | food | manual | reserved | — |
 | reinvented_themselves | milestone | probabilistic | texture | — |
+| released_from_jail | crime | manual | vital | — |
 | renewed_vows | romance | probabilistic | texture | — |
 | renovated_kitchen | housing | probabilistic+manual | texture | — |
 | reported_burglary | crime-mischief | manual | reserved | — |
@@ -661,6 +662,7 @@ Totals: 721 events — **24 vital**, **38 wired**, **516 texture**, **143 reserv
 | was_born | milestone | manual | wired | City.handleTick (birth, task 076) |
 | was_burgled | crime-mischief | probabilistic+manual | texture | — |
 | was_cheated_on | romance | manual | reserved | — |
+| was_detained | crime | manual | vital | — |
 | was_evicted | housing | manual | reserved | — |
 | was_fired | career | probabilistic+manual | texture | — |
 | was_gossiped_about | social | probabilistic+manual | texture | — |

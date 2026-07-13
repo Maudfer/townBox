@@ -24,6 +24,7 @@ import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
 import { plannerHook } from 'game/actions/Planner';
+import { detainedHook } from 'game/actions/Detained';
 import { pursuitHook } from 'game/actions/Pursuit';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
@@ -115,6 +116,9 @@ export interface BrainDeps extends ActionDeps {
     // A person's VALID school assignment facts (task 058), resolved by the host (live: SchoolRegistry +
     // City validity checks; bootstrap: the logical world when 055 builds it). Null = no school obligation.
     schoolOf?: (personId: PersonId) => SchoolFacts | null;
+    // The person's detention facts (task 100) — resolved by the host (live: City's DetentionRegistry).
+    // Null = free. The detained hook keeps them at the facility while a record exists.
+    detentionOf?: (personId: PersonId) => { locationKey: string } | null;
 }
 
 // Dispatched today: `onTick` and `onEventCommitted` (processTick), and `onActionFailed` (the decline path,
@@ -173,6 +177,7 @@ export default class Brain {
         this.hooks = [
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
+            detainedHook, // serving time (task 100): the cell outranks the shift — detention is lived, not despawned
             pursuitHook, // the chase (task 099): flee (survival) / give chase (obligation) on co-location
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)

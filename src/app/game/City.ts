@@ -600,6 +600,9 @@ export default class City {
         // Police work (task 099): cold-case sweep + witnessed-incident resolution, scaled by coverage.
         this.runPoliceWork(event.tick, clock.getTicksPerYear());
 
+        // Release the served (task 100): sentences that lapsed walk free — back into whatever life is left.
+        this.runReleases(event.tick);
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
     }
@@ -870,6 +873,8 @@ export default class City {
                     ...(rank ? { rank } : {}),
                 };
             },
+            // Detention facts (task 100): the detained hook keeps sentenced people at the facility.
+            detentionOf: id => (Game.detention && Game.detention.isDetained(id, event.tick) ? Game.detention.detentionOf(id) : null),
             // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.
             schoolOf: id => this.schoolFactsOf(id, personByGenId, event.tick, ticksPerYear),
             ...(this.skillProgression ? { skillProgression: this.skillProgression } : {}),
@@ -890,6 +895,7 @@ export default class City {
                     Game.mood?.removePerson(deceased);
                     Game.habits?.removePerson(deceased);
                     Game.incidents?.removePerson(deceased);
+                    Game.detention?.removePerson(deceased);
                 }
                 await this.materializeNewborns(result.born, personByGenId);
                 // City-overview vital tallies (task 031).
@@ -1240,6 +1246,46 @@ export default class City {
         }
     }
 
+    // Where a sentence is served (task 100): the jail if the town built one, else the police station as
+    // the short-detention stopgap. Neither standing -> nobody can be held (the coverage ledger says so).
+    private detentionFacility(): Workplace | null {
+        const field = Game.field;
+        if (!field) {
+            return null;
+        }
+        let station: Workplace | null = null;
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const key = structure.getBusiness()?.blueprintKey;
+            if (key === 'jail') {
+                return structure;
+            }
+            if (key === 'police_station' && !station) {
+                station = structure;
+            }
+        }
+        return station;
+    }
+
+    // The release sweep (task 100): lapsed sentences walk free. Household membership was never touched, so
+    // they return to their old life directly; if it moved on (eviction while inside), the homelessness
+    // machinery already owns them.
+    public runReleases(tick: number): void {
+        const detention = Game.detention;
+        if (!detention) {
+            return;
+        }
+        for (const personId of detention.due(tick)) {
+            detention.release(personId);
+            this.fireMilestone('released_from_jail', personId, tick);
+            const person = this.indexMaterialized().get(personId) ?? null;
+            const name = Game.population?.getPerson(personId)?.firstName ?? 'Someone';
+            this.announce('crime', tick, name + ' was released — time served', person);
+        }
+    }
+
     // Conviction (task 099): every open case against the suspect closes, the fine moves through the ledger
     // (mirrored against the external sector - conserved), got_caught lands in the log (the criminal record
     // the JobMarket reads), and the feed hears about it.
@@ -1247,6 +1293,23 @@ export default class City {
         const incidents = Game.incidents;
         if (!incidents) {
             return;
+        }
+        // Sentencing (task 100): a REPEAT offender (a prior got_caught still on the record) is detained when
+        // the town can hold them — the jail if one stands, else the police station as the stopgap. First
+        // offenses (and towns with nowhere to put anyone) stay fine-only. Checked before the fresh
+        // got_caught below lands, so the current conviction never counts as its own prior.
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        const isRepeat = engine && population
+            ? engine.contextFor(population.getState(), suspectId, tick, Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear)
+                .hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS })
+            : false;
+        if (isRepeat && Game.detention) {
+            const facility = this.detentionFacility();
+            if (facility) {
+                Game.detention.detain(suspectId, tick + DEFAULT_ECONOMY_PARAMS.detentionDays * 24, facility.getIdentifier());
+                this.fireMilestone('was_detained', suspectId, tick);
+            }
         }
         for (const incident of incidents.all()) {
             if (incident.status === 'open' && incident.suspectId === suspectId) {

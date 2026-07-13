@@ -26470,5 +26470,53 @@
                 "target": "subject"
             }
         ]
+    },
+    "was_detained": {
+        "label": "Was taken into custody",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -3,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "detained",
+                "target": "subject"
+            }
+        ]
+    },
+    "released_from_jail": {
+        "label": "Released — time served",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "released",
+                "target": "subject"
+            }
+        ]
     }
 }

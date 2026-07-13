@@ -6271,5 +6271,60 @@
         "selection": {
             "weight": 0
         }
+    },
+    "serving_time": {
+        "label": "Serving time",
+        "type": "continuous",
+        "category": "obligation",
+        "durationTicks": 24,
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "paced_the_cell",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "ate_prison_food",
+                    "chancePerTick": 0.15,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "worked_in_the_laundry",
+                    "chancePerTick": 0.12,
+                    "cooldownTicks": 8
+                },
+                {
+                    "action": "stared_at_the_wall",
+                    "chancePerTick": 0.2
+                }
+            ]
+        }
+    },
+    "paced_the_cell": {
+        "label": "Paced the cell",
+        "type": "discrete",
+        "category": "obligation"
+    },
+    "ate_prison_food": {
+        "label": "Ate prison food",
+        "type": "discrete",
+        "category": "obligation",
+        "satisfies": {
+            "food": 30
+        }
+    },
+    "worked_in_the_laundry": {
+        "label": "Worked a shift in the prison laundry",
+        "type": "discrete",
+        "category": "obligation",
+        "satisfies": {
+            "purpose": 8
+        }
+    },
+    "stared_at_the_wall": {
+        "label": "Stared at the wall",
+        "type": "discrete",
+        "category": "obligation"
     }
 }

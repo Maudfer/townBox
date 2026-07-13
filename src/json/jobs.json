@@ -7970,5 +7970,184 @@
                 }
             ]
         }
+    },
+    "corrections_officer": {
+        "title": "Corrections Officer",
+        "salary": 2100,
+        "requiredSkills": [
+            "patrol_premises",
+            "de_escalate_conflicts"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Trainee Corrections Officer",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 0.25
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "patrol_premises",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "de_escalate_conflicts",
+                            "toProficiency": 10
+                        }
+                    ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Corrections Officer",
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 0.25
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Shift Supervisor",
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 0.5
+                    }
+                ]
+            }
+        ],
+        "physicalStrain": 0.5,
+        "mentalStrain": 0.7,
+        "socialAdmiration": 0.5,
+        "shiftStart": 480,
+        "shiftEnd": 1020,
+        "daysOfWeek": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+        ],
+        "workActions": {
+            "continuous": [
+                {
+                    "action": "keeping_watch",
+                    "chancePerTick": 1
+                },
+                {
+                    "action": "doing_rounds",
+                    "chancePerTick": 0.7
+                }
+            ],
+            "discrete": [
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.12
+                },
+                {
+                    "action": "checked_the_clock",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "complained_about_the_time",
+                    "chancePerTick": 0.08
+                }
+            ]
+        }
     }
 }

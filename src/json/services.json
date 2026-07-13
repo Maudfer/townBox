@@ -52,8 +52,12 @@
         },
         "jail": {
             "label": "Jail capacity",
-            "providerJobs": [],
-            "facilityBlueprints": [],
+            "providerJobs": [
+                "corrections_officer"
+            ],
+            "facilityBlueprints": [
+                "jail"
+            ],
             "residentsPerProvider": 200
         }
     }

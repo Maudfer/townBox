@@ -1926,5 +1926,43 @@
                 "perUnit": 700
             }
         }
+    },
+    "jail": {
+        "friendlyName": "County Jail",
+        "category": "services",
+        "tags": [
+            "police-station",
+            "office"
+        ],
+        "size": {
+            "min": 1,
+            "max": 4
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "corrections_officer": {
+                "count": {
+                    "mode": "linear",
+                    "base": 3,
+                    "perUnit": 2,
+                    "max": 12
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.2,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 2000,
+                "perUnit": 1100
+            }
+        }
     }
 }

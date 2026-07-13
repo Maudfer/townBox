@@ -24,6 +24,8 @@ const FEED_MESSAGES: Record<string, (name: string, params?: Record<string, strin
     liftedSpirits: name => ({ kind: 'health', message: `${name} is feeling like themselves again` }),
     businessFounded: name => ({ kind: 'career', message: `${name} founded their own business` }),
     gotCaught: name => ({ kind: 'crime', message: `${name} was caught by the police` }),
+    detained: name => ({ kind: 'crime', message: `${name} was taken into custody` }),
+    released: name => ({ kind: 'crime', message: `${name} was released — time served` }),
 };
 
 // Signals the City consumes directly (world reconciliation) without a feed mapping.

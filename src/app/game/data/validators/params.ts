@@ -11,7 +11,7 @@ export function validateEconomyStructure(data: unknown, issues: IssueCollector):
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'growthMonths', 'shrinkMonths', 'bankruptcyDebtFloor', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths', 'recoveryFunds', 'foundingCapitalThreshold', 'foundingChancePerMonth', 'crimeFineAmount'];
+    const fields = ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'growthMonths', 'shrinkMonths', 'bankruptcyDebtFloor', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths', 'recoveryFunds', 'foundingCapitalThreshold', 'foundingChancePerMonth', 'crimeFineAmount', 'detentionDays'];
     checkUnknownKeys(issues, '', data, fields);
     for (const field of ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'recoveryFunds']) {
         checkNumber(issues, field, data[field], { min: 0 });
@@ -24,6 +24,7 @@ export function validateEconomyStructure(data: unknown, issues: IssueCollector):
     checkNumber(issues, 'foundingCapitalThreshold', data['foundingCapitalThreshold'], { min: 0 });
     checkNumber(issues, 'foundingChancePerMonth', data['foundingChancePerMonth'], { min: 0, max: 1 });
     checkNumber(issues, 'crimeFineAmount', data['crimeFineAmount'], { min: 0 });
+    checkNumber(issues, 'detentionDays', data['detentionDays'], { min: 1, integer: true });
 }
 
 export function validatePopulationStructure(data: unknown, issues: IssueCollector): void {

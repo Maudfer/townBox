@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 286 | 82 continuous / 204 discrete |
-| `events.json` | 721 | 170 probabilistic, 372 probabilistic + manual, 177 manual, 2 manual + automated |
+| `actions.json` | 291 | 83 continuous / 208 discrete |
+| `events.json` | 723 | 170 probabilistic, 372 probabilistic + manual, 179 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -66,7 +66,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 551 manual-triggered events, 532 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 553 manual-triggered events, 534 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -80,7 +80,7 @@ Of the 551 manual-triggered events, 532 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 372 |
-| manual | 177 |
+| manual | 179 |
 | probabilistic | 170 |
 | manual + automated | 2 |
 
@@ -88,7 +88,7 @@ Of the 551 manual-triggered events, 532 have no action source yet — they are i
 |---|---|
 | cooldown window | 634 |
 | once: ever | 50 |
-| — | 31 |
+| — | 33 |
 | once: perDay | 6 |
 
 ## Object-action transformations
@@ -195,6 +195,7 @@ Every job carries a full authored ladder (064/066) with an explicit entry-rank t
 | `checkout_clerk` | Trainee Checkout Clerk → Checkout Clerk → Head Cashier | 2 skills | every 30 work days |
 | `concierge` | Trainee Concierge → Concierge → Head Concierge | 2 skills | every 30 work days |
 | `cook` | Trainee Cook → Line Cook → Head Cook | 2 skills | every 30 work days |
+| `corrections_officer` | Trainee Corrections Officer → Corrections Officer → Shift Supervisor | 2 skills | every 30 work days |
 | `delivery_driver` | Trainee Delivery Driver → Delivery Driver → Route Supervisor | 2 skills | every 30 work days |
 | `doctor` | Trainee Doctor → Resident → Attending Physician → Senior Physician | 4 skills | every 30 work days |
 | `electronics_technician` | Trainee Electronics Technician → Technician → Senior Technician | 2 skills | every 30 work days |
@@ -264,12 +265,12 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `library` | building | 28 | 1 |
 | `living-room` | building | 34 | 1 |
 | `music-studio` | building | 30 | 1 |
-| `office` | building | 34 | 14 |
+| `office` | building | 34 | 15 |
 | `park` | building | 31 | 1 |
 | `pet-shop` | building | 28 | 1 |
 | `pharmacy` | building | 30 | 1 |
 | `playground` | building | 28 | 1 |
-| `police-station` | building | 27 | 1 |
+| `police-station` | building | 27 | 2 |
 | `post-office` | building | 25 | 1 |
 | `restaurant` | building | 30 | 1 |
 | `school-cafeteria` | building | 28 | 1 |
