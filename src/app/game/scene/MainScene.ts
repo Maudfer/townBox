@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
+import Building from 'game/world/Building';
 import House from 'game/world/House';
 import Soil from 'game/world/Soil';
 import Tile from 'game/world/Tile';
@@ -12,6 +13,7 @@ import config from 'json/config.json';
 import inputConfig from 'json/input.json';
 import { AssetManifest } from 'types/Assets';
 import { Cursor, Tool } from 'types/Cursor';
+import { FireStateChange } from 'types/Events';
 import constructionConfig from 'json/construction.json';
 import { Image, SceneConfig } from 'types/Phaser';
 import { PixelPosition, TilePosition } from 'types/Position';
@@ -45,6 +47,9 @@ export default class MainScene extends Phaser.Scene {
         // Activity bubbles (task 093 / J2): refresh label text/visibility once per in-game minute.
         Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
+        // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
+        Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
+        Game.on("gameLoaded", { callback: this.clearFireEmitters, context: this });
 
         Game.on("windowDragStart", { callback: () => {
             this.cursorActive = false;
@@ -443,6 +448,57 @@ export default class MainScene extends Phaser.Scene {
         } else {
             image.setTint(0x808080);
         }
+    }
+
+    // Fire particles (task 116): a small emitter of orange/red flecks + gray smoke anchored on any building
+    // with an open fire incident — created on City's ignition event, destroyed on resolution. The texture is
+    // a generated 3×3 white square, tinted per particle; nothing fancy, the fire just reads as fire.
+    private fireEmitters = new Map<string, Phaser.GameObjects.Particles.ParticleEmitter>();
+
+    private handleFireStateChanged(change: FireStateChange): void {
+        const existing = this.fireEmitters.get(change.buildingKey);
+        if (!change.burning) {
+            existing?.destroy();
+            this.fireEmitters.delete(change.buildingKey);
+            return;
+        }
+        if (existing) {
+            return;
+        }
+        const structure = Game.field?.getStructures()
+            .find((candidate): candidate is Building => candidate instanceof Building && candidate.getIdentifier() === change.buildingKey);
+        const tile = structure?.getPosition() ?? null;
+        const pixel = tile ? Game.tileToPixelPosition(tile) : null;
+        if (!structure || !pixel) {
+            return;
+        }
+        if (!this.textures.exists('fire_spark')) {
+            const graphics = this.make.graphics({ x: 0, y: 0 }, false);
+            graphics.fillStyle(0xffffff, 1);
+            graphics.fillRect(0, 0, 3, 3);
+            graphics.generateTexture('fire_spark', 3, 3);
+            graphics.destroy();
+        }
+        const flames = this.add.particles(pixel.x, pixel.y, 'fire_spark', {
+            speed: { min: 8, max: 35 },
+            angle: { min: 250, max: 290 }, // upward cone
+            lifespan: { min: 350, max: 900 },
+            frequency: 55,
+            quantity: 2,
+            scale: { start: 1.8, end: 0 },
+            tint: [0xff5a00, 0xff2d00, 0xffa200, 0x777777], // flames + a drift of smoke
+            gravityY: -25,
+        });
+        flames.setDepth(structure.calculateDepth() + 5);
+        this.fireEmitters.set(change.buildingKey, flames);
+    }
+
+    // A load rebuilds the world wholesale — stale emitters would float over the wrong lots.
+    private clearFireEmitters(): void {
+        for (const emitter of this.fireEmitters.values()) {
+            emitter.destroy();
+        }
+        this.fireEmitters.clear();
     }
 
     // Activity bubbles (task 093 / J2): a small label over each visible OUTDOOR person naming their

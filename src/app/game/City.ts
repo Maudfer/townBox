@@ -1578,6 +1578,7 @@ export default class City {
                 continue;
             }
             incidents.report('fire', tick, 'building:' + key, null, 0);
+            Game.emit('fireStateChanged', { buildingKey: key, burning: true }); // the scene lights the flames (116)
             const name = structure instanceof Workplace ? structure.getBusiness()?.name ?? 'a workplace' : 'a home';
             this.announce('fire', tick, 'A fire broke out at ' + name, null);
         }
@@ -1623,6 +1624,7 @@ export default class City {
             const key = incident.locationKey.startsWith('building:') ? incident.locationKey.slice('building:'.length) : incident.locationKey;
             const structure = field.getStructures().find(candidate => candidate instanceof Building && candidate.getIdentifier() === key) as Building | undefined;
             incidents.resolve(incident.id, tick);
+            Game.emit('fireStateChanged', { buildingKey: key, burning: false }); // the scene douses the flames (116)
             if (!structure) {
                 continue; // already gone (bulldozed mid-fire)
             }

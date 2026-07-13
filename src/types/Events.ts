@@ -38,6 +38,13 @@ export type CityEvent = {
     message: string;
     person: Person | null;
 };
+
+// A building catching or stopping fire (task 116): the scene anchors/destroys the flame particles on it.
+// `buildingKey` is the structure's anchor key (the incident locationKey without the 'building:' prefix).
+export type FireStateChange = {
+    buildingKey: string;
+    burning: boolean;
+};
 export interface EventPayloads {
     "sceneInitialized": Phaser.Scene;
     "gameInitialized": GameManager;
@@ -63,6 +70,7 @@ export interface EventPayloads {
     // from the banner via ServicesSelected (same City payload the dashboard uses).
     "servicesChanged": ServiceCoverage[];
     "ServicesSelected": GameManager["city"];
+    "fireStateChanged": FireStateChange;
     "hudReady": void;
     "saveGameRequest": void;
     "gameSaved": void;

@@ -59,6 +59,7 @@ function makeGame() {
     const incidents = new CityIncidents();
     const detention = new DetentionRegistry();
     const buildingConditions = new BuildingConditions();
+    const emitted: { name: string; payload: unknown }[] = [];
     const game = {
         field: null,
         population,
@@ -78,7 +79,7 @@ function makeGame() {
             const col = Math.floor(pixel.x / 16);
             return row < 0 || row >= rows || col < 0 || col >= cols ? null : { row, col };
         },
-        emit: () => {},
+        emit: (name: string, payload: unknown) => emitted.push({ name, payload }),
         emitSingle: () => {},
         on: () => {},
         toolbelt: {},
@@ -87,7 +88,7 @@ function makeGame() {
     (game as unknown as { field: Field }).field = field;
     const city = new City(game);
     (game as unknown as { city: City }).city = city;
-    return { game, field, population, clock, economy, city, eventEngine, incidents, buildingConditions };
+    return { game, field, population, clock, economy, city, eventEngine, incidents, buildingConditions, emitted };
 }
 
 // The ignition roll is deterministic per (worldSeed, buildingKey, day): find a day whose roll lands under
@@ -262,6 +263,26 @@ describe('ignition & resolution', () => {
         world.incidents.report('fire', TICK_NOW, `building:${house.getIdentifier()}`, null, 0);
         world.city.resolveFires(TICK_NOW + FIRE_CONFIG.responseTicks);
         expect(world.eventEngine.getPersonLog('res').some(e => e.kind === 'event' && e.defId === 'injury')).toBe(true);
+    });
+
+    test('the scene bus contract (task 116): ignition emits burning:true, resolution burning:false', () => {
+        const world = makeGame();
+        const state: PopulationState = { worldSeed: WORLD_SEED, people: { res: gen('res') }, drawSeed: 0, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+        world.population.loadState(state);
+        world.clock.setElapsedMs(TICK_NOW * HOUR_MS);
+        const house = world.field.loadStructure('house', 10, 10, 'house_1') as House;
+        const key = house.getIdentifier();
+        const day = ignitionDay(key);
+        const sweepTick = day * 24;
+        world.buildingConditions.damage(key, 500, sweepTick - 1); // derelict → the seeded day ignites it
+
+        world.city.runFireHazard(sweepTick);
+        const ignitions = world.emitted.filter(event => event.name === 'fireStateChanged');
+        expect(ignitions).toEqual([{ name: 'fireStateChanged', payload: { buildingKey: key, burning: true } }]);
+
+        world.city.resolveFires(sweepTick + FIRE_CONFIG.responseTicks);
+        const changes = world.emitted.filter(event => event.name === 'fireStateChanged');
+        expect(changes[changes.length - 1]).toEqual({ name: 'fireStateChanged', payload: { buildingKey: key, burning: false } });
     });
 
     test('a destroyed home tears down coherently: lost_home_to_fire logged, the structure gone', () => {
