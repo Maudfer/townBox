@@ -249,7 +249,16 @@ export default class Brain {
                     .filter(id => id !== commit.personId && agentSet.has(id))
                     .sort()
                     .slice(0, 3);
+                const witnessedValence = deps.eventEngine.getManifest()[commit.eventId]?.valence ?? 0;
                 for (const witnessId of witnesses) {
+                    // What was seen becomes KNOWN (task 104 / O1): a bounded, decaying reference to the
+                    // real commit — only notable scenes (nonzero valence) are worth remembering.
+                    if (witnessedValence !== 0) {
+                        deps.ctx.markets?.knownFacts?.learn(witnessId, {
+                            aboutId: commit.personId, seq: commit.seq, eventId: commit.eventId,
+                            valence: witnessedValence, learnedAtTick: deps.tick, viaWitness: true,
+                        });
+                    }
                     const { result: witnessResult } = deps.eventEngine.invoke(
                         deps.state, 'witnessed_a_scene', witnessId, deps.tick, deps.ticksPerYear,
                         { source: 'system', causationId: commit.seq }, {}, deps.ctx,

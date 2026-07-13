@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 726 events — **27 vital**, **39 wired**, **512 texture**, **148 reserved**.
+Totals: 728 events — **27 vital**, **41 wired**, **512 texture**, **148 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -329,6 +329,7 @@ Totals: 726 events — **27 vital**, **39 wired**, **512 texture**, **148 reserv
 | had_wonderful_dream | emotion-mood | probabilistic+manual | texture | — |
 | had_workplace_near_miss | accident | probabilistic+manual | texture | — |
 | haggled_great_deal | finance | probabilistic+manual | texture | — |
+| heard_gossip | social | manual | wired | shared_gossip.onCompleteTarget |
 | held_back_a_year | education | probabilistic | texture | — |
 | held_breath_longest | achievement | probabilistic+manual | texture | — |
 | held_yard_sale | possessions | probabilistic+manual | texture | — |
@@ -553,6 +554,7 @@ Totals: 726 events — **27 vital**, **39 wired**, **512 texture**, **148 reserv
 | set_personal_best | achievement | probabilistic+manual | texture | — |
 | settled_neighbor_dispute | community | probabilistic | texture | — |
 | settled_out_of_court | legal | probabilistic | texture | — |
+| shared_gossip | social | manual | wired | shared_gossip.onComplete |
 | shocked_by_outlet | accident | probabilistic+manual | texture | — |
 | shook_off_loneliness | emotion-mood | probabilistic | texture | — |
 | shoplifted_candy_bar | crime-mischief | probabilistic+manual | texture | — |

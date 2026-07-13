@@ -26469,5 +26469,46 @@
                 "target": "subject"
             }
         ]
+    },
+    "shared_gossip": {
+        "label": "Passed a story along",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "heard_gossip": {
+        "label": "Heard a juicy story",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
     }
 }

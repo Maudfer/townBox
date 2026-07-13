@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 302 | 89 continuous / 213 discrete |
-| `events.json` | 726 | 169 probabilistic, 369 probabilistic + manual, 186 manual, 2 manual + automated |
+| `actions.json` | 303 | 89 continuous / 214 discrete |
+| `events.json` | 728 | 169 probabilistic, 369 probabilistic + manual, 188 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -34,6 +34,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `pocketed_merchandise` | onComplete → `committed_shoplifting` |
 | `read_book` | onComplete → `finished_great_book` |
 | `resting_at_home_sick` | onStart → `called_in_sick` |
+| `shared_gossip` | onCompleteTarget → `heard_gossip` |
 | `shopping_trip` | onComplete → `went_grocery_shopping` |
 | `sleep` | onComplete → `woke_up` |
 | `visiting_relatives` | onComplete → `reconnected_with_relative` |
@@ -60,6 +61,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
 | `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
 | `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
+| `heard_gossip` | manual | — | `shared_gossip`.onCompleteTarget (discrete) |
 | `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
 | `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
@@ -70,7 +72,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 557 manual-triggered events, 536 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 559 manual-triggered events, 537 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -84,7 +86,7 @@ Of the 557 manual-triggered events, 536 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 369 |
-| manual | 186 |
+| manual | 188 |
 | probabilistic | 169 |
 | manual + automated | 2 |
 
@@ -92,7 +94,7 @@ Of the 557 manual-triggered events, 536 have no action source yet — they are i
 |---|---|
 | cooldown window | 633 |
 | once: ever | 50 |
-| — | 37 |
+| — | 39 |
 | once: perDay | 6 |
 
 ## Object-action transformations
@@ -157,6 +159,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `proposed_marriage` | ask first | skipStep | — | w 0.08, cd 720 |
 | `returned_borrowed_object` | ask first | failParent | — | w 3, cd 12 |
 | `shared_food_with_person` | ask first | failParent | — | w 0.4, cd 12 |
+| `shared_gossip` | no consent | — | — | w 0.5, cd 12 |
 | `talked_to_person` | no consent | — | — | w 1.2, cd 2 |
 | `taught_person_something` | ask first | skipStep | — | w 0.25, cd 24 |
 | `thanked_person` | no consent | — | — | w 0.2, cd 4 |

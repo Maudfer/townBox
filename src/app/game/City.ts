@@ -895,7 +895,7 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, pets: Game.pets ?? null, mood: Game.mood ?? null, services: this.services } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, pets: Game.pets ?? null, knownFacts: Game.knownFacts ?? null, mood: Game.mood ?? null, services: this.services } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
                 // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.
@@ -908,6 +908,7 @@ export default class City {
                     Game.incidents?.removePerson(deceased);
                     Game.detention?.removePerson(deceased);
                     Game.pets?.removeOwner(deceased);
+                    Game.knownFacts?.removePerson(deceased);
                 }
                 await this.materializeNewborns(result.born, personByGenId);
                 // City-overview vital tallies (task 031).
@@ -956,6 +957,15 @@ export default class City {
                         // The pet-shop adoption (task 103): draw the species, name it, register it.
                         this.resolveAdoption(signal.personId, event.tick);
                     }
+                }
+                // Gossip transfers (task 104 / O2): a shared_gossip commit moves the SPEAKER's juiciest
+                // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
+                // about either of them. The heard_gossip counterpart already landed the listener's log line.
+                for (const commit of result.committed) {
+                    if (commit.eventId !== 'shared_gossip' || typeof commit.params?.['target'] !== 'string') {
+                        continue;
+                    }
+                    this.transferGossip(commit.personId, commit.params['target'], event.tick);
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
                 this.announceCityEvents(result, personByGenId, event.tick);
@@ -1364,6 +1374,24 @@ export default class City {
                 this.convictSuspect(incident.suspectId, tick);
             }
         }
+    }
+
+    // The juiciest thing the speaker knows travels (task 104): |valence| × recency scores the pick.
+    public transferGossip(speakerId: PersonId, listenerId: PersonId, tick: number): void {
+        const knownFacts = Game.knownFacts;
+        if (!knownFacts) {
+            return;
+        }
+        const candidates = knownFacts.factsOf(speakerId, tick)
+            .filter(fact => fact.aboutId !== listenerId && fact.aboutId !== speakerId);
+        if (candidates.length === 0) {
+            return; // gossip about nothing — people manage
+        }
+        const scored = candidates
+            .map(fact => ({ fact, score: Math.abs(fact.valence) * Math.max(0, 1 - (tick - fact.learnedAtTick) / (90 * 24)) }))
+            .sort((a, b) => b.score - a.score || a.fact.seq - b.fact.seq);
+        const juiciest = scored[0]!.fact;
+        knownFacts.learn(listenerId, { ...juiciest, learnedAtTick: tick, viaWitness: false });
     }
 
     // The pet-shop adoption lands (task 103 / N): the adopted_a_pet event (cap-gated by petCount) emitted

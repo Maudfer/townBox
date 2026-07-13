@@ -517,6 +517,7 @@ export default class ActionEngine {
                     relationship: resolveStanding(deps.state.people, deps.ctx.markets?.social ?? null, targetId, personId, deps.tick),
                     targetTraits: deps.ctx.markets?.traits?.traitsOf(targetId) ?? null,
                     targetMood: deps.ctx.markets?.mood?.moodOf(targetId, deps.tick) ?? null,
+                    targetKnowsNegative: deps.ctx.markets?.knownFacts?.negativeCountAbout(targetId, personId, deps.tick) ?? null,
                 });
                 if (!consented) {
                     const seq = this.lifeLog.append(personId, {

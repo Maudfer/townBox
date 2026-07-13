@@ -6640,5 +6640,55 @@
         "affinity": [
             "cozy"
         ]
+    },
+    "shared_gossip": {
+        "label": "Shared a bit of gossip",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
+        },
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 12,
+            "modifiers": [
+                {
+                    "when": {
+                        "relationship": {
+                            "to": "target",
+                            "kinds": [
+                                "acquaintance",
+                                "friend",
+                                "close_friend"
+                            ]
+                        }
+                    },
+                    "multiply": 2
+                }
+            ]
+        },
+        "events": {
+            "onComplete": {
+                "event": "shared_gossip",
+                "params": {
+                    "target": "$params.target"
+                }
+            },
+            "onCompleteTarget": "heard_gossip"
+        },
+        "satisfies": {
+            "social": 8
+        },
+        "affinity": [
+            "social"
+        ]
     }
 }

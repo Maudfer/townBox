@@ -13,6 +13,7 @@ import { IncidentsReader } from 'types/Incidents';
 import { MoodReader } from 'types/Mood';
 import { NeedsReader } from 'types/Needs';
 import { PetsReader } from 'types/Pets';
+import { KnownFactsAccess } from 'types/Reputation';
 import { RelationshipGraph } from 'types/Relationship';
 import { ServiceCoverageReader } from 'types/Services';
 import { TraitsReader } from 'types/Traits';
@@ -74,6 +75,8 @@ export interface SimulationMarkets {
     incidents?: IncidentsReader | null;
     // Habits (task 095): vice practice bumps counters; selection reads the escalation multiplier.
     habits?: HabitsReader | null;
+    // Known facts (task 104): witnesses record, gossip transfers, consent reads what the target knows.
+    knownFacts?: KnownFactsAccess | null;
     // Pets (task 103): the petCount context attribute (adoption caps, dog-walk gates) reads it.
     pets?: PetsReader | null;
     // Mood (task 091): event valence lands impulses; consent/selection/vice gates read the meter.

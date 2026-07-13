@@ -169,6 +169,7 @@ export default class SaveManager {
             detention: this.game.detention?.serialize(),
             buildingConditions: this.game.buildingConditions?.serialize(),
             pets: this.game.pets?.serialize(),
+            knownFacts: this.game.knownFacts?.serialize(),
             // Lazy history hydration (v14): pin the asset ref + who is already hydrated, so households placed
             // after a load keep receiving pre-game histories. Absent for cold-start worlds.
             historyHydration: this.game.getHistoryHydrationState?.(),
@@ -390,6 +391,7 @@ export default class SaveManager {
         this.game.detention?.loadState(snapshot.detention);
         this.game.buildingConditions?.loadState(snapshot.buildingConditions);
         this.game.pets?.loadState(snapshot.pets);
+        this.game.knownFacts?.loadState(snapshot.knownFacts);
 
         // Traits are derived, not stored — but the memo keyed the OLD world; drop it (task 087).
         this.game.traits?.reset();

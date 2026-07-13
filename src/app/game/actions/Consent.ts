@@ -40,6 +40,9 @@ export interface ConsentRequest {
     targetTraits?: PersonTraits | null;
     // The TARGET's mood (task 091): a low day makes everything a harder ask. 0–100; absent = baseline.
     targetMood?: number | null;
+    // What the TARGET knows about the ASKER (task 104 / O3): each remembered negative fact makes a yes
+    // harder — the town's memory as social reality, restrained to one read.
+    targetKnowsNegative?: number | null;
 }
 
 // The scored accept probability — exported so tests (and later the inspector) can read the policy directly.
@@ -50,7 +53,10 @@ export function consentProbability(request: ConsentRequest): number {
     const strengthShift = (view?.strength ?? 0) * config.strengthWeight;
     const traitShift = request.targetTraits ? traitConsentShift(request.targetTraits) : 0;
     const moodShift = typeof request.targetMood === 'number' ? (request.targetMood - MOOD_CONFIG.baseline) * config.moodWeight : 0;
-    return Math.min(MAX_ACCEPT, Math.max(MIN_ACCEPT, base + strengthShift + traitShift + moodShift));
+    // Reputation (task 104 / O3): each negative fact the target REMEMBERS about the asker makes a yes
+    // harder — capped so a bad story dents, never damns.
+    const reputationShift = -Math.min(3, request.targetKnowsNegative ?? 0) * 0.04;
+    return Math.min(MAX_ACCEPT, Math.max(MIN_ACCEPT, base + strengthShift + traitShift + moodShift + reputationShift));
 }
 
 export function evaluateConsent(request: ConsentRequest): boolean {
