@@ -23,6 +23,7 @@ import {
     formatTimestamp,
     formatTick,
     formatDuration,
+    nextTimeScale,
 } from 'util/time';
 
 const HOUR_MS = 3_600_000;
@@ -236,5 +237,15 @@ describe('formatDuration — human runtime readout', () => {
     test('rounds to whole seconds and never emits negatives', () => {
         expect(formatDuration(1500)).toBe('2 s'); // 1.5 s rounds to 2
         expect(formatDuration(-5000)).toBe('0 s');
+    });
+});
+
+describe('the debug time throttle (task 117)', () => {
+    test('cycles 1× → 4× → 16× → 1×, and any out-of-band value resets to 1×', () => {
+        expect(nextTimeScale(1)).toBe(4);
+        expect(nextTimeScale(4)).toBe(16);
+        expect(nextTimeScale(16)).toBe(1);
+        expect(nextTimeScale(0)).toBe(1);
+        expect(nextTimeScale(7)).toBe(1);
     });
 });

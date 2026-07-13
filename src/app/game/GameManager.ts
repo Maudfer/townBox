@@ -49,7 +49,7 @@ import { EventPayloads, UpdateEvent } from 'types/Events';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { DEFAULT_SAVE_SLOT, HistoryHydrationSave } from 'types/Save';
-import { MS_PER_TICK } from 'util/time';
+import { MS_PER_TICK, nextTimeScale } from 'util/time';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -483,6 +483,19 @@ export default class GameManager {
         }
     }
 
+    // The debug time throttle (task 117): a frame-delta multiplier for the human observation session —
+    // cycled by the T key (masterSwitch-gated in MainScene), never serialized, always 1 in normal play.
+    private timeScale = 1;
+
+    public getTimeScale(): number {
+        return this.timeScale;
+    }
+
+    public cycleTimeScale(): number {
+        this.timeScale = nextTimeScale(this.timeScale);
+        return this.timeScale;
+    }
+
     // Advances the clock from the frame delta and emits time signals only when they actually change:
     // `timeChanged` once per in-game minute (the HUD's display granularity), `newTick` once per in-game hour
     // (the canonical simulation tick, task 040), and `newDay` on each day rollover.
@@ -490,7 +503,7 @@ export default class GameManager {
         if (!this.clock || this.timePaused) {
             return;
         }
-        this.clock.advance(payload.timeDelta);
+        this.clock.advance(payload.timeDelta * this.timeScale);
 
         const timestamp = this.clock.getTimestamp();
         const tick = this.clock.getCurrentTick();

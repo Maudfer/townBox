@@ -156,6 +156,21 @@ export default class MainScene extends Phaser.Scene {
             this.toggleGrid();
         });
 
+        // The observation scaffolding (task 117, masterSwitch-gated like the other debug overlays):
+        // T cycles the time throttle (1×/4×/16× — a frame-delta multiplier on the clock), and a fixed
+        // overlay line tracks the town's vitals (people / employed / open incidents / worst service).
+        if (config.debug.masterSwitch) {
+            this.debugOverlay = this.add.text(8, 8, '', {
+                fontSize: '11px', color: '#aef2ae', backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                padding: { x: 5, y: 3 },
+            }).setScrollFactor(0).setDepth(1_000_000);
+            this.input.keyboard.addKey('T').on('down', () => {
+                Game.cycleTimeScale();
+                this.refreshDebugOverlay();
+            });
+            Game.on("timeChanged", { callback: this.refreshDebugOverlay, context: this });
+        }
+
         this.input.on('pointermove', (pointer: Pointer) => {
             // Drag-paint for build/bulldoze tools; the Select (inspector) tool only acts on a discrete click.
             if (pointer.isDown && this.getCursor()?.tool !== Tool.Select) {
@@ -448,6 +463,24 @@ export default class MainScene extends Phaser.Scene {
         } else {
             image.setTint(0x808080);
         }
+    }
+
+    // The observation overlay (task 117): one fixed line of town vitals, refreshed per in-game minute.
+    private debugOverlay: Phaser.GameObjects.Text | null = null;
+
+    private refreshDebugOverlay(): void {
+        if (!this.debugOverlay) {
+            return;
+        }
+        const people = Game.field?.getPeople() ?? [];
+        const employed = people.filter(person => person.work.getJob() !== null).length;
+        const openIncidents = Game.incidents?.open().length ?? 0;
+        const services = Game.city?.getCityStats().services ?? [];
+        const worst = [...services].sort((a, b) => a.ratio - b.ratio || a.service.localeCompare(b.service))[0];
+        this.debugOverlay.setText(
+            `×${Game.getTimeScale()} | people ${people.length} (${employed} employed) | open incidents ${openIncidents}`
+            + (worst ? ` | worst service: ${worst.label} ${(worst.ratio * 100).toFixed(0)}%` : ''),
+        );
     }
 
     // Fire particles (task 116): a small emitter of orange/red flecks + gray smoke anchored on any building
