@@ -276,3 +276,12 @@ export async function build(
 export async function bulldoze(page: Page, row: number, col: number): Promise<void> {
     await page.evaluate(([r, c]) => window.__townbox!.bulldoze(r, c), [row, col] as const);
 }
+
+// Places a building through the construction menu (task 108): open the menu (the Construction tool button),
+// pick the entry — which arms the placement cursor and closes the menu — then REAL-click the tile.
+// `entryId` is a json/construction.json id ('house' = Residence, 'business' = generic work, 'supermarket', …).
+export async function placeViaConstruction(page: Page, entryId: string, row: number, col: number): Promise<void> {
+    await page.getByTestId('tool-construction').click(); // opens the building grid
+    await page.getByTestId(`construction-${entryId}`).click(); // arms the cursor + closes the menu
+    await clickTile(page, row, col);
+}

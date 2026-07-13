@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 
-import { bootNewGame, clickTile, pressToolKey, structureCounts, tileAt } from '../support/app';
+import { bootNewGame, clickTile, placeViaConstruction, pressToolKey, structureCounts, tileAt } from '../support/app';
 
 // §5 canvas operations, driven by REAL canvas clicks (tool selected via F1–F6, tile centered under the cursor
 // by the harness) and asserted through the window.__townbox state hook — never pixel diffs.
@@ -42,8 +42,8 @@ test.describe('canvas placement', () => {
         await placeRoad(page, ROAD_ROW, 190);
         await placeRoad(page, ROAD_ROW, 193);
 
-        await pressToolKey(page, 'F3'); // house tool
-        await clickTile(page, 193, 190); // flush below the road
+        // Residence via the construction menu (task 108): open the menu → pick Residence → click the tile.
+        await placeViaConstruction(page, 'house', 193, 190); // flush below the road
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 
         const counts = await structureCounts(page);
@@ -55,8 +55,8 @@ test.describe('canvas placement', () => {
         await placeRoad(page, ROAD_ROW, 190);
         await placeRoad(page, ROAD_ROW, 193);
 
-        await pressToolKey(page, 'F4'); // work tool
-        await clickTile(page, 187, 190); // flush above the road
+        // Business (the generic demand-weighted lot) via the construction menu.
+        await placeViaConstruction(page, 'business', 187, 190); // flush above the road
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 
         const counts = await structureCounts(page);

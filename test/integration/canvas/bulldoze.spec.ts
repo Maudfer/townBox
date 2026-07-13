@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 
-import { bootNewGame, cityStats, clickTile, people, pressToolKey, structureCounts, tileAt } from '../support/app';
+import { bootNewGame, cityStats, clickTile, people, placeViaConstruction, pressToolKey, structureCounts, tileAt } from '../support/app';
 
 // §5 canvas operations: bulldozing a built tile tears it down coherently (the structure is removed; an occupied
 // building's residents/business are cleared), driven by a real canvas click of the bulldozer tool.
@@ -21,14 +21,13 @@ test.describe('canvas bulldoze', () => {
     });
 
     test('bulldozing a house removes it and clears its residents', async ({ page }) => {
-        await pressToolKey(page, 'F3'); // house
-        await clickTile(page, 193, 190);
+        await placeViaConstruction(page, 'house', 193, 190); // Residence via the construction menu (task 108)
         await page.evaluate(() => window.__townbox!.stepTicks(1));
         expect((await structureCounts(page)).occupiedHouses).toBe(1);
         const residentsBefore = (await people(page)).length;
         expect(residentsBefore).toBeGreaterThan(0);
 
-        await pressToolKey(page, 'F6'); // bulldoze
+        await pressToolKey(page, 'F4'); // bulldoze
         await clickTile(page, 193, 190);
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 
@@ -43,12 +42,11 @@ test.describe('canvas bulldoze', () => {
     });
 
     test('bulldozing a workplace closes its business', async ({ page }) => {
-        await pressToolKey(page, 'F4'); // work
-        await clickTile(page, 187, 190);
+        await placeViaConstruction(page, 'business', 187, 190); // generic work lot via the construction menu
         await page.evaluate(() => window.__townbox!.stepTicks(1));
         expect((await structureCounts(page)).businesses).toBe(1);
 
-        await pressToolKey(page, 'F6'); // bulldoze
+        await pressToolKey(page, 'F4'); // bulldoze
         await clickTile(page, 187, 190);
         await page.evaluate(() => window.__townbox!.stepTicks(1));
 

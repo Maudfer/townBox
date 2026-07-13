@@ -3,11 +3,14 @@ import { expect, test } from '../support/fixtures';
 
 import { bootFixture, pressToolKey } from '../support/app';
 
-// §4 HUD baseline: the toolbar. Every tool button selects its tool (active highlight) and the F1–F6 / Esc keys
-// stay in sync with the buttons — both emit the same `toolSelected` bus event the scene consumes.
-const TOOLS = ['soil', 'road', 'house', 'work', 'select', 'bulldoze'] as const;
+// §4 HUD baseline: the consolidated toolbar (task 108). Four tools — Select, Road, Construction, Bulldoze —
+// each selectable by its button (active highlight) and by F1–F4 / Esc, both emitting the same `toolSelected`
+// bus event the scene consumes. (House/Work/Soil are gone: Construction opens the building menu.)
+const TOOLS = ['select', 'road', 'construction', 'bulldoze'] as const;
+// Construction opens a menu window on click, so click it LAST in the sweep — nothing needs clicking after it.
+const CLICK_ORDER = ['select', 'road', 'bulldoze', 'construction'] as const;
 const KEY_TO_TOOL: Array<[string, string]> = [
-    ['F1', 'soil'], ['F2', 'road'], ['F3', 'house'], ['F4', 'work'], ['F5', 'select'], ['F6', 'bulldoze'],
+    ['F1', 'select'], ['F2', 'road'], ['F3', 'construction'], ['F4', 'bulldoze'],
 ];
 
 async function activeTool(page: Page): Promise<string | null> {
@@ -27,17 +30,18 @@ test.describe('toolbar', () => {
     });
 
     test('clicking each tool button activates exactly that tool', async ({ page }) => {
-        for (const tool of TOOLS) {
+        for (const tool of CLICK_ORDER) {
             await page.getByTestId(`tool-${tool}`).click();
             await expect(page.getByTestId(`tool-${tool}`)).toHaveAttribute('data-active', 'true');
             expect(await activeTool(page)).toBe(tool);
         }
     });
 
-    test('F1–F6 keys select the matching tool and sync the button highlight', async ({ page }) => {
+    test('F1–F4 keys select the matching tool and sync the button highlight', async ({ page }) => {
         for (const [key, tool] of KEY_TO_TOOL) {
             // pressToolKey settles: Phaser consumes keydowns on its (headless-throttled) game loop, so a window
-            // lets each keypress be processed before we assert / press the next key.
+            // lets each keypress be processed before we assert / press the next key. Keyboard presses reach the
+            // document, so the Construction menu opening after F3 doesn't block the following key.
             await pressToolKey(page, key);
             await expect(page.getByTestId(`tool-${tool}`)).toHaveAttribute('data-active', 'true');
         }
@@ -52,10 +56,10 @@ test.describe('toolbar', () => {
     });
 
     test('keyboard and button selection agree on the same tool', async ({ page }) => {
-        await pressToolKey(page, 'F3'); // house
-        await expect(page.getByTestId('tool-house')).toHaveAttribute('data-active', 'true');
-        await page.getByTestId('tool-work').click();
-        await expect(page.getByTestId('tool-work')).toHaveAttribute('data-active', 'true');
-        await expect(page.getByTestId('tool-house')).toHaveAttribute('data-active', 'false');
+        await pressToolKey(page, 'F2'); // road
+        await expect(page.getByTestId('tool-road')).toHaveAttribute('data-active', 'true');
+        await page.getByTestId('tool-bulldoze').click();
+        await expect(page.getByTestId('tool-bulldoze')).toHaveAttribute('data-active', 'true');
+        await expect(page.getByTestId('tool-road')).toHaveAttribute('data-active', 'false');
     });
 });
