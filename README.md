@@ -434,8 +434,9 @@ generator perf pass. Both arcs are broken down file-by-file in [`docs/tasks/`](d
 
 **In flight / planned** (see [`docs/tasks/`](docs/tasks/)):
 
-- **117** — the observation & balancing pass: the debug scaffolding (a time-throttle + vitals overlay) shipped;
-  the human playtest, its balancing-notes deliverable, and the one full asset regeneration remain.
+- The **observation & balancing pass (117)** is done — [`docs/proposals/visibility-balancing-notes.md`](docs/proposals/visibility-balancing-notes.md)
+  confirms the sim is observably working and ranks the follow-up tunings; applying them + the one full asset
+  regeneration remain the maintainer's pre-merge pass.
 - **033c** — optional tier-2 demand (locality/catchment, price elasticity).
 - Business **product output** into downstream industries (beyond raw materials).
 

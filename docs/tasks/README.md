@@ -155,12 +155,11 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [114](114-services-nagbar_DONE.md) | ✅ | [Feature/HUD] The services nagbar |
 | [115](115-pets-on-the-street_DONE.md) | ✅ | [Feature] Pets on the street — the dog trails the walk |
 | [116](116-fire-particles_DONE.md) | ✅ | [Feature] Fire particles |
-| [117](117-observation-and-balancing-pass.md) | 🚧 | [Task] The observation & balancing pass (scaffolding done; session pending) |
+| [117](117-observation-and-balancing-pass_DONE.md) | ✅ | [Task] The observation & balancing pass |
 | [118](118-generator-perf-pass_DONE.md) | ✅ | [Perf] Generator perf pass — the hot band runs 2× faster |
 
 ## Open work
 
-- **[117](117-observation-and-balancing-pass.md)** — the observation & balancing pass. The debug scaffolding
-  (the `T` time-throttle + vitals overlay) shipped with the visibility arc; the human playtest session and its
-  `docs/proposals/visibility-balancing-notes.md` deliverable remain the maintainer's pass.
+- The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
+  (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 
