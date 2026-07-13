@@ -52,6 +52,7 @@ import assetsConfig from 'json/assets.json';
 import historyGeneratorConfig from 'json/historyGenerator.json';
 import businessesConfig from 'json/businesses.json';
 import config from 'json/config.json';
+import constructionConfig from 'json/construction.json';
 import demandConfig from 'json/demand.json';
 import economyConfig from 'json/economy.json';
 import eventsConfig from 'json/events.json';
@@ -86,6 +87,8 @@ import venuesConfig from 'json/venues.json';
 import {
     validateAssetsStructure,
     validateConfigStructure,
+    validateConstructionStructure,
+    validateConstructionSemantics,
     validateInputStructure,
     validateToolAssetsStructure,
     validateToolAssetsSemantics,
@@ -123,6 +126,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'services', version: 1, data: servicesConfig, validateStructure: validateServicesStructure, validateSemantics: validateServicesSemantics },
         { name: 'retcons', version: 1, data: retconsConfig, validateStructure: validateRetconsStructure, validateSemantics: validateRetconsSemantics },
         { name: 'venues', version: 1, data: venuesConfig, validateStructure: validateVenuesStructure, validateSemantics: validateVenuesSemantics },
+        { name: 'construction', version: 1, data: constructionConfig, validateStructure: validateConstructionStructure, validateSemantics: validateConstructionSemantics },
         { name: 'traits', version: 1, data: traitsConfig, validateStructure: validateTraitsStructure, validateSemantics: validateTraitsSemantics },
         { name: 'routines', version: 1, data: routinesConfig, validateStructure: validateRoutinesStructure, validateSemantics: validateRoutinesSemantics },
         { name: 'assets', version: 1, data: assetsConfig, validateStructure: validateAssetsStructure },

@@ -142,6 +142,7 @@ export default class Field {
             // Select is routed through Field.selectAt (pixel-based, people-aware) from MainScene, not tileClicked.
             [Tool.Select]: null,
             [Tool.Bulldoze]: this.bulldoze,
+            [Tool.Construction]: null, // the menu arms house/work — never a direct build tool (task 108)
         };
 
         const tileHandler = tileDictionary[event.tool as Tool];
@@ -256,7 +257,8 @@ export default class Field {
         }
 
         let newTile = null;
-        const assetName = Game.toolbelt[event.tool as Tool];
+        // Construction-menu picks (task 108) override the default tool asset (civic colored squares).
+        const assetName = event.asset ?? Game.toolbelt[event.tool as Tool];
 
         // TODO: This is a reduntant dictionary selection, refactor to just select tile class based on tool
         const tileDictionary: { [key in Tool]: (() => Tile) | null } = {
@@ -266,6 +268,7 @@ export default class Field {
             [Tool.Work]: () => new Workplace(row, col, assetName),
             [Tool.Select]: null,
             [Tool.Bulldoze]: null,
+            [Tool.Construction]: null, // never a direct build tool (task 108)
         };
         const tileConstructor = tileDictionary[event.tool as Tool];
 
@@ -313,6 +316,11 @@ export default class Field {
         }
 
         if (newTile instanceof Workplace) {
+            // A pinned blueprint (task 108: the construction menu chose a specific business) rides the
+            // workplace transiently — City.setupBusiness consumes it; loads restore the business directly.
+            if (event.blueprintKey !== undefined) {
+                newTile.setPendingBlueprint(event.blueprintKey);
+            }
             Game.emit("workplaceBuilt", newTile);
         }
     }

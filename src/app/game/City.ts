@@ -62,6 +62,9 @@ const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
 const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
+// Civic blueprints (task 108) are placed deliberately through the construction menu — never drawn onto
+// generic lots by the random draw, re-occupancy, or entrepreneurship.
+const isCivicBlueprint = (key: string): boolean => BUSINESS_BLUEPRINTS[key]?.placement === 'civic';
 // A criminal record fades after two in-game years (task 099) — the town forgives, slowly.
 const CRIMINAL_RECORD_WINDOW_TICKS = 2 * 8640;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
@@ -470,7 +473,10 @@ export default class City {
         if (!workplace) {
             throw new Error("Invalid workplace to setup business");
         }
-        const business = this.openBusiness(workplace);
+        // The construction menu's pin (task 108): a chosen civic/specific building instantiates exactly
+        // that blueprint; unpinned lots keep the demand-weighted draw.
+        const pinned = workplace.takePendingBlueprint();
+        const business = this.openBusiness(workplace, undefined, pinned ? { blueprintKey: pinned } : {});
         if (business) {
             console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${business.size}, ${business.positions.length} positions)`);
         }
@@ -497,13 +503,14 @@ export default class City {
         const rng = new SeededRandom(seed);
         fakerPT_BR.seed(seed);
 
+        const drawable = blueprintKeys.filter(candidate => !isCivicBlueprint(candidate));
         let blueprintKey: string;
         if (options.blueprintKey) {
-            // A forced blueprint (task 097/I3: the founder opens the trade they know).
+            // A forced blueprint (task 097/I3 founders; task 108 construction-menu pins).
             blueprintKey = options.blueprintKey;
         } else if (category) {
-            const candidates = blueprintKeys.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === category);
-            blueprintKey = rng.pick(candidates.length > 0 ? candidates : blueprintKeys);
+            const candidates = drawable.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === category);
+            blueprintKey = rng.pick(candidates.length > 0 ? candidates : drawable);
         } else {
             // First-placement matching (task 097/I2): an unconstrained draw prefers categories the town's
             // demand actually lacks, weighted by unmet demand. With no positive deficit anywhere (an empty
@@ -511,7 +518,7 @@ export default class City {
             const { deficits } = this.categorySupplyAndDeficits();
             const weighted = [...deficits.entries()].filter(([, deficit]) => deficit > 0).sort((a, b) => a[0].localeCompare(b[0]));
             if (weighted.length === 0) {
-                blueprintKey = rng.pick(blueprintKeys);
+                blueprintKey = rng.pick(drawable);
             } else {
                 const total = weighted.reduce((sum, [, deficit]) => sum + deficit, 0);
                 let roll = rng.next() * total;
@@ -523,8 +530,8 @@ export default class City {
                         break;
                     }
                 }
-                const candidates = blueprintKeys.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === picked);
-                blueprintKey = rng.pick(candidates.length > 0 ? candidates : blueprintKeys);
+                const candidates = drawable.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === picked);
+                blueprintKey = rng.pick(candidates.length > 0 ? candidates : drawable);
             }
         }
         const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
@@ -1606,7 +1613,7 @@ export default class City {
         let pick: { category: string; blueprintKey: string; founderId: PersonId } | null = null;
         for (const [category] of openCategories) {
             const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS)
-                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category)
+                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category && !isCivicBlueprint(key))
                 .sort();
             for (const blueprintKey of blueprintKeys) {
                 const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
@@ -1704,6 +1711,9 @@ export default class City {
         // Blueprints grouped by category, so a chosen category always has something to build.
         const blueprintsByCategory = new Map<string, string[]>();
         for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
+            if (isCivicBlueprint(blueprintKey)) {
+                continue; // civic buildings are placed, never attracted (task 108)
+            }
             const keys = blueprintsByCategory.get(blueprint.category) ?? [];
             keys.push(blueprintKey);
             blueprintsByCategory.set(blueprint.category, keys);

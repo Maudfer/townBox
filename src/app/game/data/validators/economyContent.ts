@@ -301,7 +301,7 @@ export function validateJobsSemantics(data: unknown, peers: Record<string, unkno
     }
 }
 
-const BLUEPRINT_KEYS = ['friendlyName', 'category', 'tags', 'size', 'jobs', 'materialsPerUnit', 'products', 'economics'];
+const BLUEPRINT_KEYS = ['friendlyName', 'category', 'tags', 'size', 'jobs', 'materialsPerUnit', 'products', 'economics', 'placement'];
 
 export function validateBusinessesStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
@@ -312,6 +312,10 @@ export function validateBusinessesStructure(data: unknown, issues: IssueCollecto
             continue;
         }
         checkUnknownKeys(issues, id, blueprint, BLUEPRINT_KEYS);
+        if ('placement' in blueprint && blueprint['placement'] !== 'civic') {
+            // Civic buildings (task 108): placed via the construction menu, never randomly drawn.
+            issues.add(`${id}.placement`, "expected 'civic' (the only placement mode; omit for normal businesses)");
+        }
         checkString(issues, `${id}.friendlyName`, blueprint['friendlyName']);
         checkString(issues, `${id}.category`, blueprint['category']);
         if ('tags' in blueprint && checkArray(issues, `${id}.tags`, blueprint['tags'])) {

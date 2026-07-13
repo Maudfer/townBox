@@ -21,7 +21,7 @@ import {
     validateSkillsSemantics,
     validateSkillsStructure,
 } from 'game/data/validators/skills';
-import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from 'game/data/validators/ui';
+import { validateAssetsStructure, validateConstructionSemantics, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from 'game/data/validators/ui';
 import businessesConfig from 'json/businesses.json';
 import demandConfig from 'json/demand.json';
 import jobsConfig from 'json/jobs.json';
@@ -77,7 +77,7 @@ describe('data validation (task 039)', () => {
     test('all schemas are registered exactly once, with the expected roster', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
-            'actions', 'arbitration', 'assets', 'businesses', 'config', 'demand', 'economy',
+            'actions', 'arbitration', 'assets', 'businesses', 'config', 'construction', 'demand', 'economy',
             'events', 'fire', 'habits', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials', 'mood',
             'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'pets', 'placement', 'population', 'relationships', 'residences', 'retcons', 'routines', 'schools', 'services', 'skillInit', 'skills', 'toolAssets', 'traits', 'venues',
         ]);
@@ -379,6 +379,14 @@ describe('params validation', () => {
         expect(output).toMatch(/unknown service "moon_medicine"/);
         expect(output).toMatch(/unknown event "ghost_event"/);
         expect(output).toMatch(/declares no manual trigger/);
+    });
+
+    test('construction rejects an unplaceable civic blueprint and dangling pins (task 108)', () => {
+        const entries = [{ id: 'x', label: 'X', tool: 'work', blueprint: 'ghost_shop' }];
+        const peers = { businesses: { jail: { placement: 'civic' }, bakery: {} } };
+        const output = messagesOf(semantics(validateConstructionSemantics, { entries }, peers));
+        expect(output).toMatch(/unknown blueprint "ghost_shop"/);
+        expect(output).toMatch(/civic blueprint "jail" is not placeable/);
     });
 
     test('services rejects a missing education service and dangling job/blueprint refs (task 096)', () => {

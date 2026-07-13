@@ -17,6 +17,16 @@ export type UpdateEvent = {
 export type BuildEvent = {
     position: TilePosition;
     tool: Tool;
+    // Construction-menu picks (task 108): pin the business blueprint and/or a placeholder asset.
+    blueprintKey?: string;
+    asset?: string;
+};
+
+// A construction-menu selection (task 108): arms the placement cursor with the chosen building.
+export type ConstructionPick = {
+    tool: Tool;
+    blueprintKey?: string;
+    asset?: string;
 };
 
 // A notable city happening surfaced to the HUD feed (task 029). `person` (when set) is the materialized
@@ -33,6 +43,7 @@ export interface EventPayloads {
     "update": UpdateEvent;
     "tileClicked": BuildEvent;
     "toolSelected": Tool;
+    "constructionSelected": ConstructionPick;
     "personSpawnRequest": PixelPosition;
     "vehicleSpawnRequest": PixelPosition;
     "houseBuilt": House;

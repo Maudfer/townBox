@@ -132,7 +132,8 @@
                 "base": 4000,
                 "perUnit": 2500
             }
-        }
+        },
+        "placement": "civic"
     },
     "school": {
         "friendlyName": "School",
@@ -1686,7 +1687,8 @@
                 "base": 2200,
                 "perUnit": 1300
             }
-        }
+        },
+        "placement": "civic"
     },
     "fire_station": {
         "friendlyName": "Fire Station",
@@ -1723,7 +1725,8 @@
                 "base": 2200,
                 "perUnit": 1300
             }
-        }
+        },
+        "placement": "civic"
     },
     "church": {
         "friendlyName": "Church",
@@ -1963,10 +1966,11 @@
                 "base": 2000,
                 "perUnit": 1100
             }
-        }
+        },
+        "placement": "civic"
     },
     "sanitation_depot": {
-        "friendlyName": "Sanitation Depot",
+        "friendlyName": "Landfill",
         "category": "services",
         "tags": [
             "warehouse",
@@ -2002,6 +2006,7 @@
                 "base": 1600,
                 "perUnit": 900
             }
-        }
+        },
+        "placement": "civic"
     }
 }

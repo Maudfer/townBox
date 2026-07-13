@@ -12,6 +12,7 @@ import config from 'json/config.json';
 import inputConfig from 'json/input.json';
 import { AssetManifest } from 'types/Assets';
 import { Cursor, Tool } from 'types/Cursor';
+import constructionConfig from 'json/construction.json';
 import { Image, SceneConfig } from 'types/Phaser';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { directionToRadianRotation } from 'util/tools';
@@ -77,9 +78,43 @@ export default class MainScene extends Phaser.Scene {
         this.input.mouse.disableContextMenu();
         this.setCursor(Tool.Road);
 
+        // Civic placeholder textures (task 108): flat colored 48x48 squares generated at boot — the
+        // construction menu's civic tiles. Saves persist assetName, so these keys must exist before any
+        // load redraws.
+        for (const entry of (constructionConfig as { entries: { id: string; color?: string }[] }).entries) {
+            if (!entry.color || this.textures.exists('civic_' + entry.id)) {
+                continue;
+            }
+            const graphics = this.add.graphics();
+            graphics.fillStyle(Number.parseInt(entry.color.slice(1), 16), 1);
+            graphics.fillRect(0, 0, 48, 48);
+            graphics.generateTexture('civic_' + entry.id, 48, 48);
+            graphics.destroy();
+        }
+
+        // Construction-menu picks (task 108): arm the placement cursor with the chosen building. The pick
+        // rides every tileClicked until another tool is selected.
+        Game.on("constructionSelected", {
+            callback: (pick: import('types/Events').ConstructionPick) => {
+                this.constructionPick = { ...(pick.blueprintKey !== undefined ? { blueprintKey: pick.blueprintKey } : {}), ...(pick.asset !== undefined ? { asset: pick.asset } : {}) };
+                this.setCursor(pick.tool, pick.asset);
+            },
+            context: this,
+        });
+
         // Tool selection flows through the `toolSelected` bus event so the keyboard and the React toolbar
         // stay in sync (task 030): both the keys below and the toolbar emit it; the scene consumes it here.
-        Game.on("toolSelected", { callback: (tool: Tool) => this.setCursor(tool), context: this });
+        Game.on("toolSelected", {
+            callback: (tool: Tool) => {
+                this.constructionPick = null; // a plain tool change disarms any construction pick (task 108)
+                if (tool === Tool.Construction) {
+                    this.hideCursor(); // the menu window (Hud) takes over; the pick arms the real cursor
+                    return;
+                }
+                this.setCursor(tool);
+            },
+            context: this,
+        });
 
         inputConfig.inputMappings.forEach(mapping => {
             this.input.keyboard?.addKey(mapping.key).on('down', () => {
@@ -242,8 +277,16 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        Game.emit("tileClicked", { position: placement.position, tool: cursor.tool });
+        Game.emit("tileClicked", {
+            position: placement.position,
+            tool: cursor.tool,
+            ...(this.constructionPick ?? {}),
+        });
     }
+
+    // The construction menu's armed pick (task 108): a pinned blueprint and/or placeholder asset that
+    // rides tileClicked. Null when a plain tool is active.
+    private constructionPick: { blueprintKey?: string; asset?: string } | null = null;
 
     getCursor(): Cursor {
         return this.cursor;
@@ -255,7 +298,7 @@ export default class MainScene extends Phaser.Scene {
         this.cameras.main.centerOn(worldX, worldY);
     }
 
-    setCursor(tool: Tool): void {
+    setCursor(tool: Tool, assetOverride?: string): void {
         if (!this.cursor) {
             this.cursor = {
                 tool,
@@ -269,7 +312,7 @@ export default class MainScene extends Phaser.Scene {
         }
         
         this.cursor.tool = tool;
-        const assetName = Game.toolbelt[this.cursor.tool as Tool];
+        const assetName = assetOverride ?? Game.toolbelt[this.cursor.tool as Tool];
         if (!assetName) {
             return;
         }

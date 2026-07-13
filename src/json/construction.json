@@ -1,0 +1,56 @@
+{
+    "entries": [
+        {
+            "id": "house",
+            "label": "Residence",
+            "tool": "house"
+        },
+        {
+            "id": "business",
+            "label": "Business",
+            "tool": "work"
+        },
+        {
+            "id": "fire_station",
+            "label": "Fire Station",
+            "tool": "work",
+            "blueprint": "fire_station",
+            "color": "#d14b4b"
+        },
+        {
+            "id": "police_station",
+            "label": "Police Station",
+            "tool": "work",
+            "blueprint": "police_station",
+            "color": "#4b6fd1"
+        },
+        {
+            "id": "hospital",
+            "label": "Hospital",
+            "tool": "work",
+            "blueprint": "hospital",
+            "color": "#e8e8e8"
+        },
+        {
+            "id": "landfill",
+            "label": "Landfill",
+            "tool": "work",
+            "blueprint": "sanitation_depot",
+            "color": "#8a6b4b"
+        },
+        {
+            "id": "prison",
+            "label": "Prison",
+            "tool": "work",
+            "blueprint": "jail",
+            "color": "#6b6b6b"
+        },
+        {
+            "id": "supermarket",
+            "label": "Supermarket",
+            "tool": "work",
+            "blueprint": "supermarket",
+            "color": "#4bb05f"
+        }
+    ]
+}
