@@ -4,6 +4,7 @@ import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
 import { generateBusiness } from 'game/economy/BusinessGen';
+import CityServices, { SERVICES_CONFIG } from 'game/economy/CityServices';
 import LiveWorld from 'game/execution/LiveWorld';
 import { runTick } from 'game/execution/TickRunner';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/economy/Economy';
@@ -22,6 +23,7 @@ import { DemandTable } from 'types/Demand';
 import { CityStats } from 'types/City';
 import { NewDayEvent, NewTickEvent, TimeChangedEvent } from 'types/Time';
 import { SchoolConfig, SchoolFacts } from 'types/School';
+import { ServiceInputs } from 'types/Services';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -74,6 +76,10 @@ export default class City {
     // The live-mode WorldAdapter (task 040): the map-backed side of the execution boundary. Location
     // transitions requested through it drive the real commute machinery and resolve on physical arrival.
     private world: LiveWorld;
+    // The services coverage ledger (task 096): derived daily, serialized nowhere. Hazards read it through
+    // markets.services; the dashboard reads latest(). A fresh session is unmeasured (neutral) until day 1.
+    private services: CityServices;
+    private lastServicesAdvisoryMonth: number;
     // Completed-day -> proficiency service (task 063). One instance so its per-day duplicate guard persists
     // across ticks; constructed lazily because the SkillBook exists only after postSceneInit.
     private skillProgression: SkillProgression | null;
@@ -90,6 +96,8 @@ export default class City {
         this.bankruptcies = 0;
         this.evictions = 0;
         this.skillProgression = null;
+        this.services = new CityServices();
+        this.lastServicesAdvisoryMonth = -1;
         this.world = new LiveWorld({
             getPeople: () => Game.field?.getPeople() ?? [],
             buildingByKey: key => {
@@ -237,6 +245,7 @@ export default class City {
             householdWealth,
             businessBalance,
             stressedBusinesses,
+            services: this.services.latest(),
             stressedHouseholds,
             births: this.births,
             deaths: this.deaths,
@@ -486,8 +495,78 @@ export default class City {
         // as they cross birthdays (idempotent toAtLeast grants; deterministic, RNG-free).
         this.runSkillMilestones(event.tick, clock.getTicksPerYear());
 
+        // The services coverage sweep (task 096): recompute the ledger daily from what actually exists.
+        this.recomputeServices(event.tick);
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
+    }
+
+    // The daily services sweep (task 096 / H1): coverage derives from the real map — facilities from placed
+    // businesses, providers from who is EMPLOYED at them in the service's declared jobs (a doctor at the
+    // hospital practices; an unemployed one doesn't), education from real seats vs the enrollable band. The
+    // math is the pure computeCoverage; hazards read the ledger through markets.services, the dashboard
+    // through getCityStats. One monthly feed advisory names the worst uncovered service (H2 surfacing).
+    private recomputeServices(tick: number): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        // jobs.json keys → position titles (a JobPosition carries the title, not the key).
+        const providerTitles = new Map<string, Set<string>>();
+        for (const [service, def] of Object.entries(SERVICES_CONFIG.services)) {
+            const titles = new Set<string>();
+            for (const jobKey of def.providerJobs) {
+                const job = JOBS[jobKey];
+                if (job) {
+                    titles.add(job.title);
+                }
+            }
+            providerTitles.set(service, titles);
+        }
+        const providersByService: Record<string, number> = {};
+        const facilitiesByService: Record<string, number> = {};
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const business = structure.getBusiness();
+            if (!business) {
+                continue;
+            }
+            for (const [service, def] of Object.entries(SERVICES_CONFIG.services)) {
+                if (!def.facilityBlueprints.includes(business.blueprintKey)) {
+                    continue;
+                }
+                facilitiesByService[service] = (facilitiesByService[service] ?? 0) + 1;
+                const titles = providerTitles.get(service)!;
+                for (const employee of structure.getEmployees()) {
+                    const title = employee.work.getJob()?.title;
+                    if (title && titles.has(title)) {
+                        providersByService[service] = (providersByService[service] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+        const people = field.getPeople();
+        let schoolAgeChildren = 0;
+        for (const person of people) {
+            if (isSchoolAge(SCHOOL_CONFIG, person.social.getAge())) {
+                schoolAgeChildren += 1;
+            }
+        }
+        const schoolSeats = this.listSchools().reduce((sum, school) => sum + school.seats, 0);
+        const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren };
+        const coverages = this.services.update(inputs);
+
+        const month = Math.floor(Math.floor(tick / 24) / 30);
+        if (month !== this.lastServicesAdvisoryMonth && people.length > 0) {
+            this.lastServicesAdvisoryMonth = month;
+            const worst = [...coverages].sort((a, b) => a.ratio - b.ratio || a.service.localeCompare(b.service))[0];
+            if (worst && worst.ratio < SERVICES_CONFIG.advisoryBelow) {
+                this.announce('services', tick, `${this.name} lacks ${worst.label.toLowerCase()} (coverage ${(worst.ratio * 100).toFixed(0)}%)`, null);
+            }
+        }
     }
 
     // The placed school buildings and their seat counts (capacity curve over the school business size).
@@ -691,7 +770,7 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, mood: Game.mood ?? null } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, mood: Game.mood ?? null, services: this.services } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
                 // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.

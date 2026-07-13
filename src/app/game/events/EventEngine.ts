@@ -4,9 +4,11 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { compileEvents, EventGraph, GateComparison } from 'game/events/EventCompiler';
 import LifeLog from 'game/events/LifeLog';
+import { SERVICES_CONFIG } from 'game/economy/CityServices';
 import { MOOD_CONFIG } from 'game/population/Mood';
 import { resolveStanding } from 'game/population/SocialGraph';
 import { MoodReader } from 'types/Mood';
+import { ServiceCoverageReader } from 'types/Services';
 import { EdgeKind, RelationshipGraph } from 'types/Relationship';
 
 import { ExecutionContext } from 'types/Execution';
@@ -160,6 +162,7 @@ export default class EventEngine {
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
     private social: RelationshipGraph | null; // the elective social graph (task 083)
     private moodLedger: MoodReader | null; // mood impulses from event valence (task 091)
+    private servicesReader: ServiceCoverageReader | null; // coverage ratios for hazard factors (task 096)
     // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
     // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
     // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
@@ -236,6 +239,7 @@ export default class EventEngine {
         this.skills = null;
         this.social = null;
         this.moodLedger = null;
+        this.servicesReader = null;
     }
 
     // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
@@ -417,6 +421,10 @@ export default class EventEngine {
             case 'mood':
                 // Morale 0–100 (task 091): baseline without a bound ledger. Vice/withdrawal data gates on it.
                 return this.moodLedger ? this.moodLedger.moodOf(id, tick) : MOOD_CONFIG.baseline;
+            case 'healthcareCoverage':
+                // The services ledger (task 096): recovery hazards read it as a factor. Unmeasured contexts
+                // read the neutral level, at which the published curves pass through 1 (no ledger, no effect).
+                return this.servicesReader ? this.servicesReader.coverageOf('healthcare') : SERVICES_CONFIG.neutralCoverage;
             case 'hourOfDay':
                 // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
                 // at dinner time) and predicates. Derived from the tick, identical in both execution modes.
@@ -911,6 +919,7 @@ export default class EventEngine {
         this.skills = markets.skills ?? null;
         this.social = markets.social ?? null;
         this.moodLedger = markets.mood ?? null;
+        this.servicesReader = markets.services ?? null;
     }
 
     // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
@@ -926,6 +935,7 @@ export default class EventEngine {
         this.skills = null;
         this.social = null;
         this.moodLedger = null;
+        this.servicesReader = null;
     }
 
     // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,

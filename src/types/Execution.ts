@@ -12,6 +12,7 @@ import { HabitsReader } from 'types/Habits';
 import { MoodReader } from 'types/Mood';
 import { NeedsReader } from 'types/Needs';
 import { RelationshipGraph } from 'types/Relationship';
+import { ServiceCoverageReader } from 'types/Services';
 import { TraitsReader } from 'types/Traits';
 
 export type SimulationMode = 'live' | 'bootstrap';
@@ -71,6 +72,8 @@ export interface SimulationMarkets {
     habits?: HabitsReader | null;
     // Mood (task 091): event valence lands impulses; consent/selection/vice gates read the meter.
     mood?: MoodReader | null;
+    // City services (task 096): coverage ratios the hazards read (healthcare -> recovery). Derived daily.
+    services?: ServiceCoverageReader | null;
     // Traits (task 087): temperament axes read by selection affinity and consent. Derived, never stored.
     traits?: TraitsReader | null;
 }

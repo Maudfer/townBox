@@ -1,0 +1,42 @@
+{
+    "neutralCoverage": 0.5,
+    "advisoryBelow": 0.25,
+    "services": {
+        "healthcare": {
+            "label": "Healthcare",
+            "providerJobs": ["doctor", "nurse"],
+            "facilityBlueprints": ["hospital", "clinic"],
+            "residentsPerProvider": 40
+        },
+        "education": {
+            "label": "Education",
+            "providerJobs": ["teacher"],
+            "facilityBlueprints": ["school"],
+            "residentsPerProvider": 30
+        },
+        "police": {
+            "label": "Police",
+            "providerJobs": ["security_guard"],
+            "facilityBlueprints": ["police_station"],
+            "residentsPerProvider": 60
+        },
+        "fire": {
+            "label": "Fire protection",
+            "providerJobs": ["security_guard"],
+            "facilityBlueprints": ["fire_station"],
+            "residentsPerProvider": 80
+        },
+        "garbage": {
+            "label": "Garbage collection",
+            "providerJobs": [],
+            "facilityBlueprints": [],
+            "residentsPerProvider": 70
+        },
+        "jail": {
+            "label": "Jail capacity",
+            "providerJobs": [],
+            "facilityBlueprints": [],
+            "residentsPerProvider": 200
+        }
+    }
+}

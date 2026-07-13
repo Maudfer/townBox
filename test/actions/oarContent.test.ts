@@ -228,9 +228,11 @@ describe('long-run object sanity (task 053)', () => {
         }
 
         // Consumables depleted: the homebody cooked and ate — meals were consumed, not hoarded forever.
+        // Which consumption discrete fires (solo meal vs shared) shifts with the free-time candidate set as
+        // the manifest grows (095 added the vice repertoire), so accept either meal-consumption entry.
         const log = engine.getPersonLog('homebody');
         expect(log.some(e => e.kind === 'action' && e.defId === 'plated_the_meal')).toBe(true);
-        expect(log.some(e => e.kind === 'action' && e.defId === 'ate_a_meal')).toBe(true);
+        expect(log.some(e => e.kind === 'action' && (e.defId === 'ate_a_meal' || e.defId === 'shared_a_meal'))).toBe(true);
 
         // No runaway duplication: personal possessions stay within pantry-scale bounds. Production is
         // excluded (it grows linearly with shifts worked by design, bounded by pool chances/cooldowns).

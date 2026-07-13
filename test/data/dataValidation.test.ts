@@ -13,6 +13,7 @@ import { validateEventsSemantics, validateEventsStructure } from 'game/data/vali
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
 import { validateHabitsStructure, validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
+import { validateServicesSemantics, validateServicesStructure } from 'game/data/validators/services';
 import { validatePlacementSemantics } from 'game/data/validators/placement';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
@@ -78,7 +79,7 @@ describe('data validation (task 039)', () => {
         expect(names).toEqual([
             'actions', 'arbitration', 'assets', 'businesses', 'config', 'demand', 'economy',
             'events', 'habits', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials', 'mood',
-            'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'relationships', 'residences', 'routines', 'schools', 'skillInit', 'skills', 'toolAssets', 'traits',
+            'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'relationships', 'residences', 'routines', 'schools', 'services', 'skillInit', 'skills', 'toolAssets', 'traits',
         ]);
     });
 
@@ -366,6 +367,16 @@ describe('params validation', () => {
         const output = messagesOf(structure(validateHabitsStructure, { escalationPerLevel: 0.35, practiceBump: 1, maxLevel: 10, bogus: true }));
         expect(output).toMatch(/habits\.halfLifeDays/);
         expect(output).toMatch(/habits\.bogus: unknown key/);
+    });
+
+    test('services rejects a missing education service and dangling job/blueprint refs (task 096)', () => {
+        const noEducation = { neutralCoverage: 0.5, advisoryBelow: 0.25, services: { healthcare: { label: 'H', providerJobs: [], facilityBlueprints: [], residentsPerProvider: 40 } } };
+        expect(messagesOf(structure(validateServicesStructure, noEducation))).toMatch(/education service must be declared/);
+
+        const dangling = { neutralCoverage: 0.5, advisoryBelow: 0.25, services: { education: { label: 'E', providerJobs: ['astronaut'], facilityBlueprints: ['moon_base'], residentsPerProvider: 30 } } };
+        const output = messagesOf(semantics(validateServicesSemantics, dangling, { jobs: jobsConfig, businesses: businessesConfig }));
+        expect(output).toMatch(/unknown job "astronaut"/);
+        expect(output).toMatch(/unknown blueprint "moon_base"/);
     });
 });
 

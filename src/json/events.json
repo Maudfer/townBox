@@ -640,6 +640,26 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "driver": "subject.healthcareCoverage",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.75
+                                },
+                                {
+                                    "at": 0.4,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 0.8,
+                                    "value": 1.4
+                                }
+                            ]
+                        }
                     }
                 ]
             }
@@ -26168,6 +26188,26 @@
                                 {
                                     "at": 55,
                                     "value": 3
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "driver": "subject.healthcareCoverage",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 0.75
+                                },
+                                {
+                                    "at": 0.4,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 0.8,
+                                    "value": 1.4
                                 }
                             ]
                         }
