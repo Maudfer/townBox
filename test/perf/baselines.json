@@ -1,16 +1,16 @@
 {
-  "action.activeLookup": 13486,
-  "action.contextBuild": 5411,
+  "action.activeLookup": 13477,
+  "action.contextBuild": 3904,
   "action.instancesLive": 40,
-  "action.objectQuery": 6686,
-  "action.objectQueryMiss": 435,
+  "action.objectQuery": 5956,
+  "action.objectQueryMiss": 396,
   "action.scanWalked": 2880,
-  "brain.freeTimeCompute": 781,
+  "brain.freeTimeCompute": 778,
   "event.invokeScan": 0,
   "event.roll": 1546560,
   "event.subjectEval": 159,
-  "inv.carriedBuild": 1427,
-  "inv.contentsBuild": 367,
-  "predicate.evalCached": 82293,
-  "world.peopleAt": 319
+  "inv.carriedBuild": 1026,
+  "inv.contentsBuild": 372,
+  "predicate.evalCached": 80767,
+  "world.peopleAt": 322
 }

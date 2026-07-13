@@ -26,6 +26,26 @@ const PLANNER_SALT = 0x91a;
 // Only meaningful friendships pull a located visit (below this, the generic routine is company enough).
 const VISIT_EDGE_MIN_STRENGTH = 25;
 
+// Hoisted once (task 118): the producer loop ran Object.entries(...).sort(...) per person per tick.
+const SORTED_ROUTINES = Object.entries(ROUTINES_CONFIG).sort(([a], [b]) => a.localeCompare(b));
+
+// Adoption is a pure function of (worldSeed, personId, routineId) — memoized (task 118): the seeded fork
+// chain ran ~9× per person per tick in the generator's hot band. Bounded by people × routines.
+const adoptionMemo = new Map<string, boolean>();
+
+function isAdopted(worldSeed: number, personId: string, routineId: string, adoption: number): boolean {
+    const key = `${worldSeed}|${personId}|${routineId}`;
+    const cached = adoptionMemo.get(key);
+    if (cached !== undefined) {
+        return cached;
+    }
+    const adopted = new SeededRandom(worldSeed)
+        .fork(PLANNER_SALT).fork(hashStringToSeed(personId)).fork(hashStringToSeed(routineId))
+        .next() < adoption;
+    adoptionMemo.set(key, adopted);
+    return adopted;
+}
+
 export const plannerHook: BrainHook = {
     id: 'planner',
     kind: 'onTick',
@@ -40,22 +60,21 @@ export const plannerHook: BrainHook = {
 
         // --- Producers (agenda bookkeeping — decision-layer state) ------------------------------------
         const context = engine.contextFor(personId, deps);
-        for (const [routineId, routine] of Object.entries(ROUTINES_CONFIG).sort(([a], [b]) => a.localeCompare(b))) {
-            // Deterministic adoption: this person either carries the routine or never does.
-            const adopted = new SeededRandom(deps.state.worldSeed)
-                .fork(PLANNER_SALT).fork(hashStringToSeed(personId)).fork(hashStringToSeed(routineId))
-                .next() < routine.adoption;
-            if (!adopted) {
+        for (const [routineId, routine] of SORTED_ROUTINES) {
+            // Deterministic adoption: this person either carries the routine or never does (memoized, 118).
+            if (!isAdopted(deps.state.worldSeed, personId, routineId, routine.adoption)) {
                 continue;
             }
-            if (routine.requires && !evaluatePredicateCached(routine.requires, context)) {
-                continue;
-            }
+            // Cheap gates first (task 118): the O(1) dedup and recency checks screen most ticks before the
+            // requires predicate ever evaluates. All three are pure reads — order changes nothing.
             if (agenda.hasPendingRoutine(personId, routineId, deps.tick)) {
                 continue;
             }
             if (hasAction(routine.action, { withinTicks: routine.cadenceDays * TICKS_PER_DAY })) {
                 continue; // recently done — the cadence clock restarts from that occurrence
+            }
+            if (routine.requires && !evaluatePredicateCached(routine.requires, context)) {
+                continue;
             }
             // Plan the next window: today's if still open, else tomorrow's.
             const hour = hourOfTick(deps.tick);

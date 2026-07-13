@@ -4,6 +4,10 @@
 // sweeps, the closed-form discipline of needs/edges. A fulfilled entry vanishes (the action happened, however
 // it happened); an expired one vanishes too (a plan that quietly fell through — abandonment log entries land
 // with the pause/resume task).
+//
+// Task 118: reads are indexed per person. hasPendingRoutine/dueEntriesOf run ~10× per person per tick in the
+// generator's hot band, and the old whole-table Object.values scan was ~17% of the entire run. The index is
+// pure bookkeeping (rebuilt on load, kept in sync by the two mutation points) — behavior is unchanged.
 
 import { AgendaEntry, AgendaState, AgendaWriter } from 'types/Agenda';
 import { PersonId } from 'types/Genealogy';
@@ -13,14 +17,47 @@ export type HasActionQuery = (actionId: string, query?: HasEventQuery) => boolea
 
 export default class Agenda implements AgendaWriter {
     private state: AgendaState;
+    // Entry ids per person, in enqueue order (insertion-ordered Set) — the read index.
+    private byPerson: Map<PersonId, Set<string>>;
 
     constructor() {
         this.state = { entries: {}, nextSeq: 0 };
+        this.byPerson = new Map();
+    }
+
+    private index(entry: AgendaEntry): void {
+        let ids = this.byPerson.get(entry.personId);
+        if (!ids) {
+            ids = new Set();
+            this.byPerson.set(entry.personId, ids);
+        }
+        ids.add(entry.id);
+    }
+
+    private drop(entry: AgendaEntry): void {
+        delete this.state.entries[entry.id];
+        this.byPerson.get(entry.personId)?.delete(entry.id);
+    }
+
+    private entriesOf(personId: PersonId): AgendaEntry[] {
+        const ids = this.byPerson.get(personId);
+        if (!ids || ids.size === 0) {
+            return [];
+        }
+        const entries: AgendaEntry[] = [];
+        for (const id of ids) {
+            const entry = this.state.entries[id];
+            if (entry) {
+                entries.push(entry);
+            }
+        }
+        return entries;
     }
 
     enqueue(entry: Omit<AgendaEntry, 'id'>): AgendaEntry {
         const record: AgendaEntry = { ...entry, id: `g${this.state.nextSeq++}` };
         this.state.entries[record.id] = record;
+        this.index(record);
         return record;
     }
 
@@ -28,17 +65,14 @@ export default class Agenda implements AgendaWriter {
     // since enqueueing — organically or via the plan) and expired ones as it reads.
     dueEntriesOf(personId: PersonId, tick: number, hasAction: HasActionQuery): AgendaEntry[] {
         const due: AgendaEntry[] = [];
-        for (const entry of Object.values(this.state.entries)) {
-            if (entry.personId !== personId) {
-                continue;
-            }
+        for (const entry of this.entriesOf(personId)) {
             const sinceEnqueue = tick - entry.enqueuedAtTick;
             if (sinceEnqueue > 0 && hasAction(entry.actionId, { withinTicks: sinceEnqueue })) {
-                delete this.state.entries[entry.id]; // fulfilled (organically or via the plan)
+                this.drop(entry); // fulfilled (organically or via the plan)
                 continue;
             }
             if (tick > entry.latestTick) {
-                delete this.state.entries[entry.id]; // expired — the plan fell through
+                this.drop(entry); // expired — the plan fell through
                 continue;
             }
             if (tick >= entry.earliestTick) {
@@ -52,11 +86,16 @@ export default class Agenda implements AgendaWriter {
     // Whether a routine already has a pending (unexpired) entry for this person — the one-pending-per-routine
     // dedup producers rely on.
     hasPendingRoutine(personId: PersonId, routineId: string, tick: number): boolean {
-        return Object.values(this.state.entries).some(entry =>
-            entry.personId === personId && entry.routineId === routineId && tick <= entry.latestTick);
+        for (const entry of this.entriesOf(personId)) {
+            if (entry.routineId === routineId && tick <= entry.latestTick) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // Pending (unexpired) entries sharing a joint-plan link (D3) — lets one side see the other's commitment.
+    // Rare (one per consented invitation), so the whole-table scan is fine here.
     entriesByLink(linkId: string): AgendaEntry[] {
         return Object.values(this.state.entries)
             .filter(entry => entry.linkId === linkId)
@@ -64,15 +103,17 @@ export default class Agenda implements AgendaWriter {
     }
 
     removeEntry(id: string): void {
-        delete this.state.entries[id];
+        const entry = this.state.entries[id];
+        if (entry) {
+            this.drop(entry);
+        }
     }
 
     removePerson(personId: PersonId): void {
-        for (const [id, entry] of Object.entries(this.state.entries)) {
-            if (entry.personId === personId) {
-                delete this.state.entries[id];
-            }
+        for (const id of this.byPerson.get(personId) ?? []) {
+            delete this.state.entries[id];
         }
+        this.byPerson.delete(personId);
     }
 
     serialize(): AgendaState {
@@ -84,8 +125,10 @@ export default class Agenda implements AgendaWriter {
 
     loadState(state: AgendaState | undefined): void {
         this.state = { entries: {}, nextSeq: state?.nextSeq ?? 0 };
+        this.byPerson = new Map();
         for (const [id, entry] of Object.entries(state?.entries ?? {})) {
             this.state.entries[id] = { ...entry };
+            this.index(this.state.entries[id]!);
         }
     }
 }

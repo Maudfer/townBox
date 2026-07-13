@@ -405,11 +405,11 @@ export default class Brain {
     // The continuous, non-work/obligation, positive-base-weight actions eligible to be free-time picks. Static
     // per manifest, so computed once and reused (task 078) — already sorted by actionId so the downstream
     // weighted pick sees the same order as the prior full-manifest scan (byte-identical selection).
-    private getFreeTimeCandidates(): { actionId: string; def: ActionDefinition; baseWeight: number; venueKind?: string }[] {
+    private getFreeTimeCandidates(): { actionId: string; def: ActionDefinition; baseWeight: number; venueKind?: string; satisfiesEntries?: [string, number][] }[] {
         if (this.freeTimeCandidates) {
             return this.freeTimeCandidates;
         }
-        const candidates: { actionId: string; def: ActionDefinition; baseWeight: number; venueKind?: string }[] = [];
+        const candidates: { actionId: string; def: ActionDefinition; baseWeight: number; venueKind?: string; satisfiesEntries?: [string, number][] }[] = [];
         for (const [actionId, def] of Object.entries(this.actionEngine.getManifest())) {
             if (def.type !== 'continuous' || def.category === 'work' || def.category === 'obligation') {
                 continue; // obligations are hook-driven, never free-time picks
@@ -419,7 +419,14 @@ export default class Brain {
                 continue; // not selectable
             }
             const venueKind = typeof def.location === 'string' && def.location.startsWith('venue:') ? def.location.slice('venue:'.length) : undefined;
-            candidates.push({ actionId, def, baseWeight, ...(venueKind !== undefined ? { venueKind } : {}) });
+            // Hoisted once (task 118): the selection loops iterated Object.entries(def.satisfies) per
+            // candidate per compute; the pairs are manifest-static.
+            const satisfiesEntries = def.satisfies ? Object.entries(def.satisfies) as [string, number][] : undefined;
+            candidates.push({
+                actionId, def, baseWeight,
+                ...(venueKind !== undefined ? { venueKind } : {}),
+                ...(satisfiesEntries !== undefined ? { satisfiesEntries } : {}),
+            });
         }
         candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
         this.freeTimeCandidates = candidates;
@@ -434,6 +441,7 @@ export default class Brain {
         const needsLedger = deps.ctx.markets?.needs ?? null;
         const traitsReader = deps.ctx.markets?.traits ?? null;
         const habitsReader = deps.ctx.markets?.habits ?? null;
+        const urgency = needsLedger?.urgencyByNeed?.(personId, deps.tick, deps.state.worldSeed) ?? null;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
@@ -456,7 +464,18 @@ export default class Brain {
                 }
             }
             if (needsLedger) {
-                weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+                if (urgency && def.satisfies) {
+                    let best = 1;
+                    for (const [needId, amount] of Object.entries(def.satisfies)) {
+                        const value = urgency[needId as import('types/Needs').NeedId];
+                        if ((amount as number) >= 5 && value !== undefined && value > best) {
+                            best = value;
+                        }
+                    }
+                    weight *= best;
+                } else {
+                    weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+                }
             }
             if (traitsReader && def.affinity) {
                 weight *= traitsReader.affinityMultiplier(personId, def.affinity);
@@ -518,11 +537,13 @@ export default class Brain {
         const needsLedger = deps.ctx.markets?.needs ?? null;
         const traitsReader = deps.ctx.markets?.traits ?? null;
         const habitsReader = deps.ctx.markets?.habits ?? null;
+        // One-pass urgency (task 118): the six decayed levels are the same for every candidate this tick.
+        const urgency = needsLedger?.urgencyByNeed?.(personId, deps.tick, deps.state.worldSeed) ?? null;
         const tLoop = clock ? clock() : 0;
         let reqMs = 0;
         let modMs = 0;
         const candidates: { actionId: string; weight: number }[] = [];
-        for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
+        for (const { actionId, def, baseWeight, venueKind, satisfiesEntries } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
             let weight = baseWeight;
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
@@ -554,7 +575,19 @@ export default class Brain {
             // Needs urgency (task 084): an action addressing a starved need multiplies up, a sated one down —
             // the shared gradient in json/needs.json. Authored weights/modifiers keep the last word (above).
             if (needsLedger && def.satisfies) {
-                weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+                if (urgency && satisfiesEntries) {
+                    // Identical math to selectionMultiplier, against the one-pass table (task 118).
+                    let best = 1;
+                    for (const [need, amount] of satisfiesEntries) {
+                        const value = urgency[need as import('types/Needs').NeedId];
+                        if (amount >= 5 && value !== undefined && value > best) {
+                            best = value;
+                        }
+                    }
+                    weight *= best;
+                } else {
+                    weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+                }
             }
             // Trait affinity (task 087): temperament scales what this PERSON gravitates toward.
             if (traitsReader && def.affinity) {

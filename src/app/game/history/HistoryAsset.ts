@@ -42,7 +42,7 @@ import { InventoryState } from 'types/Objects';
 import { SkillTimeline } from 'types/Skill';
 import { ageAt } from 'util/kinship';
 import { Predicate } from 'util/predicate';
-import { TICKS_PER_DAY } from 'util/time';
+import { TICKS_PER_DAY, dayOfTick } from 'util/time';
 
 const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
 
@@ -474,11 +474,19 @@ export async function generateHistoryAsset(
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
-            const tDaily = now();
-            logical.runDaily(state, tick, tick + effectiveStep, tpy, skillBook, engine, living);
-            logical.inventory.sweepExpired(tick); // perishables spoil daily (task 089)
-            if (profile) {
-                profile.runDaily += now() - tDaily;
+            // Day-cadence work runs only on steps that CROSS a day boundary (task 118). In the daily band
+            // every step does — nothing changes there. In the hot HOURLY band (105) this block used to run
+            // 24× per day: the school/milestone sweeps plus the whole-table spoilage scan alone were ~43%
+            // of the entire run. The internally day-ranged accruals (school/work days count boundaries in
+            // [from, to)) are EXACTLY equivalent under the gate — the 23 non-crossing steps contributed
+            // zero days; only the sweeps drop back to the daily cadence they were designed for.
+            if (dayOfTick(tick) !== dayOfTick(tick + effectiveStep)) {
+                const tDaily = now();
+                logical.runDaily(state, tick, tick + effectiveStep, tpy, skillBook, engine, living);
+                logical.inventory.sweepExpired(tick); // perishables spoil daily (task 089)
+                if (profile) {
+                    profile.runDaily += now() - tDaily;
+                }
             }
             // Per-window skill snapshot at the configured cadence (task 077 fix).
             const bucket = Math.floor(tick / snapshotIntervalTicks);

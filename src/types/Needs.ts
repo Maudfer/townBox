@@ -40,5 +40,9 @@ export interface NeedsReader {
     levelOf(personId: string, need: NeedId, tick: number, worldSeed: number): number;
     satisfy(personId: string, satisfies: Partial<Record<NeedId, number>>, tick: number, worldSeed: number): void;
     selectionMultiplier(personId: string, satisfies: Partial<Record<NeedId, number>> | undefined, tick: number, worldSeed: number): number;
+    // One-pass per-need urgency (task 118): selection loops take the max over an action's satisfied needs
+    // against this table instead of re-deriving the same decayed levels per candidate. Optional — minimal
+    // test doubles fall back to selectionMultiplier.
+    urgencyByNeed?(personId: string, tick: number, worldSeed: number): Record<NeedId, number>;
     criticalNeedsOf(personId: string, tick: number, worldSeed: number): NeedId[];
 }

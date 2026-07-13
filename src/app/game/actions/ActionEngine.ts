@@ -927,15 +927,22 @@ export default class ActionEngine {
             if (entry.cooldownTicks !== undefined && deps.tick - bookkeeping.lastTick < entry.cooldownTicks) {
                 continue;
             }
-            if (entry.requirements && !evaluatePredicateCached(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
-                continue;
-            }
+            // The chance rolls FIRST (task 118 — the 079 social-gate lesson): most entries lose the roll,
+            // so the requirement predicate (object queries, carries scans) is only paid on a hit. This
+            // changes which entries consume draws (requirement-gated entries now always roll), so the RNG
+            // stream moves — deterministic per seed, and byte-identity was already off the table this arc.
             const slots = Math.max(1, entry.maxPerTick ?? 1);
             let count = 0;
             for (let slot = 0; slot < slots; slot++) {
                 if (rng.chance(entry.chancePerTick)) {
                     count += 1;
                 }
+            }
+            if (count === 0) {
+                continue;
+            }
+            if (entry.requirements && !evaluatePredicateCached(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
+                continue;
             }
             // Re-check the per-lifetime cap against what this tick would add.
             if (entry.maxTotal !== undefined) {

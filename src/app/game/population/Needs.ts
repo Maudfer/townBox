@@ -47,6 +47,17 @@ export default class Needs implements NeedsReader {
         }
     }
 
+    // Per-need urgency at one tick, computed in a single pass (task 118): the free-time loop used to call
+    // selectionMultiplier per candidate, re-deriving the same six decayed levels ~150×. Identical math —
+    // the caller takes the max over an action's satisfied needs against this table.
+    urgencyByNeed(personId: PersonId, tick: number, worldSeed: number): Record<NeedId, number> {
+        const table = {} as Record<NeedId, number>;
+        for (const need of NEED_IDS) {
+            table[need] = evaluateCurve(this.config.urgencyCurve, this.levelOf(personId, need, tick, worldSeed));
+        }
+        return table;
+    }
+
     // The selection-weight multiplier for an action given what it satisfies: the urgency gradient of the
     // MOST urgent need it meaningfully addresses (≥ 5 points). One shared gradient — data's last word stays
     // with authored weights/modifiers, which multiply on top.
