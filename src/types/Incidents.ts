@@ -5,7 +5,7 @@
 
 import { PersonId } from 'types/Genealogy';
 
-export type IncidentKind = 'shoplifting' | 'pickpocketing';
+export type IncidentKind = 'shoplifting' | 'pickpocketing' | 'fire';
 
 export type IncidentStatus = 'open' | 'resolved' | 'cold';
 
@@ -14,7 +14,7 @@ export interface IncidentRecord {
     kind: IncidentKind;
     tick: number;
     locationKey: string; // canonical location key at commit time
-    suspectId: PersonId;
+    suspectId: PersonId | null; // null for suspectless emergencies (fire, task 102)
     witnesses: number; // co-located others at commit time — resolution odds scale with it
     status: IncidentStatus;
     resolvedTick: number | null;
@@ -27,6 +27,9 @@ export interface IncidentsState {
 
 // The surface the Brain's pursuit hook consults through SimulationMarkets.incidents.
 export interface IncidentsReader {
+    // Fire queries (task 102): the evacuation hook asks about HERE; the firefighter rush about anywhere.
+    openFireAt(locationKey: string): boolean;
+    anyOpenFire(): boolean;
     // Wanted = named suspect of an open, WITNESSED incident (unwitnessed crimes are unknowable to police).
     isWanted(personId: PersonId): boolean;
 }

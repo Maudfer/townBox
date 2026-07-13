@@ -25,6 +25,7 @@ import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
 import { plannerHook } from 'game/actions/Planner';
 import { detainedHook } from 'game/actions/Detained';
+import { evacuationHook, fireResponseHook } from 'game/actions/FireResponse';
 import { pursuitHook } from 'game/actions/Pursuit';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
@@ -177,6 +178,8 @@ export default class Brain {
         this.hooks = [
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
+            evacuationHook, // fire! (task 102): survival-band — everyone out, whatever they were doing
+            fireResponseHook, // firefighters answer the alarm (task 102): obligation-band ambulatory rush
             detainedHook, // serving time (task 100): the cell outranks the shift — detention is lived, not despawned
             pursuitHook, // the chase (task 099): flee (survival) / give chase (obligation) on co-location
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations

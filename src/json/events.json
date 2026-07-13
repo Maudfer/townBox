@@ -606,7 +606,8 @@
         "triggers": {
             "probabilistic": {
                 "perYear": 0.8
-            }
+            },
+            "manual": {}
         },
         "effects": [
             {
@@ -26518,5 +26519,42 @@
                 "target": "subject"
             }
         ]
+    },
+    "escaped_a_fire": {
+        "label": "Escaped a burning building",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -2,
+        "witnessable": true,
+        "effects": []
+    },
+    "lost_home_to_fire": {
+        "label": "Lost their home to a fire",
+        "category": "housing",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -3,
+        "effects": []
     }
 }

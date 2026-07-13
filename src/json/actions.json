@@ -6442,5 +6442,30 @@
                 "quantity": 1
             }
         ]
+    },
+    "evacuating": {
+        "label": "Evacuating!",
+        "type": "continuous",
+        "category": "movement",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "events": {
+            "onComplete": "escaped_a_fire"
+        }
+    },
+    "rushing_to_the_fire": {
+        "label": "Rushing to the fire!",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
     }
 }

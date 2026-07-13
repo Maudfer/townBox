@@ -37,7 +37,7 @@
         "fire": {
             "label": "Fire protection",
             "providerJobs": [
-                "security_guard"
+                "firefighter"
             ],
             "facilityBlueprints": [
                 "fire_station"

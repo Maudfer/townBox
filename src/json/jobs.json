@@ -8312,5 +8312,176 @@
                 }
             ]
         }
+    },
+    "firefighter": {
+        "title": "Firefighter",
+        "salary": 2400,
+        "requiredSkills": [
+            "secure_a_perimeter",
+            "perform_first_aid"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Probationary Firefighter",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "secure_a_perimeter",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "stay_alert_on_night_shifts",
+                        "multiplier": 0.25
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "secure_a_perimeter",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "perform_first_aid",
+                            "toProficiency": 10
+                        }
+                    ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Firefighter",
+                "requires": [
+                    {
+                        "skill": "secure_a_perimeter",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 0.25
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Fire Lieutenant",
+                "requires": [
+                    {
+                        "skill": "secure_a_perimeter",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "multiplier": 0.5
+                    }
+                ]
+            }
+        ],
+        "physicalStrain": 0.9,
+        "mentalStrain": 0.6,
+        "socialAdmiration": 0.9,
+        "shiftStart": 480,
+        "shiftEnd": 1020,
+        "daysOfWeek": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+        ],
+        "workActions": {
+            "continuous": [
+                {
+                    "action": "keeping_watch",
+                    "chancePerTick": 1
+                },
+                {
+                    "action": "doing_rounds",
+                    "chancePerTick": 0.6
+                }
+            ],
+            "discrete": [
+                {
+                    "action": "checked_the_clock",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "took_a_short_break",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.08
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.08
+                }
+            ]
+        }
     }
 }

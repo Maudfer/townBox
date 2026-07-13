@@ -26,6 +26,8 @@ import { SchoolConfig, SchoolFacts } from 'types/School';
 import { ServiceInputs } from 'types/Services';
 import { RetconConfig } from 'types/Retcon';
 import { locationKey } from 'types/Objects';
+import { FIRE_CONFIG } from 'game/economy/BuildingConditions';
+import { Tool } from 'types/Cursor';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -603,6 +605,9 @@ export default class City {
         // Release the served (task 100): sentences that lapsed walk free — back into whatever life is left.
         this.runReleases(event.tick);
 
+        // The ignition sweep (task 102): worn buildings are hazards; kept-up ones almost never ignite.
+        this.runFireHazard(event.tick);
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
     }
@@ -807,6 +812,8 @@ export default class City {
     // materialized people — deaths despawn the resident, births materialize a newborn into the mother's
     // house. Public for unit testing; invoked via "newTick" in production.
     public async handleTick(event: NewTickEvent): Promise<void> {
+        // Burning fires resolve on the hour cadence (task 102) — a fire is not a monthly ledger line.
+        this.resolveFires(event.tick);
         const population = Game.population;
         const clock = Game.clock;
         const field = Game.field;
@@ -1341,12 +1348,111 @@ export default class City {
         const worldSeed = population.getState().worldSeed;
         const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`police#${Math.floor(tick / 24)}`)) >>> 0);
         for (const incident of [...incidents.open()].sort((a, b) => a.id - b.id)) {
-            if (incident.witnesses <= 0) {
-                continue; // nobody saw it - the case is unknowable
+            if (incident.witnesses <= 0 || !incident.suspectId) {
+                continue; // nobody saw it (or nobody DID it — fires) - the case is unknowable
             }
             const chance = Math.min(0.9, 0.12 * coverage * Math.min(incident.witnesses, 3));
             if (rng.next() < chance) {
                 this.convictSuspect(incident.suspectId, tick);
+            }
+        }
+    }
+
+    // The ignition sweep (task 102 / H4): one deterministic roll per standing building per day, the hazard
+    // interpolated over CONDITION — near-zero for a kept-up building, real for a derelict one. An ignition
+    // files a suspectless 'fire' incident (one registry for all emergencies) and the feed hears the alarm.
+    public runFireHazard(tick: number): void {
+        const field = Game.field;
+        const incidents = Game.incidents;
+        const conditions = Game.buildingConditions;
+        const population = Game.population;
+        if (!field || !incidents || !conditions || !population) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const day = Math.floor(tick / 24);
+        const config = FIRE_CONFIG;
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House) && !(structure instanceof Workplace)) {
+                continue;
+            }
+            if (structure instanceof Workplace && !structure.getBusiness()) {
+                continue; // a vacant lot has nothing to burn worth narrating
+            }
+            const key = structure.getIdentifier();
+            conditions.ensure(key, tick);
+            if (incidents.openFireAt('building:' + key)) {
+                continue; // already burning
+            }
+            const condition = conditions.conditionOf(key, tick);
+            const span = Math.max(1, 100 - config.conditionFloor);
+            const perYear = config.ignitionPerYearAtFullCondition
+                + (config.ignitionPerYearAtFloor - config.ignitionPerYearAtFullCondition) * (100 - condition) / span;
+            const perDay = 1 - Math.exp(-perYear / 360);
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('fire#' + key + '#' + day)) >>> 0);
+            if (rng.next() >= perDay) {
+                continue;
+            }
+            incidents.report('fire', tick, 'building:' + key, null, 0);
+            const name = structure instanceof Workplace ? structure.getBusiness()?.name ?? 'a workplace' : 'a home';
+            this.announce('fire', tick, 'A fire broke out at ' + name, null);
+        }
+    }
+
+    // Burning fires resolve after the response window (task 102): the outcome curve rides FIRE COVERAGE —
+    // a staffed station mostly extinguishes, a town without one watches buildings burn. Lingerers who never
+    // evacuated risk the injury roll; a destroyed building leaves through the same coherent teardown
+    // bulldozing uses (residents rehoused or homeless, businesses closed), and the lot heals via 037.
+    public resolveFires(tick: number): void {
+        const incidents = Game.incidents;
+        const field = Game.field;
+        const conditions = Game.buildingConditions;
+        const population = Game.population;
+        if (!incidents || !field || !conditions || !population) {
+            return;
+        }
+        const burning = incidents.open().filter(incident => incident.kind === 'fire' && tick - incident.tick >= FIRE_CONFIG.responseTicks);
+        if (burning.length === 0) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        for (const incident of burning.sort((a, b) => a.id - b.id)) {
+            const key = incident.locationKey.startsWith('building:') ? incident.locationKey.slice('building:'.length) : incident.locationKey;
+            const structure = field.getStructures().find(candidate => candidate instanceof Building && candidate.getIdentifier() === key) as Building | undefined;
+            incidents.resolve(incident.id, tick);
+            if (!structure) {
+                continue; // already gone (bulldozed mid-fire)
+            }
+            // Lingerers: whoever is STILL inside when the outcome lands rolls the injury die.
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('fireOutcome#' + incident.id)) >>> 0);
+            for (const occupantId of this.world.peopleAt({ kind: 'building', key }).sort()) {
+                if (rng.next() < FIRE_CONFIG.injuryChancePerOccupant) {
+                    this.fireMilestone('injury', occupantId, tick);
+                }
+            }
+            const coverage = this.services.coverageOf('fire');
+            const roll = rng.next();
+            const extinguishChance = Math.min(0.92, 0.25 + 0.6 * coverage);
+            const destroyChance = Math.max(0.05, 0.45 - 0.5 * coverage);
+            if (roll < extinguishChance) {
+                conditions.damage(key, FIRE_CONFIG.damage.extinguished, tick);
+                this.announce('fire', tick, 'The fire was put out — minor damage', null);
+            } else if (roll < extinguishChance + destroyChance) {
+                // Destroyed: the residents' loss lands in their logs, then the coherent teardown.
+                if (structure instanceof House) {
+                    for (const resident of structure.getResidents()) {
+                        this.fireMilestone('lost_home_to_fire', resident.social.getPersonId(), tick);
+                    }
+                }
+                conditions.remove(key);
+                const position = structure.getPosition();
+                if (position) {
+                    field.bulldoze({ position, tool: Tool.Bulldoze });
+                }
+                this.announce('fire', tick, 'The building burned to the ground', null);
+            } else {
+                conditions.damage(key, FIRE_CONFIG.damage.damaged, tick);
+                this.announce('fire', tick, 'The fire was contained — heavy damage', null);
             }
         }
     }

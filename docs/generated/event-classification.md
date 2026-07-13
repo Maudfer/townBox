@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 723 events — **26 vital**, **38 wired**, **516 texture**, **143 reserved**.
+Totals: 725 events — **26 vital**, **39 wired**, **516 texture**, **144 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -175,6 +175,7 @@ Totals: 723 events — **26 vital**, **38 wired**, **516 texture**, **143 reserv
 | enrolled_child_in_school | family | manual | reserved | — |
 | enrolled_in_trade_school | education | probabilistic+manual | texture | — |
 | entered_pet_show | pet | probabilistic+manual | texture | — |
+| escaped_a_fire | health | manual | wired | evacuating.onComplete |
 | evaded_the_police | crime | manual | reserved | — |
 | excluded_from_group | social | probabilistic | texture | — |
 | failed_driving_test | milestone | probabilistic+manual | texture | — |
@@ -346,7 +347,7 @@ Totals: 723 events — **26 vital**, **38 wired**, **516 texture**, **143 reserv
 | inherited_estate | death | manual | reserved | — |
 | inherited_heirloom | family | manual | reserved | — |
 | injured_at_work | career | probabilistic+manual | texture | — |
-| injury | health | probabilistic | vital | — |
+| injury | health | probabilistic+manual | vital | — |
 | investment_paid_off | finance | probabilistic+manual | texture | — |
 | investment_went_bust | finance | probabilistic+manual | texture | — |
 | jaywalked | crime-mischief | probabilistic+manual | texture | — |
@@ -395,6 +396,7 @@ Totals: 723 events — **26 vital**, **38 wired**, **516 texture**, **143 reserv
 | lost_close_friend | death | manual | reserved | — |
 | lost_election | community | manual | reserved | — |
 | lost_first_tooth | childhood | probabilistic+manual | texture | — |
+| lost_home_to_fire | housing | manual | reserved | — |
 | lost_home_to_foreclosure | housing | manual | reserved | — |
 | lost_house_keys | housing | probabilistic+manual | texture | — |
 | lost_keys | possessions | probabilistic | texture | — |

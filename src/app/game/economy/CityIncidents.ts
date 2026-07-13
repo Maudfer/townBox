@@ -16,7 +16,7 @@ export default class CityIncidents implements IncidentsReader {
         this.state = { nextId: 1, incidents: [] };
     }
 
-    report(kind: IncidentKind, tick: number, locationKey: string, suspectId: PersonId, witnesses: number): IncidentRecord {
+    report(kind: IncidentKind, tick: number, locationKey: string, suspectId: PersonId | null, witnesses: number): IncidentRecord {
         const record: IncidentRecord = { id: this.state.nextId, kind, tick, locationKey, suspectId, witnesses, status: 'open', resolvedTick: null };
         this.state.nextId += 1;
         this.state.incidents.push(record);
@@ -46,6 +46,14 @@ export default class CityIncidents implements IncidentsReader {
                 incident.status = 'cold';
             }
         }
+    }
+
+    openFireAt(locationKey: string): boolean {
+        return this.state.incidents.some(incident => incident.status === 'open' && incident.kind === 'fire' && incident.locationKey === locationKey);
+    }
+
+    anyOpenFire(): boolean {
+        return this.state.incidents.some(incident => incident.status === 'open' && incident.kind === 'fire');
     }
 
     isWanted(personId: PersonId): boolean {

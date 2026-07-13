@@ -22,6 +22,7 @@ import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/va
 import {
     validateArbitrationStructure,
     validateInventoryTuningStructure,
+    validateFireStructure,
     validateHabitsStructure,
     validateMoodStructure,
     validateHistoryGeneratorStructure,
@@ -54,6 +55,7 @@ import economyConfig from 'json/economy.json';
 import eventsConfig from 'json/events.json';
 import householdDrawConfig from 'json/householdDraw.json';
 import inputConfig from 'json/input.json';
+import fireConfig from 'json/fire.json';
 import habitsConfig from 'json/habits.json';
 import inventoryConfig from 'json/inventory.json';
 import jobsConfig from 'json/jobs.json';
@@ -112,6 +114,7 @@ export function allRegistrations(): SchemaRegistration[] {
         { name: 'inventoryTuning', version: 1, data: inventoryConfig, validateStructure: validateInventoryTuningStructure },
         { name: 'mood', version: 1, data: moodConfig, validateStructure: validateMoodStructure },
         { name: 'habits', version: 1, data: habitsConfig, validateStructure: validateHabitsStructure },
+        { name: 'fire', version: 1, data: fireConfig, validateStructure: validateFireStructure },
         { name: 'services', version: 1, data: servicesConfig, validateStructure: validateServicesStructure, validateSemantics: validateServicesSemantics },
         { name: 'retcons', version: 1, data: retconsConfig, validateStructure: validateRetconsStructure, validateSemantics: validateRetconsSemantics },
         { name: 'traits', version: 1, data: traitsConfig, validateStructure: validateTraitsStructure, validateSemantics: validateTraitsSemantics },

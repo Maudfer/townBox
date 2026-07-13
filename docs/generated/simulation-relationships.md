@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 295 | 84 continuous / 211 discrete |
-| `events.json` | 723 | 170 probabilistic, 372 probabilistic + manual, 179 manual, 2 manual + automated |
+| `actions.json` | 297 | 86 continuous / 211 discrete |
+| `events.json` | 725 | 169 probabilistic, 373 probabilistic + manual, 181 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -23,6 +23,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
+| `evacuating` | onComplete → `escaped_a_fire` |
 | `fleeing_the_police` | onComplete → `chase_concluded` |
 | `found_coin` | onComplete → `found_money_on_street` |
 | `gardening` | onComplete → `planted_garden` |
@@ -52,6 +53,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `committed_shoplifting` | manual | — | `pocketed_merchandise`.onComplete (discrete) |
 | `completed_school_day` | manual + automated | once: perDay | `attend_school`.onComplete (continuous) |
 | `decluttered_house` | probabilistic + manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
+| `escaped_a_fire` | manual | — | `evacuating`.onComplete (continuous) |
 | `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
 | `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
 | `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
@@ -66,7 +68,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 553 manual-triggered events, 534 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 556 manual-triggered events, 536 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -79,16 +81,16 @@ Of the 553 manual-triggered events, 534 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 372 |
-| manual | 179 |
-| probabilistic | 170 |
+| probabilistic + manual | 373 |
+| manual | 181 |
+| probabilistic | 169 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
 |---|---|
 | cooldown window | 634 |
 | once: ever | 50 |
-| — | 33 |
+| — | 35 |
 | once: perDay | 6 |
 
 ## Object-action transformations
@@ -200,6 +202,7 @@ Every job carries a full authored ladder (064/066) with an explicit entry-rank t
 | `doctor` | Trainee Doctor → Resident → Attending Physician → Senior Physician | 4 skills | every 30 work days |
 | `electronics_technician` | Trainee Electronics Technician → Technician → Senior Technician | 2 skills | every 30 work days |
 | `engineer` | Trainee Engineer → Engineer → Senior Engineer → Principal Engineer | 2 skills | every 30 work days |
+| `firefighter` | Probationary Firefighter → Firefighter → Fire Lieutenant | 2 skills | every 30 work days |
 | `fitness_trainer` | Trainee Fitness Trainer → Fitness Trainer → Head Trainer | 2 skills | every 30 work days |
 | `garbage_collector` | Collection Crew → Route Collector → Route Supervisor | 2 skills | every 30 work days |
 | `hairdresser` | Trainee Hairdresser → Hair Stylist → Salon Stylist | 2 skills | every 30 work days |

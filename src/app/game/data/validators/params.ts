@@ -27,6 +27,27 @@ export function validateEconomyStructure(data: unknown, issues: IssueCollector):
     checkNumber(issues, 'detentionDays', data['detentionDays'], { min: 1, integer: true });
 }
 
+// json/fire.json (task 102): the building-condition wear + ignition/outcome policy.
+export function validateFireStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'fire', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'fire', config, ['wearPerDay', 'conditionFloor', 'ignitionPerYearAtFullCondition', 'ignitionPerYearAtFloor', 'responseTicks', 'injuryChancePerOccupant', 'damage']);
+    checkNumber(issues, 'fire.wearPerDay', config['wearPerDay'], { min: 0 });
+    checkNumber(issues, 'fire.conditionFloor', config['conditionFloor'], { min: 0, max: 100 });
+    checkNumber(issues, 'fire.ignitionPerYearAtFullCondition', config['ignitionPerYearAtFullCondition'], { min: 0 });
+    checkNumber(issues, 'fire.ignitionPerYearAtFloor', config['ignitionPerYearAtFloor'], { min: 0 });
+    checkNumber(issues, 'fire.responseTicks', config['responseTicks'], { min: 1, integer: true });
+    checkNumber(issues, 'fire.injuryChancePerOccupant', config['injuryChancePerOccupant'], { min: 0, max: 1 });
+    if (checkRecord(issues, 'fire.damage', config['damage'])) {
+        const damage = config['damage'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'fire.damage', damage, ['extinguished', 'damaged']);
+        checkNumber(issues, 'fire.damage.extinguished', damage['extinguished'], { min: 0 });
+        checkNumber(issues, 'fire.damage.damaged', damage['damaged'], { min: 0 });
+    }
+}
+
 export function validatePopulationStructure(data: unknown, issues: IssueCollector): void {
     if (!checkRecord(issues, '', data)) {
         return;

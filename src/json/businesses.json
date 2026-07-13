@@ -1705,12 +1705,12 @@
                     "value": 1
                 }
             },
-            "security_guard": {
+            "firefighter": {
                 "count": {
                     "mode": "linear",
                     "base": 3,
                     "perUnit": 2,
-                    "max": 16
+                    "max": 14
                 }
             }
         },
