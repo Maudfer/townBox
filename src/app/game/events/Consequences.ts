@@ -339,7 +339,10 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     return null;
                 }
                 if (op.op === 'moveObject') {
-                    const container = resolveContainer(op.container, ctx);
+                    // 'outside' (task 112): the shared curb — where the trash goes and the collectors sweep.
+                    const container = op.container === 'outside'
+                        ? { kind: 'location' as const, key: 'outside' }
+                        : resolveContainer(op.container, ctx);
                     if (!container) {
                         return null;
                     }

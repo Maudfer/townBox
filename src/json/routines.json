@@ -106,6 +106,20 @@
             ]
         }
     },
+    "trash_day": {
+        "action": "took_out_the_trash",
+        "cadenceDays": 2,
+        "window": [
+            7,
+            20
+        ],
+        "adoption": 0.9,
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 14
+        }
+    },
     "pet_care": {
         "action": "caring_for_the_pet",
         "cadenceDays": 1,

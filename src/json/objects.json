@@ -37305,6 +37305,24 @@
             "ownershipDefault": "none"
         }
     },
+    "bag_of_garbage": {
+        "label": "Bag of Garbage",
+        "category": "misc",
+        "size": {
+            "w": 40,
+            "d": 40,
+            "h": 60
+        },
+        "weightGrams": 4000,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
+        }
+    },
     "hamster_cage": {
         "label": "Hamster Cage",
         "category": "misc",

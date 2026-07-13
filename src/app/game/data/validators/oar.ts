@@ -96,7 +96,8 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
             case 'moveObject':
                 checkUnknownKeys(issues, opPath, op, ['op', 'object', 'container']);
                 validateObjectRef(issues, `${opPath}.object`, op['object']);
-                checkEnum(issues, `${opPath}.container`, op['container'], CONTAINERS);
+                // moveObject alone may target the shared curb (task 112: taking out the trash).
+                checkEnum(issues, `${opPath}.container`, op['container'], [...CONTAINERS, 'outside']);
                 break;
             case 'moveObjectToPerson':
                 checkUnknownKeys(issues, opPath, op, ['op', 'object', 'target']);

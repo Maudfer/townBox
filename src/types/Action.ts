@@ -227,8 +227,9 @@ export type ConsequenceOp =
     | { op: 'createObject'; archetype: string; quantity?: number; state?: Record<string, Value>; owner?: OwnershipTarget; container?: 'possessions' | 'location'; bindAs?: string }
     | { op: 'consumeObject'; object: ObjectRef; quantity?: number }
     | { op: 'removeObject'; object: ObjectRef }
-    // Physical movement only (ownership untouched): pocket something / put it down.
-    | { op: 'moveObject'; object: ObjectRef; container: 'possessions' | 'location' }
+    // Physical movement only (ownership untouched): pocket something / put it down. 'outside' is the curb
+    // (task 112): the shared street location, so taking the trash out lands it where collectors sweep.
+    | { op: 'moveObject'; object: ObjectRef; container: 'possessions' | 'location' | 'outside' }
     // Physical hand-off only (ownership untouched): the object lands in the target person's Possessions.
     // Lending and returning — the counterpart of moveObject when the destination is another person.
     | { op: 'moveObjectToPerson'; object: ObjectRef; target: 'targetPerson' }
