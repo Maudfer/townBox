@@ -6479,6 +6479,69 @@
             "weight": 0
         }
     },
+    "receiving_treatment": {
+        "label": "Receiving treatment at the hospital",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "venue:hospital",
+        "durationTicks": 4,
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "rest": 25
+        }
+    },
+    "treating_patient": {
+        "label": "Treating a patient",
+        "type": "continuous",
+        "category": "work",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
+        },
+        "events": {
+            "onComplete": "treated_a_patient",
+            "onCompleteTarget": "was_treated_by_doctor"
+        }
+    },
+    "visiting_the_sick": {
+        "label": "Visiting a sick relative",
+        "type": "continuous",
+        "category": "social",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "social": 15
+        },
+        "parameters": {
+            "target": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "events": {
+            "onComplete": {
+                "event": "visited_sick_relative",
+                "params": {
+                    "target": "$params.target"
+                }
+            }
+        }
+    },
     "visiting_the_pet_shop": {
         "label": "Visiting the pet shop",
         "type": "continuous",

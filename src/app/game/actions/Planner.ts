@@ -13,6 +13,7 @@
 // the salted-fork convention; entries serialize in the save (v16 family).
 
 import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
+import { SICK_HEALTH_THRESHOLD } from 'game/actions/JobOrchestrator';
 import routinesConfig from 'json/routines.json';
 import { RoutinesConfig } from 'types/Agenda';
 import { spouseAt, childrenOf, parentsOf } from 'util/kinship';
@@ -112,6 +113,41 @@ export const plannerHook: BrainHook = {
                     latestTick: targetDay + 18,
                     locationOverride: 'building:' + facility.locationKey,
                     routineId: 'jail_visit',
+                    causationId: null,
+                    source: 'routine',
+                });
+            }
+        }
+
+        // The sick visit (task 111): a close relative below the sick threshold gets visited — the 095
+        // social-support loop made physical. The locationOverride follows the PERSON (the D2 mechanism),
+        // so the visit lands at their bedside wherever that is — home or the hospital ward alike. Health
+        // reads cost a context each, so the producer sweeps once per day (the 08:00 tick).
+        if (deps.eventEngine && hourOfTick(deps.tick) === 8
+            && !agenda.hasPendingRoutine(personId, 'sick_visit', deps.tick)
+            && !hasAction('visiting_the_sick', { withinTicks: 3 * TICKS_PER_DAY })) {
+            const pool = deps.state.people;
+            const kin: string[] = [];
+            const spouse = spouseAt(pool, personId, deps.tick);
+            if (spouse) {
+                kin.push(spouse);
+            }
+            kin.push(...childrenOf(pool, personId), ...parentsOf(pool, personId));
+            const sick = kin.sort().find(relativeId => {
+                const health = deps.eventEngine!.contextFor(deps.state, relativeId, deps.tick, deps.ticksPerYear).getAttr('health');
+                return typeof health === 'number' && health < SICK_HEALTH_THRESHOLD;
+            });
+            if (sick) {
+                const dayStart = deps.tick - hourOfTick(deps.tick);
+                agenda.enqueue({
+                    personId,
+                    actionId: 'visiting_the_sick',
+                    params: { target: sick },
+                    enqueuedAtTick: deps.tick,
+                    earliestTick: dayStart + 9,
+                    latestTick: dayStart + 18,
+                    locationOverride: `person:${sick}`,
+                    routineId: 'sick_visit',
                     causationId: null,
                     source: 'routine',
                 });

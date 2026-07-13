@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 306 | 92 continuous / 214 discrete |
-| `events.json` | 734 | 169 probabilistic, 368 probabilistic + manual, 195 manual, 2 manual + automated |
+| `actions.json` | 309 | 95 continuous / 214 discrete |
+| `events.json` | 738 | 169 probabilistic, 368 probabilistic + manual, 199 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -37,6 +37,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `shared_gossip` | onCompleteTarget → `heard_gossip` |
 | `shopping_trip` | onComplete → `went_grocery_shopping` |
 | `sleep` | onComplete → `woke_up` |
+| `treating_patient` | onComplete → `treated_a_patient`<br>onCompleteTarget → `was_treated_by_doctor` |
 | `visiting_relatives` | onComplete → `reconnected_with_relative` |
 
 ## Action → Event (consequence ops)
@@ -68,11 +69,13 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
 | `started_working` | manual | — | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 13 more |
 | `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 29 more |
+| `treated_a_patient` | manual | — | `treating_patient`.onComplete (continuous) |
 | `tried_new_recipe` | probabilistic + manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
+| `was_treated_by_doctor` | manual | — | `treating_patient`.onCompleteTarget (continuous) |
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 565 manual-triggered events, 543 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 569 manual-triggered events, 545 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -86,15 +89,15 @@ Of the 565 manual-triggered events, 543 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 368 |
-| manual | 195 |
+| manual | 199 |
 | probabilistic | 169 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
 |---|---|
 | cooldown window | 631 |
+| — | 51 |
 | once: ever | 50 |
-| — | 47 |
 | once: perDay | 6 |
 
 ## Object-action transformations
@@ -164,6 +167,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `taught_person_something` | ask first | skipStep | — | w 0.25, cd 24 |
 | `thanked_person` | no consent | — | — | w 0.2, cd 4 |
 | `told_a_joke` | no consent | — | — | w 0.7, cd 6 |
+| `treating_patient` | no consent | — | — | w 0 |
 
 ## Skills (dependency DAG summary)
 

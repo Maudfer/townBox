@@ -75,6 +75,10 @@ const ROLE_SUBJECT = 'subject';
 // Recency window for the jobApplications attribute (task 097): applications older than a week stop counting.
 const JOB_APPLICATION_WINDOW_TICKS = 168;
 
+// Recency window for the recentlyTreated attribute (task 111): a doctor's treatment boosts the recovery
+// hazard for a week, then the personal multiplier fades (coverage — the system level — stays).
+const TREATMENT_WINDOW_TICKS = 168;
+
 // Shared empty agent list for invoke() on events with no candidate-search role (task 079). resolveRoles only
 // reads agentIds (never mutates), so a single shared instance is safe and avoids a per-call allocation.
 const EMPTY_AGENTS: PersonId[] = [];
@@ -443,6 +447,11 @@ export default class EventEngine {
                 // log. get_job's hazard factor reads it (an active applicant is hired in days, not months)
                 // and application_rejected gates on it. Zero without seeking — the status-quo rate holds.
                 return this.lifeLog.countRecentActions(id, 'applied_for_a_job', tick - JOB_APPLICATION_WINDOW_TICKS);
+            case 'recentlyTreated':
+                // Treatment as lived behavior (task 111): recent was_treated_by_doctor commits in the shared
+                // log. recovered's hazard factor reads it — the PERSONAL multiplier on top of the system-level
+                // healthcareCoverage. Zero without a doctor's visit — the status-quo rate holds.
+                return this.lifeLog.countRecentEvents(id, 'was_treated_by_doctor', tick - TREATMENT_WINDOW_TICKS);
             case 'hourOfDay':
                 // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
                 // at dinner time) and predicates. Derived from the tick, identical in both execution modes.

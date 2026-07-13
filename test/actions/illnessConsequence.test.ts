@@ -33,6 +33,9 @@ const JOB: JobFacts = {
 function harness(ageYears = 30) {
     const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
     const world = new BootstrapWorld(inventory);
+    // No hospital in this town (task 111): the fitness gate's stay-home behavior is exactly the
+    // no-hospital path — with one placed, the sick seek treatment instead (hospitalEndToEnd.test.ts).
+    (world as unknown as { hasVenue: () => boolean }).hasVenue = () => false;
     const engine = new EventEngine(EVENTS);
     const actions = new ActionEngine(ACTIONS, engine.getLifeLog());
     const brain = new Brain(actions);

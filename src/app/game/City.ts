@@ -979,6 +979,12 @@ export default class City {
                         // detainee's half rides the payload instead, chained to the visitor's commit.
                         Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], event.tick, ticksPerYear,
                             { source: 'system', causationId: commit.seq });
+                    } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
+                        // The sick visit's counterpart (task 111, same travelling-visit pattern): the
+                        // patient's half — its positive valence feeds their mood through the normal
+                        // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
+                        Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], event.tick, ticksPerYear,
+                            { source: 'system', causationId: commit.seq });
                     }
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).

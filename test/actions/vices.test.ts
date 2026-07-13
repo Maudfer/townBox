@@ -122,7 +122,7 @@ describe('escalation in free-time selection', () => {
 
 describe('the withdrawal pass (data)', () => {
     test('outgoing social/leisure actions carry the depressed dampener; the coping set stays exempt', () => {
-        const exempt = new Set(['at_the_bar', 'drank_alone', 'stayed_in_bed_all_day', 'resting_at_home_sick', 'shoplifting', 'visiting_the_detained']); // shoplifting is desperation coping (099) — depression must not dampen it; the jail visit (109) is a weight-0 planner-enqueued family duty selection never picks
+        const exempt = new Set(['at_the_bar', 'drank_alone', 'stayed_in_bed_all_day', 'resting_at_home_sick', 'shoplifting', 'visiting_the_detained', 'visiting_the_sick']); // shoplifting is desperation coping (099) — depression must not dampen it; the jail/sick visits (109/111) are weight-0 planner-enqueued family duties selection never picks
         const isDepressedDampener = (def: ActionDefinition): boolean =>
             (def.selection?.modifiers ?? []).some(m => JSON.stringify(m.when).includes('"depressed"') && m.multiply < 1);
         let dampened = 0;

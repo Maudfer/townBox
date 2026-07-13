@@ -1,6 +1,7 @@
 {
     "bar": ["bar"],
     "beach": ["beach"],
+    "hospital": ["hospital"],
     "park": ["park"],
     "pet_shop": ["pet_shop"],
     "shop": ["supermarket", "clothing_store", "electronics_store", "hardware_store", "bookstore", "toy_store"],

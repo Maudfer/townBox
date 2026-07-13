@@ -27,6 +27,7 @@ import { plannerHook } from 'game/actions/Planner';
 import { detainedHook } from 'game/actions/Detained';
 import { evacuationHook, fireResponseHook } from 'game/actions/FireResponse';
 import { pursuitHook } from 'game/actions/Pursuit';
+import { doctorRoundsHook, treatmentHook } from 'game/actions/Treatment';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import arbitrationConfig from 'json/arbitration.json';
@@ -182,6 +183,8 @@ export default class Brain {
             fireResponseHook, // firefighters answer the alarm (task 102): obligation-band ambulatory rush
             detainedHook, // serving time (task 100): the cell outranks the shift — detention is lived, not despawned
             pursuitHook, // the chase (task 099): flee (survival) / give chase (obligation) on co-location
+            treatmentHook, // the sick travel to a placed hospital (task 111) — urgency-scaled obligation
+            doctorRoundsHook, // on-duty doctors treat co-located patients-in-treatment (task 111)
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
             wokeUpHook,

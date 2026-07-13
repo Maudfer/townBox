@@ -51,7 +51,7 @@ const TRANSFERS = ['gave_object_to_person', 'lent_an_object', 'returned_borrowed
 
 describe('the curated contract table', () => {
     test('every person-targeted action is contracted with the ratified askFirst posture', () => {
-        expect(personTargeted.length).toBe(26); // 18 pre-074 + hugged/kissed/invite + ask-out/proposal + thanked (094) + pickpocketed (099) + shared_gossip (104)
+        expect(personTargeted.length).toBe(27); // 18 pre-074 + hugged/kissed/invite + ask-out/proposal + thanked (094) + pickpocketed (099) + shared_gossip (104) + treating_patient (111)
         for (const actionId of personTargeted) {
             const contract = ACTIONS[actionId]!.interaction!;
             expect(contract.targetParam).toBe('target');
@@ -74,6 +74,9 @@ describe('the curated contract table', () => {
 
     test('every person-targeted action carries curated selection metadata for the social hook', () => {
         for (const actionId of personTargeted) {
+            if (actionId === 'treating_patient') {
+                continue; // 111: doctorRounds-bound (weight 0) — never a social-hook pick, no curation to carry
+            }
             const selection = ACTIONS[actionId]!.selection!;
             expect(selection.weight).toBeGreaterThan(0);
             expect(selection.cooldownTicks).toBeGreaterThan(0);

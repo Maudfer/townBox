@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 734 events — **27 vital**, **42 wired**, **511 texture**, **154 reserved**.
+Totals: 738 events — **27 vital**, **45 wired**, **511 texture**, **155 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -640,6 +640,7 @@ Totals: 734 events — **27 vital**, **42 wired**, **511 texture**, **154 reserv
 | tped_neighbors_tree | crime-mischief | probabilistic+manual | texture | — |
 | trade_school | education | probabilistic+manual | vital | — |
 | trained_new_coworker | career | probabilistic+manual | texture | — |
+| treated_a_patient | health | manual | wired | treating_patient.onComplete |
 | trespassed_empty_lot | crime-mischief | probabilistic | texture | — |
 | tried_exotic_food | food | probabilistic+manual | texture | — |
 | tried_new_recipe | food | probabilistic+manual | wired | cooking_meal.onComplete |
@@ -661,6 +662,7 @@ Totals: 734 events — **27 vital**, **42 wired**, **511 texture**, **154 reserv
 | visited_grave | death | probabilistic+manual | texture | — |
 | visited_next_town | travel | probabilistic | texture | — |
 | visited_person_in_jail | crime | manual | wired | visiting_the_detained.onComplete |
+| visited_sick_relative | health | manual | wired | visiting_the_sick.onComplete |
 | volunteered_at_shelter | community | probabilistic+manual | texture | — |
 | voted_in_election | community | manual | reserved | — |
 | vowed_to_travel_more | travel | probabilistic | texture | — |
@@ -688,7 +690,9 @@ Totals: 734 events — **27 vital**, **42 wired**, **511 texture**, **154 reserv
 | was_scammed | legal | probabilistic+manual | texture | — |
 | was_scolded | family | probabilistic+manual | texture | — |
 | was_snowed_in | weather-reaction | manual | reserved | — |
+| was_treated_by_doctor | health | manual | wired | treating_patient.onCompleteTarget |
 | was_turned_down | romance | probabilistic+manual | texture | — |
+| was_visited_while_sick | health | manual | reserved | — |
 | was_wrongly_accused | legal | probabilistic | texture | — |
 | washed_car | possessions | probabilistic+manual | texture | — |
 | watched_child_graduate | family | manual | reserved | — |

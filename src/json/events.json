@@ -695,6 +695,22 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "driver": "subject.recentlyTreated",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 1,
+                                    "value": 2
+                                }
+                            ]
+                        }
                     }
                 ]
             }
@@ -26573,6 +26589,83 @@
     "received_a_visitor": {
         "label": "Received a visitor inside",
         "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 2,
+        "effects": []
+    },
+    "treated_a_patient": {
+        "label": "Treated a patient",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "was_treated_by_doctor": {
+        "label": "Was treated by a doctor",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "visited_sick_relative": {
+        "label": "Visited a sick relative",
+        "category": "health",
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "was_visited_while_sick": {
+        "label": "A loved one came by while sick",
+        "category": "health",
         "roles": {
             "subject": {
                 "where": {
