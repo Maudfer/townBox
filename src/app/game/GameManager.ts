@@ -477,6 +477,10 @@ export default class GameManager {
         if (selected.objects) {
             this.inventory?.loadState(selected.objects);
         }
+        // The windowed elective graph (task 105): drawn people arrive with friends, not just family.
+        if (selected.socialGraph) {
+            this.socialGraph?.loadState(selected.socialGraph);
+        }
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:

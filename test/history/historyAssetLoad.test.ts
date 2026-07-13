@@ -15,6 +15,7 @@ import { compress } from 'util/compress';
 
 const PARAMS: HistoryGeneratorParams = {
     ...DEFAULT_GENERATOR_PARAMS,
+    hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
     seed: 31, founderCount: 40, recordThreshold: 30, recordYears: 10, daysPerStep: 30,
     skillSnapshotYears: 1, flushIntervalYears: 3, keepActionLog: false,
     populationControl: { enabled: true, target: 55, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },

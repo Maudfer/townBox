@@ -179,7 +179,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'reducedEventManifest', 'profile', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'hotYears', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'reducedEventManifest', 'profile', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
     checkUnknownKeys(issues, '', data, fields);
     checkNumber(issues, 'seed', data['seed'], { integer: true });
     checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
@@ -189,6 +189,8 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
         issues.add('ticksPerYear', `must equal the clock's TICKS_PER_YEAR (${TICKS_PER_YEAR}), got ${data['ticksPerYear']}`);
     }
     checkNumber(issues, 'daysPerStep', data['daysPerStep'], { min: 1, integer: true });
+    // Two-band recording (task 105/K1): the final hotYears of the recording window step HOURLY.
+    checkNumber(issues, 'hotYears', data['hotYears'], { min: 0 });
     checkNumber(issues, 'warmMarginYears', data['warmMarginYears'], { min: 0 });
     checkNumber(issues, 'maxWarmupYears', data['maxWarmupYears'], { min: 1 });
     checkBoolean(issues, 'keepActionLog', data['keepActionLog']);

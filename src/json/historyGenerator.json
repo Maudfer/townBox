@@ -17,7 +17,7 @@
         "target": 250,
         "band": 0.05,
         "suppressLevel": 0.1,
-        "allowLevel": 1.0
+        "allowLevel": 1
     },
     "logicalWorld": {
         "enabled": true,
@@ -29,5 +29,6 @@
     "safety": {
         "maxRuntimeMs": 0,
         "maxPeople": 0
-    }
+    },
+    "hotYears": 10
 }

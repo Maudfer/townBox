@@ -26,6 +26,7 @@ import { compress } from 'util/compress';
 
 const TINY: HistoryGeneratorParams = {
     ...DEFAULT_GENERATOR_PARAMS,
+    hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
     seed: 4242,
     founderCount: 30,
     recordThreshold: 20, // ≤ founderCount ⇒ epoch is reached immediately (exercises the recording + prune path)
@@ -135,6 +136,7 @@ describe('reduced-manifest generator mode (task 078)', () => {
     // objects), which is what the reduced manifest and the ActionEngine active-index/pruning touch.
     const LOGICAL: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
+        hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
         seed: 909,
         founderCount: 40,
         recordThreshold: 30,
@@ -200,6 +202,7 @@ describe('generator — warm-up abort + empty-pool edge cases', () => {
         // median-history helper hits its own empty-array branch too).
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 1, founderCount: 0, recordThreshold: 1, recordYears: 1, maxWarmupYears: 1, daysPerStep: 30,
             keepActionLog: false,
             populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
@@ -217,6 +220,7 @@ describe('generator — warm-up abort + empty-pool edge cases', () => {
         // The cap equals the founder count, so the very first safety check (before any tick runs) trips it.
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 1, founderCount: 6, recordThreshold: 100, recordYears: 1, maxWarmupYears: 5, daysPerStep: 30,
             keepActionLog: false,
             safety: { maxRuntimeMs: 0, maxPeople: 6 },
@@ -232,6 +236,7 @@ describe('generator — warm-up abort + empty-pool edge cases', () => {
     test('onProgress fires per step with the phase, phase-relative ticks, and living count', async () => {
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 4242, founderCount: 30, recordThreshold: 20, recordYears: 1, daysPerStep: 30,
             keepActionLog: false,
             populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
@@ -256,6 +261,7 @@ describe('generator — warm-up abort + empty-pool edge cases', () => {
         // which is known to produce warm-up deaths (verified empirically; deterministic per seed).
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 555, founderCount: 6, recordThreshold: 100, recordYears: 1, maxWarmupYears: 60, daysPerStep: 30,
             keepActionLog: false,
             populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },

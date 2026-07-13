@@ -291,6 +291,7 @@ describe('generator with the logical-economy world (task 077, integration)', () 
     jest.setTimeout(180000);
     const params: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
+        hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
         seed: 7, founderCount: 40, recordThreshold: 30, recordYears: 6, daysPerStep: 30, skillSnapshotYears: 1,
         populationControl: { enabled: true, target: 55, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
         logicalWorld: { enabled: true, homes: true, schools: true, jobs: true, objects: true },
@@ -330,6 +331,7 @@ describe('streaming to person files + boot-from-sections (task 077; person-keyed
     // A few flush intervals over the run so every person file accumulates multiple chunk lines.
     const params: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
+        hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
         seed: 11, founderCount: 40, recordThreshold: 30, recordYears: 12, daysPerStep: 30,
         skillSnapshotYears: 1, flushIntervalYears: 3, keepActionLog: false,
         populationControl: { enabled: true, target: 55, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },

@@ -148,7 +148,7 @@ export async function loadSelectedWorldFromHttp(
         }
 
         // Only the files boot-time selection reads. Person files are NOT fetched here — that is the point.
-        const needed = [header.sections.population, header.sections.objects];
+        const needed = [header.sections.population, header.sections.objects, ...(header.sections.socialGraph ? [header.sections.socialGraph] : [])];
         const store = new Map<string, string>();
         const fetched = await Promise.all(needed.map(async file => [file, await fetchText(`${assetBase}/${file}`)] as const));
         for (const [file, payload] of fetched) {

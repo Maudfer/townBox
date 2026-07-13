@@ -19,6 +19,7 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { HistoryAsset, HistoryAssetMeta, HISTORY_ASSET_FORMAT_VERSION } from 'game/history/HistoryAsset';
 import { PopulationState, PersonId, GenPerson } from 'types/Genealogy';
+import { SocialGraphState } from 'types/Relationship';
 import { EventHistory, EventHistoryTable, EventLogTable, PersonLogEntry } from 'types/LifeEvent';
 import { InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
 import { SkillBookState, PersonSkills, SkillSnapshot } from 'types/Skill';
@@ -35,6 +36,9 @@ export interface SelectedWorld {
     // Present only when the asset carries them (logicalWorld runs). Consumed by GameManager.startNewGameWorld.
     skillBook?: SkillBookState;
     objects?: InventoryState;
+    // The windowed elective graph (task 105): edges formed by w, ticks rebased. Ids are stable within a
+    // window (re-identification re-rolls NAMES only), so edges transfer directly.
+    socialGraph?: SocialGraphState;
     window: number; // the asset-relative present tick w that was selected (for logging/tests)
 }
 
@@ -48,11 +52,38 @@ export function validateAsset(asset: { meta: HistoryAssetMeta } | HistoryAsset):
     return { ok: true };
 }
 
+// Windows the elective graph at w (task 105): pure, exported for tests. Drops edges formed after w or
+// touching dropped people; rebases both tick fields by -w.
+export function windowSocialGraph(state: SocialGraphState, w: number, retained: Set<string>): SocialGraphState {
+    const edges: SocialGraphState['edges'] = {};
+    for (const [key, edge] of Object.entries(state.edges)) {
+        if (edge.formedAtTick > w) {
+            continue;
+        }
+        const [a, b] = key.split('|');
+        if (!a || !b || !retained.has(a) || !retained.has(b)) {
+            continue;
+        }
+        edges[key] = {
+            ...edge,
+            formedAtTick: edge.formedAtTick - w,
+            lastInteractionTick: Math.min(edge.lastInteractionTick, w) - w,
+        };
+    }
+    return { edges };
+}
+
 // Picks the present tick w. Deterministic per gameSeed. Clamps to endTick when the asset is too short to
 // afford the warm-margin (tiny fixtures/draft runs), so selection always yields a valid window.
 export function pickWindow(meta: HistoryAssetMeta, gameSeed: number): number {
     const { epochTick, endTick, ticksPerYear, params } = meta;
-    const low = Math.min(endTick, epochTick + Math.round(params.warmMarginYears * ticksPerYear));
+    let low = Math.min(endTick, epochTick + Math.round(params.warmMarginYears * ticksPerYear));
+    // Two-band assets (task 105/K1): constrain the window INSIDE the hot band, so every drawn person's
+    // recent past carries true hourly texture. Pre-105 assets (no hotYears) keep the full range.
+    const hotYears = params.hotYears ?? 0;
+    if (hotYears > 0) {
+        low = Math.min(endTick, Math.max(low, endTick - Math.round(hotYears * ticksPerYear) + 1));
+    }
     if (endTick <= low) {
         return endTick;
     }
@@ -126,6 +157,12 @@ export function sliceAndRebase(asset: HistoryAsset, w: number): Omit<SelectedWor
     };
 
     const result: Omit<SelectedWorld, 'window'> = { population, eventHistory, eventLog, eventLogSeq: maxSeq + 1 };
+
+    // The elective graph (task 105): keep edges FORMED by w between retained people, rebased to the new
+    // present. lastInteractionTick clamps to w first (future interactions haven't happened yet).
+    if (asset.socialGraph) {
+        result.socialGraph = windowSocialGraph(asset.socialGraph, w, new Set(Object.keys(people)));
+    }
 
     // Lived skills (task 077 per-window snapshotting): for each retained person, install the snapshot taken AS
     // OF the window — the latest with tick <= w — so a windowed person's proficiency matches their windowed age
@@ -306,7 +343,7 @@ export function selectStartingWorld(asset: HistoryAsset, gameSeed: number): Sele
 export interface AssetHeader {
     meta: HistoryAssetMeta;
     eventLogSeq: number;
-    sections: { population: string; objects: string; eventHistory: string };
+    sections: { population: string; objects: string; eventHistory: string; socialGraph?: string };
     // personId → the person's history file. Doubles as the existence check, so hydration never round-trips
     // for people the asset doesn't know (newborns, immigrant-fallback households).
     people: Record<PersonId, string>;
@@ -373,6 +410,7 @@ export function selectStartingWorldFromSections(header: AssetHeader, read: (file
         meta: header.meta,
         population: decodeSection<PopulationState>(read(header.sections.population)),
         objects: decodeSection<InventoryState>(read(header.sections.objects)),
+        ...(header.sections.socialGraph ? { socialGraph: decodeSection<SocialGraphState>(read(header.sections.socialGraph)) } : {}),
         eventHistory: {},
         eventLog: {},
         eventLogSeq: header.eventLogSeq,

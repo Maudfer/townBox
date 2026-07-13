@@ -30,6 +30,7 @@ import Habits from 'game/population/Habits';
 import Mood from 'game/population/Mood';
 import Needs from 'game/population/Needs';
 import SocialGraph from 'game/population/SocialGraph';
+import { SocialGraphState } from 'types/Relationship';
 import Traits from 'game/population/Traits';
 import SkillBook from 'game/skills/SkillBook';
 import eventsConfig from 'json/events.json';
@@ -90,6 +91,10 @@ export interface HistoryGeneratorParams {
     recordYears: number;     // years of full-fidelity recording after t0
     ticksPerYear: number;
     daysPerStep: number;     // engine cadence in days (1 = daily; larger = faster, coarser)
+    // Two-band recording (task 105 / K1): the FINAL hotYears of the recording window run at HOURLY stride,
+    // so windowed people carry true diurnal texture (real shifts, school days, evenings) while ancestors
+    // keep affordable day-quantized histories. 0 = the old single-band behavior.
+    hotYears: number;
     warmMarginYears: number; // Part B: window selection skips this shallow-ancestry span after t0
     maxWarmupYears: number;  // safety: abort warm-up if the threshold is never reached
     populationControl: PopulationControlConfig;
@@ -189,6 +194,9 @@ export interface HistoryAsset {
     // skill timeline (per-window snapshotting) lets selection pick each person's skills as of the window.
     skillTimeline?: SkillTimeline;
     objects?: InventoryState;
+    // The elective social graph as of the end of the run (task 105 / B5 completion): selection windows it
+    // so drawn people arrive with FRIENDS, not just family. Absent in pre-105 assets (graceful).
+    socialGraph?: SocialGraphState;
     // When STREAMED to a sink (task 077), the event log + skill timeline live in per-person files instead of
     // inline (`eventLog`/`skillTimeline` are then empty) — the sink owns the on-disk layout (format v2).
 }
@@ -439,6 +447,12 @@ export async function generateHistoryAsset(
             break;
         }
 
+        // The two-band stride (task 105/K1): inside the hot band (the final hotYears of recording) the
+        // engine steps HOURLY; everywhere else it keeps the coarse day stride. All new state (needs, edges,
+        // mood, habits) is closed-form (the K2 rule), so the band seam integrates exactly.
+        const hot = inRecording && params.hotYears > 0
+            && tick - epochTick! >= Math.round((params.recordYears - params.hotYears) * tpy);
+        const effectiveStep = hot ? 1 : step;
         const stepStart = now();
         livingCount = living.size;
         const agentIds = [...living].sort();
@@ -454,14 +468,14 @@ export async function generateHistoryAsset(
             ticksPerYear: tpy,
             ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger, traits, habits: habitsLedger, mood: moodLedger } },
             ...(facts ? { inventory: facts.inventory } : {}),
-            ticksPerStep: step,
+            ticksPerStep: effectiveStep,
         });
         applyResult(result, tick);
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
             const tDaily = now();
-            logical.runDaily(state, tick, tick + step, tpy, skillBook, engine, living);
+            logical.runDaily(state, tick, tick + effectiveStep, tpy, skillBook, engine, living);
             logical.inventory.sweepExpired(tick); // perishables spoil daily (task 089)
             if (profile) {
                 profile.runDaily += now() - tDaily;
@@ -508,7 +522,7 @@ export async function generateHistoryAsset(
             });
         }
 
-        tick += step;
+        tick += effectiveStep;
     }
     engine.setProbabilityScale(null);
 
@@ -619,6 +633,7 @@ export async function generateHistoryAsset(
         eventLog,
         eventLogSeq: engine.getNextLogSeq(),
         eventSchedule: engine.getScheduleState(),
+        socialGraph: socialGraph.serialize(),
     };
     if (logical && skillBook) {
         asset.objects = logical.carriedInventoryState(retainedSet);
