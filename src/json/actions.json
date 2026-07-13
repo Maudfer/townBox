@@ -6041,5 +6041,235 @@
         "label": "Asked around about openings",
         "type": "discrete",
         "category": "maintenance"
+    },
+    "patrolling": {
+        "label": "Patrolling the streets",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 4,
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "kept_an_eye_on_the_street",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.1
+                }
+            ]
+        }
+    },
+    "kept_an_eye_on_the_street": {
+        "label": "Kept an eye on the street",
+        "type": "discrete",
+        "category": "work"
+    },
+    "shoplifting": {
+        "label": "Lingering by the shelves",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:supermarket",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 14
+        },
+        "selection": {
+            "weight": 0.03,
+            "cooldownTicks": 96,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 60
+                    },
+                    "multiply": 8
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": ">=",
+                        "value": 400
+                    },
+                    "multiply": 0.05
+                },
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 35
+                    },
+                    "multiply": 2.5
+                },
+                {
+                    "when": {
+                        "attr": "policeCoverage",
+                        "op": ">=",
+                        "value": 0.7
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "attr": "policeCoverage",
+                        "op": "<",
+                        "value": 0.2
+                    },
+                    "multiply": 2
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "browsed_the_aisles",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "pocketed_merchandise",
+                    "chancePerTick": 0.6,
+                    "maxTotal": 1,
+                    "cooldownTicks": 1
+                }
+            ]
+        },
+        "affinity": [
+            "thrill"
+        ]
+    },
+    "pocketed_merchandise": {
+        "label": "Pocketed merchandise without paying",
+        "type": "discrete",
+        "category": "leisure",
+        "requirements": {
+            "objectAtLocation": {
+                "flag": "pocketable"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "flag": "pocketable"
+                    }
+                },
+                "container": "possessions"
+            }
+        ],
+        "events": {
+            "onComplete": "committed_shoplifting"
+        }
+    },
+    "pickpocketed_someone": {
+        "label": "Pickpocketed someone",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false,
+            "covert": true
+        },
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 14
+                },
+                {
+                    "attr": "money",
+                    "op": "<",
+                    "value": 80
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0.02,
+            "cooldownTicks": 120,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 30
+                    },
+                    "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "policeCoverage",
+                        "op": ">=",
+                        "value": 0.7
+                    },
+                    "multiply": 0.3
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": 15
+            },
+            {
+                "op": "adjustMoney",
+                "amount": -15,
+                "target": "targetPerson"
+            }
+        ],
+        "events": {
+            "onComplete": "committed_pickpocketing",
+            "onCompleteTarget": "got_pickpocketed"
+        },
+        "affinity": [
+            "thrill"
+        ]
+    },
+    "fleeing_the_police": {
+        "label": "Running from the police!",
+        "type": "continuous",
+        "category": "movement",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "events": {
+            "onComplete": "chase_concluded"
+        }
+    },
+    "chasing_a_suspect": {
+        "label": "Chasing a suspect!",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
     }
 }

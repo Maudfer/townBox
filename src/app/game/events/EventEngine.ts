@@ -428,6 +428,10 @@ export default class EventEngine {
                 // The services ledger (task 096): recovery hazards read it as a factor. Unmeasured contexts
                 // read the neutral level, at which the published curves pass through 1 (no ledger, no effect).
                 return this.servicesReader ? this.servicesReader.coverageOf('healthcare') : SERVICES_CONFIG.neutralCoverage;
+            case 'policeCoverage':
+                // The services ledger (task 099): crime selection gates read it — a patrolled town tempts
+                // less. Unmeasured contexts read neutral, where the authored modifiers are inert.
+                return this.servicesReader ? this.servicesReader.coverageOf('police') : SERVICES_CONFIG.neutralCoverage;
             case 'jobApplications':
                 // Job seeking made visible (task 097 / I1): recent applied_for_a_job commits in the shared
                 // log. get_job's hazard factor reads it (an active applicant is hired in days, not months)

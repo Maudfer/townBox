@@ -137,7 +137,7 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('interaction' in action && checkRecord(issues, `${id}.interaction`, action['interaction'])) {
             const interaction = action['interaction'] as Record<string, unknown>;
-            checkUnknownKeys(issues, `${id}.interaction`, interaction, ['targetParam', 'requiresSameBuilding', 'askFirst', 'allowSelf', 'onDecline']);
+            checkUnknownKeys(issues, `${id}.interaction`, interaction, ['targetParam', 'requiresSameBuilding', 'askFirst', 'allowSelf', 'onDecline', 'covert']);
             if (checkString(issues, `${id}.interaction.targetParam`, interaction['targetParam'])
                 && !personParams.includes(interaction['targetParam'] as string)) {
                 issues.add(`${id}.interaction.targetParam`, `must name a declared person-typed parameter (have: ${personParams.join(', ') || 'none'})`);
@@ -153,6 +153,14 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
             }
             if ('onDecline' in interaction) {
                 checkEnum(issues, `${id}.interaction.onDecline`, interaction['onDecline'], ['blockParent', 'skipStep', 'failParent']);
+            }
+            if ('covert' in interaction) {
+                // Covert posture (task 099): done WITHOUT the target's knowledge — asking first is a
+                // contradiction in terms, so the two flags are mutually exclusive.
+                checkBoolean(issues, `${id}.interaction.covert`, interaction['covert']);
+                if (interaction['covert'] === true && interaction['askFirst'] === true) {
+                    issues.add(`${id}.interaction.covert`, 'a covert action cannot be askFirst (you don\'t ask permission to pick a pocket)');
+                }
             }
         }
         if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {

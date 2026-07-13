@@ -4,26 +4,44 @@
     "services": {
         "healthcare": {
             "label": "Healthcare",
-            "providerJobs": ["doctor", "nurse"],
-            "facilityBlueprints": ["hospital", "clinic"],
+            "providerJobs": [
+                "doctor",
+                "nurse"
+            ],
+            "facilityBlueprints": [
+                "hospital",
+                "clinic"
+            ],
             "residentsPerProvider": 40
         },
         "education": {
             "label": "Education",
-            "providerJobs": ["teacher"],
-            "facilityBlueprints": ["school"],
+            "providerJobs": [
+                "teacher"
+            ],
+            "facilityBlueprints": [
+                "school"
+            ],
             "residentsPerProvider": 30
         },
         "police": {
             "label": "Police",
-            "providerJobs": ["security_guard"],
-            "facilityBlueprints": ["police_station"],
+            "providerJobs": [
+                "police_officer"
+            ],
+            "facilityBlueprints": [
+                "police_station"
+            ],
             "residentsPerProvider": 60
         },
         "fire": {
             "label": "Fire protection",
-            "providerJobs": ["security_guard"],
-            "facilityBlueprints": ["fire_station"],
+            "providerJobs": [
+                "security_guard"
+            ],
+            "facilityBlueprints": [
+                "fire_station"
+            ],
             "residentsPerProvider": 80
         },
         "garbage": {

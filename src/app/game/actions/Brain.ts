@@ -24,6 +24,7 @@ import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
 import { plannerHook } from 'game/actions/Planner';
+import { pursuitHook } from 'game/actions/Pursuit';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import arbitrationConfig from 'json/arbitration.json';
@@ -94,6 +95,8 @@ export function scoreIntent(intent: ActionIntent): number {
 // A person's job facts, resolved by the host (live: WorkLife/Workplace; bootstrap: the logical world when
 // 055 builds it; tests: fixtures). Null = no job.
 export interface JobFacts {
+    // The jobs.json key (task 099): lets role-aware hooks (the pursuit hook) know WHAT the job is.
+    jobKey?: string;
     shiftStart: number;
     shiftEnd: number;
     daysOfWeek?: readonly string[];
@@ -170,6 +173,7 @@ export default class Brain {
         this.hooks = [
             jobOrchestratorHook, // work obligations + on-duty flavor (task 047) — the job-context action source
             schoolObligationHook, // school attendance for enrolled children (task 058)
+            pursuitHook, // the chase (task 099): flee (survival) / give chase (obligation) on co-location
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
             wokeUpHook,

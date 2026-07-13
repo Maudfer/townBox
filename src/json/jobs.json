@@ -141,7 +141,7 @@
             "continuous": [
                 {
                     "action": "working_the_register",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "balancing_the_till",
@@ -399,7 +399,7 @@
             "continuous": [
                 {
                     "action": "doing_manual_labor",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "restocking_shelves",
@@ -652,7 +652,7 @@
             "continuous": [
                 {
                     "action": "cleaning_premises",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "wiping_down_tables",
@@ -914,7 +914,7 @@
             "continuous": [
                 {
                     "action": "doing_paperwork",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "supervising_the_team",
@@ -1054,15 +1054,15 @@
                         },
                         {
                             "action": "doing_rounds",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         },
                         {
                             "action": "reviewing_charts",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         },
                         {
                             "action": "sterilizing_equipment",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         }
                     ]
                 }
@@ -1206,7 +1206,7 @@
                     "continuous": [
                         {
                             "action": "treating_patients",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         },
                         {
                             "action": "doing_rounds",
@@ -1242,7 +1242,7 @@
             "continuous": [
                 {
                     "action": "treating_patients",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "doing_rounds",
@@ -1508,7 +1508,7 @@
             "continuous": [
                 {
                     "action": "treating_patients",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "doing_rounds",
@@ -1655,11 +1655,11 @@
                         },
                         {
                             "action": "grading_papers",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         },
                         {
                             "action": "doing_paperwork",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         }
                     ]
                 }
@@ -1843,7 +1843,7 @@
                     "continuous": [
                         {
                             "action": "teaching_class",
-                            "chancePerTick": 1.0
+                            "chancePerTick": 1
                         },
                         {
                             "action": "grading_papers",
@@ -1873,7 +1873,7 @@
             "continuous": [
                 {
                     "action": "teaching_class",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "grading_papers",
@@ -2118,7 +2118,7 @@
             "continuous": [
                 {
                     "action": "working_the_kitchen",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "prepping_ingredients",
@@ -2344,7 +2344,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "wiping_down_tables",
@@ -2604,7 +2604,7 @@
             "continuous": [
                 {
                     "action": "doing_manual_labor",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "sorting_deliveries",
@@ -2807,7 +2807,7 @@
             "continuous": [
                 {
                     "action": "working_the_kitchen",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "mixing_batter",
@@ -3011,7 +3011,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "working_the_register",
@@ -3249,7 +3249,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "restocking_shelves",
@@ -3450,7 +3450,7 @@
             "continuous": [
                 {
                     "action": "fixing_equipment",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "doing_paperwork",
@@ -3647,7 +3647,7 @@
             "continuous": [
                 {
                     "action": "working_the_register",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "restocking_shelves",
@@ -3844,7 +3844,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "doing_paperwork",
@@ -4132,7 +4132,7 @@
             "continuous": [
                 {
                     "action": "doing_paperwork",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "updating_ledgers",
@@ -4391,7 +4391,7 @@
             "continuous": [
                 {
                     "action": "keeping_watch",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "doing_rounds",
@@ -4583,7 +4583,7 @@
             "continuous": [
                 {
                     "action": "styling_clients",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "attending_customers",
@@ -4827,7 +4827,7 @@
             "continuous": [
                 {
                     "action": "styling_clients",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "attending_customers",
@@ -5079,7 +5079,7 @@
             "continuous": [
                 {
                     "action": "fixing_equipment",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "servicing_a_vehicle",
@@ -5275,7 +5275,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "doing_paperwork",
@@ -5536,7 +5536,7 @@
             "continuous": [
                 {
                     "action": "coaching_session",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "leading_a_workout",
@@ -5730,7 +5730,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "checking_in_guests",
@@ -5934,7 +5934,7 @@
             "continuous": [
                 {
                     "action": "screening_film",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "projecting_the_matinee",
@@ -6129,7 +6129,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "patrolling_the_floor",
@@ -6327,7 +6327,7 @@
             "continuous": [
                 {
                     "action": "working_the_register",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "balancing_the_till",
@@ -6522,7 +6522,7 @@
             "continuous": [
                 {
                     "action": "cleaning_premises",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "wiping_down_tables",
@@ -6721,7 +6721,7 @@
             "continuous": [
                 {
                     "action": "attending_customers",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "checking_in_guests",
@@ -6958,7 +6958,7 @@
             "continuous": [
                 {
                     "action": "treating_patients",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "counting_inventory",
@@ -7228,7 +7228,7 @@
             "continuous": [
                 {
                     "action": "driving_route",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "sorting_deliveries",
@@ -7484,7 +7484,7 @@
             "continuous": [
                 {
                     "action": "drafting_designs",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "drawing_blueprints",
@@ -7725,7 +7725,7 @@
             "continuous": [
                 {
                     "action": "drafting_designs",
-                    "chancePerTick": 1.0
+                    "chancePerTick": 1
                 },
                 {
                     "action": "drawing_blueprints",
@@ -7776,6 +7776,197 @@
                 {
                     "action": "spilled_some_coffee",
                     "chancePerTick": 0.05
+                }
+            ]
+        }
+    },
+    "police_officer": {
+        "title": "Police Officer",
+        "salary": 2600,
+        "requiredSkills": [
+            "patrol_premises",
+            "de_escalate_conflicts"
+        ],
+        "ranks": [
+            {
+                "rankId": "entry",
+                "label": "Patrol Officer",
+                "entry": true,
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 10
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "perform_first_aid",
+                        "multiplier": 0.25
+                    }
+                ],
+                "entryTrainingGrant": {
+                    "grants": [
+                        {
+                            "skill": "patrol_premises",
+                            "toProficiency": 10
+                        },
+                        {
+                            "skill": "de_escalate_conflicts",
+                            "toProficiency": 10
+                        }
+                    ]
+                },
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank2",
+                "label": "Sergeant",
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "minProficiency": 25
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "patrol_premises",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 0.25
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 0.25
+                    }
+                ],
+                "promotion": {
+                    "evaluateEveryWorkDays": 30
+                }
+            },
+            {
+                "rankId": "rank3",
+                "label": "Lieutenant",
+                "requires": [
+                    {
+                        "skill": "patrol_premises",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "minProficiency": 50
+                    },
+                    {
+                        "skill": "radio_clear_reports",
+                        "minProficiency": 10
+                    }
+                ],
+                "progresses": [
+                    {
+                        "skill": "de_escalate_conflicts",
+                        "multiplier": 1
+                    },
+                    {
+                        "skill": "write_incident_reports",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "control_crowd_flow",
+                        "multiplier": 0.5
+                    },
+                    {
+                        "skill": "secure_a_perimeter",
+                        "multiplier": 0.5
+                    }
+                ]
+            }
+        ],
+        "physicalStrain": 0.6,
+        "mentalStrain": 0.7,
+        "socialAdmiration": 0.8,
+        "shiftStart": 480,
+        "shiftEnd": 1020,
+        "daysOfWeek": [
+            "mon",
+            "tue",
+            "wed",
+            "thu",
+            "fri"
+        ],
+        "workActions": {
+            "continuous": [
+                {
+                    "action": "patrolling",
+                    "chancePerTick": 1
+                },
+                {
+                    "action": "keeping_watch",
+                    "chancePerTick": 0.5
+                }
+            ],
+            "discrete": [
+                {
+                    "action": "wrote_up_a_report",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "checked_the_clock",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "took_a_short_break",
+                    "chancePerTick": 0.08
                 }
             ]
         }

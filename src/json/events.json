@@ -26336,5 +26336,139 @@
                 "target": "subject"
             }
         ]
+    },
+    "committed_shoplifting": {
+        "label": "Slipped something into a pocket without paying",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 0,
+        "witnessable": true,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "crimeCommitted",
+                "target": "subject"
+            }
+        ]
+    },
+    "committed_pickpocketing": {
+        "label": "Lifted a wallet",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 0,
+        "witnessable": true,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "crimeCommitted",
+                "target": "subject"
+            }
+        ]
+    },
+    "got_pickpocketed": {
+        "label": "Realized their pocket was picked",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -2,
+        "effects": []
+    },
+    "got_caught": {
+        "label": "Was caught by the police",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": -2,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "gotCaught",
+                "target": "subject"
+            }
+        ]
+    },
+    "evaded_the_police": {
+        "label": "Gave the police the slip",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "chase_concluded": {
+        "label": "The chase ended",
+        "category": "crime",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 0,
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "chaseConcluded",
+                "target": "subject"
+            }
+        ]
     }
 }

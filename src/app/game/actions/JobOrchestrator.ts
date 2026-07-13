@@ -75,9 +75,14 @@ export const jobOrchestratorHook: BrainHook = {
             if (!pick) {
                 return [];
             }
+            // Field work (task 099): an AMBULATORY work action keeps its own outdoor location — the
+            // officer's beat walk happens on the street, not inside the station. Everything else clocks
+            // in at the workplace as always.
+            const pickDef = engine.getManifest()[pick];
+            const fieldWork = pickDef?.ambulatory !== undefined && pickDef.location === 'outside';
             return [{
                 actionId: pick,
-                locationOverride: `building:${job.workplaceKey}`,
+                ...(fieldWork ? {} : { locationOverride: `building:${job.workplaceKey}` }),
                 sourceHook: 'jobOrchestrator',
                 priority: 100,
                 necessity: 'required',

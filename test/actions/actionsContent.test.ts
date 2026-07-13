@@ -131,6 +131,7 @@ describe('action reachability (task 076/M3)', () => {
         'pocketed_small_object', 'grab', 'use_object', 'put_down', 'discard_object', // inventoryOpportunityHook
         'resting_at_home_sick',                                             // jobOrchestrator's fitness gate (092)
         'taking_a_walk_together',                                           // joint plans (085/093 — agenda-proposed)
+        'fleeing_the_police', 'chasing_a_suspect',                          // the pursuit hook (099)
     ]);
 
     test('every action is reachable via some proposal path', () => {

@@ -7,6 +7,7 @@ import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent
 import { Direction } from 'types/Movement';
 import { AgendaState } from 'types/Agenda';
 import { HabitsState } from 'types/Habits';
+import { IncidentsState } from 'types/Incidents';
 import { MoodState } from 'types/Mood';
 import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
@@ -168,6 +169,8 @@ export interface WorldSnapshot {
     mood?: MoodState;
     // Habit counters (task 095, v16 family) — absent in older saves (everyone starts habit-free).
     habits?: HabitsState;
+    // City incidents (task 099, v16 family) — absent in older saves (a clean blotter).
+    incidents?: IncidentsState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

@@ -11,5 +11,6 @@
     "evictionArrearsMonths": 3,
     "recoveryFunds": 800,
     "foundingCapitalThreshold": 1500,
-    "foundingChancePerMonth": 0.35
+    "foundingChancePerMonth": 0.35,
+    "crimeFineAmount": 120
 }

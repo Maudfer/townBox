@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserved**.
+Totals: 721 events — **24 vital**, **38 wired**, **516 texture**, **143 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -112,6 +112,7 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | celebrated_work_anniversary | career | manual | reserved | — |
 | changed_legal_name | legal | probabilistic | texture | — |
 | changed_locks | housing | probabilistic+manual | texture | — |
+| chase_concluded | crime | manual | vital | fleeing_the_police.onComplete |
 | chased_runaway_hat | weather-reaction | probabilistic+manual | texture | — |
 | checked_bucket_list_item | milestone | probabilistic+manual | texture | — |
 | choked_on_food | accident | probabilistic+manual | texture | — |
@@ -122,6 +123,8 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | cleared_of_charges | legal | manual | reserved | — |
 | climbed_tree | childhood | probabilistic+manual | texture | — |
 | collected_souvenir | travel | probabilistic+manual | texture | — |
+| committed_pickpocketing | crime | manual | vital | pickpocketed_someone.onComplete |
+| committed_shoplifting | crime | manual | vital | pocketed_merchandise.onComplete |
 | complained_about_heat | weather-reaction | probabilistic+manual | texture | — |
 | complained_about_knees | aging | probabilistic | texture | — |
 | completed_puzzle | hobby | probabilistic+manual | texture | — |
@@ -172,6 +175,7 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | enrolled_child_in_school | family | manual | reserved | — |
 | enrolled_in_trade_school | education | probabilistic+manual | texture | — |
 | entered_pet_show | pet | probabilistic+manual | texture | — |
+| evaded_the_police | crime | manual | reserved | — |
 | excluded_from_group | social | probabilistic | texture | — |
 | failed_driving_test | milestone | probabilistic+manual | texture | — |
 | failed_exam | education | probabilistic+manual | texture | — |
@@ -240,6 +244,7 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | got_braces | childhood | probabilistic | texture | — |
 | got_braces_off | childhood | manual | reserved | — |
 | got_car_repaired | possessions | manual | reserved | — |
+| got_caught | crime | manual | vital | — |
 | got_clean_bill_of_health | health | manual | reserved | — |
 | got_concussion | accident | probabilistic+manual | texture | — |
 | got_demoted | career | probabilistic+manual | texture | — |
@@ -263,6 +268,7 @@ Totals: 715 events — **20 vital**, **37 wired**, **516 texture**, **142 reserv
 | got_paper_cut | accident | probabilistic+manual | texture | — |
 | got_parking_ticket | legal | probabilistic+manual | texture | — |
 | got_permit_approved | legal | manual | reserved | — |
+| got_pickpocketed | crime | manual | wired | pickpocketed_someone.onCompleteTarget |
 | got_promoted | career | manual | vital | SkillProgression promotion evaluation (task 065) |
 | got_raise | career | probabilistic+manual | texture | — |
 | got_scholarship | education | probabilistic+manual | texture | — |

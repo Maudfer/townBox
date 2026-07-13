@@ -23,10 +23,11 @@ const FEED_MESSAGES: Record<string, (name: string, params?: Record<string, strin
     depressiveEpisode: name => ({ kind: 'health', message: `${name} sank into a depression` }),
     liftedSpirits: name => ({ kind: 'health', message: `${name} is feeling like themselves again` }),
     businessFounded: name => ({ kind: 'career', message: `${name} founded their own business` }),
+    gotCaught: name => ({ kind: 'crime', message: `${name} was caught by the police` }),
 };
 
 // Signals the City consumes directly (world reconciliation) without a feed mapping.
-const INTERNAL_SIGNALS = ['rehousingNeeded', 'movedOut'];
+const INTERNAL_SIGNALS = ['rehousingNeeded', 'movedOut', 'crimeCommitted', 'chaseConcluded'];
 
 // The closed vocabulary an event's `emit` effect may reference (validated by game/data, task 039). A signal
 // nothing consumes is an authoring error — add its consumer (feed mapping above or a City handler) first.

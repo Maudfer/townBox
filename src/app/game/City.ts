@@ -25,6 +25,7 @@ import { NewDayEvent, NewTickEvent, TimeChangedEvent } from 'types/Time';
 import { SchoolConfig, SchoolFacts } from 'types/School';
 import { ServiceInputs } from 'types/Services';
 import { RetconConfig } from 'types/Retcon';
+import { locationKey } from 'types/Objects';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -58,6 +59,8 @@ const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
 const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
+// A criminal record fades after two in-game years (task 099) — the town forgives, slowly.
+const CRIMINAL_RECORD_WINDOW_TICKS = 2 * 8640;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
 // (manager/teacher/janitor) remain ordinary employment.
 const SCHOOL_BLUEPRINT_KEY = 'school';
@@ -594,6 +597,9 @@ export default class City {
         // The services coverage sweep (task 096): recompute the ledger daily from what actually exists.
         this.recomputeServices(event.tick);
 
+        // Police work (task 099): cold-case sweep + witnessed-incident resolution, scaled by coverage.
+        this.runPoliceWork(event.tick, clock.getTicksPerYear());
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
     }
@@ -603,7 +609,7 @@ export default class City {
     // hospital practices; an unemployed one doesn't), education from real seats vs the enrollable band. The
     // math is the pure computeCoverage; hazards read the ledger through markets.services, the dashboard
     // through getCityStats. One monthly feed advisory names the worst uncovered service (H2 surfacing).
-    private recomputeServices(tick: number): void {
+    public recomputeServices(tick: number): void {
         const field = Game.field;
         if (!field) {
             return;
@@ -811,7 +817,11 @@ export default class City {
 
         // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
         // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
-        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick) : null;
+        // A got_caught within the record window handicaps hiring (task 099) — read from the aggregate history.
+        const hasRecord = (id: PersonId): boolean => Game.eventEngine
+            ? Game.eventEngine.contextFor(population.getState(), id, event.tick, ticksPerYear).hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS })
+            : false;
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick, hasRecord) : null;
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
         // exists. Rebuilt each tick over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);
@@ -841,13 +851,16 @@ export default class City {
                 if (!person || !job || !(workplace instanceof Workplace)) {
                     return null;
                 }
-                const definition = Object.values(JOBS).find(candidate => candidate.title === job.title);
+                const entry = Object.entries(JOBS).find(([, candidate]) => candidate.title === job.title);
+                const jobKey = entry?.[0];
+                const definition = entry?.[1];
                 // The person's current rank on the ladder (task 064): rank-specific work-action overrides
                 // and progression/promotion facts ride along for the orchestrator + SkillProgression (065).
                 const rank = definition?.ranks.find(candidate => candidate.rankId === job.rankId)
                     ?? definition?.ranks.find(candidate => candidate.entry)
                     ?? null;
                 return {
+                    ...(jobKey ? { jobKey } : {}),
                     shiftStart: job.shiftStart,
                     shiftEnd: job.shiftEnd,
                     ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
@@ -866,7 +879,7 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, mood: Game.mood ?? null, services: this.services } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, mood: Game.mood ?? null, services: this.services } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
                 // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.
@@ -876,6 +889,7 @@ export default class City {
                     Game.agenda?.removePerson(deceased);
                     Game.mood?.removePerson(deceased);
                     Game.habits?.removePerson(deceased);
+                    Game.incidents?.removePerson(deceased);
                 }
                 await this.materializeNewborns(result.born, personByGenId);
                 // City-overview vital tallies (task 031).
@@ -913,6 +927,13 @@ export default class City {
                         this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
                     } else if (signal.signal === 'movedOut') {
                         this.resolveMoveOut(signal.personId, event.tick);
+                    } else if (signal.signal === 'crimeCommitted') {
+                        // A crime event committed (task 099): file the incident with the ground-truth
+                        // suspect and the co-located potential witnesses at the scene.
+                        this.fileIncident(signal.personId, event.tick);
+                    } else if (signal.signal === 'chaseConcluded') {
+                        // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
+                        this.resolveChase(signal.personId, event.tick, ticksPerYear);
                     }
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
@@ -1156,6 +1177,117 @@ export default class City {
     // reoccupancyMonths, then attracts a *new, different* business — but only in a category with unmet demand,
     // so the city heals where investment is warranted instead of re-flooding an oversupplied market. Runs after
     // runBusinessEconomics so it sees this month's closures and post-closure supply. Deterministic.
+    // Files a crime into the incidents registry (task 099): the committing signal names the ground-truth
+    // suspect; the KIND comes from their freshest crime-event log entry, and the witnesses are whoever
+    // shared the location at the scene. Whether justice ever learns is the witnesses' and coverage's call.
+    public fileIncident(suspectId: PersonId, tick: number): void {
+        const incidents = Game.incidents;
+        const engine = Game.eventEngine;
+        if (!incidents || !engine) {
+            return;
+        }
+        const log = engine.getPersonLog(suspectId);
+        let kind: 'shoplifting' | 'pickpocketing' | null = null;
+        for (let index = log.length - 1; index >= 0 && log[index]!.tick === tick; index--) {
+            const entry = log[index]!;
+            if (entry.kind === 'event' && entry.defId === 'committed_shoplifting') {
+                kind = 'shoplifting';
+                break;
+            }
+            if (entry.kind === 'event' && entry.defId === 'committed_pickpocketing') {
+                kind = 'pickpocketing';
+                break;
+            }
+        }
+        if (!kind) {
+            return;
+        }
+        const location = this.world.locationOf(suspectId);
+        const witnesses = this.world.peopleAt(location).filter(id => id !== suspectId).length;
+        incidents.report(kind, tick, locationKey(location), suspectId, witnesses);
+    }
+
+    // The chase's outcome (task 099): fleeing_the_police completed -> a deterministic roll weighted by the
+    // suspect's age and health decides caught (fine + record + case closed) vs got away (still wanted).
+    public resolveChase(suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        const incidents = Game.incidents;
+        const population = Game.population;
+        if (!incidents || !population || !incidents.isWanted(suspectId)) {
+            return;
+        }
+        const record = population.getPerson(suspectId);
+        if (!record) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`chase#${suspectId}#${tick}`)) >>> 0);
+        const age = ageAt(record, tick, ticksPerYear);
+        const engine = Game.eventEngine;
+        const health = engine ? Number(engine.contextFor(population.getState(), suspectId, tick, ticksPerYear).getAttr('health') ?? 1) : 1;
+        let catchChance = 0.55;
+        if (age >= 50) {
+            catchChance += 0.2;
+        } else if (age < 25) {
+            catchChance -= 0.15;
+        }
+        if (health < 0.7) {
+            catchChance += 0.15;
+        }
+        if (rng.next() < catchChance) {
+            this.convictSuspect(suspectId, tick);
+        } else {
+            this.fireMilestone('evaded_the_police', suspectId, tick);
+        }
+    }
+
+    // Conviction (task 099): every open case against the suspect closes, the fine moves through the ledger
+    // (mirrored against the external sector - conserved), got_caught lands in the log (the criminal record
+    // the JobMarket reads), and the feed hears about it.
+    private convictSuspect(suspectId: PersonId, tick: number): void {
+        const incidents = Game.incidents;
+        if (!incidents) {
+            return;
+        }
+        for (const incident of incidents.all()) {
+            if (incident.status === 'open' && incident.suspectId === suspectId) {
+                incidents.resolve(incident.id, tick);
+            }
+        }
+        Game.economy?.adjustPerson(suspectId, -DEFAULT_ECONOMY_PARAMS.crimeFineAmount);
+        this.fireMilestone('got_caught', suspectId, tick);
+        const person = this.indexMaterialized().get(suspectId) ?? null;
+        const name = Game.population?.getPerson(suspectId)?.firstName ?? 'Someone';
+        this.announce('crime', tick, `${name} was caught by the police`, person);
+    }
+
+    // The police day sweep (task 099): witnessed open incidents resolve with odds scaled by coverage and
+    // witness count; unwitnessed and stale cases go cold. No officers on the ledger -> nothing ever
+    // resolves - the coverage consequence, measured.
+    public runPoliceWork(tick: number, ticksPerYear: number): void {
+        const incidents = Game.incidents;
+        const population = Game.population;
+        if (!incidents || !population) {
+            return;
+        }
+        void ticksPerYear;
+        incidents.sweepCold(tick);
+        const coverage = this.services.coverageOf('police');
+        if (coverage <= 0) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`police#${Math.floor(tick / 24)}`)) >>> 0);
+        for (const incident of [...incidents.open()].sort((a, b) => a.id - b.id)) {
+            if (incident.witnesses <= 0) {
+                continue; // nobody saw it - the case is unknowable
+            }
+            const chance = Math.min(0.9, 0.12 * coverage * Math.min(incident.witnesses, 3));
+            if (rng.next() < chance) {
+                this.convictSuspect(incident.suspectId, tick);
+            }
+        }
+    }
+
     // Entrepreneurship (task 097/I3): a qualified unemployed adult with savings may FOUND a business on a
     // vacant work lot, in the category with the largest unmet demand, in the trade they strictly know (no
     // training-grant founders — you don't open a clinic on a shortcut). At most one founding per month,

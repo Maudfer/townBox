@@ -28,6 +28,10 @@ import { JobPosition } from 'types/Work';
 // matched-rank index × RANK_FIT_WEIGHT + requirement count; ties break by workplace anchor key. No RNG.
 
 const SKILL_WEIGHT = 8;
+// A fresh criminal record (task 099) weighs a candidate down — not a ban, a real handicap that decays
+// with the record window the caller queries over. Feeds the honest recidivism loop: harder hiring deepens
+// the desperation gates that caused the first offense.
+const CRIMINAL_RECORD_PENALTY = 25;
 const DISTANCE_WEIGHT = 1;
 const NO_HOME_DISTANCE = 9999;
 const RANK_FIT_WEIGHT = 10;
@@ -52,7 +56,7 @@ export default class JobMarket implements IJobMarket {
     private workplaces: Workplace[];
     private defByTitle: Map<string, { key: string; def: JobDefinition }>;
 
-    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0) {
+    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0, private hasCriminalRecord?: (personId: PersonId) => boolean) {
         this.workplaces = field.getStructures().filter((tile): tile is Workplace => tile instanceof Workplace);
         this.defByTitle = new Map(Object.entries(JOBS).map(([key, def]) => [def.title, { key, def }]));
     }
@@ -252,7 +256,8 @@ export default class JobMarket implements IJobMarket {
             const distance = homePos && position
                 ? Math.abs(homePos.row - position.row) + Math.abs(homePos.col - position.col)
                 : NO_HOME_DISTANCE;
-            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance;
+            const recordPenalty = this.hasCriminalRecord?.(personId) ? CRIMINAL_RECORD_PENALTY : 0;
+            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance - recordPenalty;
             const key = workplace.getIdentifier();
             if (score > bestScore || (score === bestScore && key < bestKey)) {
                 bestScore = score;

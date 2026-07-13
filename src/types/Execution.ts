@@ -9,6 +9,7 @@ import { AgendaAccess } from 'types/Agenda';
 import { PersonId } from 'types/Genealogy';
 import { JobMarket, MoneyLedger, HousingMarket, SkillRegistry } from 'types/LifeEvent';
 import { HabitsReader } from 'types/Habits';
+import { IncidentsReader } from 'types/Incidents';
 import { MoodReader } from 'types/Mood';
 import { NeedsReader } from 'types/Needs';
 import { RelationshipGraph } from 'types/Relationship';
@@ -68,6 +69,8 @@ export interface SimulationMarkets {
     // The agenda (task 085): the planner hook reads due entries; producers and the joint-activity
     // consequence enqueue. Null/absent = no planning (pure tests).
     agenda?: AgendaAccess | null;
+    // Incidents (task 099): the pursuit hook reads who is wanted; City files and resolves.
+    incidents?: IncidentsReader | null;
     // Habits (task 095): vice practice bumps counters; selection reads the escalation multiplier.
     habits?: HabitsReader | null;
     // Mood (task 091): event valence lands impulses; consent/selection/vice gates read the meter.

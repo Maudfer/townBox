@@ -81,10 +81,13 @@ export interface ActionEventLinks {
 // target, same-building co-location (REQUIRED true this iteration — no remote interaction yet; the field
 // exists so relaxing later is data), whether consent is asked first (073 implements the flow), whether the
 // action may target its own actor, and how a declined/failed instance behaves as a sequence child.
+// covert (task 099): a person-targeted action performed WITHOUT the target's knowledge — never askFirst
+// (the validator enforces mutual exclusion). Whether anyone SAW it is the witness machinery's question.
 export interface InteractionContract {
     targetParam: string;
     requiresSameBuilding: boolean;
     askFirst: boolean;
+    covert?: boolean;
     allowSelf?: boolean;
     onDecline?: StepFailurePolicy;
 }

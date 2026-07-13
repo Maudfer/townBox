@@ -9,6 +9,7 @@ import Brain from 'game/actions/Brain';
 import { assertValidData } from 'game/data/schemas';
 import Economy from 'game/economy/Economy';
 import EventEngine from 'game/events/EventEngine';
+import CityIncidents from 'game/economy/CityIncidents';
 import Habits from 'game/population/Habits';
 import Mood from 'game/population/Mood';
 import Needs from 'game/population/Needs';
@@ -67,6 +68,7 @@ export default class GameManager {
     public traits: Traits | null;
     public mood: Mood | null;
     public habits: Habits | null;
+    public incidents: CityIncidents | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -171,6 +173,7 @@ export default class GameManager {
         this.traits = null;
         this.mood = null;
         this.habits = null;
+        this.incidents = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -296,6 +299,9 @@ export default class GameManager {
 
             // Habits (task 095): vice counters with closed-form cooling, serialized (v16 family).
             this.habits = new Habits();
+
+            // City incidents (task 099): the crime/justice registry, serialized (v16 family).
+            this.incidents = new CityIncidents();
 
             // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.

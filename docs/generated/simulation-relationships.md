@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 279 | 78 continuous / 201 discrete |
-| `events.json` | 715 | 170 probabilistic, 372 probabilistic + manual, 171 manual, 2 manual + automated |
+| `actions.json` | 286 | 82 continuous / 204 discrete |
+| `events.json` | 721 | 170 probabilistic, 372 probabilistic + manual, 177 manual, 2 manual + automated |
 | `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -23,10 +23,13 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
+| `fleeing_the_police` | onComplete → `chase_concluded` |
 | `found_coin` | onComplete → `found_money_on_street` |
 | `gardening` | onComplete → `planted_garden` |
 | `gave_object_to_person` | onComplete → `gave_gift` |
 | `hosting_gathering` | onComplete → `hosted_dinner_party` |
+| `pickpocketed_someone` | onComplete → `committed_pickpocketing`<br>onCompleteTarget → `got_pickpocketed` |
+| `pocketed_merchandise` | onComplete → `committed_shoplifting` |
 | `read_book` | onComplete → `finished_great_book` |
 | `resting_at_home_sick` | onStart → `called_in_sick` |
 | `shopping_trip` | onComplete → `went_grocery_shopping` |
@@ -44,11 +47,15 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | Event | Triggers | Limit | Invoked by |
 |---|---|---|---|
 | `called_in_sick` | manual | once: perDay | `resting_at_home_sick`.onStart (continuous) |
+| `chase_concluded` | manual | — | `fleeing_the_police`.onComplete (continuous) |
+| `committed_pickpocketing` | manual | — | `pickpocketed_someone`.onComplete (discrete) |
+| `committed_shoplifting` | manual | — | `pocketed_merchandise`.onComplete (discrete) |
 | `completed_school_day` | manual + automated | once: perDay | `attend_school`.onComplete (continuous) |
 | `decluttered_house` | probabilistic + manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
 | `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
 | `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
 | `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
+| `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
 | `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
 | `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
@@ -59,7 +66,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 545 manual-triggered events, 530 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 551 manual-triggered events, 532 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -73,7 +80,7 @@ Of the 545 manual-triggered events, 530 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 372 |
-| manual | 171 |
+| manual | 177 |
 | probabilistic | 170 |
 | manual + automated | 2 |
 
@@ -81,7 +88,7 @@ Of the 545 manual-triggered events, 530 have no action source yet — they are i
 |---|---|
 | cooldown window | 634 |
 | once: ever | 50 |
-| — | 25 |
+| — | 31 |
 | once: perDay | 6 |
 
 ## Object-action transformations
@@ -141,6 +148,7 @@ Every action with a `person` parameter carries a contract (072); `askFirst` rout
 | `kissed_partner` | ask first | skipStep | — | w 0.8, cd 6 |
 | `lent_an_object` | ask first | failParent | `action_declined` | w 0.2, cd 48 |
 | `offered_job_lead` | no consent | — | — | w 0.1, cd 48 |
+| `pickpocketed_someone` | no consent | — | — | w 0.02, cd 120 |
 | `played_with_person` | no consent | — | — | w 0.5, cd 8 |
 | `proposed_marriage` | ask first | skipStep | — | w 0.08, cd 720 |
 | `returned_borrowed_object` | ask first | failParent | — | w 3, cd 12 |
@@ -201,6 +209,7 @@ Every job carries a full authored ladder (064/066) with an explicit entry-rank t
 | `mechanic` | Trainee Mechanic → Mechanic → Master Mechanic | 2 skills | every 30 work days |
 | `nurse` | Trainee Nurse → Nurse → Charge Nurse → Nurse Practitioner | 2 skills | every 30 work days |
 | `pharmacist` | Trainee Pharmacist → Pharmacist → Senior Pharmacist → Chief Pharmacist | 2 skills | every 30 work days |
+| `police_officer` | Patrol Officer → Sergeant → Lieutenant | 2 skills | every 30 work days |
 | `projectionist` | Trainee Projectionist → Projectionist → Chief Projectionist | 2 skills | every 30 work days |
 | `receptionist` | Trainee Receptionist → Receptionist → Front Desk Manager | 2 skills | every 30 work days |
 | `restocker` | Trainee Restocker → Restocker → Warehouse Lead | 2 skills | every 30 work days |
