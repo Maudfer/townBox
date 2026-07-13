@@ -97,6 +97,32 @@ describe('routines (D2)', () => {
         expect(JSON.stringify(runA.agenda.serialize())).toBe(JSON.stringify(runB.agenda.serialize()));
     });
 
+    test('a pet owner reliably gets the dog walk (task 115): adoption 1, daily cadence, petCount-gated', () => {
+        // The walk-pressure routine: full adoption means EVERY owner plans it — the neglect texture comes
+        // from mood dampeners on the walk itself, never from planning randomness.
+        expect(ROUTINES_CONFIG['dog_walk']!.action).toBe('walking_the_dog');
+        expect(ROUTINES_CONFIG['dog_walk']!.adoption).toBe(1);
+        expect(ROUTINES_CONFIG['dog_walk']!.cadenceDays).toBe(1);
+
+        const owner = harness(['a']);
+        owner.deps.ctx.markets = { ...owner.deps.ctx.markets, pets: { countOf: () => 1 } };
+        let walked = false;
+        for (let tick = 1000; tick < 1000 + 48 && !walked; tick++) {
+            owner.brain.processTick(['a'], { ...owner.deps, tick }, [], result());
+            owner.brain.getActionEngine().advance({ ...owner.deps, tick });
+            walked = owner.deps.eventEngine.getPersonLog('a').some(entry => entry.kind === 'action' && entry.defId === 'walking_the_dog');
+        }
+        expect(walked).toBe(true);
+
+        // No pet → the routine's requires gate holds: the walk is never planned.
+        const petless = harness(['a']);
+        for (let tick = 1000; tick < 1000 + 48; tick++) {
+            petless.brain.processTick(['a'], { ...petless.deps, tick }, [], result());
+            petless.brain.getActionEngine().advance({ ...petless.deps, tick });
+        }
+        expect(Object.values(petless.agenda.serialize().entries).every(entry => entry.routineId !== 'dog_walk')).toBe(true);
+    });
+
     test('a located friend visit targets the friend (person:<id> locationOverride)', () => {
         const { brain, agenda, social, deps } = harness(['a', 'b']);
         social.adjust('a', 'b', 40, 999); // friend

@@ -447,8 +447,13 @@ export default class MainScene extends Phaser.Scene {
 
     // Activity bubbles (task 093 / J2): a small label over each visible OUTDOOR person naming their
     // current activity — the street narrates itself. Text refreshes per in-game minute; position follows
-    // the sprite each frame via the person's redraw closure.
+    // the sprite each frame via the person's redraw closure. (Task 115 fixed a latent 093 gap: the labels
+    // were never CREATED — the map stayed empty forever — so the street never actually narrated. They are
+    // now created lazily on the first refresh that sees the person.)
     private activityLabels = new Map<Person, Phaser.GameObjects.Text>();
+    // Pets on the street (task 115): a tiny brown rectangle trailing the owner while walking_the_dog runs
+    // — no pathfinding of its own, it shadows the owner's sprite with a small offset.
+    private petDots = new Map<Person, Phaser.GameObjects.Rectangle>();
 
     private refreshActivityLabels(): void {
         const field = Game.field;
@@ -463,11 +468,24 @@ export default class MainScene extends Phaser.Scene {
                 this.activityLabels.delete(person);
             }
         }
+        for (const [person, dot] of this.petDots) {
+            if (!roster.has(person)) {
+                dot.destroy();
+                this.petDots.delete(person);
+            }
+        }
         for (const person of roster) {
-            const text = this.activityLabels.get(person);
             const personId = person.social.getPersonId();
-            if (!text || !personId) {
+            if (!personId) {
                 continue;
+            }
+            let text = this.activityLabels.get(person);
+            if (!text) {
+                text = this.add.text(0, 0, '', {
+                    fontSize: '9px', color: '#ffffff', backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                    padding: { x: 3, y: 1 },
+                }).setOrigin(0.5, 1).setVisible(false);
+                this.activityLabels.set(person, text);
             }
             const active = engine.activeInstanceOf(personId);
             const show = !!active && active.status === 'running' && !person.isIndoors();
@@ -475,6 +493,15 @@ export default class MainScene extends Phaser.Scene {
                 text.setText(engine.getActionLabel(active!.defId));
             }
             text.setVisible(show);
+
+            // The dog appears exactly while the walk runs and despawns with the instance.
+            let dot = this.petDots.get(person);
+            const walking = show && active!.defId === 'walking_the_dog';
+            if (walking && !dot) {
+                dot = this.add.rectangle(0, 0, 6, 4, 0x8b5a2b).setVisible(false);
+                this.petDots.set(person, dot);
+            }
+            dot?.setVisible(walking);
         }
     }
 
@@ -521,6 +548,12 @@ export default class MainScene extends Phaser.Scene {
             if (bubble && bubble.visible) {
                 bubble.setPosition(position.x, position.y - 12);
                 bubble.setDepth(person.getDepth() + 2);
+            }
+            // The dog trails the owner (task 115): a fixed lag behind the sprite, same depth layer.
+            const pet = this.petDots.get(person);
+            if (pet && pet.visible) {
+                pet.setPosition(position.x - 6, position.y + 5);
+                pet.setDepth(person.getDepth() + 1);
             }
         });
     }

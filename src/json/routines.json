@@ -133,5 +133,19 @@
             "op": ">=",
             "value": 1
         }
+    },
+    "dog_walk": {
+        "action": "walking_the_dog",
+        "cadenceDays": 1,
+        "window": [
+            7,
+            20
+        ],
+        "adoption": 1,
+        "requires": {
+            "attr": "petCount",
+            "op": ">=",
+            "value": 1
+        }
     }
 }
