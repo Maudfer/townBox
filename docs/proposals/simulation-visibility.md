@@ -1,6 +1,7 @@
 # Simulation Visibility — player control & physical grounding for the aliveness glue
 
-**Status: proposal, v1 — the follow-up arc to `simulation-aliveness.md` (tasks 080–106), bundled into the
+**Status: implemented (tasks 107–118 landed; the 117 observation session and the final asset regeneration
+remain the maintainer's pre-merge steps) — the follow-up arc to `simulation-aliveness.md` (tasks 080–106), bundled into the
 same PR. Tasks 107–118.** The aliveness arc built the glue: needs, edges, mood, habits, incidents,
 detention, conditions, services, counterpart events, the chase. This arc does two things with it: puts the
 **player's hands on the levers** (a real construction menu, civic buildings, a services nagbar), and
