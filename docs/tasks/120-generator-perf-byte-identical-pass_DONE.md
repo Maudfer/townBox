@@ -2,7 +2,7 @@
 
 - **Type:** Performance / Simulation
 - **Labels:** `performance`, `simulation`, `generator`
-- **Status:** 🔄 In progress (wave 1 landed; a long-workload profiling pass + wave 2 remain)
+- **Status:** ✅ Done
 - **Branch / PR:** `task/generator-performance-2` → [PR #100](https://github.com/Maudfer/townBox/pull/100) (against `main`, stacked on #99)
 - **Depends on:** [118](118-generator-perf-pass_DONE.md) (the 078/079 profiling playbook); [119](119-generator-extinction-fix_DONE.md) (the run this pass profiles is the 119-fixed generator).
 
@@ -88,11 +88,24 @@ spec's own bucket. Verified: 162/162 files byte-identical (wave-1 baseline vs wa
 re-run store diagnostic shows identical counts with **flat** per-quarter wall time (~5.3 → ~6.1 s over 16
 hot quarters) where the cost previously compounded; `inv.contentsBuild` re-pinned 372 → 322.
 
-## Remaining work (this branch)
+## At-scale verification (the closing measurement)
 
-1. The at-scale verification re-run (the same 20-year capacity-250 workload, post-wave-2) — pin the final
-   flat per-year numbers here and in the PR.
-2. Mark this file `_DONE` with the final measurements when the pass closes.
+The same 20-recorded-year capacity-250 workload, re-run post-wave-2:
+
+| hot year        | 10  | 11  | 12  | 13  | 14  | 15  | 16  | 17   | 18  | 19  |
+| --------------- | --- | --- | --- | --- | --- | --- | --- | ---- | --- | --- |
+| pre-fix (s)     | 228 | 303 | 401 | 525 | 574 | —   | —   | —    | —   | —   |
+| post-wave-2 (s) | 160 | 177 | 204 | 188 | 210 | 200 | 215 | 307* | 228 | 267 |
+
+\* contains a confirmed **85 s flush stall** (the 5-year log drain landing mid-year) — a one-off, not a
+trend. Pre-fix was killed at year 14 (still compounding ~+30%/year); post-wave-2 is flat-with-noise around
+~200 s with a mild ~4%/year residual (in-flush-window log-RAM/GC — bounded, resets at each drain; left as a
+known non-target). Cold years are ~15–20 s in both (never the problem). Whole run: **43 m 31 s**, 97.8
+µs/agent-step overall, 241 living / 314 retained, 776 MB on disk.
+
+**Full default regeneration projection: ~1h15m ± 15m** (was 9h+ and unfinished) — warmup ~8 m + 90 cold
+years ~24 m + 10 hot years ~39 m + writes. Byte parity means a regeneration on this branch produces exactly
+the asset the pre-pass code would have.
 
 ## Proposed follow-up (out of scope — NOT byte-identical)
 

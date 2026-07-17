@@ -158,7 +158,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [117](117-observation-and-balancing-pass_DONE.md) | ✅ | [Task] The observation & balancing pass |
 | [118](118-generator-perf-pass_DONE.md) | ✅ | [Perf] Generator perf pass — the hot band runs 2× faster |
 | [119](119-generator-extinction-fix_DONE.md) | ✅ | [Fix] Generator extinction — off-map courtship + the extinct-warm-up bail |
-| [120](120-generator-perf-byte-identical-pass.md) | 🔄 | [Perf] Byte-identical generator perf pass — flatten the super-linear costs |
+| [120](120-generator-perf-byte-identical-pass_DONE.md) | ✅ | [Perf] Byte-identical generator perf pass — flatten the super-linear costs |
 
 ## Open work
 
