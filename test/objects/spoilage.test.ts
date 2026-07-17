@@ -27,4 +27,24 @@ describe('sweepExpired', () => {
         // Non-food stays timeless.
         expect(inventory.getArchetype('toolbox')?.expiresAfterTicks).toBeUndefined();
     });
+
+    // The expiring-candidates set (generator perf): the sweep iterates only instances that CAN expire, not
+    // the whole table. Membership must track every path an instance's expirability can change through.
+    test('sweeps instances that arrived via load and via in-place transform; never resurrects removed ones', () => {
+        const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+        inventory.createInstance({ archetypeId: 'bread_loaf', owner: { kind: 'none' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        // Round-trip through loadState: the rebuilt set must still find the loaf.
+        const restored = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+        restored.loadState(JSON.parse(JSON.stringify(inventory.getState())));
+        expect(restored.sweepExpired(130)).toBe(1);
+        expect(restored.sweepExpired(130)).toBe(0); // gone — not resurrected, not double-counted
+
+        // An in-place transform INTO a perishable joins the sweep; OUT of one leaves it.
+        const kitchen = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+        const dough = kitchen.createInstance({ archetypeId: 'raw_dough', owner: { kind: 'none' }, container: { kind: 'location', key: 'bakery' }, tick: 0 });
+        expect(kitchen.getArchetype('raw_dough')?.expiresAfterTicks).toBeUndefined(); // fixture sanity: starts non-perishable
+        kitchen.transformInstance(dough.id, 'baked_dough');
+        expect(kitchen.sweepExpired(100_000)).toBe(1); // far past any shelf life — the transformed loaf spoils
+        expect(kitchen.getInstance(dough.id)).toBeNull();
+    });
 });

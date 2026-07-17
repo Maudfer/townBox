@@ -68,6 +68,11 @@ export default class Inventory {
     // churns so often the external query cache never survives. Bumped alongside the global epoch for exactly
     // the containerKey whose membership (or member archetype) changed.
     private containerEpochs = new Map<string, number>();
+    // Instances whose archetype can expire (perf): the daily spoilage sweep iterates THIS set instead of the
+    // whole instance table (which grows with population — homes × fixtures — while perishables stay a small
+    // fraction). Insertion-ordered like the table itself, maintained at create/remove/transform, rebuilt on
+    // load. Same removal set, same counts, same epochs — behavior is identical.
+    private expiring = new Set<ObjectInstanceId>();
 
     constructor(archetypes: ObjectArchetypeTable = DEFAULT_OBJECT_ARCHETYPES) {
         this.archetypes = archetypes;
@@ -118,8 +123,12 @@ export default class Inventory {
         this.contentsCache.clear();
         this.carriedCache.clear();
         this.mutationEpoch++;
+        this.expiring = new Set();
         for (const instance of Object.values(this.state.instances)) {
             this.indexInstance(instance);
+            if (this.archetypes[instance.archetypeId]?.expiresAfterTicks !== undefined) {
+                this.expiring.add(instance.id);
+            }
         }
     }
 
@@ -201,6 +210,9 @@ export default class Inventory {
         }
         this.state.instances[instance.id] = instance;
         this.indexInstance(instance);
+        if (archetype.expiresAfterTicks !== undefined) {
+            this.expiring.add(instance.id);
+        }
         return instance;
     }
 
@@ -265,9 +277,12 @@ export default class Inventory {
     // offline: the generator's runDaily). Bread rots; the shelf drains; production resumes below the ceiling.
     sweepExpired(tick: number): number {
         let removed = 0;
-        for (const [id, instance] of Object.entries(this.state.instances)) {
-            const expires = this.archetypes[instance.archetypeId]?.expiresAfterTicks;
-            if (expires !== undefined && tick - instance.createdAtTick >= expires) {
+        // Iterates the expiring-candidates set, not the whole table (see the field docs). Deleting the
+        // CURRENT entry during Set iteration is well-defined; each pass only removes its own id.
+        for (const id of this.expiring) {
+            const instance = this.state.instances[id];
+            const expires = instance ? this.archetypes[instance.archetypeId]?.expiresAfterTicks : undefined;
+            if (instance && expires !== undefined && tick - instance.createdAtTick >= expires) {
                 this.removeInstance(id);
                 removed++;
             }
@@ -339,6 +354,12 @@ export default class Inventory {
         } else {
             delete instance.state;
         }
+        // The in-place swap can change whether the instance expires (dough → bread) — keep the sweep set exact.
+        if (this.archetypes[archetypeId]!.expiresAfterTicks !== undefined) {
+            this.expiring.add(instance.id);
+        } else {
+            this.expiring.delete(instance.id);
+        }
         // No containment change, but the in-place archetype swap changes what archetype/tag/flag queries see —
         // external epoch-keyed query caches must observe it (task 079 pass 2).
         this.invalidateReadCaches(containerKey(instance.container));
@@ -353,6 +374,7 @@ export default class Inventory {
         }
         this.unindexInstance(instance);
         delete this.state.instances[instanceId];
+        this.expiring.delete(instanceId);
     }
 
     // --- Queries --------------------------------------------------------------
