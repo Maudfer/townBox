@@ -160,6 +160,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [119](119-generator-extinction-fix_DONE.md) | ✅ | [Fix] Generator extinction — off-map courtship + the extinct-warm-up bail |
 | [120](120-generator-perf-byte-identical-pass_DONE.md) | ✅ | [Perf] Byte-identical generator perf pass — flatten the super-linear costs |
 | [121](121-headless-city-systems_DONE.md) | ✅ | [Fix] Headless city systems — the off-map world stops dropping live play's loops |
+| [122](122-live-moved-out-signal-orphan.md) | ⬜ | [Fix] Live move-out is orphaned — nothing emits the `movedOut` signal |
 
 ## Open work
 
