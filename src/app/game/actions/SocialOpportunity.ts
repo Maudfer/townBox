@@ -36,6 +36,9 @@ function socialCandidates(manifest: ActionManifest): { actionId: string; def: Ac
                 cached.push({ actionId, def });
             }
         }
+        // Pre-sorted once (perf): the per-proposal pick used to re-sort its filtered candidates with the
+        // same comparator every time — filtering a sorted list preserves order, so that sort was a no-op.
+        cached.sort((a, b) => a.actionId.localeCompare(b.actionId));
         socialCandidateCache.set(manifest, cached);
     }
     return cached;
@@ -175,7 +178,7 @@ export const socialOpportunityHook: BrainHook = {
         if (candidates.length === 0) {
             return [];
         }
-        candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
+        // No sort needed (perf): filtered from the actionId-pre-sorted socialCandidates() — order preserved.
         const total = candidates.reduce((sum, candidate) => sum + candidate.weight, 0);
         let roll = rng.next() * total;
         let picked = candidates[candidates.length - 1]!;

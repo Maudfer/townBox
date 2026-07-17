@@ -491,7 +491,7 @@ export default class Brain {
         if (candidates.length === 0) {
             return null;
         }
-        candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
+        // No sort needed (perf): filtered from the actionId-sorted getFreeTimeCandidates() — order preserved.
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(0x9eed);
         const total = candidates.reduce((sum, candidate) => sum + candidate.weight, 0);
         let roll = rng.next() * total;
@@ -610,7 +610,9 @@ export default class Brain {
         if (candidates.length === 0) {
             return null;
         }
-        candidates.sort((a, b) => a.actionId.localeCompare(b.actionId));
+        // No sort needed (perf): `candidates` is a filtered view of getFreeTimeCandidates(), which is sorted
+        // by actionId at build with the same comparator — filtering preserves order, so re-sorting here was a
+        // per-person-per-tick localeCompare no-op.
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId));
         const total = candidates.reduce((sum, candidate) => sum + candidate.weight, 0);
         let roll = rng.next() * total;

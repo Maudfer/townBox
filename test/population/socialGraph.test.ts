@@ -154,3 +154,83 @@ describe('resolveStanding (the shared resolution rule)', () => {
         expect(resolveStanding(people, graph, 'wife', 'ghost', 0)).toBeNull();
     });
 });
+
+// The per-person adjacency index (generator perf): edgesOf/removePerson serve from a Map<person, pairKeys>
+// instead of scanning the global edge table. Behavior must be byte-identical to the old whole-table walk —
+// same edge sets, same sorted order — through every mutation path (create via adjust/setKind, prune inside
+// adjust, removeEdgeBetween, removePerson, and the loadState rebuild).
+describe('the per-person adjacency index (perf)', () => {
+    test('edgesOf sees edges created by adjust AND setKind, sorted by otherId', () => {
+        const graph = new SocialGraph();
+        graph.adjust('me', 'zed', 30, 0);
+        graph.setKind('me', 'amy', 'dating', 0, 40);
+        graph.adjust('other', 'stranger', 10, 0); // unrelated edge — must not leak in
+        const edges = graph.edgesOf('me', 0);
+        expect(edges.map(e => e.otherId)).toEqual(['amy', 'zed']); // sorted
+        expect(edges[0]!.view.kind).toBe('dating');
+    });
+
+    test('an edge pruned inside adjust disappears from BOTH people\'s views', () => {
+        const graph = new SocialGraph();
+        graph.adjust('a', 'b', 2, 0);
+        // Twelve half-lives later the materialized strength (+ a tiny warm delta that avoids the hostile
+        // flip) lands below pruneBelow → adjust physically prunes the edge.
+        graph.adjust('a', 'b', 0.01, 2880 * 12);
+        expect(graph.edgesOf('a', 2880 * 12)).toHaveLength(0);
+        expect(graph.edgesOf('b', 2880 * 12)).toHaveLength(0);
+    });
+
+    test('removeEdgeBetween and removePerson clear both sides of the index', () => {
+        const graph = new SocialGraph();
+        graph.adjust('a', 'b', 30, 0);
+        graph.adjust('a', 'c', 30, 0);
+        graph.removeEdgeBetween('a', 'b');
+        expect(graph.edgesOf('a', 0).map(e => e.otherId)).toEqual(['c']);
+        expect(graph.edgesOf('b', 0)).toHaveLength(0);
+        graph.removePerson('c');
+        expect(graph.edgesOf('a', 0)).toHaveLength(0);
+        expect(graph.edgesOf('c', 0)).toHaveLength(0);
+    });
+
+    test('serialize → loadState rebuilds the index (edgesOf identical after a round-trip)', () => {
+        const graph = new SocialGraph();
+        graph.adjust('a', 'b', 30, 0);
+        graph.setKind('a', 'c', 'rival', 0, 50);
+        const restored = new SocialGraph();
+        restored.loadState(graph.serialize());
+        expect(restored.edgesOf('a', 100)).toEqual(graph.edgesOf('a', 100));
+        expect(restored.edgesOf('b', 100)).toEqual(graph.edgesOf('b', 100));
+        // And the restored index keeps serving correctly through further mutations.
+        restored.removePerson('b');
+        expect(restored.edgesOf('a', 100).map(e => e.otherId)).toEqual(['c']);
+    });
+});
+
+// The family-standing memo (generator perf): the derived parent/child/sibling check is genealogically
+// immutable once both people exist, so resolveStanding memoizes it per pool. Repeated queries must stay
+// correct, and distinct pools must never cross-contaminate.
+describe('the family-standing memo (perf)', () => {
+    test('repeated family resolutions are stable, in both argument orders', () => {
+        const people: PersonTable = {
+            dad: gen('dad'),
+            kid: gen('kid', { fatherId: 'dad' }),
+            sib: gen('sib', { fatherId: 'dad' }),
+            stranger: gen('stranger'),
+        };
+        for (let i = 0; i < 3; i++) {
+            expect(resolveStanding(people, null, 'kid', 'dad', 0)).toEqual({ kind: 'family', strength: 60 });
+            expect(resolveStanding(people, null, 'dad', 'kid', 0)).toEqual({ kind: 'family', strength: 60 });
+            expect(resolveStanding(people, null, 'kid', 'sib', 0)).toEqual({ kind: 'family', strength: 60 });
+            expect(resolveStanding(people, null, 'kid', 'stranger', 0)).toBeNull();
+        }
+    });
+
+    test('distinct pools do not cross-contaminate (same ids, different genealogy)', () => {
+        const familyPool: PersonTable = { dad: gen('dad'), kid: gen('kid', { fatherId: 'dad' }) };
+        const strangerPool: PersonTable = { dad: gen('dad'), kid: gen('kid') }; // same ids, NO relation
+        expect(resolveStanding(familyPool, null, 'kid', 'dad', 0)).toEqual({ kind: 'family', strength: 60 });
+        expect(resolveStanding(strangerPool, null, 'kid', 'dad', 0)).toBeNull();
+        // And re-querying the first pool still answers from ITS memo, not the second's.
+        expect(resolveStanding(familyPool, null, 'dad', 'kid', 0)).toEqual({ kind: 'family', strength: 60 });
+    });
+});
