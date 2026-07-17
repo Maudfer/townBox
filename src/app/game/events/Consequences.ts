@@ -116,7 +116,9 @@ function resolveObjectRef(ref: ObjectRef, ctx: CommitContext, plannedOutputs: Se
     if (!query) {
         return null;
     }
-    const match = world.objectsAt(world.objectLocationOf(ctx.personId)).find(id => inventory.instanceMatches(id, query));
+    // Bucket-indexed (perf): same first-match as the old sorted-contents .find() — matchingIdsAtLocation
+    // returns the matching ids in the same ascending order the contents walk produced.
+    const match = inventory.matchingIdsAtLocation(locationKey(world.objectLocationOf(ctx.personId)), query)[0];
     return match ?? null;
 }
 
@@ -205,7 +207,7 @@ function contextSatisfied(entry: OAREntry, ctx: CommitContext): boolean {
     if (!inventory || !world) {
         return false;
     }
-    return world.objectsAt(world.objectLocationOf(ctx.personId)).some(id => inventory.instanceMatches(id, query));
+    return inventory.hasMatchingAtLocation(locationKey(world.objectLocationOf(ctx.personId)), query);
 }
 
 // Plans the FIRST satisfiable OAR entry for the action (declaration order). Returns undefined when the
@@ -416,23 +418,25 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     if (!world || !inventory) {
                         return null;
                     }
-                    const candidates = world.objectsAt(world.objectLocationOf(ctx.personId))
-                        .map(id => inventory.getInstance(id))
-                        .filter((instance): instance is NonNullable<typeof instance> => {
-                            if (!instance || instance.owner.kind !== 'business') {
-                                return false;
+                    // Bucket-narrowed (perf): the archetype/tag conditions are archetype-level, so only
+                    // matching buckets can hold stock; the business-ownership check stays per-instance.
+                    // The final sort normalizes order, so the pick is identical to the old full scan.
+                    const candidates: string[] = [];
+                    const buckets = inventory.archetypeBucketsAtLocation(locationKey(world.objectLocationOf(ctx.personId)));
+                    for (const [archetypeId, bucket] of buckets) {
+                        if (op.query.archetype !== undefined && archetypeId !== op.query.archetype) {
+                            continue;
+                        }
+                        if (op.query.tag !== undefined && !(inventory.getArchetype(archetypeId)?.tags ?? []).includes(op.query.tag)) {
+                            continue;
+                        }
+                        for (const id of bucket) {
+                            if (inventory.getInstance(id)?.owner.kind === 'business') {
+                                candidates.push(id);
                             }
-                            const archetype = inventory.getArchetype(instance.archetypeId);
-                            if (op.query.archetype !== undefined && instance.archetypeId !== op.query.archetype) {
-                                return false;
-                            }
-                            if (op.query.tag !== undefined && !(archetype?.tags ?? []).includes(op.query.tag)) {
-                                return false;
-                            }
-                            return true;
-                        })
-                        .map(instance => instance.id)
-                        .sort();
+                        }
+                    }
+                    candidates.sort();
                     return candidates[0] ?? null;
                 };
                 // At a REAL shop (task 113: a live world answers businessAt with the occupying business)

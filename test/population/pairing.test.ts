@@ -37,18 +37,18 @@ function stateOf(people: GenPerson[]): PopulationState {
 const CERTAIN_RATE = 5000;
 
 describe('pairUnpartneredAdults', () => {
-    test('rate <= 0 is a no-op (returns 0, forms no partnership)', () => {
+    test('rate <= 0 is a no-op (no couples, no partnerships)', () => {
         const state = stateOf([makePerson('w', Genders.Female, 25), makePerson('m', Genders.Male, 27)]);
         const rng = new SeededRandom(1);
-        expect(pairUnpartneredAdults(state, ['w', 'm'], 0, TPY, rng, 0, TPY)).toBe(0);
+        expect(pairUnpartneredAdults(state, ['w', 'm'], 0, TPY, rng, 0, TPY)).toHaveLength(0);
         expect(state.people['w']!.partnerships).toHaveLength(0);
     });
 
     test('marries a compatible unpartnered man and woman (both sides get the edge)', () => {
         const state = stateOf([makePerson('w', Genders.Female, 25), makePerson('m', Genders.Male, 27)]);
         const rng = new SeededRandom(7);
-        const married = pairUnpartneredAdults(state, ['w', 'm'], 0, TPY, rng, CERTAIN_RATE, TPY);
-        expect(married).toBe(1);
+        const couples = pairUnpartneredAdults(state, ['w', 'm'], 0, TPY, rng, CERTAIN_RATE, TPY);
+        expect(couples).toEqual([['w', 'm']]); // [wife, husband] pairs, for the caller's cohabitation step
         expect(spouseAt(state.people, 'w', 0)).toBe('m');
         expect(spouseAt(state.people, 'm', 0)).toBe('w');
     });
@@ -71,7 +71,7 @@ describe('pairUnpartneredAdults', () => {
         brother.fatherId = 'dad';
         const state = stateOf([w, brother]);
         const rng = new SeededRandom(9);
-        expect(pairUnpartneredAdults(state, ['w', 'b'], 0, TPY, rng, CERTAIN_RATE, TPY)).toBe(0);
+        expect(pairUnpartneredAdults(state, ['w', 'b'], 0, TPY, rng, CERTAIN_RATE, TPY)).toHaveLength(0);
     });
 
     test('excludes people outside the [18,45] adult band', () => {
@@ -81,13 +81,13 @@ describe('pairUnpartneredAdults', () => {
             makePerson('m', Genders.Male, 30),
         ]);
         const rng = new SeededRandom(2);
-        expect(pairUnpartneredAdults(state, ['teen', 'elder', 'm'], 0, TPY, rng, CERTAIN_RATE, TPY)).toBe(0);
+        expect(pairUnpartneredAdults(state, ['teen', 'elder', 'm'], 0, TPY, rng, CERTAIN_RATE, TPY)).toHaveLength(0);
     });
 
     test('excludes pairs whose age gap exceeds the maximum', () => {
         const state = stateOf([makePerson('w', Genders.Female, 20), makePerson('m', Genders.Male, 44)]); // gap 24
         const rng = new SeededRandom(4);
-        expect(pairUnpartneredAdults(state, ['w', 'm'], 0, TPY, rng, CERTAIN_RATE, TPY)).toBe(0);
+        expect(pairUnpartneredAdults(state, ['w', 'm'], 0, TPY, rng, CERTAIN_RATE, TPY)).toHaveLength(0);
     });
 
     test('skips already-partnered adults', () => {
@@ -99,7 +99,7 @@ describe('pairUnpartneredAdults', () => {
         const state = stateOf([w, m, spouse]);
         const rng = new SeededRandom(5);
         // Only w is already married; m is single but has no other eligible woman, so nothing forms.
-        expect(pairUnpartneredAdults(state, ['w', 'm', 'spouse'], 0, TPY, rng, CERTAIN_RATE, TPY)).toBe(0);
+        expect(pairUnpartneredAdults(state, ['w', 'm', 'spouse'], 0, TPY, rng, CERTAIN_RATE, TPY)).toHaveLength(0);
     });
 
     test('is deterministic given the same seed', () => {
@@ -115,7 +115,7 @@ describe('pairUnpartneredAdults', () => {
         const s2 = build();
         const n1 = pairUnpartneredAdults(s1, ids, 0, TPY, new SeededRandom(42), CERTAIN_RATE, TPY);
         const n2 = pairUnpartneredAdults(s2, ids, 0, TPY, new SeededRandom(42), CERTAIN_RATE, TPY);
-        expect(n1).toBe(n2);
+        expect(n1).toEqual(n2);
         expect(spouseAt(s1.people, 'w1', 0)).toBe(spouseAt(s2.people, 'w1', 0));
     });
 });

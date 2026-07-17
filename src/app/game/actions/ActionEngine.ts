@@ -291,13 +291,6 @@ export default class ActionEngine {
         // carried list would otherwise be recomputed once per candidate — cache them per context instead.
         // Byte-identical: same reads, just not repeated.
         const attrMemo = new Map<string, Value | Value[] | undefined>();
-        let objectsHere: string[] | null = null;
-        const objectsHereList = (): string[] => {
-            if (objectsHere === null) {
-                objectsHere = world ? world.objectsAt(world.objectLocationOf(personId)) : [];
-            }
-            return objectsHere;
-        };
         let carriedHere: ReturnType<Inventory['carriedInstances']> | null = null;
         const carriedList = (): ReturnType<Inventory['carriedInstances']> => {
             if (carriedHere === null) {
@@ -357,7 +350,10 @@ export default class ActionEngine {
                     return cached.result;
                 }
                 count('action.objectQueryMiss'); // perf: objectAtLocation cache misses — actual location scans (task 079)
-                const result = objectsHereList().some(id => matches(id, query));
+                // Answered from the inventory's archetype buckets (identical semantics — every query
+                // condition is archetype-level) instead of scanning the location's whole contents list,
+                // which grows over a long offline run.
+                const result = inventory.hasMatchingAtLocation(locKey, query);
                 cache.set(key, { epoch, result });
                 return result;
             },
