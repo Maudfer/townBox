@@ -43,7 +43,7 @@ import { SkillTimeline } from 'types/Skill';
 import { ageAt } from 'util/kinship';
 import { Predicate } from 'util/predicate';
 import { SeededRandom, hashStringToSeed } from 'util/random';
-import { TICKS_PER_DAY, dayOfTick } from 'util/time';
+import { TICKS_PER_DAY, TICKS_PER_MONTH, dayOfTick } from 'util/time';
 
 const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
 
@@ -62,7 +62,7 @@ export const HISTORY_ASSET_FORMAT_VERSION = 2;
 // 078.0: reduced-manifest generator mode (default) — the probabilistic walk is restricted to loggable events,
 //        dropping the ~680 effect-free texture events. A per-agent perf win that CHANGES the RNG stream, so
 //        assets differ byte-wise from 077.4 (same content in kind); still deterministic per seed.
-export const HISTORY_GENERATOR_VERSION = '119.0';
+export const HISTORY_GENERATOR_VERSION = '121.0';
 
 // The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -236,8 +236,17 @@ export interface GenerationProgress {
 // "had_sex within N ticks"). The ~680 effect-free story-texture events are NOT persisted per-occurrence — they
 // exist during generation (Brain/feed realism) but would explode the asset to GBs over centuries, are never
 // read by any requirement, and the game regenerates them live. Computed once from the manifest.
+// Effect-free texture events the GENERATOR ITSELF consumes (task 121): the reduced walk must roll them or
+// their off-map consumer never fires — moved_out_of_parents drives the logical household move-out.
+export const GENERATOR_CONSUMED_EVENTS: readonly string[] = ['moved_out_of_parents'];
+
 export function loggableEventIds(manifest: EventManifest = EVENT_MANIFEST): Set<string> {
     const loggable = new Set<string>();
+    for (const id of GENERATOR_CONSUMED_EVENTS) {
+        if (manifest[id]) {
+            loggable.add(id);
+        }
+    }
     const collectHasEvent = (predicate: Predicate | undefined): void => {
         if (!predicate) {
             return;
@@ -480,9 +489,13 @@ export async function generateHistoryAsset(
             ticksPerYear: tpy,
             ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger, traits, habits: habitsLedger, mood: moodLedger } },
             ...(facts ? { inventory: facts.inventory } : {}),
+            ...(logical ? { detentionOf: (personId: PersonId) => logical.detentionOf(personId) } : {}),
             ticksPerStep: effectiveStep,
         });
         applyResult(result, tick);
+        // Signal/commit reactions (task 121) — the off-map analogue of City.handleTick's onCommitted block:
+        // cohabitation, incident filing, chases, adoptions, gossip transfers, visit counterparts, move-outs.
+        logical?.handleTickOutcomes(state, engine, result, tick, tpy);
         // Off-map courtship (extinction remedy): the romance arc gates pregnancy on a spouse and had_sex on a
         // partner-or-dating edge — edges the logical world pairs far too rarely, so the pre-married founders
         // reproduce then age out and the population collapses. Pair a bounded, deterministic fraction of
@@ -493,7 +506,12 @@ export async function generateHistoryAsset(
         if (pairRate > 0) {
             const boost = living.size < params.populationControl.target * (1 + params.populationControl.band) ? 1 : 0.1;
             const pairRng = new SeededRandom((params.seed ^ hashStringToSeed('pair#' + tick)) >>> 0);
-            pairUnpartneredAdults(state, living, tick, tpy, pairRng, pairRate * boost, effectiveStep);
+            const couples = pairUnpartneredAdults(state, living, tick, tpy, pairRng, pairRate * boost, effectiveStep);
+            // Pairing bypasses the event engine (no partnershipFormed signal), so run the cohabitation the
+            // live signal handler would (task 121): the newlyweds actually share a home.
+            for (const [wifeId] of couples) {
+                logical?.cohabit(state, wifeId, tick, tpy);
+            }
         }
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
@@ -511,6 +529,12 @@ export async function generateHistoryAsset(
                 if (profile) {
                     profile.runDaily += now() - tDaily;
                 }
+            }
+            // Monthly wages + cost of living (task 121): the minimal off-map money loop, run once per
+            // month-boundary crossing (the daily band crosses at most one; the hourly band's 719 non-crossing
+            // steps skip it) — money-gated selection content reads a real distribution instead of a flat 0.
+            if (Math.floor(tick / TICKS_PER_MONTH) !== Math.floor((tick + effectiveStep) / TICKS_PER_MONTH)) {
+                logical.runMonthlyEconomy(state, tick, tpy, living);
             }
             // Per-window skill snapshot at the configured cadence (task 077 fix).
             const bucket = Math.floor(tick / snapshotIntervalTicks);

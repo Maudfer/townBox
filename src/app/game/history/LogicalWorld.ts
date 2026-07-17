@@ -12,11 +12,17 @@
 // No engine/TickRunner change is needed — those seams already exist (task 040/046/047/058/063/065). Scene-free,
 // deterministic (seeded from the world seed; its RNG is forked so it never perturbs the event/action streams).
 
+import { fakerPT_BR } from '@faker-js/faker';
 import { generateBusiness } from 'game/economy/BusinessGen';
 import Agenda from 'game/actions/Agenda';
+import CityIncidents from 'game/economy/CityIncidents';
+import DetentionRegistry from 'game/economy/DetentionRegistry';
+import Economy, { DEFAULT_ECONOMY_PARAMS } from 'game/economy/Economy';
 import Habits from 'game/population/Habits';
+import KnownFacts from 'game/population/KnownFacts';
 import Mood from 'game/population/Mood';
 import Needs from 'game/population/Needs';
+import PetRegistry, { PETS_CONFIG } from 'game/population/PetRegistry';
 import Traits from 'game/population/Traits';
 import SocialGraph from 'game/population/SocialGraph';
 import EventEngine from 'game/events/EventEngine';
@@ -34,9 +40,11 @@ import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { locationKey, InventoryState, ObjectInstance, ObjectContainerRef } from 'types/Objects';
 import { SchoolConfig } from 'types/School';
+import { SERVICES_CONFIG } from 'game/economy/CityServices';
+import { TickResult } from 'types/LifeEvent';
 import { evaluateCurve } from 'util/curve';
-import { SeededRandom } from 'util/random';
-import { ageAt, isAliveAt } from 'util/kinship';
+import { SeededRandom, hashStringToSeed } from 'util/random';
+import { ageAt, isAliveAt, spouseAt, parentsOf, childrenOf } from 'util/kinship';
 import { schoolDailyGain, countSchoolDays, SCHOOL_BASIC_CAP } from 'util/school';
 import { dayOfTick, dayOfWeekOfDay, WEEKDAY_NAMES } from 'util/time';
 import { JobPosition } from 'types/Work';
@@ -56,6 +64,11 @@ const JOB_DEF_BY_TITLE = new Map<string, { key: string; def: JobDefinition }>(
     Object.entries(JOBS).map(([key, def]) => [def.title, { key, def }]));
 
 const LOGICAL_SALT = 0x077;
+// The abstract detention facility (task 121): off-map the town "has" a station (the hasVenue posture), so
+// sentences are servable; the detained hook holds people at this logical key.
+const DETENTION_FACILITY_KEY = 'facility:police_station';
+// A prior got_caught within this window makes the next conviction a repeat offense (mirrors City's window).
+const CRIMINAL_RECORD_WINDOW_TICKS = 2 * 8640;
 
 export interface LogicalWorldConfig {
     homes: boolean;
@@ -79,7 +92,7 @@ interface LogicalBusiness {
 // TickRunner only needs the world + markets (jobMarket for get_job/layoff, skills for education) + inventory —
 // no jobOf/schoolOf/skillProgression facts.
 export interface LogicalTickFacts {
-    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda; traits: Traits | null; habits: Habits; mood: Mood } };
+    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda; traits: Traits | null; habits: Habits; mood: Mood; ledger: Economy; incidents: CityIncidents; pets: PetRegistry; knownFacts: KnownFacts } };
     inventory: Inventory;
 }
 
@@ -92,6 +105,8 @@ export default class LogicalWorld implements WorldAdapter {
 
     // Homes + current location (WorldAdapter state).
     private homeKeyOf = new Map<PersonId, string>();
+    // Reverse index home key → members (dead retained like homeKeyOf; occupant queries filter by isAliveAt).
+    private byHomeKey = new Map<string, Set<PersonId>>();
     private locationNow = new Map<PersonId, LogicalLocation>();
     private nextHandleId = 0;
     // Reverse index location-key → present people, so peopleAt is O(occupants) instead of O(all agents). The
@@ -108,6 +123,15 @@ export default class LogicalWorld implements WorldAdapter {
     readonly mood = new Mood();
     readonly habits = new Habits();
     readonly agenda = new Agenda();
+    // The city-system stores live play wires through City (task 121): the same scene-free classes, owned
+    // here so the deep sim runs the SAME loops — justice, pets, gossip, money — instead of dropping their
+    // signals on the floor (the headless-gap sweep: crimes were never filed, adoptions never registered,
+    // sick-visit counterparts never landed, and money read 0 for everyone).
+    readonly incidents = new CityIncidents();
+    readonly detention = new DetentionRegistry();
+    readonly pets = new PetRegistry();
+    readonly knownFacts = new KnownFacts();
+    readonly economy = new Economy();
     // Injected by the generator (task 087) — traits derive from the pool the generator owns.
     traits: Traits | null = null;
     readonly schoolRegistry: SchoolRegistry;
@@ -210,8 +234,125 @@ export default class LogicalWorld implements WorldAdapter {
             homeKey = partnerHome ?? parentHome ?? homeKey;
         }
         this.homeKeyOf.set(personId, homeKey);
+        this.indexHomeMember(personId, homeKey);
         // Effective location starts at home (no transition yet) — index it so co-location sees them immediately.
         this.setLocationIndex(personId, locationKey(this.homeLocation(personId)));
+    }
+
+    private indexHomeMember(personId: PersonId, homeKey: string): void {
+        let members = this.byHomeKey.get(homeKey);
+        if (!members) {
+            members = new Set();
+            this.byHomeKey.set(homeKey, members);
+        }
+        members.add(personId);
+    }
+
+    // The LIVING members of a home, sorted (deterministic sweeps iterate this).
+    private livingMembersOf(homeKey: string, pool: PopulationState['people'], tick: number): PersonId[] {
+        const members: PersonId[] = [];
+        for (const personId of this.byHomeKey.get(homeKey) ?? []) {
+            const person = pool[personId];
+            if (person && isAliveAt(person, tick)) {
+                members.push(personId);
+            }
+        }
+        return members.sort();
+    }
+
+    // Household churn (task 121): re-homes a person — the primitive under cohabitation and move-out. If they
+    // are physically AT the old home, they move with it (the location index follows); a fresh home key gets
+    // its one-time object fill so the new household has a real house around it.
+    relocateHome(personId: PersonId, newKey: string, tick: number): void {
+        const oldKey = this.homeKeyOf.get(personId);
+        if (oldKey === newKey) {
+            return;
+        }
+        if (oldKey !== undefined) {
+            this.byHomeKey.get(oldKey)?.delete(personId);
+        }
+        this.homeKeyOf.set(personId, newKey);
+        this.indexHomeMember(personId, newKey);
+        const atKey = this.locKeyOf.get(personId);
+        if (oldKey !== undefined && atKey === locationKey({ kind: 'building', key: oldKey })) {
+            this.locationNow.delete(personId); // physically at the old home — they move with the household
+            this.setLocationIndex(personId, locationKey(this.homeLocation(personId)));
+        }
+        if (this.config.objects) {
+            this.ensureHomeObjects(personId, tick);
+        }
+    }
+
+    // Newlywed cohabitation (task 121, mirroring City.resolveCohabitation): the LARGER household stays put,
+    // the smaller side moves in — ties keep the SUBJECT's home — and the mover's dependent minor children
+    // living with them come along. Logical homes are elastic, so the live capacity check has no analogue.
+    cohabit(state: PopulationState, subjectId: PersonId, tick: number, ticksPerYear: number): void {
+        if (!this.config.homes) {
+            return;
+        }
+        const pool = state.people;
+        const spouseId = spouseAt(pool, subjectId, tick);
+        if (!spouseId) {
+            return;
+        }
+        const subjectHome = this.homeKeyOf.get(subjectId);
+        const spouseHome = this.homeKeyOf.get(spouseId);
+        if (!subjectHome || !spouseHome || subjectHome === spouseHome) {
+            return;
+        }
+        const subjectSize = this.livingMembersOf(subjectHome, pool, tick).length;
+        const spouseSize = this.livingMembersOf(spouseHome, pool, tick).length;
+        const moverId = spouseSize > subjectSize ? subjectId : spouseId;
+        const targetKey = spouseSize > subjectSize ? spouseHome : subjectHome;
+        const sourceKey = spouseSize > subjectSize ? subjectHome : spouseHome;
+        // The mover's dependent minors: their own children, minors, living in the mover's home.
+        const movers = [moverId];
+        for (const childId of this.livingMembersOf(sourceKey, pool, tick)) {
+            const child = pool[childId]!;
+            if ((child.motherId === moverId || child.fatherId === moverId) && ageAt(child, tick, ticksPerYear) < 18) {
+                movers.push(childId);
+            }
+        }
+        for (const id of movers) {
+            this.relocateHome(id, targetKey, tick);
+        }
+    }
+
+    // Adult move-out (task 121, closing the 077 §9 open decision): reacts to a committed
+    // `moved_out_of_parents` event — relocation only applies when the subject actually still lives with a
+    // living parent (the texture event fires for any adult); their own minor children come along.
+    moveOutOfParents(state: PopulationState, personId: PersonId, tick: number, ticksPerYear: number): void {
+        if (!this.config.homes) {
+            return;
+        }
+        const pool = state.people;
+        const person = pool[personId];
+        const homeKey = this.homeKeyOf.get(personId);
+        if (!person || !homeKey) {
+            return;
+        }
+        const livesWithParent = [person.motherId, person.fatherId].some(parentId =>
+            parentId !== null && this.homeKeyOf.get(parentId) === homeKey
+            && pool[parentId] !== undefined && isAliveAt(pool[parentId]!, tick));
+        if (!livesWithParent) {
+            return;
+        }
+        const movers = [personId];
+        for (const childId of this.livingMembersOf(homeKey, pool, tick)) {
+            const child = pool[childId]!;
+            if ((child.motherId === personId || child.fatherId === personId) && ageAt(child, tick, ticksPerYear) < 18) {
+                movers.push(childId);
+            }
+        }
+        const newKey = `home:${personId}`;
+        for (const id of movers) {
+            this.relocateHome(id, newKey, tick);
+        }
+        // The spouse follows too (marrying while still at the parents' — the couple starts their own home).
+        const spouseId = spouseAt(pool, personId, tick);
+        if (spouseId && this.homeKeyOf.get(spouseId) === homeKey) {
+            this.relocateHome(spouseId, newKey, tick);
+        }
     }
 
     // --- Entry / exit ---------------------------------------------------------------------------------------
@@ -224,6 +365,12 @@ export default class LogicalWorld implements WorldAdapter {
         if (this.config.objects) {
             this.ensureHomeObjects(personId, tick);
         }
+        // Starting funds (task 121, mirroring the live placement seed): adults arrive with the configured
+        // stake; people who come of age IN the sim start from zero and earn wages — the poverty modifiers
+        // then read a real distribution instead of a flat 0 for everyone.
+        if (ageYears >= 18 && this.economy.getPersonBalance(personId) === 0) {
+            this.economy.adjustPerson(personId, DEFAULT_ECONOMY_PARAMS.startingPersonFunds);
+        }
     }
 
     onDeath(personId: PersonId): void {
@@ -233,6 +380,8 @@ export default class LogicalWorld implements WorldAdapter {
         this.mood.removePerson(personId);
         this.habits.removePerson(personId);
         this.agenda.removePerson(personId);
+        this.pets.removeOwner(personId); // companions don't outlive the record (mirrors live teardown)
+        this.knownFacts.removePerson(personId);
         this.schoolRegistry.release(personId);
         this.locationNow.delete(personId);
         // Remove from the co-location index so peopleAt never returns the dead (homeKeyOf is kept; the
@@ -394,6 +543,318 @@ export default class LogicalWorld implements WorldAdapter {
         if (this.config.jobs && this.jobMarket) {
             this.accrueWorkDays(state, fromDay, toDay, ticksPerYear, skillBook, engine, toTick, ids);
         }
+        // The city-system day sweeps (task 121) — the off-map analogues of City.handleNewDay's loops.
+        this.collectGarbage(fromTick);
+        this.runPoliceDay(state, engine, fromTick, ticksPerYear);
+        this.runReleasesDay(state, engine, fromTick, ticksPerYear);
+        this.runPetDay(state, engine, fromTick, ticksPerYear);
+    }
+
+    // --- City-system mirrors (task 121) ----------------------------------------------------------------------
+    // Off-map analogues of City's signal handlers and day sweeps — same rules, same salted-RNG conventions,
+    // engine-invoked milestones so the histories carry the chains live play produces. The live loops read the
+    // map (Field/Workplace); these read the logical stores. Divergences are deliberate and documented inline
+    // (elastic housing, abstract facilities, neutral service coverage).
+
+    // Curbside collection (the 112 loop's off-map analogue): live collectors consume `bag_of_garbage` on
+    // their rounds; off-map the abstract service collects daily, so the curb never accumulates unboundedly
+    // (pre-121, a 4-year small-scale run stacked 25k bags at `outside`).
+    private collectGarbage(tick: number): void {
+        for (const id of this.inventory.matchingIdsAtLocation('outside', { archetype: 'bag_of_garbage' })) {
+            this.inventory.removeInstance(id);
+        }
+        void tick;
+    }
+
+    // Mirrors City.runPoliceWork: cold cases fire impunity for witnessed suspects; open witnessed cases
+    // resolve with odds scaled by coverage — off-map, the NEUTRAL coverage the hazards already assume.
+    private runPoliceDay(state: PopulationState, engine: EventEngine, tick: number, ticksPerYear: number): void {
+        for (const wentCold of this.incidents.sweepCold(tick)) {
+            if (wentCold.suspectId && wentCold.witnesses > 0) {
+                this.invokeMilestone(state, engine, 'got_away_with_it', wentCold.suspectId, tick, ticksPerYear);
+            }
+        }
+        const coverage = SERVICES_CONFIG.neutralCoverage;
+        if (coverage <= 0) {
+            return;
+        }
+        const rng = new SeededRandom((this.worldSeed ^ hashStringToSeed(`police#${Math.floor(tick / 24)}`)) >>> 0);
+        for (const incident of [...this.incidents.open()].sort((a, b) => a.id - b.id)) {
+            if (incident.witnesses <= 0 || !incident.suspectId) {
+                continue; // nobody saw it — the case is unknowable (the 099 contract)
+            }
+            const chance = Math.min(0.9, 0.12 * coverage * Math.min(incident.witnesses, 3));
+            if (rng.next() < chance) {
+                this.convictSuspect(state, engine, incident.suspectId, tick, ticksPerYear);
+            }
+        }
+    }
+
+    // Mirrors City.runReleases: lapsed sentences walk free.
+    private runReleasesDay(state: PopulationState, engine: EventEngine, tick: number, ticksPerYear: number): void {
+        for (const personId of this.detention.due(tick)) {
+            this.detention.release(personId);
+            this.invokeMilestone(state, engine, 'released_from_jail', personId, tick, ticksPerYear);
+        }
+    }
+
+    // Mirrors City.runPetLifecycle: past the species lifespan, a small daily passing roll; the owner grieves
+    // through the normal valence machinery.
+    private runPetDay(state: PopulationState, engine: EventEngine, tick: number, ticksPerYear: number): void {
+        const day = Math.floor(tick / 24);
+        for (const pet of this.pets.all()) {
+            const spec = PETS_CONFIG.species[pet.species];
+            if (!spec) {
+                continue;
+            }
+            if ((tick - pet.birthTick) / ticksPerYear < spec.lifespanYears) {
+                continue;
+            }
+            const rng = new SeededRandom((this.worldSeed ^ hashStringToSeed('petDeath#' + pet.id + '#' + day)) >>> 0);
+            if (rng.next() >= 0.05) {
+                continue;
+            }
+            this.pets.removePet(pet.id);
+            this.invokeMilestone(state, engine, 'pet_passed_away', pet.ownerId, tick, ticksPerYear);
+        }
+    }
+
+    // The tick's signal/commit reactions (task 121) — the off-map analogue of City.handleTick's onCommitted
+    // block. The generator calls this right after applying each tick's results.
+    handleTickOutcomes(state: PopulationState, engine: EventEngine, result: TickResult, tick: number, ticksPerYear: number): void {
+        for (const signal of result.signals) {
+            if (signal.personId === null) {
+                continue;
+            }
+            if (signal.signal === 'partnershipFormed') {
+                this.cohabit(state, signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'crimeCommitted') {
+                this.fileIncident(state, engine, signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'chaseConcluded') {
+                this.resolveChase(state, engine, signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'petAdopted') {
+                this.resolveAdoption(state, engine, signal.personId, tick, ticksPerYear);
+            }
+        }
+        for (const commit of result.committed) {
+            if (commit.eventId === 'moved_out_of_parents') {
+                this.moveOutOfParents(state, commit.personId, tick, ticksPerYear);
+            } else if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
+                this.transferGossip(commit.personId, commit.params['target'], tick);
+            } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
+                engine.invoke(state, 'received_a_visitor', commit.params['target'], tick, ticksPerYear,
+                    { source: 'system', causationId: commit.seq });
+            } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
+                engine.invoke(state, 'was_visited_while_sick', commit.params['target'], tick, ticksPerYear,
+                    { source: 'system', causationId: commit.seq });
+            }
+        }
+    }
+
+    // Mirrors City.fileIncident: the crime kind from the tick's log tail, witnesses from real co-location.
+    private fileIncident(state: PopulationState, engine: EventEngine, suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        void ticksPerYear;
+        void state;
+        const log = engine.getPersonLog(suspectId);
+        let kind: 'shoplifting' | 'pickpocketing' | null = null;
+        for (let index = log.length - 1; index >= 0 && log[index]!.tick === tick; index--) {
+            const entry = log[index]!;
+            if (entry.kind === 'event' && entry.defId === 'committed_shoplifting') {
+                kind = 'shoplifting';
+                break;
+            }
+            if (entry.kind === 'event' && entry.defId === 'committed_pickpocketing') {
+                kind = 'pickpocketing';
+                break;
+            }
+        }
+        if (!kind) {
+            return;
+        }
+        const location = this.locationOf(suspectId);
+        const witnesses = this.peopleAt(location).filter(id => id !== suspectId).length;
+        this.incidents.report(kind, tick, locationKey(location), suspectId, witnesses);
+    }
+
+    // Mirrors City.resolveChase: the same catch-chance formula over age and health.
+    private resolveChase(state: PopulationState, engine: EventEngine, suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        if (!this.incidents.isWanted(suspectId)) {
+            return;
+        }
+        const record = state.people[suspectId];
+        if (!record) {
+            return;
+        }
+        const rng = new SeededRandom((this.worldSeed ^ hashStringToSeed(`chase#${suspectId}#${tick}`)) >>> 0);
+        const age = ageAt(record, tick, ticksPerYear);
+        const health = Number(engine.contextFor(state, suspectId, tick, ticksPerYear).getAttr('health') ?? 1);
+        let catchChance = 0.55;
+        if (age >= 50) {
+            catchChance += 0.2;
+        } else if (age < 25) {
+            catchChance -= 0.15;
+        }
+        if (health < 0.7) {
+            catchChance += 0.15;
+        }
+        if (rng.next() < catchChance) {
+            this.arrestSuspect(state, engine, suspectId, tick, ticksPerYear);
+        } else {
+            this.invokeMilestone(state, engine, 'evaded_the_police', suspectId, tick, ticksPerYear);
+        }
+    }
+
+    // Mirrors City.arrestSuspect: officer's act + counterpart, kin fan-out, the escort, then conviction.
+    // Off-map the facility is the abstract station (the town "has" one — the hasVenue posture).
+    private arrestSuspect(state: PopulationState, engine: EventEngine, suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        const pool = state.people;
+        // The arresting officer: the first living police officer by id (live: first ON-DUTY officer — the
+        // logical world has no shift clock at arrest time, so employment stands in for duty).
+        const officerId = this.jobMarket
+            ? [...this.jobMarket.employedWithTitle('Police Officer')].filter(id => pool[id] && isAliveAt(pool[id]!, tick)).sort()[0] ?? null
+            : null;
+        let arrestSeq: number | null = null;
+        if (officerId) {
+            const { outcome } = engine.invoke(state, 'arrested_suspect', officerId, tick, ticksPerYear,
+                { source: 'system', causationId: null }, {}, {}, { target: suspectId });
+            arrestSeq = outcome.ok ? outcome.seq : null;
+        }
+        engine.invoke(state, 'was_arrested', suspectId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq });
+        const kin = new Set<PersonId>();
+        const spouse = spouseAt(pool, suspectId, tick);
+        if (spouse) {
+            kin.add(spouse);
+        }
+        for (const id of [...childrenOf(pool, suspectId), ...parentsOf(pool, suspectId)]) {
+            kin.add(id);
+        }
+        for (const relativeId of [...kin].sort()) {
+            this.invokeMilestone(state, engine, 'relative_arrested', relativeId, tick, ticksPerYear);
+        }
+        if (officerId) {
+            engine.invoke(state, 'offered_a_ride', officerId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq }, {}, {}, { target: suspectId });
+            engine.invoke(state, 'got_a_ride', suspectId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq });
+            this.requestTransition(suspectId, { kind: 'building', key: DETENTION_FACILITY_KEY }, tick, arrestSeq);
+        }
+        this.convictSuspect(state, engine, suspectId, tick, ticksPerYear);
+    }
+
+    // Mirrors City.convictSuspect: repeat offenders serve record-scaled time at the abstract facility;
+    // every open case closes; the fine moves through the ledger (external-mirrored — conserved).
+    private convictSuspect(state: PopulationState, engine: EventEngine, suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        const context = engine.contextFor(state, suspectId, tick, ticksPerYear);
+        const isRepeat = context.hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS });
+        if (isRepeat) {
+            const hardened = context.hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS, minCount: 2 });
+            const days = hardened ? DEFAULT_ECONOMY_PARAMS.detentionDaysRepeat : DEFAULT_ECONOMY_PARAMS.detentionDays;
+            this.detention.detain(suspectId, tick + days * 24, DETENTION_FACILITY_KEY);
+            this.invokeMilestone(state, engine, 'was_detained', suspectId, tick, ticksPerYear);
+        }
+        for (const incident of this.incidents.all()) {
+            if (incident.status === 'open' && incident.suspectId === suspectId) {
+                this.incidents.resolve(incident.id, tick);
+            }
+        }
+        this.economy.adjustPerson(suspectId, -DEFAULT_ECONOMY_PARAMS.crimeFineAmount);
+        this.invokeMilestone(state, engine, 'got_caught', suspectId, tick, ticksPerYear);
+    }
+
+    // Mirrors City.resolveAdoption: cap-gated species draw + faker name, the species event lands.
+    private resolveAdoption(state: PopulationState, engine: EventEngine, ownerId: PersonId, tick: number, ticksPerYear: number): void {
+        if (this.pets.countOf(ownerId) >= PETS_CONFIG.maxPerOwner) {
+            return;
+        }
+        const rng = new SeededRandom((this.worldSeed ^ hashStringToSeed('pet#' + ownerId + '#' + tick)) >>> 0);
+        const entries = Object.entries(PETS_CONFIG.species).sort(([a], [b]) => a.localeCompare(b));
+        const total = entries.reduce((sum, [, spec]) => sum + spec.weight, 0);
+        let roll = rng.next() * total;
+        let picked = entries[entries.length - 1]!;
+        for (const entry of entries) {
+            roll -= entry[1].weight;
+            if (roll <= 0) {
+                picked = entry;
+                break;
+            }
+        }
+        fakerPT_BR.seed((this.worldSeed ^ hashStringToSeed('petname#' + ownerId + '#' + tick)) >>> 0);
+        const name = fakerPT_BR.person.firstName();
+        this.pets.adopt(ownerId, picked[0], name, tick);
+        this.invokeMilestone(state, engine, picked[1].event, ownerId, tick, ticksPerYear);
+    }
+
+    // Mirrors City.transferGossip: the speaker's juiciest fact (|valence| × recency) travels.
+    private transferGossip(speakerId: PersonId, listenerId: PersonId, tick: number): void {
+        const candidates = this.knownFacts.factsOf(speakerId, tick)
+            .filter(fact => fact.aboutId !== listenerId && fact.aboutId !== speakerId);
+        if (candidates.length === 0) {
+            return;
+        }
+        const scored = candidates
+            .map(fact => ({ fact, score: Math.abs(fact.valence) * Math.max(0, 1 - (tick - fact.learnedAtTick) / (90 * 24)) }))
+            .sort((a, b) => b.score - a.score || a.fact.seq - b.fact.seq);
+        this.knownFacts.learn(listenerId, { ...scored[0]!.fact, learnedAtTick: tick, viaWitness: false });
+    }
+
+    // Monthly wages + cost of living (task 121): the minimal off-map money loop. Employed people earn their
+    // logical salary FROM the external sector; each home pays the live cost-of-living formula (housing +
+    // per-capita over its living members) TO the external sector, debited to the eldest adult (the logical
+    // head). Both flows are external-mirrored, so the money invariant holds. No business P&L, arrears, or
+    // evictions off-map (elastic housing) — documented divergence.
+    runMonthlyEconomy(state: PopulationState, tick: number, ticksPerYear: number, living: ReadonlySet<PersonId>): void {
+        const pool = state.people;
+        const ids = [...living].sort();
+        if (this.config.jobs && this.jobMarket) {
+            for (const personId of ids) {
+                const assignment = this.jobMarket.assignmentOf(personId);
+                if (assignment) {
+                    this.economy.adjustPerson(personId, assignment.salary);
+                }
+            }
+        }
+        if (this.config.homes) {
+            // Mirrors City.runCostOfLiving: the month's concrete purchases net off the abstract charge
+            // (never below the housing cost), and the household drains AVAILABLE funds member-by-member
+            // (adults first) — never forced negative. No arrears/evictions off-map (elastic housing).
+            const materializedSpend = this.economy.drainMaterializedSpend();
+            const seen = new Set<string>();
+            for (const personId of ids) {
+                const homeKey = this.homeKeyOf.get(personId);
+                if (!homeKey || seen.has(homeKey)) {
+                    continue;
+                }
+                seen.add(homeKey);
+                const members = this.livingMembersOf(homeKey, pool, tick);
+                if (members.length === 0) {
+                    continue;
+                }
+                const adults = members.filter(id => ageAt(pool[id]!, tick, ticksPerYear) >= 18);
+                const minors = members.filter(id => !adults.includes(id));
+                const householdSpend = members.reduce((total, id) => total + (materializedSpend[id] ?? 0), 0);
+                const fullExpense = DEFAULT_ECONOMY_PARAMS.housingCost + DEFAULT_ECONOMY_PARAMS.perCapitaCost * members.length;
+                const expense = Math.max(DEFAULT_ECONOMY_PARAMS.housingCost, fullExpense - householdSpend);
+                const funds = members.reduce((total, id) => total + Math.max(0, this.economy.getPersonBalance(id)), 0);
+                let toCharge = Math.min(expense, funds);
+                for (const id of [...adults, ...minors]) {
+                    if (toCharge <= 0) {
+                        break;
+                    }
+                    const share = Math.min(toCharge, Math.max(0, this.economy.getPersonBalance(id)));
+                    if (share > 0) {
+                        this.economy.adjustPerson(id, -share);
+                        toCharge -= share;
+                    }
+                }
+            }
+        }
+    }
+
+    // Manual milestone invoke with the invalid-outcome tolerance City.fireMilestone has (unknown/limited
+    // events are quiet no-ops — the engine's typed rejections are the contract).
+    private invokeMilestone(state: PopulationState, engine: EventEngine, eventId: string, subjectId: PersonId | null, tick: number, ticksPerYear: number): void {
+        if (!subjectId) {
+            return;
+        }
+        engine.invoke(state, eventId, subjectId, tick, ticksPerYear, { source: 'system', causationId: null });
     }
 
     private accrueSchoolDays(state: PopulationState, fromDay: number, toDay: number, skillBook: SkillBook, tick: number, ids: PersonId[]): void {
@@ -461,9 +922,16 @@ export default class LogicalWorld implements WorldAdapter {
     tickFacts(skillBook: SkillBook, tick: number): LogicalTickFacts {
         const skillRegistry = new SkillRegistry(skillBook, tick);
         return {
-            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda, traits: this.traits, habits: this.habits, mood: this.mood } },
+            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda, traits: this.traits, habits: this.habits, mood: this.mood, ledger: this.economy, incidents: this.incidents, pets: this.pets, knownFacts: this.knownFacts } },
             inventory: this.inventory,
         };
+    }
+
+    // Detention facts for the TickPlan (task 121): the detained hook keeps sentenced people at the abstract
+    // facility, and the planner's jail-visit producer lights up for their kin.
+    detentionOf(personId: PersonId): { locationKey: string } | null {
+        const record = this.detention.detentionOf(personId);
+        return record ? { locationKey: record.locationKey } : null;
     }
 
     // Records a skill snapshot for every currently-living person whose skills CHANGED since their last
@@ -608,6 +1076,18 @@ export class LogicalJobMarket {
 
     canHire(personId: PersonId): boolean {
         return this.bestMatch(personId) !== null;
+    }
+
+    // Everyone currently holding a position with the given title (task 121: the arrest mirror picks its
+    // officer from real logical employment). Unsorted — callers order deterministically.
+    employedWithTitle(title: string): PersonId[] {
+        const ids: PersonId[] = [];
+        for (const [personId, position] of this.assignment) {
+            if (position.title === title) {
+                ids.push(personId);
+            }
+        }
+        return ids;
     }
 
     hire(personId: PersonId): boolean {

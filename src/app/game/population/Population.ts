@@ -490,7 +490,9 @@ function sharesParent(a: GenPerson, b: GenPerson): boolean {
 // untouched). `ratePerYear` is the per-single annual marriage hazard; the generator scales it UP as the living
 // count falls below target — the population thermostat's intent applied at the REAL bottleneck (pairing, not
 // fertility, since boosting a pregnancy hazard gated to zero by a missing spouse does nothing). Deterministic
-// given the passed RNG. Returns the number of new marriages formed.
+// given the passed RNG. Returns the new couples formed ([wife, husband] pairs), so the caller can run the
+// cohabitation the live partnershipFormed signal would trigger (task 121 — pairing bypasses the event engine,
+// so no signal fires for these marriages).
 export function pairUnpartneredAdults(
     state: PopulationState,
     livingIds: Iterable<PersonId>,
@@ -502,9 +504,9 @@ export function pairUnpartneredAdults(
     minAgeYears = 18,
     maxAgeYears = 45,
     maxAgeGapYears = 12,
-): number {
+): [PersonId, PersonId][] {
     if (ratePerYear <= 0 || stepTicks <= 0) {
-        return 0;
+        return [];
     }
     const pool = state.people;
     const women: PersonId[] = [];
@@ -534,7 +536,7 @@ export function pairUnpartneredAdults(
     // Per-step marriage probability from the annual hazard (Poisson-honest at any stride — K2).
     const perStep = 1 - Math.exp(-ratePerYear * stepTicks / ticksPerYear);
     const taken = new Set<PersonId>();
-    let married = 0;
+    const couples: [PersonId, PersonId][] = [];
     for (const womanId of women) {
         if (rng.next() >= perStep) {
             continue; // she isn't pairing this step
@@ -562,7 +564,7 @@ export function pairUnpartneredAdults(
         // and pregnancy/had_sex bindings resolve, so the couple reproduces on the normal probabilistic path.
         woman.partnerships.push({ partnerId: best, startTick: tick, endTick: null });
         pool[best]!.partnerships.push({ partnerId: womanId, startTick: tick, endTick: null });
-        married++;
+        couples.push([womanId, best]);
     }
-    return married;
+    return couples;
 }
