@@ -62,12 +62,41 @@ commit and the spoilage commit against the same pre-pass baseline. Regression te
 through every mutation path, memo correctness + pool isolation, spoilage-set membership through load and
 in-place transform. Full suite green; perf op-count pins unaffected.
 
+## Wave 2 — the growth term (commit `8becfdb`)
+
+The long-workload instrument (a timestamped 20-recorded-year run at capacity 250, 10 cold + 10 hot) exposed
+what short profiles cannot: the cold band was flat (~15–20 s/year), but hot-band years climbed **228 → 303 →
+401 → 525 → 574 s** — a per-step cost growing with elapsed simulated time, the exact shape of the
+maintainer's 9-hour run. A store-size diagnostic (sampling every persistent store quarterly under the real
+hot-band loop) convicted the driver:
+
+- The **object-instance table grows without bound off-map**: `took_out_the_trash` moves garbage bags to the
+  `outside` container that nothing collects (the 112 collection loop is live-only — 25k instances after 4
+  small-scale years), and homes accumulate created objects (~300/home/year). Every other store (edges,
+  action instances, agenda) is bounded.
+- Every `objectAtLocation` requirement check, OAR satisfiability probe, purchase-stock lookup, and
+  curiosity-grab **scanned the location's whole contents list** — and the hot band runs 24× more such checks
+  per simulated day than the daily band.
+
+**Fix (byte-identical):** Inventory maintains **per-container archetype buckets** (containerKey →
+archetypeId → ids) alongside `byContainer` — same mutation points, plus the in-place `transformInstance`
+swap, rebuilt on load. Every `ObjectQuery` condition (archetype/tag/flag) is an archetype-level property, so
+boolean queries answer O(1)/O(distinct archetypes) (`hasMatchingAtLocation`), pick paths get the same
+ascending-id order the old sorted-contents walk produced (`matchingIdsAtLocation`), the two instance-level
+filters (business stock, curiosity grabs) narrow to qualifying buckets first, and `findStack` merges via the
+spec's own bucket. Verified: 162/162 files byte-identical (wave-1 baseline vs wave-2, identical seed); the
+re-run store diagnostic shows identical counts with **flat** per-quarter wall time (~5.3 → ~6.1 s over 16
+hot quarters) where the cost previously compounded; `inv.contentsBuild` re-pinned 372 → 322.
+
 ## Remaining work (this branch)
 
-1. **A long-workload profile (~20 recorded years, default-shaped params)** — short profiles cannot see costs
-   that grow with run length (log volume between flushes, GC pressure, any residual per-person accumulation).
-   Profile the post-wave-1 generator over a workload long enough to expose growth, comparing early-vs-late
-   step rates.
-2. **Wave 2**: whatever that profile convicts, under the same byte-parity constraint and verification
-   protocol (identical-seed before/after runs, file-for-file comparison).
-3. Mark this file `_DONE` with the final measurements when the pass closes.
+1. The at-scale verification re-run (the same 20-year capacity-250 workload, post-wave-2) — pin the final
+   flat per-year numbers here and in the PR.
+2. Mark this file `_DONE` with the final measurements when the pass closes.
+
+## Proposed follow-up (out of scope — NOT byte-identical)
+
+The off-map world's **garbage is never collected** (and homes hoard non-perishable creations): a simulation
+gap vs live play (112), not just a perf artifact — the generator's asset carries ever-growing `outside`
+stacks. Fixing it (a logical-world collection sweep mirroring the live loop) changes the RNG-visible world
+state ⇒ a `generatorVersion` bump; it belongs to its own task, not this pass.
