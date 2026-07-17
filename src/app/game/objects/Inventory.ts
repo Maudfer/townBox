@@ -25,6 +25,8 @@ import { count } from 'util/perfMeter';
 
 export const DEFAULT_OBJECT_ARCHETYPES: ObjectArchetypeTable = objectsConfig as unknown as ObjectArchetypeTable;
 
+const EMPTY_BUCKETS: ReadonlyMap<string, ReadonlySet<string>> = new Map();
+
 // Canonical string for a container ref, used as the container-index key.
 export function containerKey(container: ObjectContainerRef): string {
     switch (container.kind) {
@@ -73,6 +75,14 @@ export default class Inventory {
     // fraction). Insertion-ordered like the table itself, maintained at create/remove/transform, rebuilt on
     // load. Same removal set, same counts, same epochs — behavior is identical.
     private expiring = new Set<ObjectInstanceId>();
+    // Per-container archetype buckets (perf): containerKey → archetypeId → instance ids, maintained alongside
+    // byContainer (indexInstance/unindexInstance + the in-place transform swap). Every ObjectQuery condition
+    // (archetype/tag/flag) is an ARCHETYPE-level property, so location queries answer from the buckets —
+    // O(1) for archetype queries, O(distinct archetypes at the key) for tag/flag — instead of scanning the
+    // location's whole contents list, which GROWS over a long offline run (uncollected garbage, accumulated
+    // creations) and made requirement checks a per-step cost that rose with elapsed simulated time. Bucket
+    // sets keep insertion order (same relative order as byContainer), so pick paths that sort stay identical.
+    private archetypesByContainer = new Map<string, Map<string, Set<ObjectInstanceId>>>();
 
     constructor(archetypes: ObjectArchetypeTable = DEFAULT_OBJECT_ARCHETYPES) {
         this.archetypes = archetypes;
@@ -120,6 +130,7 @@ export default class Inventory {
     loadState(state: InventoryState): void {
         this.state = state ?? { instances: {}, nextInstanceSeq: 0 };
         this.byContainer = new Map();
+        this.archetypesByContainer = new Map();
         this.contentsCache.clear();
         this.carriedCache.clear();
         this.mutationEpoch++;
@@ -163,12 +174,31 @@ export default class Inventory {
         const set = this.byContainer.get(key) ?? new Set<ObjectInstanceId>();
         set.add(instance.id);
         this.byContainer.set(key, set);
+        let buckets = this.archetypesByContainer.get(key);
+        if (!buckets) {
+            buckets = new Map();
+            this.archetypesByContainer.set(key, buckets);
+        }
+        let bucket = buckets.get(instance.archetypeId);
+        if (!bucket) {
+            bucket = new Set();
+            buckets.set(instance.archetypeId, bucket);
+        }
+        bucket.add(instance.id);
         this.invalidateReadCaches(key);
     }
 
     private unindexInstance(instance: ObjectInstance): void {
         const key = containerKey(instance.container);
         this.byContainer.get(key)?.delete(instance.id);
+        const buckets = this.archetypesByContainer.get(key);
+        const bucket = buckets?.get(instance.archetypeId);
+        if (bucket) {
+            bucket.delete(instance.id);
+            if (bucket.size === 0) {
+                buckets!.delete(instance.archetypeId); // keep distinct-archetype iteration tight
+            }
+        }
         this.invalidateReadCaches(key);
     }
 
@@ -217,9 +247,12 @@ export default class Inventory {
     }
 
     private findStack(spec: CreateSpec): ObjectInstance | null {
-        for (const id of this.byContainer.get(containerKey(spec.container)) ?? []) {
+        // Only the spec's own archetype bucket can hold a merge candidate — same first-match as the old
+        // full-container walk (the bucket preserves the container set's relative insertion order, and the
+        // archetype check was the walk's first filter).
+        for (const id of this.archetypesByContainer.get(containerKey(spec.container))?.get(spec.archetypeId) ?? []) {
             const candidate = this.state.instances[id];
-            if (!candidate || candidate.archetypeId !== spec.archetypeId) {
+            if (!candidate) {
                 continue;
             }
             if (JSON.stringify(candidate.owner) !== JSON.stringify(spec.owner)) {
@@ -348,7 +381,27 @@ export default class Inventory {
                 ...(state ? { state } : {}),
             });
         }
+        // The in-place swap moves the id between archetype buckets under the same containerKey.
+        const key = containerKey(instance.container);
+        let buckets = this.archetypesByContainer.get(key);
+        if (!buckets) {
+            buckets = new Map();
+            this.archetypesByContainer.set(key, buckets);
+        }
+        const oldBucket = buckets.get(instance.archetypeId);
+        if (oldBucket) {
+            oldBucket.delete(instance.id);
+            if (oldBucket.size === 0) {
+                buckets.delete(instance.archetypeId);
+            }
+        }
         instance.archetypeId = archetypeId;
+        let newBucket = buckets.get(archetypeId);
+        if (!newBucket) {
+            newBucket = new Set();
+            buckets.set(archetypeId, newBucket);
+        }
+        newBucket.add(instance.id);
         if (state) {
             instance.state = { ...state };
         } else {
@@ -399,6 +452,73 @@ export default class Inventory {
 
     instancesAtLocation(key: string): ObjectInstance[] {
         return this.contentsOf({ kind: 'location', key });
+    }
+
+    // Whether the archetype (not any particular instance) satisfies an ObjectQuery — every query condition
+    // (archetype/tag/flag) is an archetype-level property, the same rule instanceMatches applies.
+    private archetypeMatchesQuery(archetypeId: string, query: ObjectQuery): boolean {
+        const archetype = this.archetypes[archetypeId];
+        if (!archetype) {
+            return false;
+        }
+        if (query.archetype !== undefined && archetypeId !== query.archetype) {
+            return false;
+        }
+        if (query.tag !== undefined && !(archetype.tags ?? []).includes(query.tag)) {
+            return false;
+        }
+        if (query.flag !== undefined && !(archetype.flags as unknown as Record<string, boolean>)[query.flag]) {
+            return false;
+        }
+        return true;
+    }
+
+    // Boolean location query from the archetype buckets — identical semantics to scanning the location's
+    // contents with instanceMatches (all query conditions are archetype-level), without the O(contents) walk.
+    hasMatchingAtLocation(key: string, query: ObjectQuery): boolean {
+        const buckets = this.archetypesByContainer.get(`location:${key}`);
+        if (!buckets) {
+            return false;
+        }
+        if (query.archetype !== undefined) {
+            const bucket = buckets.get(query.archetype);
+            return bucket !== undefined && bucket.size > 0 && this.archetypeMatchesQuery(query.archetype, query);
+        }
+        for (const archetypeId of buckets.keys()) {
+            if (this.archetypeMatchesQuery(archetypeId, query)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // The matching instance ids at a location, sorted ascending — identical to filtering the (sorted)
+    // location contents with instanceMatches. For pick paths: [0] is the same first-match the old
+    // sorted-walk .find() produced.
+    matchingIdsAtLocation(key: string, query: ObjectQuery): ObjectInstanceId[] {
+        const buckets = this.archetypesByContainer.get(`location:${key}`);
+        if (!buckets) {
+            return [];
+        }
+        const ids: ObjectInstanceId[] = [];
+        if (query.archetype !== undefined) {
+            if (this.archetypeMatchesQuery(query.archetype, query)) {
+                ids.push(...(buckets.get(query.archetype) ?? []));
+            }
+        } else {
+            for (const [archetypeId, bucket] of buckets) {
+                if (this.archetypeMatchesQuery(archetypeId, query)) {
+                    ids.push(...bucket);
+                }
+            }
+        }
+        return ids.sort();
+    }
+
+    // Read-only view of the archetype buckets at a location, for callers that apply instance-level filters
+    // (ownership, novelty) over a narrowed candidate set instead of the whole contents list.
+    archetypeBucketsAtLocation(key: string): ReadonlyMap<string, ReadonlySet<ObjectInstanceId>> {
+        return this.archetypesByContainer.get(`location:${key}`) ?? EMPTY_BUCKETS;
     }
 
     // Every instance a given owner holds title to, wherever it physically sits (task 047: the business

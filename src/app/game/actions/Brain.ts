@@ -800,15 +800,25 @@ const inventoryOpportunityHook: BrainHook = {
         // the pebble/seashell charm survives, the 6,709 wristwatches don't. Novelty-biased: only archetypes
         // not already carried.
         if (!overWeight && rng.next() < INVENTORY_CONFIG.curiosityChancePerTick) {
-            const grabbable = !overBulk ? world.objectsAt(world.objectLocationOf(personId))
-                .map(id => inventory.getInstance(id))
-                .filter((instance): instance is NonNullable<typeof instance> => !!instance && instance.owner.kind === 'none')
-                .map(instance => instance.archetypeId)
-                .filter(archetypeId => {
+            // Bucket-narrowed (perf): flags/novelty are archetype-level, so screen whole buckets first and
+            // only check ownership within qualifying ones — the old scan walked every instance at the
+            // location, a list that grows over a long offline run. Same sorted archetype set, same pick.
+            const grabbable: string[] = [];
+            if (!overBulk) {
+                for (const [archetypeId, bucket] of inventory.archetypeBucketsAtLocation(locationKey(world.objectLocationOf(personId)))) {
                     const flags = flagsOf(archetypeId);
-                    return flags.carryable && !flags.pocketable && !carriedArchetypes.has(archetypeId);
-                })
-                .sort() : [];
+                    if (!flags.carryable || flags.pocketable || carriedArchetypes.has(archetypeId)) {
+                        continue;
+                    }
+                    for (const id of bucket) {
+                        if (inventory.getInstance(id)?.owner.kind === 'none') {
+                            grabbable.push(archetypeId);
+                            break;
+                        }
+                    }
+                }
+                grabbable.sort();
+            }
             addSeg('inv:grabScan', tScan);
             if (grabbable.length > 0) {
                 return [intent('grab', grabbable[0])];
