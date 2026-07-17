@@ -28,6 +28,10 @@ import { JobPosition } from 'types/Work';
 // matched-rank index × RANK_FIT_WEIGHT + requirement count; ties break by workplace anchor key. No RNG.
 
 const SKILL_WEIGHT = 8;
+// A fresh criminal record (task 099) weighs a candidate down — not a ban, a real handicap that decays
+// with the record window the caller queries over. Feeds the honest recidivism loop: harder hiring deepens
+// the desperation gates that caused the first offense.
+const CRIMINAL_RECORD_PENALTY = 25;
 const DISTANCE_WEIGHT = 1;
 const NO_HOME_DISTANCE = 9999;
 const RANK_FIT_WEIGHT = 10;
@@ -52,7 +56,7 @@ export default class JobMarket implements IJobMarket {
     private workplaces: Workplace[];
     private defByTitle: Map<string, { key: string; def: JobDefinition }>;
 
-    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0) {
+    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0, private hasCriminalRecord?: (personId: PersonId) => boolean) {
         this.workplaces = field.getStructures().filter((tile): tile is Workplace => tile instanceof Workplace);
         this.defByTitle = new Map(Object.entries(JOBS).map(([key, def]) => [def.title, { key, def }]));
     }
@@ -104,6 +108,48 @@ export default class JobMarket implements IJobMarket {
         person.work.setJob(job);
         person.work.setWorkplace(workplace); // employer reference for the commute (task 006)
         return true;
+    }
+
+    // Founder hire (task 097/I3): hire into ONE specific workplace — the business the person just founded —
+    // taking the best position there they can fill. Same rank/grant machinery as the open-market path.
+    hireInto(personId: PersonId, workplace: Workplace): boolean {
+        const person = this.byGenId.get(personId);
+        if (!person || person.work.getJob() !== null) {
+            return false;
+        }
+        let best: { position: JobPosition; rankMatch: RankMatch } | null = null;
+        for (const position of workplace.getOpenPositions()) {
+            const rankMatch = this.matchPosition(personId, position);
+            if (rankMatch && (!best || rankMatch.fit > best.rankMatch.fit)) {
+                best = { position, rankMatch };
+            }
+        }
+        if (!best) {
+            return false;
+        }
+        const chosen = best;
+        const job = workplace.hire(person, requirements => this.positionFillable(personId, requirements, chosen.rankMatch));
+        if (!job) {
+            return false;
+        }
+        if (chosen.rankMatch.rank) {
+            job.rankId = chosen.rankMatch.rank.rankId;
+            job.workDaysInRank = 0;
+            job.totalWorkDays = 0;
+        }
+        person.work.setJob(job);
+        person.work.setWorkplace(workplace);
+        return true;
+    }
+
+    // Does the person STRICTLY qualify (no training grant) for the named jobs.json job at any rank? The
+    // entrepreneurship gate (task 097/I3): founders must actually know the trade they open shop in.
+    strictlyQualifiesFor(personId: PersonId, jobKey: string): boolean {
+        const def = JOBS[jobKey];
+        if (!def || def.ranks.length === 0) {
+            return false;
+        }
+        return def.ranks.some(rank => this.skillBook.meets(personId, rank.requires));
     }
 
     fire(personId: PersonId): void {
@@ -210,7 +256,8 @@ export default class JobMarket implements IJobMarket {
             const distance = homePos && position
                 ? Math.abs(homePos.row - position.row) + Math.abs(homePos.col - position.col)
                 : NO_HOME_DISTANCE;
-            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance;
+            const recordPenalty = this.hasCriminalRecord?.(personId) ? CRIMINAL_RECORD_PENALTY : 0;
+            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance - recordPenalty;
             const key = workplace.getIdentifier();
             if (score > bestScore || (score === bestScore && key < bestKey)) {
                 bestScore = score;

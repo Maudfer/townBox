@@ -9,11 +9,15 @@ import Clock from 'hud/Clock';
 import Feed from 'hud/Feed';
 import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
 import Toolbar from 'hud/Toolbar';
+import Nagbar from 'hud/Nagbar';
 import CityDetails from 'hud/windows/CityDetails';
+import ConstructionMenu from 'hud/windows/ConstructionMenu';
 import HouseDetails from 'hud/windows/HouseDetails';
 import PersonDetails from 'hud/windows/PersonDetails';
+import ServicesDetails from 'hud/windows/ServicesDetails';
 import WorkplaceDetails from 'hud/windows/WorkplaceDetails';
 import { HUDProps, WindowData, WindowTypes, WindowPayload } from 'types/HUD';
+import { Tool } from 'types/Cursor';
 
 const TOAST_DURATION_MS = 3200;
 
@@ -28,6 +32,8 @@ const windowMap = {
     [WindowTypes.CityDetails]: CityDetails,
     [WindowTypes.GameOptions]: null,
     [WindowTypes.AvailableBuildings]: null,
+    [WindowTypes.ConstructionMenu]: ConstructionMenu,
+    [WindowTypes.ServicesDetails]: ServicesDetails,
 };
 
 const HUD: FC<HUDProps> = ({ game }) => {
@@ -67,12 +73,18 @@ const HUD: FC<HUDProps> = ({ game }) => {
         game.on("PersonSelected", { callback: (person: Person) => openWindow(WindowTypes.PersonDetails, person, 'dedupeData') });
         game.on("WorkplaceSelected", { callback: (workplace: Workplace) => openWindow(WindowTypes.WorkplaceDetails, workplace, 'dedupeData') });
         game.on("CitySelected", { callback: (city: City | null) => city && openWindow(WindowTypes.CityDetails, city, 'replaceType') });
+        // The services window (task 114): opened from the nagbar (or anything else emitting ServicesSelected).
+        game.on("ServicesSelected", { callback: (city: City | null) => city && openWindow(WindowTypes.ServicesDetails, city, 'replaceType') });
+        // The construction menu (task 108): selecting the Construction tool opens the building grid.
+        game.on("toolSelected", { callback: (tool: Tool) => tool === Tool.Construction && openWindow(WindowTypes.ConstructionMenu, null, 'replaceType') });
 
         return () => {
             game.off("HouseSelected");
             game.off("PersonSelected");
             game.off("WorkplaceSelected");
             game.off("CitySelected");
+            game.off("ServicesSelected");
+            game.off("toolSelected");
         };
     }, [game]);
 
@@ -142,6 +154,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
             <Clock game={game} />
             <Feed game={game} />
             <Toolbar game={game} />
+            <Nagbar game={game} />
             <Toasts toasts={toasts} />
         </div>
     );

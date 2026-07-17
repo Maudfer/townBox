@@ -24,7 +24,14 @@ import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import { runTick } from 'game/execution/TickRunner';
 import LogicalWorld, { LogicalWorldConfig } from 'game/history/LogicalWorld';
-import { createFounders, DEFAULT_FOUNDER_PARAMS } from 'game/population/Population';
+import { createFounders, DEFAULT_FOUNDER_PARAMS, pairUnpartneredAdults } from 'game/population/Population';
+import Agenda from 'game/actions/Agenda';
+import Habits from 'game/population/Habits';
+import Mood from 'game/population/Mood';
+import Needs from 'game/population/Needs';
+import SocialGraph from 'game/population/SocialGraph';
+import { SocialGraphState } from 'types/Relationship';
+import Traits from 'game/population/Traits';
 import SkillBook from 'game/skills/SkillBook';
 import eventsConfig from 'json/events.json';
 import generatorConfig from 'json/historyGenerator.json';
@@ -35,7 +42,8 @@ import { InventoryState } from 'types/Objects';
 import { SkillTimeline } from 'types/Skill';
 import { ageAt } from 'util/kinship';
 import { Predicate } from 'util/predicate';
-import { TICKS_PER_DAY } from 'util/time';
+import { SeededRandom, hashStringToSeed } from 'util/random';
+import { TICKS_PER_DAY, dayOfTick } from 'util/time';
 
 const EVENT_MANIFEST = eventsConfig as unknown as EventManifest;
 
@@ -54,7 +62,7 @@ export const HISTORY_ASSET_FORMAT_VERSION = 2;
 // 078.0: reduced-manifest generator mode (default) — the probabilistic walk is restricted to loggable events,
 //        dropping the ~680 effect-free texture events. A per-agent perf win that CHANGES the RNG stream, so
 //        assets differ byte-wise from 077.4 (same content in kind); still deterministic per seed.
-export const HISTORY_GENERATOR_VERSION = '078.0';
+export const HISTORY_GENERATOR_VERSION = '119.0';
 
 // The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -70,6 +78,13 @@ export interface PopulationControlConfig {
     band: number;          // deadband fraction: pivots at target*(1±band)
     suppressLevel: number; // childrenNeed multiplier while suppressing (0 = no births, 1 = no influence)
     allowLevel: number;    // childrenNeed multiplier while allowing (typically 1)
+    // Off-map courtship rate (extinction remedy): the per-single annual marriage hazard the generator pairs
+    // unpartnered adults at while below target (the thermostat handles the ceiling via pregnancy). 0 disables
+    // it (the pre-fix behaviour — a population that goes extinct once the pre-married founders age out).
+    // Generator-only; LiveWorld never pairs (real courtship on the map is untouched). See pairUnpartneredAdults.
+    // Optional so programmatic callers (tests) may omit it — absent means 0 (the pre-fix, extinction-prone
+    // behaviour); the shipped json/historyGenerator.json sets it, which the validator requires.
+    pairRatePerYear?: number;
 }
 
 export interface GeneratorSafety {
@@ -84,6 +99,10 @@ export interface HistoryGeneratorParams {
     recordYears: number;     // years of full-fidelity recording after t0
     ticksPerYear: number;
     daysPerStep: number;     // engine cadence in days (1 = daily; larger = faster, coarser)
+    // Two-band recording (task 105 / K1): the FINAL hotYears of the recording window run at HOURLY stride,
+    // so windowed people carry true diurnal texture (real shifts, school days, evenings) while ancestors
+    // keep affordable day-quantized histories. 0 = the old single-band behavior.
+    hotYears: number;
     warmMarginYears: number; // Part B: window selection skips this shallow-ancestry span after t0
     maxWarmupYears: number;  // safety: abort warm-up if the threshold is never reached
     populationControl: PopulationControlConfig;
@@ -183,6 +202,9 @@ export interface HistoryAsset {
     // skill timeline (per-window snapshotting) lets selection pick each person's skills as of the window.
     skillTimeline?: SkillTimeline;
     objects?: InventoryState;
+    // The elective social graph as of the end of the run (task 105 / B5 completion): selection windows it
+    // so drawn people arrive with FRIENDS, not just family. Absent in pre-105 assets (graceful).
+    socialGraph?: SocialGraphState;
     // When STREAMED to a sink (task 077), the event log + skill timeline live in per-person files instead of
     // inline (`eventLog`/`skillTimeline` are then empty) — the sink owns the on-disk layout (format v2).
 }
@@ -308,6 +330,22 @@ export async function generateHistoryAsset(
     const logical = useLogical ? new LogicalWorld(params.seed, params.logicalWorld) : null;
     const bootstrap = logical ? null : new BootstrapWorld();
     const world: WorldAdapter = logical ?? bootstrap!;
+    // The elective social graph (task 083): the logical world owns one; the plain spine gets its own so
+    // consent/targeting/relationship predicates behave identically in both generator modes.
+    const bootstrapSocial = logical ? null : new SocialGraph();
+    const socialGraph = logical ? logical.socialGraph : bootstrapSocial!;
+    const bootstrapNeeds = logical ? null : new Needs();
+    const needsLedger = logical ? logical.needs : bootstrapNeeds!;
+    const bootstrapAgenda = logical ? null : new Agenda();
+    const bootstrapMood = logical ? null : new Mood();
+    const moodLedger = logical ? logical.mood : bootstrapMood!;
+    const bootstrapHabits = logical ? null : new Habits();
+    const habitsLedger = logical ? logical.habits : bootstrapHabits!;
+    const agendaLedger = logical ? logical.agenda : bootstrapAgenda!;
+    const traits = new Traits(() => ({ worldSeed: state.worldSeed, people: state.people }));
+    if (logical) {
+        logical.traits = traits;
+    }
     if (logical && skillBook) {
         logical.buildSchools(params.recordThreshold);
         logical.buildJobs(skillBook, params.recordThreshold);
@@ -386,6 +424,11 @@ export async function generateHistoryAsset(
         for (const id of result.died) {
             living.delete(id);
             logical?.onDeath(id);
+            bootstrapSocial?.removePerson(id);
+            bootstrapNeeds?.removePerson(id);
+            bootstrapAgenda?.removePerson(id);
+            bootstrapMood?.removePerson(id);
+            bootstrapHabits?.removePerson(id);
             deaths++;
         }
     };
@@ -405,6 +448,10 @@ export async function generateHistoryAsset(
         if (!inRecording && tick >= Math.round(params.maxWarmupYears * tpy)) {
             break; // threshold never reached — stop and write whatever grew (a valid, shorter asset)
         }
+        if (!inRecording && living.size === 0) {
+            break; // extinct during warm-up: a 0-population never recovers — don't grind the remaining years
+                   // (the pre-fix collapse wasted ~300 empty warm-up years of fixed per-step overhead here).
+        }
         if (params.safety.maxRuntimeMs > 0 && Date.now() - startedAt > params.safety.maxRuntimeMs) {
             break;
         }
@@ -412,6 +459,12 @@ export async function generateHistoryAsset(
             break;
         }
 
+        // The two-band stride (task 105/K1): inside the hot band (the final hotYears of recording) the
+        // engine steps HOURLY; everywhere else it keeps the coarse day stride. All new state (needs, edges,
+        // mood, habits) is closed-form (the K2 rule), so the band seam integrates exactly.
+        const hot = inRecording && params.hotYears > 0
+            && tick - epochTick! >= Math.round((params.recordYears - params.hotYears) * tpy);
+        const effectiveStep = hot ? 1 : step;
         const stepStart = now();
         livingCount = living.size;
         const agentIds = [...living].sort();
@@ -425,18 +478,39 @@ export async function generateHistoryAsset(
             agentIds,
             tick,
             ticksPerYear: tpy,
-            ctx: facts ? facts.ctx : { mode: 'bootstrap', world },
+            ctx: facts ? facts.ctx : { mode: 'bootstrap', world, markets: { social: socialGraph, needs: needsLedger, agenda: agendaLedger, traits, habits: habitsLedger, mood: moodLedger } },
             ...(facts ? { inventory: facts.inventory } : {}),
-            ticksPerStep: step,
+            ticksPerStep: effectiveStep,
         });
         applyResult(result, tick);
+        // Off-map courtship (extinction remedy): the romance arc gates pregnancy on a spouse and had_sex on a
+        // partner-or-dating edge — edges the logical world pairs far too rarely, so the pre-married founders
+        // reproduce then age out and the population collapses. Pair a bounded, deterministic fraction of
+        // compatible unpartnered adults each step so the second generation reproduces on the normal path;
+        // the rate runs full while below target and drops to a trickle above it (the thermostat caps the
+        // ceiling via pregnancy). Poisson-honest per `effectiveStep`, so the daily and hot bands agree.
+        const pairRate = params.populationControl.pairRatePerYear ?? 0;
+        if (pairRate > 0) {
+            const boost = living.size < params.populationControl.target * (1 + params.populationControl.band) ? 1 : 0.1;
+            const pairRng = new SeededRandom((params.seed ^ hashStringToSeed('pair#' + tick)) >>> 0);
+            pairUnpartneredAdults(state, living, tick, tpy, pairRng, pairRate * boost, effectiveStep);
+        }
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
-            const tDaily = now();
-            logical.runDaily(state, tick, tick + step, tpy, skillBook, engine, living);
-            if (profile) {
-                profile.runDaily += now() - tDaily;
+            // Day-cadence work runs only on steps that CROSS a day boundary (task 118). In the daily band
+            // every step does — nothing changes there. In the hot HOURLY band (105) this block used to run
+            // 24× per day: the school/milestone sweeps plus the whole-table spoilage scan alone were ~43%
+            // of the entire run. The internally day-ranged accruals (school/work days count boundaries in
+            // [from, to)) are EXACTLY equivalent under the gate — the 23 non-crossing steps contributed
+            // zero days; only the sweeps drop back to the daily cadence they were designed for.
+            if (dayOfTick(tick) !== dayOfTick(tick + effectiveStep)) {
+                const tDaily = now();
+                logical.runDaily(state, tick, tick + effectiveStep, tpy, skillBook, engine, living);
+                logical.inventory.sweepExpired(tick); // perishables spoil daily (task 089)
+                if (profile) {
+                    profile.runDaily += now() - tDaily;
+                }
             }
             // Per-window skill snapshot at the configured cadence (task 077 fix).
             const bucket = Math.floor(tick / snapshotIntervalTicks);
@@ -480,7 +554,7 @@ export async function generateHistoryAsset(
             });
         }
 
-        tick += step;
+        tick += effectiveStep;
     }
     engine.setProbabilityScale(null);
 
@@ -591,6 +665,7 @@ export async function generateHistoryAsset(
         eventLog,
         eventLogSeq: engine.getNextLogSeq(),
         eventSchedule: engine.getScheduleState(),
+        socialGraph: socialGraph.serialize(),
     };
     if (logical && skillBook) {
         asset.objects = logical.carriedInventoryState(retainedSet);

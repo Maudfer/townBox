@@ -12,7 +12,8 @@ import {
 import { validateEventsSemantics, validateEventsStructure } from 'game/data/validators/events';
 import { validateOarSemantics, validateOarStructure } from 'game/data/validators/oar';
 import { validateObjectsSemantics, validateObjectsStructure } from 'game/data/validators/objects';
-import { validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
+import { validateHabitsStructure, validateHistoryGeneratorStructure, validateHouseholdDrawStructure, validatePopulationStructure } from 'game/data/validators/params';
+import { validateRetconsSemantics, validateRetconsStructure, validateServicesSemantics, validateServicesStructure } from 'game/data/validators/services';
 import { validatePlacementSemantics } from 'game/data/validators/placement';
 import { validateSchoolsSemantics, validateSchoolsStructure } from 'game/data/validators/school';
 import {
@@ -20,7 +21,7 @@ import {
     validateSkillsSemantics,
     validateSkillsStructure,
 } from 'game/data/validators/skills';
-import { validateAssetsStructure, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from 'game/data/validators/ui';
+import { validateAssetsStructure, validateConstructionSemantics, validateInputStructure, validateToolAssetsSemantics, validateToolAssetsStructure } from 'game/data/validators/ui';
 import businessesConfig from 'json/businesses.json';
 import demandConfig from 'json/demand.json';
 import jobsConfig from 'json/jobs.json';
@@ -76,9 +77,9 @@ describe('data validation (task 039)', () => {
     test('all schemas are registered exactly once, with the expected roster', () => {
         const names = allRegistrations().map(registration => registration.name).sort();
         expect(names).toEqual([
-            'actions', 'assets', 'businesses', 'config', 'demand', 'economy',
-            'events', 'historyGenerator', 'householdDraw', 'input', 'jobs', 'lifeSimulation', 'materials',
-            'objectActionRelationships', 'objectGeneration', 'objects', 'placement', 'population', 'residences', 'schools', 'skillInit', 'skills', 'toolAssets',
+            'actions', 'arbitration', 'assets', 'businesses', 'config', 'construction', 'demand', 'economy',
+            'events', 'fire', 'habits', 'historyGenerator', 'householdDraw', 'input', 'inventoryTuning', 'jobs', 'lifeSimulation', 'materials', 'mood',
+            'needs', 'objectActionRelationships', 'objectGeneration', 'objects', 'pets', 'placement', 'population', 'relationships', 'residences', 'retcons', 'routines', 'schools', 'services', 'skillInit', 'skills', 'toolAssets', 'traits', 'venues',
         ]);
     });
 
@@ -202,7 +203,7 @@ describe('events validation', () => {
         ['an unknown top-level key', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [], trigger: {} } }), /unknown key/],
         ['a missing required effect field', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'emit' }] } }), /requires "signal"/],
         ['a non-subject role with neither where nor bind', manifestWith({ bad: { roles: { subject: aliveSubject, partner: {} }, triggers: { probabilistic: { perYear: 1 } }, effects: [] } }), /must declare "where".*or "bind"/],
-        ['an unknown bind relation', manifestWith({ bad: { roles: { subject: aliveSubject, partner: { bind: 'siblingOf:subject' } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] } }), /relation one of \[partnerOf\]/],
+        ['an unknown bind relation', manifestWith({ bad: { roles: { subject: aliveSubject, partner: { bind: 'siblingOf:subject' } }, triggers: { probabilistic: { perYear: 1 } }, effects: [] } }), /relation one of \[partnerOf, partnerOrDatingOf, engagedOf\]/],
         ['an effect referencing an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1 } }, effects: [{ type: 'marry', role: 'partner' }] } }), /undeclared role "partner"/],
         ['a factor driver on an undeclared role', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: 1, factors: [{ driver: 'mother.age', curve: { mode: 'const', value: 1 } }] } }, effects: [] } }), /undeclared role "mother"/],
         ['a negative perYear', manifestWith({ bad: { roles: { subject: aliveSubject }, triggers: { probabilistic: { perYear: -1 } }, effects: [] } }), /expected >= 0/],
@@ -360,6 +361,47 @@ describe('params validation', () => {
             safety: { maxRuntimeMs: 0, maxPeople: 0 },
         };
         expect(messagesOf(structure(validateHistoryGeneratorStructure, fixture))).toMatch(/must equal the clock's TICKS_PER_YEAR/);
+    });
+
+    test('habits rejects a missing half-life and unknown keys (task 095)', () => {
+        const output = messagesOf(structure(validateHabitsStructure, { escalationPerLevel: 0.35, practiceBump: 1, maxLevel: 10, bogus: true }));
+        expect(output).toMatch(/habits\.halfLifeDays/);
+        expect(output).toMatch(/habits\.bogus: unknown key/);
+    });
+
+    test('retcons rejects an unschoolable template: dangling refs, no manual trigger, no grants (task 098)', () => {
+        const structureBad = { coverageBelow: 0.4, chancePerHousehold: 0.25, minAgeYears: 22, maxAgeYears: 55, templates: { healthcare: { event: 'nursing_school', atAgeYears: 24 } } };
+        expect(messagesOf(structure(validateRetconsStructure, structureBad))).toMatch(/must be below retcons\.minAgeYears/);
+
+        const dangling = { templates: { moon_medicine: { event: 'ghost_event' }, healthcare: { event: 'base_event' } } };
+        const peers = { services: { services: { healthcare: {} } }, events: manifestWith({}) };
+        const output = messagesOf(semantics(validateRetconsSemantics, dangling, peers));
+        expect(output).toMatch(/unknown service "moon_medicine"/);
+        expect(output).toMatch(/unknown event "ghost_event"/);
+        expect(output).toMatch(/declares no manual trigger/);
+    });
+
+    test('construction rejects an unplaceable civic blueprint and dangling pins (task 108)', () => {
+        const entries = [{ id: 'x', label: 'X', tool: 'work', blueprint: 'ghost_shop' }];
+        const peers = { businesses: { jail: { placement: 'civic' }, bakery: {} } };
+        const output = messagesOf(semantics(validateConstructionSemantics, { entries }, peers));
+        expect(output).toMatch(/unknown blueprint "ghost_shop"/);
+        expect(output).toMatch(/civic blueprint "jail" is not placeable/);
+    });
+
+    test('services rejects a missing education service and dangling job/blueprint refs (task 096)', () => {
+        const noEducation = { neutralCoverage: 0.5, advisoryBelow: 0.25, services: { healthcare: { label: 'H', providerJobs: [], facilityBlueprints: [], residentsPerProvider: 40 } } };
+        expect(messagesOf(structure(validateServicesStructure, noEducation))).toMatch(/education service must be declared/);
+
+        const dangling = { neutralCoverage: 0.5, advisoryBelow: 0.25, services: { education: { label: 'E', providerJobs: ['astronaut'], facilityBlueprints: ['moon_base'], residentsPerProvider: 30 } } };
+        const output = messagesOf(semantics(validateServicesSemantics, dangling, { jobs: jobsConfig, businesses: businessesConfig }));
+        expect(output).toMatch(/unknown job "astronaut"/);
+        expect(output).toMatch(/unknown blueprint "moon_base"/);
+    });
+
+    test('services rejects a line without its nagbar warning copy (task 114)', () => {
+        const noWarning = { neutralCoverage: 0.5, advisoryBelow: 0.25, services: { education: { label: 'E', providerJobs: [], facilityBlueprints: [], residentsPerProvider: 30 } } };
+        expect(messagesOf(structure(validateServicesStructure, noWarning))).toMatch(/education\.warning/);
     });
 });
 

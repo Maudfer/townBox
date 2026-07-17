@@ -4,11 +4,22 @@ import City from './City';
 
 import Clock from 'game/Clock';
 import ActionEngine from 'game/actions/ActionEngine';
+import Agenda from 'game/actions/Agenda';
 import Brain from 'game/actions/Brain';
 import { assertValidData } from 'game/data/schemas';
 import Economy from 'game/economy/Economy';
 import EventEngine from 'game/events/EventEngine';
+import CityIncidents from 'game/economy/CityIncidents';
+import BuildingConditions from 'game/economy/BuildingConditions';
+import DetentionRegistry from 'game/economy/DetentionRegistry';
+import Habits from 'game/population/Habits';
+import KnownFacts from 'game/population/KnownFacts';
+import PetRegistry from 'game/population/PetRegistry';
+import Mood from 'game/population/Mood';
+import Needs from 'game/population/Needs';
 import Population from 'game/population/Population';
+import SocialGraph from 'game/population/SocialGraph';
+import Traits from 'game/population/Traits';
 import DebugTools from 'game/scene/DebugTools';
 import MainScene from 'game/scene/MainScene';
 import Field from 'game/world/Field';
@@ -38,7 +49,7 @@ import { EventPayloads, UpdateEvent } from 'types/Events';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { DEFAULT_SAVE_SLOT, HistoryHydrationSave } from 'types/Save';
-import { MS_PER_TICK } from 'util/time';
+import { MS_PER_TICK, nextTimeScale } from 'util/time';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -55,6 +66,17 @@ export default class GameManager {
     public inventory: Inventory | null;
     public schools: SchoolRegistry | null;
     public skillBook: SkillBook | null;
+    public socialGraph: SocialGraph | null;
+    public needs: Needs | null;
+    public agenda: Agenda | null;
+    public traits: Traits | null;
+    public mood: Mood | null;
+    public habits: Habits | null;
+    public incidents: CityIncidents | null;
+    public detention: DetentionRegistry | null;
+    public buildingConditions: BuildingConditions | null;
+    public pets: PetRegistry | null;
+    public knownFacts: KnownFacts | null;
 
     // Last emitted time markers, so time events fire only on actual change (not every frame).
     private lastDayEmitted: number;
@@ -153,6 +175,17 @@ export default class GameManager {
         this.inventory = null;
         this.schools = null;
         this.skillBook = null;
+        this.socialGraph = null;
+        this.needs = null;
+        this.agenda = null;
+        this.traits = null;
+        this.mood = null;
+        this.habits = null;
+        this.incidents = null;
+        this.detention = null;
+        this.buildingConditions = null;
+        this.pets = null;
+        this.knownFacts = null;
         this.lastDayEmitted = -1;
         this.lastTickEmitted = -1;
         this.lastMinuteEmitted = -1;
@@ -257,6 +290,42 @@ export default class GameManager {
             // records during deserialize; people are otherwise seeded at materialization and progress
             // through school/work/education.
             this.skillBook = new SkillBook();
+
+            // The elective social graph (task 083): friendship/rivalry/romance edges, serialized (save v15).
+            // A load restores edges during deserialize; edges otherwise grow from real interactions.
+            this.socialGraph = new SocialGraph();
+
+            // The needs ledger (task 084): per-person motivational meters, serialized (save v16). Lazily
+            // seeded per person on first read; a load restores levels during deserialize.
+            this.needs = new Needs();
+
+            // The agenda (task 085): persisted planned intents (routines, visits, joint plans).
+            // A load restores entries during deserialize.
+            this.agenda = new Agenda();
+
+            // Traits (task 087): derived temperament, never stored — a provider reads the live pool.
+            this.traits = new Traits(() => this.population?.getState() ?? { worldSeed: 0, people: {} });
+
+            // Mood (task 091): valence-driven morale, serialized (v16 family). A load restores impulses.
+            this.mood = new Mood();
+
+            // Habits (task 095): vice counters with closed-form cooling, serialized (v16 family).
+            this.habits = new Habits();
+
+            // City incidents (task 099): the crime/justice registry, serialized (v16 family).
+            this.incidents = new CityIncidents();
+
+            // Detention (task 100): who is serving time, serialized (v16 family).
+            this.detention = new DetentionRegistry();
+
+            // Building condition (task 102): the wear/fire substrate, serialized (v16 family).
+            this.buildingConditions = new BuildingConditions();
+
+            // Pets (task 103): lightweight companions, serialized (v16 family).
+            this.pets = new PetRegistry();
+
+            // Known facts (task 104): the town's memory, serialized (v16 family).
+            this.knownFacts = new KnownFacts();
 
             // Asset-fed new game (task 055): on a fresh game, select a window of the committed history asset —
             // rebased to tick 0 with re-randomized identities — so drawn households arrive with real histories.
@@ -408,6 +477,23 @@ export default class GameManager {
         if (selected.objects) {
             this.inventory?.loadState(selected.objects);
         }
+        // The windowed elective graph (task 105): drawn people arrive with friends, not just family.
+        if (selected.socialGraph) {
+            this.socialGraph?.loadState(selected.socialGraph);
+        }
+    }
+
+    // The debug time throttle (task 117): a frame-delta multiplier for the human observation session —
+    // cycled by the T key (masterSwitch-gated in MainScene), never serialized, always 1 in normal play.
+    private timeScale = 1;
+
+    public getTimeScale(): number {
+        return this.timeScale;
+    }
+
+    public cycleTimeScale(): number {
+        this.timeScale = nextTimeScale(this.timeScale);
+        return this.timeScale;
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:
@@ -417,7 +503,7 @@ export default class GameManager {
         if (!this.clock || this.timePaused) {
             return;
         }
-        this.clock.advance(payload.timeDelta);
+        this.clock.advance(payload.timeDelta * this.timeScale);
 
         const timestamp = this.clock.getTimestamp();
         const tick = this.clock.getCurrentTick();

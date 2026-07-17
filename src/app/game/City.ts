@@ -4,6 +4,7 @@ import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
 import { generateBusiness } from 'game/economy/BusinessGen';
+import CityServices, { SERVICES_CONFIG } from 'game/economy/CityServices';
 import LiveWorld from 'game/execution/LiveWorld';
 import { runTick } from 'game/execution/TickRunner';
 import { DEFAULT_ECONOMY_PARAMS } from 'game/economy/Economy';
@@ -22,6 +23,12 @@ import { DemandTable } from 'types/Demand';
 import { CityStats } from 'types/City';
 import { NewDayEvent, NewTickEvent, TimeChangedEvent } from 'types/Time';
 import { SchoolConfig, SchoolFacts } from 'types/School';
+import { ServiceInputs } from 'types/Services';
+import { RetconConfig } from 'types/Retcon';
+import { locationKey } from 'types/Objects';
+import { FIRE_CONFIG } from 'game/economy/BuildingConditions';
+import { PETS_CONFIG } from 'game/population/PetRegistry';
+import { Tool } from 'types/Cursor';
 
 import businessesConfig from 'json/businesses.json';
 import jobsConfig from 'json/jobs.json';
@@ -30,6 +37,7 @@ import materialsConfig from 'json/materials.json';
 import demandConfig from 'json/demand.json';
 import schoolsConfig from 'json/schools.json';
 import residencesConfig from 'json/residences.json';
+import retconsConfig from 'json/retcons.json';
 import { PersonId, PersonTable } from 'types/Genealogy';
 import { Household, HouseholdArrangements } from 'types/Household';
 import { TickResult } from 'types/LifeEvent';
@@ -53,6 +61,12 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
 const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
+const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
+// Civic blueprints (task 108) are placed deliberately through the construction menu — never drawn onto
+// generic lots by the random draw, re-occupancy, or entrepreneurship.
+const isCivicBlueprint = (key: string): boolean => BUSINESS_BLUEPRINTS[key]?.placement === 'civic';
+// A criminal record fades after two in-game years (task 099) — the town forgives, slowly.
+const CRIMINAL_RECORD_WINDOW_TICKS = 2 * 8640;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
 // (manager/teacher/janitor) remain ordinary employment.
 const SCHOOL_BLUEPRINT_KEY = 'school';
@@ -74,6 +88,10 @@ export default class City {
     // The live-mode WorldAdapter (task 040): the map-backed side of the execution boundary. Location
     // transitions requested through it drive the real commute machinery and resolve on physical arrival.
     private world: LiveWorld;
+    // The services coverage ledger (task 096): derived daily, serialized nowhere. Hazards read it through
+    // markets.services; the dashboard reads latest(). A fresh session is unmeasured (neutral) until day 1.
+    private services: CityServices;
+    private lastServicesAdvisoryMonth: number;
     // Completed-day -> proficiency service (task 063). One instance so its per-day duplicate guard persists
     // across ticks; constructed lazily because the SkillBook exists only after postSceneInit.
     private skillProgression: SkillProgression | null;
@@ -90,6 +108,8 @@ export default class City {
         this.bankruptcies = 0;
         this.evictions = 0;
         this.skillProgression = null;
+        this.services = new CityServices();
+        this.lastServicesAdvisoryMonth = -1;
         this.world = new LiveWorld({
             getPeople: () => Game.field?.getPeople() ?? [],
             buildingByKey: key => {
@@ -101,6 +121,8 @@ export default class City {
                 return null;
             },
             startCommute: (person, destination) => this.startCommute(person, destination),
+            // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
+            listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,
         });
 
@@ -237,6 +259,7 @@ export default class City {
             householdWealth,
             businessBalance,
             stressedBusinesses,
+            services: this.services.latest(),
             stressedHouseholds,
             births: this.births,
             deaths: this.deaths,
@@ -329,8 +352,74 @@ export default class City {
         // unreachable until a round-trip).
         this.fillBuildingObjects(house);
 
+        // Career retcon (task 098 / I4): if the town critically lacks a service, this draw MAY gain a
+        // plausible injected chapter. Runs after skill initialization so the grant tops up either entry path.
+        this.applyCareerRetcon(house.getIdentifier(), selection.memberIds, currentTick, ticksPerYear);
+
         this.population += personByGenId.size;
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
+    }
+
+    // The bounded, history-coherent career retcon (task 098 / proposal I4). When the coverage ledger reports
+    // a critical gap that has an authored template (json/retcons.json), a deterministic per-household roll
+    // may pick ONE age-band member and commit the template's education event at a plausible PAST tick —
+    // through the normal EventEngine.invoke + SkillRegistry machinery, so eligibility, the log entry, the
+    // aggregate history, and the dependency-valid skill grants are all real. Nothing is overwritten: family,
+    // possessions, and every existing entry stay; the person just ALSO went to nursing school at 24, and the
+    // JobMarket can now staff the clinic. At most one retcon per household; members who already hold the
+    // template's skills are never re-schooled.
+    public applyCareerRetcon(houseKey: string, memberIds: PersonId[], currentTick: number, ticksPerYear: number): void {
+        const population = Game.population;
+        const engine = Game.eventEngine;
+        const skillBook = Game.skillBook;
+        if (!population || !engine || !skillBook) {
+            return;
+        }
+        // Measure the town NOW (a brand-new session is otherwise unmeasured until the first day sweep).
+        this.recomputeServices(currentTick);
+        // A retcon answers a STAFFING gap, not a missing building: without a facility the chapter would
+        // create a nurse with nowhere to practice (build the clinic first; the next draws can staff it).
+        const gaps = this.services.latest()
+            .filter(line => line.ratio < RETCON_CONFIG.coverageBelow && line.facilities > 0 && RETCON_CONFIG.templates[line.service] !== undefined)
+            .sort((a, b) => a.ratio - b.ratio || a.service.localeCompare(b.service));
+        if (gaps.length === 0) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`retcon#${houseKey}`)) >>> 0);
+        if (rng.next() >= RETCON_CONFIG.chancePerHousehold) {
+            return; // the bounded fraction: most households arrive exactly as recorded
+        }
+        const pool = population.getState().people;
+        const state = population.getState();
+        for (const gap of gaps) {
+            const template = RETCON_CONFIG.templates[gap.service]!;
+            const definition = engine.getManifest()[template.event];
+            const grantedSkills = (definition?.effects ?? [])
+                .filter((effect): effect is { type: 'acquireSkill'; value: string; proficiency?: number } => effect.type === 'acquireSkill')
+                .map(effect => ({ skill: effect.value, floor: effect.proficiency ?? 25 }));
+            for (const memberId of [...memberIds].sort()) {
+                const record = pool[memberId];
+                if (!record) {
+                    continue;
+                }
+                const age = ageAt(record, currentTick, ticksPerYear);
+                if (age < RETCON_CONFIG.minAgeYears || age > RETCON_CONFIG.maxAgeYears) {
+                    continue;
+                }
+                // Someone who already holds the chapter's skills doesn't need the chapter.
+                if (grantedSkills.length > 0 && grantedSkills.every(grant => skillBook.proficiency(memberId, grant.skill) >= grant.floor)) {
+                    continue;
+                }
+                const pastTick = Math.min(record.birthTick + template.atAgeYears * ticksPerYear, currentTick - 1);
+                const registry = new SkillRegistry(skillBook, pastTick);
+                const { outcome } = engine.invoke(state, template.event, memberId, pastTick, ticksPerYear,
+                    { source: 'system', causationId: null }, {}, { markets: { skills: registry } });
+                if (outcome.ok) {
+                    return; // at most one retcon per household
+                }
+            }
+        }
     }
 
     // Fills a freshly placed/occupied building with contextual Object Instances (task 070). Idempotent via the
@@ -384,7 +473,10 @@ export default class City {
         if (!workplace) {
             throw new Error("Invalid workplace to setup business");
         }
-        const business = this.openBusiness(workplace);
+        // The construction menu's pin (task 108): a chosen civic/specific building instantiates exactly
+        // that blueprint; unpinned lots keep the demand-weighted draw.
+        const pinned = workplace.takePendingBlueprint();
+        const business = this.openBusiness(workplace, undefined, pinned ? { blueprintKey: pinned } : {});
         if (business) {
             console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${business.size}, ${business.positions.length} positions)`);
         }
@@ -396,7 +488,7 @@ export default class City {
     // (generation ≥ 1) draws a *different* business. Optionally constrains the draw to a demand `category`
     // (task 037 re-occupancy). Picks a blueprint, draws a size, names it, seeds capital, advances the lot's
     // generation count, and clears its vacancy clock.
-    private openBusiness(workplace: Workplace, category?: string): BusinessInstance | null {
+    private openBusiness(workplace: Workplace, category?: string, options: { blueprintKey?: string; name?: string } = {}): BusinessInstance | null {
         const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS);
         if (blueprintKeys.length === 0) {
             return null;
@@ -411,12 +503,40 @@ export default class City {
         const rng = new SeededRandom(seed);
         fakerPT_BR.seed(seed);
 
-        const candidates = category ? blueprintKeys.filter(blueprintKey => BUSINESS_BLUEPRINTS[blueprintKey]!.category === category) : blueprintKeys;
-        const pool = candidates.length > 0 ? candidates : blueprintKeys;
-        const blueprintKey = rng.pick(pool);
+        const drawable = blueprintKeys.filter(candidate => !isCivicBlueprint(candidate));
+        let blueprintKey: string;
+        if (options.blueprintKey) {
+            // A forced blueprint (task 097/I3 founders; task 108 construction-menu pins).
+            blueprintKey = options.blueprintKey;
+        } else if (category) {
+            const candidates = drawable.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === category);
+            blueprintKey = rng.pick(candidates.length > 0 ? candidates : drawable);
+        } else {
+            // First-placement matching (task 097/I2): an unconstrained draw prefers categories the town's
+            // demand actually lacks, weighted by unmet demand. With no positive deficit anywhere (an empty
+            // map) the draw falls back to the legacy uniform pick — same seed, same stream, same business.
+            const { deficits } = this.categorySupplyAndDeficits();
+            const weighted = [...deficits.entries()].filter(([, deficit]) => deficit > 0).sort((a, b) => a[0].localeCompare(b[0]));
+            if (weighted.length === 0) {
+                blueprintKey = rng.pick(drawable);
+            } else {
+                const total = weighted.reduce((sum, [, deficit]) => sum + deficit, 0);
+                let roll = rng.next() * total;
+                let picked = weighted[weighted.length - 1]![0];
+                for (const [candidateCategory, deficit] of weighted) {
+                    roll -= deficit;
+                    if (roll <= 0) {
+                        picked = candidateCategory;
+                        break;
+                    }
+                }
+                const candidates = drawable.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === picked);
+                blueprintKey = rng.pick(candidates.length > 0 ? candidates : drawable);
+            }
+        }
         const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
         const size = rng.nextInt(blueprint.size.min, blueprint.size.max);
-        const name = fakerPT_BR.company.name();
+        const name = options.name ?? fakerPT_BR.company.name();
 
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
@@ -456,6 +576,9 @@ export default class City {
         if (!population || !clock) {
             return;
         }
+        // Spoilage sweep (task 089 / F3): perishables past their shelf life are removed daily — bread rots,
+        // shelves drain, production resumes below the stock ceiling.
+        Game.inventory?.sweepExpired(event.tick);
         const materializedIds = new Set(this.indexMaterialized().keys());
         const coarse = population.simulate(event.tick, clock.getTicksPerYear(), undefined, materializedIds);
 
@@ -483,8 +606,92 @@ export default class City {
         // as they cross birthdays (idempotent toAtLeast grants; deterministic, RNG-free).
         this.runSkillMilestones(event.tick, clock.getTicksPerYear());
 
+        // The services coverage sweep (task 096): recompute the ledger daily from what actually exists.
+        this.recomputeServices(event.tick);
+
+        // Police work (task 099): cold-case sweep + witnessed-incident resolution, scaled by coverage.
+        this.runPoliceWork(event.tick, clock.getTicksPerYear());
+
+        // Release the served (task 100): sentences that lapsed walk free — back into whatever life is left.
+        this.runReleases(event.tick);
+
+        // The ignition sweep (task 102): worn buildings are hazards; kept-up ones almost never ignite.
+        this.runFireHazard(event.tick);
+
+        // Pet lifespans (task 103): old companions pass, and it genuinely hurts (a -3 mood impulse).
+        this.runPetLifecycle(event.tick);
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
+    }
+
+    // The daily services sweep (task 096 / H1): coverage derives from the real map — facilities from placed
+    // businesses, providers from who is EMPLOYED at them in the service's declared jobs (a doctor at the
+    // hospital practices; an unemployed one doesn't), education from real seats vs the enrollable band. The
+    // math is the pure computeCoverage; hazards read the ledger through markets.services, the dashboard
+    // through getCityStats. One monthly feed advisory names the worst uncovered service (H2 surfacing).
+    public recomputeServices(tick: number): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        // jobs.json keys → position titles (a JobPosition carries the title, not the key).
+        const providerTitles = new Map<string, Set<string>>();
+        for (const [service, def] of Object.entries(SERVICES_CONFIG.services)) {
+            const titles = new Set<string>();
+            for (const jobKey of def.providerJobs) {
+                const job = JOBS[jobKey];
+                if (job) {
+                    titles.add(job.title);
+                }
+            }
+            providerTitles.set(service, titles);
+        }
+        const providersByService: Record<string, number> = {};
+        const facilitiesByService: Record<string, number> = {};
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const business = structure.getBusiness();
+            if (!business) {
+                continue;
+            }
+            for (const [service, def] of Object.entries(SERVICES_CONFIG.services)) {
+                if (!def.facilityBlueprints.includes(business.blueprintKey)) {
+                    continue;
+                }
+                facilitiesByService[service] = (facilitiesByService[service] ?? 0) + 1;
+                const titles = providerTitles.get(service)!;
+                for (const employee of structure.getEmployees()) {
+                    const title = employee.work.getJob()?.title;
+                    if (title && titles.has(title)) {
+                        providersByService[service] = (providersByService[service] ?? 0) + 1;
+                    }
+                }
+            }
+        }
+        const people = field.getPeople();
+        let schoolAgeChildren = 0;
+        for (const person of people) {
+            if (isSchoolAge(SCHOOL_CONFIG, person.social.getAge())) {
+                schoolAgeChildren += 1;
+            }
+        }
+        const schoolSeats = this.listSchools().reduce((sum, school) => sum + school.seats, 0);
+        const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren };
+        const coverages = this.services.update(inputs);
+        // The live surface (task 114): the nagbar derives its warnings from exactly what the ledger holds.
+        Game.emit('servicesChanged', this.services.latest());
+
+        const month = Math.floor(Math.floor(tick / 24) / 30);
+        if (month !== this.lastServicesAdvisoryMonth && people.length > 0) {
+            this.lastServicesAdvisoryMonth = month;
+            const worst = [...coverages].sort((a, b) => a.ratio - b.ratio || a.service.localeCompare(b.service))[0];
+            if (worst && worst.ratio < SERVICES_CONFIG.advisoryBelow) {
+                this.announce('services', tick, `${this.name} lacks ${worst.label.toLowerCase()} (coverage ${(worst.ratio * 100).toFixed(0)}%)`, null);
+            }
+        }
     }
 
     // The placed school buildings and their seat counts (capacity curve over the school business size).
@@ -620,6 +827,8 @@ export default class City {
     // materialized people — deaths despawn the resident, births materialize a newborn into the mother's
     // house. Public for unit testing; invoked via "newTick" in production.
     public async handleTick(event: NewTickEvent): Promise<void> {
+        // Burning fires resolve on the hour cadence (task 102) — a fire is not a monthly ledger line.
+        this.resolveFires(event.tick);
         const population = Game.population;
         const clock = Game.clock;
         const field = Game.field;
@@ -633,7 +842,11 @@ export default class City {
 
         // Employment market over the current materialized people, so get_job/layoff events hire/fire for real;
         // the economy ledger backs the `money` attribute and `adjustMoney` effect (task 017).
-        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick) : null;
+        // A got_caught within the record window handicaps hiring (task 099) — read from the aggregate history.
+        const hasRecord = (id: PersonId): boolean => Game.eventEngine
+            ? Game.eventEngine.contextFor(population.getState(), id, event.tick, ticksPerYear).hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS })
+            : false;
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick, hasRecord) : null;
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
         // exists. Rebuilt each tick over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);
@@ -663,13 +876,16 @@ export default class City {
                 if (!person || !job || !(workplace instanceof Workplace)) {
                     return null;
                 }
-                const definition = Object.values(JOBS).find(candidate => candidate.title === job.title);
+                const entry = Object.entries(JOBS).find(([, candidate]) => candidate.title === job.title);
+                const jobKey = entry?.[0];
+                const definition = entry?.[1];
                 // The person's current rank on the ladder (task 064): rank-specific work-action overrides
                 // and progression/promotion facts ride along for the orchestrator + SkillProgression (065).
                 const rank = definition?.ranks.find(candidate => candidate.rankId === job.rankId)
                     ?? definition?.ranks.find(candidate => candidate.entry)
                     ?? null;
                 return {
+                    ...(jobKey ? { jobKey } : {}),
                     shiftStart: job.shiftStart,
                     shiftEnd: job.shiftEnd,
                     ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
@@ -679,6 +895,8 @@ export default class City {
                     ...(rank ? { rank } : {}),
                 };
             },
+            // Detention facts (task 100): the detained hook keeps sentenced people at the facility.
+            detentionOf: id => (Game.detention && Game.detention.isDetained(id, event.tick) ? Game.detention.detentionOf(id) : null),
             // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.
             schoolOf: id => this.schoolFactsOf(id, personByGenId, event.tick, ticksPerYear),
             ...(this.skillProgression ? { skillProgression: this.skillProgression } : {}),
@@ -688,9 +906,21 @@ export default class City {
             agentIds: [...materializedIds],
             tick: event.tick,
             ticksPerYear,
-            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills } },
+            ctx: { mode: 'live', world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, pets: Game.pets ?? null, knownFacts: Game.knownFacts ?? null, mood: Game.mood ?? null, services: this.services } },
             onCommitted: async result => {
                 this.reconcileDeaths(result.died, personByGenId);
+                // Death dissolves elective bonds (task 083) and needs (084); kinship stays derived.
+                for (const deceased of result.died) {
+                    Game.socialGraph?.removePerson(deceased);
+                    Game.needs?.removePerson(deceased);
+                    Game.agenda?.removePerson(deceased);
+                    Game.mood?.removePerson(deceased);
+                    Game.habits?.removePerson(deceased);
+                    Game.incidents?.removePerson(deceased);
+                    Game.detention?.removePerson(deceased);
+                    Game.pets?.removeOwner(deceased);
+                    Game.knownFacts?.removePerson(deceased);
+                }
                 await this.materializeNewborns(result.born, personByGenId);
                 // City-overview vital tallies (task 031).
                 this.deaths += result.died.length;
@@ -727,6 +957,36 @@ export default class City {
                         this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
                     } else if (signal.signal === 'movedOut') {
                         this.resolveMoveOut(signal.personId, event.tick);
+                    } else if (signal.signal === 'crimeCommitted') {
+                        // A crime event committed (task 099): file the incident with the ground-truth
+                        // suspect and the co-located potential witnesses at the scene.
+                        this.fileIncident(signal.personId, event.tick);
+                    } else if (signal.signal === 'chaseConcluded') {
+                        // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
+                        this.resolveChase(signal.personId, event.tick, ticksPerYear);
+                    } else if (signal.signal === 'petAdopted') {
+                        // The pet-shop adoption (task 103): draw the species, name it, register it.
+                        this.resolveAdoption(signal.personId, event.tick);
+                    }
+                }
+                // Gossip transfers (task 104 / O2): a shared_gossip commit moves the SPEAKER's juiciest
+                // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
+                // about either of them. The heard_gossip counterpart already landed the listener's log line.
+                for (const commit of result.committed) {
+                    if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
+                        this.transferGossip(commit.personId, commit.params['target'], event.tick);
+                    } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
+                        // The jail visit's counterpart (task 109): the visit travels TO its target, so it
+                        // can't be an interaction contract (those require co-location at START); the
+                        // detainee's half rides the payload instead, chained to the visitor's commit.
+                        Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], event.tick, ticksPerYear,
+                            { source: 'system', causationId: commit.seq });
+                    } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
+                        // The sick visit's counterpart (task 111, same travelling-visit pattern): the
+                        // patient's half — its positive valence feeds their mood through the normal
+                        // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
+                        Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], event.tick, ticksPerYear,
+                            { source: 'system', causationId: commit.seq });
                     }
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
@@ -785,6 +1045,8 @@ export default class City {
         economy.setLastEconomyMonth(month);
         this.runPayroll(tick);
         this.runBusinessEconomics(tick);
+        // Entrepreneurs get first pick of vacant lots (task 097/I3), before generic re-occupancy.
+        this.runEntrepreneurship(tick);
         this.runReoccupancy(tick);
         this.runCostOfLiving(tick);
         this.runEvictions(tick);
@@ -834,6 +1096,11 @@ export default class City {
 
         const unitsByKey = resolveDemand(competitors, demandByCategory);
 
+        // Materialized retail netting (task 089 / F3): micro-purchases already moved money person → business
+        // at the till; the demand model's revenue covers ALL consumer sales, so the already-collected part is
+        // subtracted from this month's credit (capped at the model's revenue — genuine over-selling is kept).
+        const materializedSales = economy.drainMaterializedSales();
+
         // B2B supply chain (task 035): the input materials those consumer sales require become demand on local
         // producers (businesses whose `products` are those materials). Producers compete to supply each material
         // by capacity (staffing × per-employee output), via the same demand resolution keyed by material id.
@@ -867,8 +1134,10 @@ export default class City {
             const payroll = workplace.getEmployees().reduce((total, employee) => total + (employee.work.getJob()?.salary ?? 0), 0);
             const finance = computeBusinessPnl(revenue, materialsCost, fixedCosts, payroll);
 
-            // Payroll was already debited by runPayroll; apply only the income side here.
-            economy.adjustBusiness(key, revenue - materialsCost - fixedCosts);
+            // Payroll was already debited by runPayroll; apply only the income side here — minus whatever the
+            // till already collected through materialized purchases this month (task 089).
+            const alreadyCollected = Math.min(materializedSales[key] ?? 0, revenue);
+            economy.adjustBusiness(key, revenue - alreadyCollected - materialsCost - fixedCosts);
             business.lastPnl = finance.pnl;
 
             const previousStreak = business.profitStreak ?? 0;
@@ -961,26 +1230,562 @@ export default class City {
     // reoccupancyMonths, then attracts a *new, different* business — but only in a category with unmet demand,
     // so the city heals where investment is warranted instead of re-flooding an oversupplied market. Runs after
     // runBusinessEconomics so it sees this month's closures and post-closure supply. Deterministic.
-    private runReoccupancy(tick: number): void {
+    // Files a crime into the incidents registry (task 099): the committing signal names the ground-truth
+    // suspect; the KIND comes from their freshest crime-event log entry, and the witnesses are whoever
+    // shared the location at the scene. Whether justice ever learns is the witnesses' and coverage's call.
+    public fileIncident(suspectId: PersonId, tick: number): void {
+        const incidents = Game.incidents;
+        const engine = Game.eventEngine;
+        if (!incidents || !engine) {
+            return;
+        }
+        const log = engine.getPersonLog(suspectId);
+        let kind: 'shoplifting' | 'pickpocketing' | null = null;
+        for (let index = log.length - 1; index >= 0 && log[index]!.tick === tick; index--) {
+            const entry = log[index]!;
+            if (entry.kind === 'event' && entry.defId === 'committed_shoplifting') {
+                kind = 'shoplifting';
+                break;
+            }
+            if (entry.kind === 'event' && entry.defId === 'committed_pickpocketing') {
+                kind = 'pickpocketing';
+                break;
+            }
+        }
+        if (!kind) {
+            return;
+        }
+        const location = this.world.locationOf(suspectId);
+        const witnesses = this.world.peopleAt(location).filter(id => id !== suspectId).length;
+        incidents.report(kind, tick, locationKey(location), suspectId, witnesses);
+    }
+
+    // The chase's outcome (task 099): fleeing_the_police completed -> a deterministic roll weighted by the
+    // suspect's age and health decides caught (fine + record + case closed) vs got away (still wanted).
+    public resolveChase(suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        const incidents = Game.incidents;
+        const population = Game.population;
+        if (!incidents || !population || !incidents.isWanted(suspectId)) {
+            return;
+        }
+        const record = population.getPerson(suspectId);
+        if (!record) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`chase#${suspectId}#${tick}`)) >>> 0);
+        const age = ageAt(record, tick, ticksPerYear);
+        const engine = Game.eventEngine;
+        const health = engine ? Number(engine.contextFor(population.getState(), suspectId, tick, ticksPerYear).getAttr('health') ?? 1) : 1;
+        let catchChance = 0.55;
+        if (age >= 50) {
+            catchChance += 0.2;
+        } else if (age < 25) {
+            catchChance -= 0.15;
+        }
+        if (health < 0.7) {
+            catchChance += 0.15;
+        }
+        if (rng.next() < catchChance) {
+            this.arrestSuspect(suspectId, tick, ticksPerYear);
+        } else {
+            this.fireMilestone('evaded_the_police', suspectId, tick);
+        }
+    }
+
+    // Where a sentence is served (task 100): the jail if the town built one, else the police station as
+    // the short-detention stopgap. Neither standing -> nobody can be held (the coverage ledger says so).
+    private detentionFacility(): Workplace | null {
+        const field = Game.field;
+        if (!field) {
+            return null;
+        }
+        let station: Workplace | null = null;
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof Workplace)) {
+                continue;
+            }
+            const key = structure.getBusiness()?.blueprintKey;
+            if (key === 'jail') {
+                return structure;
+            }
+            if (key === 'police_station' && !station) {
+                station = structure;
+            }
+        }
+        return station;
+    }
+
+    // The release sweep (task 100): lapsed sentences walk free. Household membership was never touched, so
+    // they return to their old life directly; if it moved on (eviction while inside), the homelessness
+    // machinery already owns them.
+    public runReleases(tick: number): void {
+        const detention = Game.detention;
+        if (!detention) {
+            return;
+        }
+        for (const personId of detention.due(tick)) {
+            detention.release(personId);
+            this.fireMilestone('released_from_jail', personId, tick);
+            const person = this.indexMaterialized().get(personId) ?? null;
+            const name = Game.population?.getPerson(personId)?.firstName ?? 'Someone';
+            this.announce('crime', tick, name + ' was released — time served', person);
+        }
+    }
+
+    // The arrest (task 109): the officer's act and the criminal's counterpart land causation-linked; the
+    // family hears (relative_arrested fan-out); the suspect is ESCORTED to the facility — logically riding
+    // along (offered_a_ride / got_a_ride texture on the same causation; the vehicle system is untouched) —
+    // and conviction bookkeeping (record, fine/sentence) runs as always.
+    private arrestSuspect(suspectId: PersonId, tick: number, ticksPerYear: number): void {
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (!engine || !population) {
+            this.convictSuspect(suspectId, tick);
+            return;
+        }
+        const state = population.getState();
+        // The arresting officer: the first on-duty police officer, deterministic by id.
+        const byGenId = this.indexMaterialized();
+        const officerId = [...byGenId.entries()]
+            .filter(([, person]) => person.work.getJob()?.title === 'Police Officer')
+            .map(([id]) => id)
+            .sort()[0] ?? null;
+        let arrestSeq: number | null = null;
+        if (officerId) {
+            const { outcome } = engine.invoke(state, 'arrested_suspect', officerId, tick,
+                ticksPerYear, { source: 'system', causationId: null }, {}, {}, { target: suspectId });
+            arrestSeq = outcome.ok ? outcome.seq : null;
+        }
+        engine.invoke(state, 'was_arrested', suspectId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq });
+        // The family hears — the same kinship fan-out the death milestones use.
+        const pool = state.people;
+        const kin = new Set<PersonId>();
+        const spouse = spouseAt(pool, suspectId, tick);
+        if (spouse) {
+            kin.add(spouse);
+        }
+        for (const id of [...childrenOf(pool, suspectId), ...parentsOf(pool, suspectId)]) {
+            kin.add(id);
+        }
+        for (const relativeId of [...kin].sort()) {
+            this.fireMilestone('relative_arrested', relativeId, tick);
+        }
+        // Escort: taken to the facility in the car — the ride texture logs both sides; the transition
+        // physically moves them (live: the commute; the detained hook then holds them there).
+        const facility = this.detentionFacility();
+        if (facility && officerId) {
+            engine.invoke(state, 'offered_a_ride', officerId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq }, {}, {}, { target: suspectId });
+            engine.invoke(state, 'got_a_ride', suspectId, tick, ticksPerYear, { source: 'system', causationId: arrestSeq });
+            this.world.requestTransition(suspectId, { kind: 'building', key: facility.getIdentifier() }, tick, arrestSeq);
+        }
+        this.convictSuspect(suspectId, tick);
+    }
+
+    // Conviction (task 099): every open case against the suspect closes, the fine moves through the ledger
+    // (mirrored against the external sector - conserved), got_caught lands in the log (the criminal record
+    // the JobMarket reads), and the feed hears about it.
+    private convictSuspect(suspectId: PersonId, tick: number): void {
+        const incidents = Game.incidents;
+        if (!incidents) {
+            return;
+        }
+        // Sentencing (task 100): a REPEAT offender (a prior got_caught still on the record) is detained when
+        // the town can hold them — the jail if one stands, else the police station as the stopgap. First
+        // offenses (and towns with nowhere to put anyone) stay fine-only. Checked before the fresh
+        // got_caught below lands, so the current conviction never counts as its own prior.
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        const isRepeat = engine && population
+            ? engine.contextFor(population.getState(), suspectId, tick, Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear)
+                .hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS })
+            : false;
+        if (isRepeat && Game.detention) {
+            const facility = this.detentionFacility();
+            if (facility) {
+                // Sentences scale with the record (task 109): a second offense serves detentionDays; a
+                // third-and-later serves the long stretch. First offenses stay fine-only.
+                const hardened = engine && population
+                    ? engine.contextFor(population.getState(), suspectId, tick, Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear)
+                        .hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS, minCount: 2 })
+                    : false;
+                const days = hardened ? DEFAULT_ECONOMY_PARAMS.detentionDaysRepeat : DEFAULT_ECONOMY_PARAMS.detentionDays;
+                Game.detention.detain(suspectId, tick + days * 24, facility.getIdentifier());
+                this.fireMilestone('was_detained', suspectId, tick);
+            }
+        }
+        for (const incident of incidents.all()) {
+            if (incident.status === 'open' && incident.suspectId === suspectId) {
+                incidents.resolve(incident.id, tick);
+            }
+        }
+        Game.economy?.adjustPerson(suspectId, -DEFAULT_ECONOMY_PARAMS.crimeFineAmount);
+        this.fireMilestone('got_caught', suspectId, tick);
+        const person = this.indexMaterialized().get(suspectId) ?? null;
+        const name = Game.population?.getPerson(suspectId)?.firstName ?? 'Someone';
+        this.announce('crime', tick, `${name} was caught by the police`, person);
+    }
+
+    // The police day sweep (task 099): witnessed open incidents resolve with odds scaled by coverage and
+    // witness count; unwitnessed and stale cases go cold. No officers on the ledger -> nothing ever
+    // resolves - the coverage consequence, measured.
+    public runPoliceWork(tick: number, ticksPerYear: number): void {
+        const incidents = Game.incidents;
+        const population = Game.population;
+        if (!incidents || !population) {
+            return;
+        }
+        void ticksPerYear;
+        for (const wentCold of incidents.sweepCold(tick)) {
+            // Impunity (task 109): a WANTED suspect whose case went cold got away with it — a real log line,
+            // and the emboldening it carries makes the next one likelier. A town without police teaches
+            // crime. Unwitnessed crimes stay unknowable end to end (the 099 contract): no witnesses, no
+            // jeopardy, no log line — the crime action's own habit practice already did the reinforcing.
+            if (wentCold.suspectId && wentCold.witnesses > 0) {
+                this.fireMilestone('got_away_with_it', wentCold.suspectId, tick);
+            }
+        }
+        const coverage = this.services.coverageOf('police');
+        if (coverage <= 0) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`police#${Math.floor(tick / 24)}`)) >>> 0);
+        for (const incident of [...incidents.open()].sort((a, b) => a.id - b.id)) {
+            if (incident.witnesses <= 0 || !incident.suspectId) {
+                continue; // nobody saw it (or nobody DID it — fires) - the case is unknowable
+            }
+            const chance = Math.min(0.9, 0.12 * coverage * Math.min(incident.witnesses, 3));
+            if (rng.next() < chance) {
+                this.convictSuspect(incident.suspectId, tick);
+            }
+        }
+    }
+
+    // The juiciest thing the speaker knows travels (task 104): |valence| × recency scores the pick.
+    public transferGossip(speakerId: PersonId, listenerId: PersonId, tick: number): void {
+        const knownFacts = Game.knownFacts;
+        if (!knownFacts) {
+            return;
+        }
+        const candidates = knownFacts.factsOf(speakerId, tick)
+            .filter(fact => fact.aboutId !== listenerId && fact.aboutId !== speakerId);
+        if (candidates.length === 0) {
+            return; // gossip about nothing — people manage
+        }
+        const scored = candidates
+            .map(fact => ({ fact, score: Math.abs(fact.valence) * Math.max(0, 1 - (tick - fact.learnedAtTick) / (90 * 24)) }))
+            .sort((a, b) => b.score - a.score || a.fact.seq - b.fact.seq);
+        const juiciest = scored[0]!.fact;
+        knownFacts.learn(listenerId, { ...juiciest, learnedAtTick: tick, viaWitness: false });
+    }
+
+    // The pet-shop adoption lands (task 103 / N): the adopted_a_pet event (cap-gated by petCount) emitted
+    // petAdopted; City draws the species (weighted, deterministic), names the companion (faker), registers
+    // it, and fires the species texture event — adopted_dog and friends are C2-wired now, never free-rolled.
+    public resolveAdoption(ownerId: PersonId, tick: number): void {
+        const pets = Game.pets;
+        const population = Game.population;
+        if (!pets || !population || pets.countOf(ownerId) >= PETS_CONFIG.maxPerOwner) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const rng = new SeededRandom((worldSeed ^ hashStringToSeed('pet#' + ownerId + '#' + tick)) >>> 0);
+        const entries = Object.entries(PETS_CONFIG.species).sort(([a], [b]) => a.localeCompare(b));
+        const total = entries.reduce((sum, [, spec]) => sum + spec.weight, 0);
+        let roll = rng.next() * total;
+        let picked = entries[entries.length - 1]!;
+        for (const entry of entries) {
+            roll -= entry[1].weight;
+            if (roll <= 0) {
+                picked = entry;
+                break;
+            }
+        }
+        fakerPT_BR.seed((worldSeed ^ hashStringToSeed('petname#' + ownerId + '#' + tick)) >>> 0);
+        const name = fakerPT_BR.person.firstName();
+        pets.adopt(ownerId, picked[0], name, tick);
+        this.fireMilestone(picked[1].event, ownerId, tick);
+        const owner = Game.population?.getPerson(ownerId)?.firstName ?? 'Someone';
+        this.announce('pet', tick, owner + ' adopted a ' + picked[0] + ' named ' + name, this.indexMaterialized().get(ownerId) ?? null);
+    }
+
+    // Pet lifespans (task 103): past the species lifespan, each day rolls a small deterministic passing
+    // chance. The owner's log takes pet_passed_away — valence -3, a REAL grief impulse (091's machinery).
+    public runPetLifecycle(tick: number): void {
+        const pets = Game.pets;
+        const population = Game.population;
+        const clock = Game.clock;
+        if (!pets || !population || !clock) {
+            return;
+        }
+        const ticksPerYear = clock.getTicksPerYear();
+        const worldSeed = population.getState().worldSeed;
+        const day = Math.floor(tick / 24);
+        for (const pet of pets.all()) {
+            const spec = PETS_CONFIG.species[pet.species];
+            if (!spec) {
+                continue;
+            }
+            const ageYears = (tick - pet.birthTick) / ticksPerYear;
+            if (ageYears < spec.lifespanYears) {
+                continue;
+            }
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('petDeath#' + pet.id + '#' + day)) >>> 0);
+            if (rng.next() >= 0.05) {
+                continue;
+            }
+            pets.removePet(pet.id);
+            this.fireMilestone('pet_passed_away', pet.ownerId, tick);
+            const owner = Game.population?.getPerson(pet.ownerId)?.firstName ?? 'Someone';
+            this.announce('pet', tick, owner + "'s " + pet.species + ' ' + pet.name + ' passed away', this.indexMaterialized().get(pet.ownerId) ?? null);
+        }
+    }
+
+    // The ignition sweep (task 102 / H4): one deterministic roll per standing building per day, the hazard
+    // interpolated over CONDITION — near-zero for a kept-up building, real for a derelict one. An ignition
+    // files a suspectless 'fire' incident (one registry for all emergencies) and the feed hears the alarm.
+    public runFireHazard(tick: number): void {
+        const field = Game.field;
+        const incidents = Game.incidents;
+        const conditions = Game.buildingConditions;
+        const population = Game.population;
+        if (!field || !incidents || !conditions || !population) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        const day = Math.floor(tick / 24);
+        const config = FIRE_CONFIG;
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House) && !(structure instanceof Workplace)) {
+                continue;
+            }
+            if (structure instanceof Workplace && !structure.getBusiness()) {
+                continue; // a vacant lot has nothing to burn worth narrating
+            }
+            const key = structure.getIdentifier();
+            conditions.ensure(key, tick);
+            if (incidents.openFireAt('building:' + key)) {
+                continue; // already burning
+            }
+            const condition = conditions.conditionOf(key, tick);
+            const span = Math.max(1, 100 - config.conditionFloor);
+            const perYear = config.ignitionPerYearAtFullCondition
+                + (config.ignitionPerYearAtFloor - config.ignitionPerYearAtFullCondition) * (100 - condition) / span;
+            const perDay = 1 - Math.exp(-perYear / 360);
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('fire#' + key + '#' + day)) >>> 0);
+            if (rng.next() >= perDay) {
+                continue;
+            }
+            incidents.report('fire', tick, 'building:' + key, null, 0);
+            Game.emit('fireStateChanged', { buildingKey: key, burning: true }); // the scene lights the flames (116)
+            const name = structure instanceof Workplace ? structure.getBusiness()?.name ?? 'a workplace' : 'a home';
+            this.announce('fire', tick, 'A fire broke out at ' + name, null);
+        }
+    }
+
+    // The effective response quality at a burning building (task 110): system capacity (fire coverage) ×
+    // whether the crew PHYSICALLY made it (firefighters on scene / crewForFullResponse, capped at 1). A
+    // town with no firefighters employed at all leaves arrival unmeasured — pure coverage, the 102
+    // behavior; a town WITH a crew that never arrives (off shift at 3am, stuck across town) burns at the
+    // baseline odds no matter what the ledger claims. Never a hardcoded outcome — always the measured path.
+    public fireResponseAt(key: string): number {
+        const coverage = this.services.coverageOf('fire');
+        const firefighters = [...this.indexMaterialized().entries()]
+            .filter(([, person]) => person.work.getJob()?.title === 'Firefighter')
+            .map(([id]) => id);
+        if (firefighters.length === 0) {
+            return coverage;
+        }
+        const onScene = new Set(this.world.peopleAt({ kind: 'building', key }));
+        const arrived = firefighters.filter(id => onScene.has(id)).length;
+        return coverage * Math.min(1, arrived / FIRE_CONFIG.crewForFullResponse);
+    }
+
+    // Burning fires resolve after the response window (task 102): the outcome curve rides the EFFECTIVE
+    // RESPONSE (task 110: coverage × who physically arrived — fireResponseAt above) — a staffed station
+    // whose crew makes it mostly extinguishes, a town without one watches buildings burn. Lingerers who
+    // never evacuated risk the injury roll; a destroyed building leaves through the same coherent teardown
+    // bulldozing uses (residents rehoused or homeless, businesses closed), and the lot heals via 037.
+    public resolveFires(tick: number): void {
+        const incidents = Game.incidents;
+        const field = Game.field;
+        const conditions = Game.buildingConditions;
+        const population = Game.population;
+        if (!incidents || !field || !conditions || !population) {
+            return;
+        }
+        const burning = incidents.open().filter(incident => incident.kind === 'fire' && tick - incident.tick >= FIRE_CONFIG.responseTicks);
+        if (burning.length === 0) {
+            return;
+        }
+        const worldSeed = population.getState().worldSeed;
+        for (const incident of burning.sort((a, b) => a.id - b.id)) {
+            const key = incident.locationKey.startsWith('building:') ? incident.locationKey.slice('building:'.length) : incident.locationKey;
+            const structure = field.getStructures().find(candidate => candidate instanceof Building && candidate.getIdentifier() === key) as Building | undefined;
+            incidents.resolve(incident.id, tick);
+            Game.emit('fireStateChanged', { buildingKey: key, burning: false }); // the scene douses the flames (116)
+            if (!structure) {
+                continue; // already gone (bulldozed mid-fire)
+            }
+            // Lingerers: whoever is STILL physically inside when the outcome lands rolls the injury die —
+            // the responding crew included (task 110: firefighting is an occupational hazard, not a pass)
+            // and residents inside their OWN home (their locationOf reads 'home', so the plain building
+            // query misses them — the same wart the evacuation hook works around).
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('fireOutcome#' + incident.id)) >>> 0);
+            const inside = new Set(this.world.peopleAt({ kind: 'building', key }));
+            if (structure instanceof House) {
+                for (const resident of structure.getResidents()) {
+                    const residentId = resident.social.getPersonId();
+                    if (residentId && resident.getCurrentBuilding() === structure) {
+                        inside.add(residentId);
+                    }
+                }
+            }
+            for (const occupantId of [...inside].sort()) {
+                if (rng.next() < FIRE_CONFIG.injuryChancePerOccupant) {
+                    this.fireMilestone('injury', occupantId, tick);
+                }
+            }
+            const response = this.fireResponseAt(key);
+            const roll = rng.next();
+            const extinguishChance = Math.min(0.92, 0.25 + 0.6 * response);
+            const destroyChance = Math.max(0.05, 0.45 - 0.5 * response);
+            if (roll < extinguishChance) {
+                conditions.damage(key, FIRE_CONFIG.damage.extinguished, tick);
+                this.announce('fire', tick, 'The fire was put out — minor damage', null);
+            } else if (roll < extinguishChance + destroyChance) {
+                // Destroyed: the residents' loss lands in their logs, then the coherent teardown.
+                if (structure instanceof House) {
+                    for (const resident of structure.getResidents()) {
+                        this.fireMilestone('lost_home_to_fire', resident.social.getPersonId(), tick);
+                    }
+                }
+                conditions.remove(key);
+                const position = structure.getPosition();
+                if (position) {
+                    field.bulldoze({ position, tool: Tool.Bulldoze });
+                }
+                this.announce('fire', tick, 'The building burned to the ground', null);
+            } else {
+                conditions.damage(key, FIRE_CONFIG.damage.damaged, tick);
+                this.announce('fire', tick, 'The fire was contained — heavy damage', null);
+            }
+        }
+    }
+
+    // Entrepreneurship (task 097/I3): a qualified unemployed adult with savings may FOUND a business on a
+    // vacant work lot, in the category with the largest unmet demand, in the trade they strictly know (no
+    // training-grant founders — you don't open a clinic on a shortcut). At most one founding per month,
+    // behind a deterministic seeded roll, so it stays a town event rather than a monthly certainty. The
+    // founder's own capital seeds the business (the external sector only tops up the standard amount), they
+    // hire themselves at their matched rank, the shop takes their name, and `founded_business` lands in
+    // their log with a feed line. Towns grow their own economy instead of waiting for the player.
+    private runEntrepreneurship(tick: number): void {
         const field = Game.field;
         const economy = Game.economy;
-        if (!field || !economy) {
+        const skillBook = Game.skillBook;
+        const population = Game.population;
+        if (!field || !economy || !skillBook || !population) {
+            return;
+        }
+        const { deficits, vacant } = this.categorySupplyAndDeficits();
+        if (vacant.length === 0) {
+            return;
+        }
+        const openCategories = [...deficits.entries()]
+            .filter(([, deficit]) => deficit > 0)
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        if (openCategories.length === 0) {
+            return;
+        }
+        const byGenId = this.indexMaterialized();
+        const jobMarket = new JobMarket(byGenId, field, skillBook, tick);
+        const threshold = DEFAULT_ECONOMY_PARAMS.foundingCapitalThreshold;
+        // Age from the pool record (the source of truth), not the sprite — clock-exact and harness-safe.
+        const ticksPerYear = Game.clock ? Game.clock.getTicksPerYear() : DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        const pool = population.getState().people;
+        const candidates = [...byGenId.entries()]
+            .filter(([id, person]) => {
+                const record = pool[id];
+                return record !== undefined
+                    && ageAt(record, tick, ticksPerYear) >= ADULT_AGE_YEARS
+                    && person.work.getJob() === null
+                    && economy.getPersonBalance(id) >= threshold;
+            })
+            .map(([id]) => id)
+            .sort();
+        if (candidates.length === 0) {
             return;
         }
 
-        // Blueprints grouped by category, so a chosen category always has something to build.
-        const blueprintsByCategory = new Map<string, string[]>();
-        for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
-            const keys = blueprintsByCategory.get(blueprint.category) ?? [];
-            keys.push(blueprintKey);
-            blueprintsByCategory.set(blueprint.category, keys);
+        // The first (deficit-ranked, then deterministic) trade someone in town actually knows.
+        let pick: { category: string; blueprintKey: string; founderId: PersonId } | null = null;
+        for (const [category] of openCategories) {
+            const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS)
+                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category && !isCivicBlueprint(key))
+                .sort();
+            for (const blueprintKey of blueprintKeys) {
+                const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
+                const coreJobs = Object.keys(blueprint.jobs).filter(jobKey => jobKey !== 'manager' && jobKey !== 'janitor');
+                const trades = coreJobs.length > 0 ? coreJobs : Object.keys(blueprint.jobs);
+                const founderId = candidates.find(candidate => trades.some(jobKey => jobMarket.strictlyQualifiesFor(candidate, jobKey)));
+                if (founderId) {
+                    pick = { category, blueprintKey, founderId };
+                    break;
+                }
+            }
+            if (pick) {
+                break;
+            }
+        }
+        if (!pick) {
+            return;
         }
 
-        const population = field.getPeople().length;
-        // Potential supply per category from operating businesses (full establishment: positions × throughput),
-        // so we don't over-build while an existing understaffed business still has room to hire up.
+        const month = Math.floor(tick / TICKS_PER_MONTH);
+        const rng = new SeededRandom((population.getState().worldSeed ^ hashStringToSeed(`founding#${month}`)) >>> 0);
+        if (rng.next() >= DEFAULT_ECONOMY_PARAMS.foundingChancePerMonth) {
+            return; // the spark didn't catch this month
+        }
+
+        const lot = vacant[0]!;
+        const founder = byGenId.get(pick.founderId)!;
+        const blueprint = BUSINESS_BLUEPRINTS[pick.blueprintKey]!;
+        // The shop takes the founder's name — from the pool record, the identity source of truth.
+        const founderName = pool[pick.founderId]?.firstName || founder.social.getFirstName();
+        const business = this.openBusiness(lot, pick.category, {
+            blueprintKey: pick.blueprintKey,
+            name: `${blueprint.friendlyName} de ${founderName}`,
+        });
+        if (!business) {
+            return;
+        }
+        // The founder's savings seed the shop; the external-sector standard seed shrinks by the same amount,
+        // so total starting capital is unchanged but genuinely SOURCED from the founder (conserved).
+        const lotKey = lot.getIdentifier();
+        const contribution = Math.min(economy.getPersonBalance(pick.founderId), DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * business.size);
+        economy.transfer({ kind: 'person', id: pick.founderId }, { kind: 'business', id: lotKey }, contribution);
+        economy.adjustBusiness(lotKey, -contribution);
+        jobMarket.hireInto(pick.founderId, lot);
+        this.fireMilestone('founded_business', pick.founderId, tick);
+        this.announce('career', tick, `${founder.social.getFullName()} founded ${business.name}`, founder);
+        Game.emit("tileSpawned", lot);
+    }
+
+    // The shared demand-gap scan (tasks 037/097): potential supply per category from operating businesses
+    // (full establishment: positions × throughput — don't over-build while an understaffed business still has
+    // room to hire up), the unmet-demand deficit per blueprint-buildable category, and the vacant lots.
+    // Consumed by re-occupancy (037), the weighted first-placement draw (097/I2), and entrepreneurship (I3).
+    private categorySupplyAndDeficits(): { supply: Record<string, number>; deficits: Map<string, number>; vacant: Workplace[] } {
+        const field = Game.field;
         const supply: Record<string, number> = {};
         const vacant: Workplace[] = [];
+        const deficits = new Map<string, number>();
+        if (!field) {
+            return { supply, deficits, vacant };
+        }
+        const categories = new Set(Object.values(BUSINESS_BLUEPRINTS).map(blueprint => blueprint.category));
         for (const structure of field.getStructures()) {
             if (!(structure instanceof Workplace)) {
                 continue;
@@ -997,6 +1802,35 @@ export default class City {
             const throughput = DEMAND_TABLE[blueprint.category]?.throughputPerEmployee ?? 0;
             supply[blueprint.category] = (supply[blueprint.category] ?? 0) + business.positions.length * throughput;
         }
+        const population = field.getPeople().length;
+        for (const category of categories) {
+            const demand = population * (DEMAND_TABLE[category]?.perCapita ?? 0);
+            deficits.set(category, demand - (supply[category] ?? 0));
+        }
+        vacant.sort((a, b) => a.getIdentifier().localeCompare(b.getIdentifier()));
+        return { supply, deficits, vacant };
+    }
+
+    private runReoccupancy(tick: number): void {
+        const field = Game.field;
+        const economy = Game.economy;
+        if (!field || !economy) {
+            return;
+        }
+
+        // Blueprints grouped by category, so a chosen category always has something to build.
+        const blueprintsByCategory = new Map<string, string[]>();
+        for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
+            if (isCivicBlueprint(blueprintKey)) {
+                continue; // civic buildings are placed, never attracted (task 108)
+            }
+            const keys = blueprintsByCategory.get(blueprint.category) ?? [];
+            keys.push(blueprintKey);
+            blueprintsByCategory.set(blueprint.category, keys);
+        }
+
+        const { supply, vacant } = this.categorySupplyAndDeficits();
+        const population = field.getPeople().length;
 
         for (const workplace of vacant) {
             workplace.setVacantMonths(workplace.getVacantMonths() + 1);
@@ -1080,6 +1914,11 @@ export default class City {
             return;
         }
 
+        // Materialized retail netting (task 089): what a household already spent at the till this month comes
+        // off its abstract cost-of-living charge (they bought part of their consumption concretely) — never
+        // below the housing cost itself (rent isn't groceries).
+        const materializedSpend = economy.drainMaterializedSpend();
+
         for (const structure of field.getStructures()) {
             if (!(structure instanceof House)) {
                 continue;
@@ -1090,7 +1929,9 @@ export default class City {
                 continue;
             }
 
-            const expense = DEFAULT_ECONOMY_PARAMS.housingCost + DEFAULT_ECONOMY_PARAMS.perCapitaCost * residents.length;
+            const householdSpend = residents.reduce((total, resident) => total + (materializedSpend[resident.social.getPersonId()!] ?? 0), 0);
+            const fullExpense = DEFAULT_ECONOMY_PARAMS.housingCost + DEFAULT_ECONOMY_PARAMS.perCapitaCost * residents.length;
+            const expense = Math.max(DEFAULT_ECONOMY_PARAMS.housingCost, fullExpense - householdSpend);
             const funds = residents.reduce((total, resident) => total + economy.getPersonBalance(resident.social.getPersonId()!), 0);
 
             // Drain the household's available funds (head first) up to what it can afford; never forced negative.
@@ -1720,6 +2561,23 @@ export default class City {
     // minute cadence so arrivals resolve promptly between hourly ticks.
     public handleCommute(event: TimeChangedEvent): void {
         this.world.pump(event.tick);
+
+        // Ambulatory sweep (task 093 / E1): each in-game minute, flag residents whose ACTIVE action is
+        // authored `ambulatory` so the field's wander machinery visibly walks them — joggers jog, strollers
+        // stroll. Derived state (never serialized); clears itself when the activity ends.
+        const actionEngine = Game.actionEngine;
+        const field = Game.field;
+        if (actionEngine && field) {
+            for (const person of field.getPeople()) {
+                const personId = person.social.getPersonId();
+                if (!personId) {
+                    continue;
+                }
+                const active = actionEngine.activeInstanceOf(personId);
+                const def = active && active.status === 'running' ? actionEngine.getDefinition(active.defId) : null;
+                person.setAmbulatory(def?.ambulatory !== undefined);
+            }
+        }
     }
 
     private startCommute(person: Person, destination: Building): void {

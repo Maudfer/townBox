@@ -102,3 +102,50 @@ export function validateToolAssetsSemantics(data: unknown, peers: Record<string,
         }
     }
 }
+
+// json/construction.json (task 108): the construction menu's building grid. Semantics: pinned blueprints
+// must exist, and every civic blueprint must be reachable through some menu entry (an unplaceable civic
+// building is dead data — the menu is its ONLY spawn path).
+export function validateConstructionStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'construction', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'construction', config, ['entries']);
+    if (!checkArray(issues, 'construction.entries', config['entries'])) {
+        return;
+    }
+    (config['entries'] as unknown[]).forEach((entry, index) => {
+        const path = 'construction.entries[' + index + ']';
+        if (!checkRecord(issues, path, entry)) {
+            return;
+        }
+        const record = entry as Record<string, unknown>;
+        checkUnknownKeys(issues, path, record, ['id', 'label', 'tool', 'blueprint', 'color']);
+        checkString(issues, path + '.id', record['id']);
+        checkString(issues, path + '.label', record['label']);
+        checkEnum(issues, path + '.tool', record['tool'], ['house', 'work']);
+        if ('blueprint' in record) {
+            checkString(issues, path + '.blueprint', record['blueprint']);
+        }
+        if ('color' in record && (typeof record['color'] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(record['color'] as string))) {
+            issues.add(path + '.color', 'expected a #rrggbb color');
+        }
+    });
+}
+
+export function validateConstructionSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
+    const entries = ((data as { entries?: { blueprint?: string }[] }).entries ?? []);
+    const blueprints = (peers['businesses'] ?? {}) as Record<string, { placement?: string }>;
+    const pinned = new Set(entries.map(entry => entry.blueprint).filter((key): key is string => key !== undefined));
+    for (const key of pinned) {
+        if (!(key in blueprints)) {
+            issues.add('construction.entries', 'unknown blueprint "' + key + '" (not in businesses.json)');
+        }
+    }
+    for (const [key, blueprint] of Object.entries(blueprints)) {
+        if (blueprint.placement === 'civic' && !pinned.has(key)) {
+            issues.add('construction.entries', 'civic blueprint "' + key + '" is not placeable from the menu — its only spawn path');
+        }
+    }
+}

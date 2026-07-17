@@ -5,8 +5,18 @@
 // request resolves immediately — both emit identical lifecycle records. `mode` exists for logging/metrics
 // only and must NEVER gate game logic.
 
+import { AgendaAccess } from 'types/Agenda';
 import { PersonId } from 'types/Genealogy';
 import { JobMarket, MoneyLedger, HousingMarket, SkillRegistry } from 'types/LifeEvent';
+import { HabitsReader } from 'types/Habits';
+import { IncidentsReader } from 'types/Incidents';
+import { MoodReader } from 'types/Mood';
+import { NeedsReader } from 'types/Needs';
+import { PetsReader } from 'types/Pets';
+import { KnownFactsAccess } from 'types/Reputation';
+import { RelationshipGraph } from 'types/Relationship';
+import { ServiceCoverageReader } from 'types/Services';
+import { TraitsReader } from 'types/Traits';
 
 export type SimulationMode = 'live' | 'bootstrap';
 
@@ -43,6 +53,14 @@ export interface WorldAdapter {
     // Object instance ids physically at the location (task 041) — the query "is there something pocketable
     // here" style requirements resolve through. Ids resolve against the Inventory (game/Inventory.ts).
     objectsAt(location: LogicalLocation): string[];
+    // Venue availability (task 107): does this world HOST the venue kind? Live: a placed, occupied business
+    // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
+    // places and always exist — the seam's only sanctioned difference is physical backing.
+    hasVenue(venue: string): boolean;
+    // The business hosting this location, if any (task 113): live worlds answer with the occupying
+    // business's key so purchases at a REAL shop consume real stock (the conjuring fallback is retired
+    // there). Optional — off-map worlds leave it undefined and keep the abstract-venue fallback.
+    businessAt?(location: LogicalLocation): string | null;
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle;
 }
 
@@ -52,6 +70,29 @@ export interface SimulationMarkets {
     ledger?: MoneyLedger | null;
     housing?: HousingMarket | null;
     skills?: SkillRegistry | null;
+    // The elective social graph (task 083): consent, target weighting, relationship predicates, and the
+    // adjustRelationship effect/consequence all consult it. Null/absent = pre-graph contexts (pure tests).
+    social?: RelationshipGraph | null;
+    // The needs ledger (task 084): action commits credit their `satisfies`, selection reads urgency.
+    // Null/absent = pre-needs contexts (pure tests) — selection multipliers read as 1.
+    needs?: NeedsReader | null;
+    // The agenda (task 085): the planner hook reads due entries; producers and the joint-activity
+    // consequence enqueue. Null/absent = no planning (pure tests).
+    agenda?: AgendaAccess | null;
+    // Incidents (task 099): the pursuit hook reads who is wanted; City files and resolves.
+    incidents?: IncidentsReader | null;
+    // Habits (task 095): vice practice bumps counters; selection reads the escalation multiplier.
+    habits?: HabitsReader | null;
+    // Known facts (task 104): witnesses record, gossip transfers, consent reads what the target knows.
+    knownFacts?: KnownFactsAccess | null;
+    // Pets (task 103): the petCount context attribute (adoption caps, dog-walk gates) reads it.
+    pets?: PetsReader | null;
+    // Mood (task 091): event valence lands impulses; consent/selection/vice gates read the meter.
+    mood?: MoodReader | null;
+    // City services (task 096): coverage ratios the hazards read (healthcare -> recovery). Derived daily.
+    services?: ServiceCoverageReader | null;
+    // Traits (task 087): temperament axes read by selection affinity and consent. Derived, never stored.
+    traits?: TraitsReader | null;
 }
 
 export interface ExecutionContext {

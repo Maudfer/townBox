@@ -9,12 +9,17 @@
 // Modest by design — social actions season free time (a per-tick chance), they don't dominate it.
 
 import { ActionIntent, BrainHook, HookContext, DEFAULT_SELECTION_WEIGHT } from 'game/actions/Brain';
+import { RELATIONSHIPS_CONFIG, resolveStanding } from 'game/population/SocialGraph';
 import { ActionDefinition, ActionManifest } from 'types/Action';
 import { evaluatePredicateCached } from 'util/predicate';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 
 export const SOCIAL_SALT = 0x50c;
 const SOCIAL_CHANCE_PER_TICK = 0.15;
+
+// The joint activities an invitation may propose (task 085/D3). A code list for now — each must be a
+// continuous social/leisure action; a follow-up data pass can move this onto the action schema.
+export const JOINT_ACTIVITIES = ['catching_up_over_coffee', 'watching_television', 'hosting_gathering', 'taking_a_walk_together'] as const;
 
 // The person-targeted candidate set (task 079): which actions the social hook can even consider — an
 // `interaction` block and a positive base weight — depends only on the manifest, so it is computed once per
@@ -79,22 +84,51 @@ export const socialOpportunityHook: BrainHook = {
         }
 
         const engine = brain.getActionEngine();
+
+        // Target FIRST (task 083 / proposal B): weight companions by relationship standing — a spouse or
+        // close friend is the likely counterpart, a stranger merely possible — so intimacy-gated actions
+        // evaluate their requirements against the actual would-be target. Deterministic: company arrives
+        // sorted from peopleAt, weights are pure functions of the graph.
+        const tTarget = clock ? clock() : 0;
+        const targeting = RELATIONSHIPS_CONFIG.socialTargeting;
+        const social = deps.ctx.markets?.social ?? null;
+        const weightedCompany = company.map(id => {
+            const view = resolveStanding(deps.state.people, social, personId, id, deps.tick);
+            const kindWeight = targeting.kindWeight[view?.kind ?? 'none'] ?? 1;
+            return { id, weight: Math.max(0.01, kindWeight + (view?.strength ?? 0) * targeting.strengthWeight) };
+        });
+        const totalTargetWeight = weightedCompany.reduce((sum, candidate) => sum + candidate.weight, 0);
+        let targetRoll = rng.next() * totalTargetWeight;
+        let pickedTarget = weightedCompany[weightedCompany.length - 1]!.id;
+        for (const candidate of weightedCompany) {
+            targetRoll -= candidate.weight;
+            if (targetRoll <= 0) {
+                pickedTarget = candidate.id;
+                break;
+            }
+        }
+        addSeg('social:target', tTarget);
+
         const tLoop = clock ? clock() : 0;
-        const context = engine.contextFor(personId, deps);
+        // Bind the picked target into the evaluation context so relationship-gated requirements resolve.
+        const context = engine.contextFor(personId, deps, { target: pickedTarget });
 
         // Return-side coherence (task 074): a carried instance OWNED by a co-located other person is a
         // borrowed object whose return-target is knowable — the ownership-vs-possession split identifies it.
-        // Deterministic: first by instance id.
+        // Deterministic: first by instance id. When a return-style action wins the pick, its target is the
+        // OWNER (overriding the weighted pick), so lending loops still genuinely close.
         const borrowed = (deps.inventory?.carriedInstances(personId) ?? [])
             .filter(instance => instance.owner.kind === 'person' && instance.owner.personId !== personId
                 && company.includes(instance.owner.personId))
             .sort((a, b) => a.id.localeCompare(b.id));
 
-        const candidates: { actionId: string; weight: number; objectParam: string | null }[] = [];
+        const candidates: { actionId: string; weight: number; objectParam: string | null; activityParam: string | null }[] = [];
         for (const { actionId, def } of socialCandidates(engine.getManifest())) {
-            // The hook can bind the target and (for return-style actions) ONE borrowed object instance;
-            // any other required parameter is unbindable here — never propose an unstartable intent.
+            // The hook can bind the target, (for return-style actions) ONE borrowed object instance, and
+            // (for invitations, task 085) an 'activity' string from the joint-activity list; any other
+            // required parameter is unbindable here — never propose an unstartable intent.
             let objectParam: string | null = null;
+            let activityParam: string | null = null;
             let bindable = true;
             for (const [name, spec] of Object.entries(def.parameters ?? {})) {
                 if (!spec.required || name === def.interaction!.targetParam) {
@@ -102,6 +136,8 @@ export const socialOpportunityHook: BrainHook = {
                 }
                 if (spec.type === 'objectInstance' && objectParam === null && borrowed.length > 0) {
                     objectParam = name;
+                } else if (spec.type === 'string' && name === 'activity' && activityParam === null) {
+                    activityParam = name;
                 } else {
                     bindable = false;
                 }
@@ -121,8 +157,18 @@ export const socialOpportunityHook: BrainHook = {
                     weight *= modifier.multiply;
                 }
             }
+            // Needs urgency (task 084): a lonely person leans into company; a socially sated one less so.
+            const needsLedger = deps.ctx.markets?.needs ?? null;
+            if (needsLedger && def.satisfies) {
+                weight *= needsLedger.selectionMultiplier(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            // Trait affinity (task 087): the gregarious lean in, the solitary hang back.
+            const traitsReader = deps.ctx.markets?.traits ?? null;
+            if (traitsReader && def.affinity) {
+                weight *= traitsReader.affinityMultiplier(personId, def.affinity);
+            }
             if (weight > 0) {
-                candidates.push({ actionId, weight, objectParam });
+                candidates.push({ actionId, weight, objectParam, activityParam });
             }
         }
         addSeg('social:loop', tLoop);
@@ -141,14 +187,18 @@ export const socialOpportunityHook: BrainHook = {
             }
         }
         const targetParam = engine.getManifest()[picked.actionId]!.interaction!.targetParam;
-        // Return-style pick: the object names its own target (the owner). Otherwise: a random companion.
+        // Return-style pick: the object names its own target (the owner). Otherwise: the weighted pick.
         const params: Record<string, string> = {};
         if (picked.objectParam !== null) {
             const instance = borrowed[0]!;
             params[targetParam] = (instance.owner as { kind: 'person'; personId: string }).personId;
             params[picked.objectParam] = instance.id;
         } else {
-            params[targetParam] = company[rng.nextInt(0, company.length - 1)]!;
+            params[targetParam] = pickedTarget;
+        }
+        // Invitations (task 085): bind a seeded joint-activity pick.
+        if (picked.activityParam !== null) {
+            params[picked.activityParam] = JOINT_ACTIVITIES[rng.nextInt(0, JOINT_ACTIVITIES.length - 1)]!;
         }
         return [{
             actionId: picked.actionId,
@@ -156,6 +206,7 @@ export const socialOpportunityHook: BrainHook = {
             sourceHook: 'socialOpportunity',
             priority: 20,
             necessity: 'optional',
+            band: 'opportunity',
             mayInterrupt: false,
             causationId: null,
         }];

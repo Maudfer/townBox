@@ -300,6 +300,7 @@ async function main(): Promise<void> {
     sectionBytes += writeCompressed(outDir, 'population.tbz', asset.population);
     sectionBytes += writeCompressed(outDir, 'objects.tbz', asset.objects ?? { instances: {}, nextInstanceSeq: 0 });
     sectionBytes += writeCompressed(outDir, 'eventHistory.tbz', asset.eventHistory);
+    sectionBytes += writeCompressed(outDir, 'socialGraph.tbz', asset.socialGraph ?? { edges: {} });
 
     const totalCompressed = personBytes + sectionBytes;
     asset.meta.stats.compressedBytes = totalCompressed;
@@ -307,7 +308,7 @@ async function main(): Promise<void> {
     const header: AssetHeader = {
         meta: asset.meta,
         eventLogSeq: asset.eventLogSeq,
-        sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz' },
+        sections: { population: 'population.tbz', objects: 'objects.tbz', eventHistory: 'eventHistory.tbz', socialGraph: 'socialGraph.tbz' },
         people: Object.fromEntries(personFiles),
     };
     writeFileSync(join(outDir, 'meta.json'), JSON.stringify(header, null, 2), 'utf8');

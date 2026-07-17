@@ -113,6 +113,15 @@ export function formatTick(tick: number): string {
     return `${formatDay(dayOfTick(clamped))} ${pad(hourOfTick(clamped))}:00`;
 }
 
+// The debug time-throttle cycle (task 117): 1× → 4× → 16× → back to 1×. Any out-of-band value (a bad
+// save, a manual poke) resets to 1× rather than compounding.
+export const TIME_SCALES: readonly number[] = [1, 4, 16];
+
+export function nextTimeScale(current: number): number {
+    const index = TIME_SCALES.indexOf(current);
+    return index === -1 ? 1 : TIME_SCALES[(index + 1) % TIME_SCALES.length]!;
+}
+
 // Human-readable REAL wall-clock duration (NOT in-game time): days/hours/minutes/seconds, dropping leading
 // zero units from left to right but always keeping seconds. Used for the offline generator's runtime readout.
 // E.g. 240_000 → "4 min 0 s"; 5_400_000 → "1 h 30 min 0 s"; 90_061_000 → "1 d 1 h 1 min 1 s"; 400 → "0 s".

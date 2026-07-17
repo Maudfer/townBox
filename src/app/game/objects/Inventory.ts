@@ -260,6 +260,21 @@ export default class Inventory {
         }
     }
 
+    // Spoilage sweep (task 089 / F3): removes every instance whose archetype declares `expiresAfterTicks`
+    // and whose age exceeds it. Deterministic (no RNG), called on the day cadence (live: City.handleNewDay;
+    // offline: the generator's runDaily). Bread rots; the shelf drains; production resumes below the ceiling.
+    sweepExpired(tick: number): number {
+        let removed = 0;
+        for (const [id, instance] of Object.entries(this.state.instances)) {
+            const expires = this.archetypes[instance.archetypeId]?.expiresAfterTicks;
+            if (expires !== undefined && tick - instance.createdAtTick >= expires) {
+                this.removeInstance(id);
+                removed++;
+            }
+        }
+        return removed;
+    }
+
     // Whether an instance matches an object query (archetype id / archetype tag / archetype flag). The one
     // matching rule shared by predicate evaluation (carries/objectAtLocation) and consequence ObjectRefs.
     instanceMatches(instanceId: ObjectInstanceId, query: ObjectQuery): boolean {

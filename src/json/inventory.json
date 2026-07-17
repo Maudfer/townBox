@@ -1,0 +1,9 @@
+{
+    "maxCarriedWeightGrams": 9000,
+    "maxBulkyItems": 3,
+    "stowAboveFraction": 0.5,
+    "curiosityChancePerTick": 0.04,
+    "fiddleChancePerTick": 0.15,
+    "pantryFetchBelowFood": 55,
+    "businessStockCeilingPerArchetype": 60
+}

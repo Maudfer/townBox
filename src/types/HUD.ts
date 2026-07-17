@@ -34,7 +34,8 @@ export interface DetailsWindowProps extends WindowProps {
     data: WindowPayload;
 }
 
-export type WindowPayload = House | Workplace | Person | Vehicle | City;
+// null = an entity-less window (the construction menu, task 108).
+export type WindowPayload = House | Workplace | Person | Vehicle | City | null;
 
 export enum WindowTypes {
     "HouseDetails",
@@ -44,6 +45,8 @@ export enum WindowTypes {
     "CityDetails",
     "GameOptions",
     "AvailableBuildings",
+    "ConstructionMenu",
+    "ServicesDetails",
 };
 
 export type WindowData = {

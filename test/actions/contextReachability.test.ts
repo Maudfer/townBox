@@ -31,9 +31,19 @@ const ALL_BUILDING_TAGS = new Set<string>([...HOUSE_TAGS, ...BLUEPRINT_TAGS.flat
 const PURCHASE_FALLBACKS = new Set([
     'found_coin', 'collected_a_seashell', 'picked_a_flower', 'found_something_under_the_couch', 'found_a_toy',
     'picked_up_a_pebble', 'received_a_keepsake', // serendipity/nature/gifts — genuine creation, kept
+    'dropped_a_wrapper', // litter entering the world (task 101/H3) — genuine creation, collected back out
+    'filled_the_trash_bag', // household garbage entering the world (task 112) — genuine creation, collected back out
     'bought_a_snack', 'bought_groceries', 'made_an_impulse_purchase', 'picked_up_a_prescription',
     'picked_up_fresh_ingredients', 'bought_cleaning_supplies', 'bought_some_tools', 'bought_gift_wrap',
 ]);
+
+// Archetypes that enter the world through an ACTION, not building generation (the waste loop, task 112):
+// an objectAtLocation query on one of these is satisfiable wherever the producing action ran.
+const ACTION_CREATED = new Set(
+    Object.values(ACTIONS).flatMap(def => (def.consequences ?? [])
+        .filter(op => op.op === 'createObject')
+        .map(op => (op as { archetype: string }).archetype)),
+);
 
 function collectQueries(node: unknown, out: { kind: string; query: ObjectQuery }[]): void {
     if (Array.isArray(node)) {
@@ -79,7 +89,8 @@ describe('static reachability of every object requirement (task 071)', () => {
                     return archetypeMatches(archetype, query);
                 });
                 const generatable = candidates.some(([, archetype]) => (archetype.placement ?? []).some(tag => ALL_BUILDING_TAGS.has(tag)));
-                if (!generatable) {
+                const actionCreated = candidates.some(([id]) => ACTION_CREATED.has(id));
+                if (!generatable && !actionCreated) {
                     failures.push(`${actionId}: ${JSON.stringify(query)}`);
                 }
             }

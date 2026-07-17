@@ -129,6 +129,13 @@ describe('action reachability (task 076/M3)', () => {
     const DIRECTLY_HOOKED = new Set([
         'attend_school',                                                    // schoolObligationHook
         'pocketed_small_object', 'grab', 'use_object', 'put_down', 'discard_object', // inventoryOpportunityHook
+        'resting_at_home_sick',                                             // jobOrchestrator's fitness gate (092)
+        'taking_a_walk_together',                                           // joint plans (085/093 — agenda-proposed)
+        'fleeing_the_police', 'chasing_a_suspect',                          // the pursuit hook (099)
+        'serving_time',                                                     // the detained hook (100)
+        'evacuating', 'rushing_to_the_fire', 'responding_to_fire',          // the fire hooks (102/110)
+        'responding_to_incident', 'visiting_the_detained',                  // dispatch + jail visits (109; the visit is planner-enqueued)
+        'receiving_treatment', 'treating_patient', 'visiting_the_sick',     // hospitals end to end (111): treatment + rounds hooks, planner sick visit
     ]);
 
     test('every action is reachable via some proposal path', () => {

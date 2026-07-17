@@ -1,0 +1,8 @@
+{
+    "maxPerOwner": 2,
+    "species": {
+        "dog": { "weight": 0.4, "lifespanYears": 13, "event": "adopted_dog" },
+        "cat": { "weight": 0.4, "lifespanYears": 15, "event": "adopted_cat" },
+        "goldfish": { "weight": 0.2, "lifespanYears": 4, "event": "adopted_goldfish" }
+    }
+}

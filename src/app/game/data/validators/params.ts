@@ -11,7 +11,7 @@ export function validateEconomyStructure(data: unknown, issues: IssueCollector):
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'growthMonths', 'shrinkMonths', 'bankruptcyDebtFloor', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths', 'recoveryFunds'];
+    const fields = ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'growthMonths', 'shrinkMonths', 'bankruptcyDebtFloor', 'bankruptcyMonths', 'reoccupancyMonths', 'evictionArrearsMonths', 'recoveryFunds', 'foundingCapitalThreshold', 'foundingChancePerMonth', 'crimeFineAmount', 'detentionDays', 'detentionDaysRepeat'];
     checkUnknownKeys(issues, '', data, fields);
     for (const field of ['startingPersonFunds', 'startingBusinessCapital', 'housingCost', 'perCapitaCost', 'recoveryFunds']) {
         checkNumber(issues, field, data[field], { min: 0 });
@@ -20,6 +20,71 @@ export function validateEconomyStructure(data: unknown, issues: IssueCollector):
         checkNumber(issues, field, data[field], { min: 1, integer: true });
     }
     checkNumber(issues, 'bankruptcyDebtFloor', data['bankruptcyDebtFloor'], { max: 0 });
+    // Entrepreneurship tunables (task 097/I3).
+    checkNumber(issues, 'foundingCapitalThreshold', data['foundingCapitalThreshold'], { min: 0 });
+    checkNumber(issues, 'foundingChancePerMonth', data['foundingChancePerMonth'], { min: 0, max: 1 });
+    checkNumber(issues, 'crimeFineAmount', data['crimeFineAmount'], { min: 0 });
+    checkNumber(issues, 'detentionDays', data['detentionDays'], { min: 1, integer: true });
+    checkNumber(issues, 'detentionDaysRepeat', data['detentionDaysRepeat'], { min: 1, integer: true });
+}
+
+// json/fire.json (task 102): the building-condition wear + ignition/outcome policy.
+export function validateFireStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'fire', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'fire', config, ['wearPerDay', 'conditionFloor', 'ignitionPerYearAtFullCondition', 'ignitionPerYearAtFloor', 'responseTicks', 'crewForFullResponse', 'injuryChancePerOccupant', 'damage']);
+    checkNumber(issues, 'fire.wearPerDay', config['wearPerDay'], { min: 0 });
+    checkNumber(issues, 'fire.conditionFloor', config['conditionFloor'], { min: 0, max: 100 });
+    checkNumber(issues, 'fire.ignitionPerYearAtFullCondition', config['ignitionPerYearAtFullCondition'], { min: 0 });
+    checkNumber(issues, 'fire.ignitionPerYearAtFloor', config['ignitionPerYearAtFloor'], { min: 0 });
+    checkNumber(issues, 'fire.responseTicks', config['responseTicks'], { min: 1, integer: true });
+    checkNumber(issues, 'fire.crewForFullResponse', config['crewForFullResponse'], { min: 1, integer: true });
+    checkNumber(issues, 'fire.injuryChancePerOccupant', config['injuryChancePerOccupant'], { min: 0, max: 1 });
+    if (checkRecord(issues, 'fire.damage', config['damage'])) {
+        const damage = config['damage'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'fire.damage', damage, ['extinguished', 'damaged']);
+        checkNumber(issues, 'fire.damage.extinguished', damage['extinguished'], { min: 0 });
+        checkNumber(issues, 'fire.damage.damaged', damage['damaged'], { min: 0 });
+    }
+}
+
+// json/pets.json (task 103): the companion policy. Semantics: each species' texture event must exist with
+// a manual trigger (the adoption fires it — C2-wired, never free-rolled).
+export function validatePetsStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'pets', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'pets', config, ['maxPerOwner', 'species']);
+    checkNumber(issues, 'pets.maxPerOwner', config['maxPerOwner'], { min: 1, integer: true });
+    if (!checkRecord(issues, 'pets.species', config['species'])) {
+        return;
+    }
+    for (const [species, spec] of Object.entries(config['species'] as Record<string, unknown>)) {
+        const path = 'pets.species.' + species;
+        if (!checkRecord(issues, path, spec)) {
+            continue;
+        }
+        const record = spec as Record<string, unknown>;
+        checkUnknownKeys(issues, path, record, ['weight', 'lifespanYears', 'event']);
+        checkNumber(issues, path + '.weight', record['weight'], { min: 0 });
+        checkNumber(issues, path + '.lifespanYears', record['lifespanYears'], { min: 1 });
+    }
+}
+
+export function validatePetsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
+    const config = data as { species?: Record<string, { event?: string }> };
+    const events = (peers['events'] ?? {}) as Record<string, { triggers?: { manual?: unknown } }>;
+    for (const [species, spec] of Object.entries(config.species ?? {})) {
+        const event = spec.event !== undefined ? events[spec.event] : undefined;
+        if (!event) {
+            issues.add('pets.species.' + species + '.event', 'unknown event "' + spec.event + '" (not in events.json)');
+        } else if (!event.triggers?.manual) {
+            issues.add('pets.species.' + species + '.event', 'event "' + spec.event + '" declares no manual trigger — the adoption cannot fire it');
+        }
+    }
 }
 
 export function validatePopulationStructure(data: unknown, issues: IssueCollector): void {
@@ -116,7 +181,7 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     if (!checkRecord(issues, '', data)) {
         return;
     }
-    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'reducedEventManifest', 'profile', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
+    const fields = ['seed', 'founderCount', 'recordThreshold', 'recordYears', 'ticksPerYear', 'daysPerStep', 'hotYears', 'warmMarginYears', 'maxWarmupYears', 'keepActionLog', 'reducedEventManifest', 'profile', 'skillSnapshotYears', 'flushIntervalYears', 'populationControl', 'logicalWorld', 'safety'];
     checkUnknownKeys(issues, '', data, fields);
     checkNumber(issues, 'seed', data['seed'], { integer: true });
     checkNumber(issues, 'founderCount', data['founderCount'], { min: 2, integer: true });
@@ -126,6 +191,8 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
         issues.add('ticksPerYear', `must equal the clock's TICKS_PER_YEAR (${TICKS_PER_YEAR}), got ${data['ticksPerYear']}`);
     }
     checkNumber(issues, 'daysPerStep', data['daysPerStep'], { min: 1, integer: true });
+    // Two-band recording (task 105/K1): the final hotYears of the recording window step HOURLY.
+    checkNumber(issues, 'hotYears', data['hotYears'], { min: 0 });
     checkNumber(issues, 'warmMarginYears', data['warmMarginYears'], { min: 0 });
     checkNumber(issues, 'maxWarmupYears', data['maxWarmupYears'], { min: 1 });
     checkBoolean(issues, 'keepActionLog', data['keepActionLog']);
@@ -135,12 +202,13 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
     checkNumber(issues, 'flushIntervalYears', data['flushIntervalYears'], { min: 1, integer: true });
     if (checkRecord(issues, 'populationControl', data['populationControl'])) {
         const control = data['populationControl'] as Record<string, unknown>;
-        checkUnknownKeys(issues, 'populationControl', control, ['enabled', 'target', 'band', 'suppressLevel', 'allowLevel']);
+        checkUnknownKeys(issues, 'populationControl', control, ['enabled', 'target', 'band', 'suppressLevel', 'allowLevel', 'pairRatePerYear']);
         checkBoolean(issues, 'populationControl.enabled', control['enabled']);
         checkNumber(issues, 'populationControl.target', control['target'], { min: 1, integer: true });
         checkNumber(issues, 'populationControl.band', control['band'], { min: 0, max: 1 });
         checkNumber(issues, 'populationControl.suppressLevel', control['suppressLevel'], { min: 0, max: 1 });
         checkNumber(issues, 'populationControl.allowLevel', control['allowLevel'], { min: 0, max: 1 });
+        checkNumber(issues, 'populationControl.pairRatePerYear', control['pairRatePerYear'], { min: 0 });
     }
     if (checkRecord(issues, 'safety', data['safety'])) {
         const safety = data['safety'] as Record<string, unknown>;
@@ -155,4 +223,68 @@ export function validateHistoryGeneratorStructure(data: unknown, issues: IssueCo
             checkBoolean(issues, `logicalWorld.${flag}`, logical[flag]);
         }
     }
+}
+
+// json/arbitration.json (task 086): the interruption matrix thresholds.
+export function validateArbitrationStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'arbitration', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'arbitration', config, ['sameBandUtilityDelta', 'decisionCooldownTicks', 'resumeWindowTicks']);
+    checkNumber(issues, 'arbitration.sameBandUtilityDelta', config['sameBandUtilityDelta'], { min: 0 });
+    checkNumber(issues, 'arbitration.decisionCooldownTicks', config['decisionCooldownTicks'], { min: 0, integer: true });
+    checkNumber(issues, 'arbitration.resumeWindowTicks', config['resumeWindowTicks'], { min: 1, integer: true });
+}
+
+// json/inventory.json (task 088): carry budgets + the acquisitive hook's chances.
+export function validateInventoryTuningStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'inventory', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'inventory', config, ['maxCarriedWeightGrams', 'maxBulkyItems', 'stowAboveFraction', 'curiosityChancePerTick', 'fiddleChancePerTick', 'pantryFetchBelowFood', 'businessStockCeilingPerArchetype']);
+    checkNumber(issues, 'inventory.maxCarriedWeightGrams', config['maxCarriedWeightGrams'], { min: 1 });
+    checkNumber(issues, 'inventory.maxBulkyItems', config['maxBulkyItems'], { min: 1, integer: true });
+    const fractions: [string, unknown][] = [['stowAboveFraction', config['stowAboveFraction']], ['curiosityChancePerTick', config['curiosityChancePerTick']], ['fiddleChancePerTick', config['fiddleChancePerTick']]];
+    for (const [key, value] of fractions) {
+        if (typeof value !== 'number' || value < 0 || value > 1) {
+            issues.add(`inventory.${key}`, 'expected a fraction in [0, 1]');
+        }
+    }
+    checkNumber(issues, 'inventory.pantryFetchBelowFood', config['pantryFetchBelowFood'], { min: 0 });
+    checkNumber(issues, 'inventory.businessStockCeilingPerArchetype', config['businessStockCeilingPerArchetype'], { min: 1, integer: true });
+}
+
+// json/mood.json (task 091): the mood meter's baseline/impulse policy.
+export function validateMoodStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'mood', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'mood', config, ['baseline', 'impulseScale', 'halfLifeDays', 'maxActiveImpulses', 'pruneBelow']);
+    checkNumber(issues, 'mood.baseline', config['baseline'], { min: 0, max: 100 });
+    checkNumber(issues, 'mood.impulseScale', config['impulseScale'], { min: 0 });
+    if (checkRecord(issues, 'mood.halfLifeDays', config['halfLifeDays'])) {
+        const halfLives = config['halfLifeDays'] as Record<string, unknown>;
+        checkUnknownKeys(issues, 'mood.halfLifeDays', halfLives, ['1', '2', '3']);
+        for (const magnitude of ['1', '2', '3']) {
+            checkNumber(issues, 'mood.halfLifeDays.' + magnitude, halfLives[magnitude], { min: 0.1 });
+        }
+    }
+    checkNumber(issues, 'mood.maxActiveImpulses', config['maxActiveImpulses'], { min: 1, integer: true });
+    checkNumber(issues, 'mood.pruneBelow', config['pruneBelow'], { min: 0 });
+}
+
+// json/habits.json (task 095): vice-counter cooling/escalation policy.
+export function validateHabitsStructure(data: unknown, issues: IssueCollector): void {
+    if (!checkRecord(issues, 'habits', data)) {
+        return;
+    }
+    const config = data as Record<string, unknown>;
+    checkUnknownKeys(issues, 'habits', config, ['halfLifeDays', 'escalationPerLevel', 'practiceBump', 'maxLevel']);
+    checkNumber(issues, 'habits.halfLifeDays', config['halfLifeDays'], { min: 0.1 });
+    checkNumber(issues, 'habits.escalationPerLevel', config['escalationPerLevel'], { min: 0 });
+    checkNumber(issues, 'habits.practiceBump', config['practiceBump'], { min: 0 });
+    checkNumber(issues, 'habits.maxLevel', config['maxLevel'], { min: 1 });
 }

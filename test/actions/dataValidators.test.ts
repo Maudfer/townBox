@@ -488,7 +488,7 @@ describe('shared consequence-op structural checks', () => {
         ['removeObject unknown key', [{ op: 'removeObject', object: { param: 'x' }, note: 'y' }], /unknown key/],
         ['removeObject bad object ref not a record', [{ op: 'removeObject', object: 'bad' }], /expected an object/],
         ['moveObject unknown key', [{ op: 'moveObject', object: { param: 'x' }, container: 'possessions', note: 'y' }], /unknown key/],
-        ['moveObject bad container', [{ op: 'moveObject', object: { param: 'x' }, container: 'pocket' }], /expected one of \[possessions, location\]/],
+        ['moveObject bad container', [{ op: 'moveObject', object: { param: 'x' }, container: 'pocket' }], /expected one of \[possessions, location, outside\]/],
         ['moveObjectToPerson unknown key', [{ op: 'moveObjectToPerson', object: { param: 'x' }, target: 'targetPerson', note: 'y' }], /unknown key/],
         ['moveObjectToPerson bad target', [{ op: 'moveObjectToPerson', object: { param: 'x' }, target: 'employer' }], /expected one of \[targetPerson\]/],
         ['transferObject unknown key', [{ op: 'transferObject', object: { param: 'x' }, owner: 'world', note: 'y' }], /unknown key/],

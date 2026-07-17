@@ -5,6 +5,9 @@ export enum Tool {
     Work = 'work',
     Select = 'select',
     Bulldoze = 'bulldoze',
+    // The construction menu (task 108): not a placement tool — selecting it opens the building grid; the
+    // menu then arms House/Work with an optional pinned blueprint + placeholder asset.
+    Construction = 'construction',
     /*Building1 = 'building1',
     Building2 = 'building2',*/
 }

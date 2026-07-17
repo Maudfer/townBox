@@ -104,6 +104,7 @@ describe('ActionEngine gaps', () => {
             objectLocationOf: () => ({ kind: 'outside' }),
             peopleAt: () => [],
             objectsAt: () => [],
+            hasVenue: () => true,
             requestTransition: (personId, target, tick, causationId): TransitionHandle =>
                 ({ id: 0, personId, target, status: 'cancelled', requestedAtTick: tick, resolvedAtTick: null, causationId }),
         };
@@ -199,16 +200,19 @@ describe('Brain arbitration gaps', () => {
         return { engine, actions, brain, world, inventory, makeDeps };
     }
 
-    test('an intent that may not interrupt the running continuous activity is skipped, not queued', () => {
+    test('a lower-band intent is skipped, not queued (the 086 interruption matrix)', () => {
         const { actions, brain, makeDeps } = harness();
         const deps = makeDeps(21);
-        actions.startAction('a', 'sleep', {}, { source: 'brain', causationId: null }, deps, result());
+        const started = actions.startAction('a', 'sleep', {}, { source: 'brain', causationId: null }, deps, result());
+        // Tag the running sleep as an obligation-band activity (086 provenance); the opportunity-band
+        // challenger — however high its priority — sits in a LOWER band and can never displace it.
+        actions.tagInstance((started as { instanceId: string }).instanceId, 'obligation', 100);
         brain.registerHook({
             id: 'lowPriorityLeisure', kind: 'onTick',
-            propose: () => [{ actionId: 'read_book', sourceHook: 'lowPriorityLeisure', priority: 999, necessity: 'optional', mayInterrupt: false, causationId: null }],
+            propose: () => [{ actionId: 'read_book', sourceHook: 'lowPriorityLeisure', priority: 999, necessity: 'optional', band: 'opportunity', mayInterrupt: false, causationId: null }],
         });
         brain.processTick(['a'], deps, [], result());
-        // Sleep keeps running: a non-interrupting intent, however high-priority, cannot displace it.
+        // Sleep keeps running: band rank governs displacement, not priority.
         expect(brain.statusOf('a').status).toBe('sleeping');
     });
 
@@ -277,10 +281,17 @@ describe('Brain arbitration gaps', () => {
         return { engine, actions, brain, inventory, makeDeps };
     }
 
-    test('inventoryOpportunity grabs a free loose carryable before pocketing or fiddling with carried items', () => {
+    test('inventoryOpportunity grabs a free loose carryable on a curiosity impulse (capacity-gated since 088)', () => {
         const { brain, inventory, engine, makeDeps } = inventoryHarness();
         inventory.createInstance({ archetypeId: 'umbrella', owner: { kind: 'none' }, container: { kind: 'location', key: 'home' }, tick: 0 });
-        brain.processTick(['a'], makeDeps(50), [], result());
+        // Pickups are a rare impulse now (INVENTORY_CONFIG.curiosityChancePerTick), not an every-tick hoover
+        // (task 088/F1) — walk ticks until the deterministic impulse lands.
+        for (let tick = 50; tick < 300; tick++) {
+            brain.processTick(['a'], makeDeps(tick), [], result());
+            if (engine.getPersonLog('a').some(e => e.kind === 'action' && e.defId === 'grab')) {
+                break;
+            }
+        }
         const grabbed = engine.getPersonLog('a').find(e => e.kind === 'action' && e.defId === 'grab');
         expect(grabbed).toBeDefined();
         expect((grabbed as unknown as { params: Record<string, string> }).params['object']).toBe('umbrella');
@@ -324,6 +335,7 @@ describe('Brain arbitration gaps', () => {
             objectLocationOf: () => ({ kind: 'outside' }),
             peopleAt: () => [],
             objectsAt: () => [],
+            hasVenue: () => true,
             requestTransition: (personId, target, tick, causationId) => {
                 handle = { id: 0, personId, target, status: 'pending', requestedAtTick: tick, resolvedAtTick: null, causationId };
                 return handle;

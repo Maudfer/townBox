@@ -26,7 +26,7 @@ const DISCRIMINANT_ATTRS = new Set(['alive', 'gender', 'marital', 'employed']);
 
 // Exported so the data validators (game/data/validators/events.ts, task 039) share the same closed attribute
 // vocabulary — a setAttr targeting an attribute outside this list is an authoring error, not a new feature.
-export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'wantsMoreChildren', 'health', 'retired', 'hourOfDay'];
+export const DEFAULT_BASE_ATTRIBUTES = ['alive', 'gender', 'age', 'marital', 'employed', 'money', 'pregnant', 'homeless', 'canBeHired', 'canMoveOut', 'wantsMoreChildren', 'health', 'retired', 'hourOfDay', 'mood', 'depressed', 'healthcareCoverage', 'policeCoverage', 'jobApplications', 'recentlyTreated', 'petCount'];
 
 // One hard conjunctive comparison on a subject discriminant attribute, kept in the predicate's own node
 // shape so the runtime evaluates it with the predicate evaluator's exact compare semantics.
@@ -94,8 +94,8 @@ function walk(pred: Predicate, negated: boolean, isSubject: boolean, soft: boole
         }
         return;
     }
-    if ('hasAction' in pred || 'carries' in pred || 'objectAtLocation' in pred) {
-        return; // action-era queries (task 043) are runtime-only gates, never part of the static event graph
+    if ('hasAction' in pred || 'carries' in pred || 'objectAtLocation' in pred || 'relationship' in pred) {
+        return; // action-era + relationship queries (043/083) are runtime-only gates, never part of the static event graph
     }
     // attribute comparison
     if (isSubject) {

@@ -443,7 +443,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 120
     },
     "chewing_gum_pack": {
         "label": "Pack of Chewing Gum",
@@ -576,7 +577,8 @@
         "tags": [
             "meal",
             "giftable"
-        ]
+        ],
+        "expiresAfterTicks": 168
     },
     "book": {
         "label": "Book",
@@ -843,7 +845,16 @@
         },
         "tags": [
             "medical"
-        ]
+        ],
+        "placement": [
+            "pharmacy"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 6,
+            "ownershipDefault": "building"
+        }
     },
     "teddy_bear": {
         "label": "Teddy Bear",
@@ -1588,7 +1599,16 @@
         },
         "tags": [
             "ingredient"
-        ]
+        ],
+        "placement": [
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 3,
+            "ownershipDefault": "building"
+        }
     },
     "egg": {
         "label": "Egg",
@@ -1609,7 +1629,17 @@
         },
         "tags": [
             "ingredient"
-        ]
+        ],
+        "placement": [
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 6,
+            "ownershipDefault": "building"
+        },
+        "expiresAfterTicks": 480
     },
     "cream_jar": {
         "label": "Jar of Cream",
@@ -1630,7 +1660,16 @@
         },
         "tags": [
             "ingredient"
-        ]
+        ],
+        "placement": [
+            "supermarket"
+        ],
+        "generation": {
+            "kind": "consumable",
+            "weight": 1,
+            "maxPerBuilding": 3,
+            "ownershipDefault": "building"
+        }
     },
     "baked_dough": {
         "label": "Baked Dough",
@@ -1651,7 +1690,8 @@
         },
         "tags": [
             "ingredient"
-        ]
+        ],
+        "expiresAfterTicks": 72
     },
     "apple_juice_carton": {
         "label": "Apple Juice Carton",
@@ -2671,7 +2711,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 480
     },
     "chip_bag": {
         "label": "Bag of Chips",
@@ -3301,14 +3342,16 @@
         ],
         "placement": [
             "bus-stop",
-            "playground"
+            "playground",
+            "supermarket"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 2160
     },
     "grilled_steak": {
         "label": "Grilled Steak",
@@ -3578,7 +3621,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 168
     },
     "lime_wedge": {
         "label": "Lime Wedge",
@@ -3669,7 +3713,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 96
     },
     "muffin": {
         "label": "Muffin",
@@ -3846,7 +3891,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 720
     },
     "orange": {
         "label": "Orange",
@@ -4122,7 +4168,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 720
     },
     "pretzel": {
         "label": "Soft Pretzel",
@@ -4514,7 +4561,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 240
     },
     "trout": {
         "label": "Trout",
@@ -34950,7 +34998,8 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building"
-        }
+        },
+        "expiresAfterTicks": 96
     },
     "flower_pot": {
         "label": "Flower Pot",
@@ -37291,6 +37340,24 @@
             "weight": 1,
             "maxPerBuilding": 3,
             "ownershipDefault": "none"
+        }
+    },
+    "bag_of_garbage": {
+        "label": "Bag of Garbage",
+        "category": "misc",
+        "size": {
+            "w": 40,
+            "d": 40,
+            "h": 60
+        },
+        "weightGrams": 4000,
+        "flags": {
+            "carryable": true,
+            "pocketable": false,
+            "stackable": true,
+            "consumable": false,
+            "equippable": false,
+            "placeable": false
         }
     },
     "hamster_cage": {

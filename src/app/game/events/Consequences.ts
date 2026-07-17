@@ -7,6 +7,10 @@
 
 import { ActionDeps } from 'game/actions/ActionEngine';
 import Inventory from 'game/objects/Inventory';
+import inventoryTuning from 'json/inventory.json';
+
+// Business shelf capacity per archetype (task 089 / F3) — production halts at a full shelf.
+const STOCK_CEILING_PER_ARCHETYPE = (inventoryTuning as { businessStockCeilingPerArchetype?: number }).businessStockCeilingPerArchetype ?? 60;
 import {
     ConsequenceOp,
     OAREntry,
@@ -15,6 +19,7 @@ import {
 } from 'types/Action';
 import { PersonId } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
+import { EdgeKind } from 'types/Relationship';
 import { ObjectContainerRef, ObjectInstanceId, ObjectOwner, locationKey } from 'types/Objects';
 import { ObjectQuery, Value } from 'types/Simulation';
 
@@ -227,6 +232,22 @@ export function planOAR(entries: OAREntry[], ctx: CommitContext): Plan | null | 
             continue;
         }
         const inventory = inventoryOf(ctx)!;
+        // Stock ceilings (task 089 / F3): a business stops producing an archetype once its shelf is full —
+        // the 12,185-baked-dough mountain the audit found can no longer accumulate. A full shelf makes the
+        // entry unsatisfiable (typed inputsUnavailable upstream); sales drain the shelf and production resumes.
+        const ceiling = STOCK_CEILING_PER_ARCHETYPE;
+        const overCeiling = outputSpecs.some(spec => {
+            if (spec.owner!.kind !== 'business') {
+                return false;
+            }
+            const held = inventory.instancesOwnedBy(spec.owner!)
+                .filter(instance => instance.archetypeId === spec.output.archetype)
+                .reduce((total, instance) => total + instance.quantity, 0);
+            return held >= ceiling;
+        });
+        if (overCeiling) {
+            continue;
+        }
         const steps: (() => void)[] = [];
         entry.inputs.forEach((input, index) => {
             const takes = matched.matches[index]!.takes;
@@ -318,7 +339,10 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     return null;
                 }
                 if (op.op === 'moveObject') {
-                    const container = resolveContainer(op.container, ctx);
+                    // 'outside' (task 112): the shared curb — where the trash goes and the collectors sweep.
+                    const container = op.container === 'outside'
+                        ? { kind: 'location' as const, key: 'outside' }
+                        : resolveContainer(op.container, ctx);
                     if (!container) {
                         return null;
                     }
@@ -351,6 +375,126 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 }
                 // Mirrors the event effect: a no-op without a ledger (money doesn't exist off-map).
                 steps.push(() => ctx.deps.ctx.markets?.ledger?.adjustPerson(target as string, op.amount));
+                break;
+            }
+            case 'adjustRelationship': {
+                // The elective social graph (task 083): actor ↔ the action's `target` parameter. Plan-time
+                // validation only needs a resolvable target; a missing graph is a benign no-op (pure tests).
+                const otherId = ctx.params['target'];
+                if (typeof otherId !== 'string') {
+                    return null;
+                }
+                steps.push(() => {
+                    const graph = ctx.deps.ctx.markets?.social ?? null;
+                    if (!graph || otherId === ctx.personId) {
+                        return;
+                    }
+                    const adjusted = graph.adjust(ctx.personId, otherId, op.delta, ctx.deps.tick,
+                        { ...(op.kind ? { kind: op.kind as EdgeKind } : {}), provenance: ctx.causationId });
+                    // A ladder promotion fires its authored event for BOTH sides, chained to this commit.
+                    if (adjusted.promoted?.onPromote) {
+                        for (const [subject, other] of [[ctx.personId, otherId], [otherId, ctx.personId]] as const) {
+                            const { result } = ctx.deps.eventEngine.invoke(
+                                ctx.deps.state, adjusted.promoted.onPromote, subject, ctx.deps.tick, ctx.deps.ticksPerYear,
+                                { source: 'action', causationId: ctx.causationId }, {}, ctx.deps.ctx, { with: other }
+                            );
+                            ctx.result.died.push(...result.died);
+                            ctx.result.born.push(...result.born);
+                            ctx.result.signals.push(...result.signals);
+                            ctx.result.committed.push(...result.committed);
+                        }
+                    }
+                });
+                break;
+            }
+            case 'purchaseObject': {
+                // Materialized retail (task 089): prefer real business stock here; fall back to conjuring.
+                // Plannable whenever a fallback exists (shops without stock still sell — the 071 posture);
+                // without a fallback, missing stock is a typed plan failure.
+                const world = ctx.deps.ctx.world ?? null;
+                const stockId = (): string | null => {
+                    if (!world || !inventory) {
+                        return null;
+                    }
+                    const candidates = world.objectsAt(world.objectLocationOf(ctx.personId))
+                        .map(id => inventory.getInstance(id))
+                        .filter((instance): instance is NonNullable<typeof instance> => {
+                            if (!instance || instance.owner.kind !== 'business') {
+                                return false;
+                            }
+                            const archetype = inventory.getArchetype(instance.archetypeId);
+                            if (op.query.archetype !== undefined && instance.archetypeId !== op.query.archetype) {
+                                return false;
+                            }
+                            if (op.query.tag !== undefined && !(archetype?.tags ?? []).includes(op.query.tag)) {
+                                return false;
+                            }
+                            return true;
+                        })
+                        .map(instance => instance.id)
+                        .sort();
+                    return candidates[0] ?? null;
+                };
+                // At a REAL shop (task 113: a live world answers businessAt with the occupying business)
+                // the shelf is the truth — the conjuring fallback is retired, and missing stock is a typed
+                // plan failure. Off-map worlds leave businessAt undefined and keep the abstract fallback.
+                const atRealShop = world?.businessAt?.(world.objectLocationOf(ctx.personId)) != null;
+                if (stockId() === null && (op.fallback === undefined || atRealShop)) {
+                    return null;
+                }
+                if (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback))) {
+                    return null;
+                }
+                steps.push(() => {
+                    const ledger = ctx.deps.ctx.markets?.ledger ?? null;
+                    const id = stockId(); // re-resolve at apply time (earlier steps may have moved stock)
+                    if (id !== null && inventory) {
+                        const businessKey = (inventory.getInstance(id)!.owner as { kind: 'business'; key: string }).key;
+                        inventory.transferOwnership(id, { kind: 'person', personId: ctx.personId });
+                        inventory.moveInstance(id, { kind: 'possessions', personId: ctx.personId });
+                        ledger?.recordPurchase?.(ctx.personId, businessKey, op.price);
+                        return;
+                    }
+                    if (op.fallback !== undefined && !atRealShop && inventory) {
+                        inventory.createInstance({
+                            archetypeId: op.fallback,
+                            quantity: op.fallbackQuantity ?? 1,
+                            owner: { kind: 'person', personId: ctx.personId },
+                            container: { kind: 'possessions', personId: ctx.personId },
+                            tick: ctx.deps.tick,
+                            provenance: ctx.causationId,
+                        });
+                        ledger?.recordFallbackPurchase?.(ctx.personId, op.price);
+                    }
+                });
+                break;
+            }
+            case 'planJointActivity': {
+                // Joint plans (task 085 / D3): a consented invitation installs mirrored agenda entries. The
+                // activity id and target come from the action's params; missing either is a plan failure.
+                const guestId = ctx.params['target'];
+                const activityId = ctx.params[op.activityParam];
+                if (typeof guestId !== 'string' || typeof activityId !== 'string') {
+                    return null;
+                }
+                steps.push(() => {
+                    const agenda = ctx.deps.ctx.markets?.agenda ?? null;
+                    if (!agenda) {
+                        return; // no planning substrate (pure tests) — benign no-op
+                    }
+                    const linkId = `l${ctx.causationId ?? ctx.deps.tick}`;
+                    const window = {
+                        enqueuedAtTick: ctx.deps.tick,
+                        earliestTick: ctx.deps.tick + op.afterTicks,
+                        latestTick: ctx.deps.tick + op.afterTicks + op.windowTicks,
+                        linkId,
+                        causationId: ctx.causationId,
+                        source: 'jointActivity',
+                    };
+                    // Host at home; guest follows the host.
+                    agenda.enqueue({ ...window, personId: ctx.personId, actionId: activityId, locationOverride: 'home' });
+                    agenda.enqueue({ ...window, personId: guestId, actionId: activityId, locationOverride: `person:${ctx.personId}` });
+                });
                 break;
             }
             case 'triggerEvent': {

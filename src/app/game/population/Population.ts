@@ -6,7 +6,7 @@ import populationConfig from 'json/population.json';
 import { GenPerson, PersonId, PersonTable, PopulationState, PopulationParams, SimulationParams, SimulationResult } from 'types/Genealogy';
 import { Genders, Gender } from 'types/Social';
 import { sampleMaxChildren } from 'util/fertility';
-import { isAliveAt, spouseAt, childrenOf } from 'util/kinship';
+import { isAliveAt, spouseAt, childrenOf, ageAt } from 'util/kinship';
 import { SeededRandom } from 'util/random';
 
 export const DEFAULT_POPULATION_PARAMS: PopulationParams = populationConfig as PopulationParams;
@@ -473,4 +473,96 @@ export default class Population {
     isEmpty(): boolean {
         return this.size() === 0;
     }
+}
+
+function sharesParent(a: GenPerson, b: GenPerson): boolean {
+    return (a.fatherId !== null && a.fatherId === b.fatherId) || (a.motherId !== null && a.motherId === b.motherId);
+}
+
+// Off-map courtship for the OFFLINE GENERATOR ONLY (extinction remedy). The romance arc (090) gates had_sex on
+// a partner-or-dating edge and pregnancy on a spouse (`partnerOf`), and marriage on an ENGAGED edge — edges
+// that form only through the Brain's social ACTIONS, which the logical world runs far too sparsely for the
+// second generation to pair up. Left alone, the pre-married founders reproduce and then age out and the
+// population collapses (births ≈ half of deaths). This is the generator's stand-in for the courtship the LIVE
+// map simulates in full: each step it marries a bounded, deterministic fraction of compatible unpartnered
+// adults — creating the real partnership so pregnancy's `partnerOf` binding resolves and they reproduce via
+// the normal Engine-B path. LiveWorld NEVER calls this (real dating/engagement/marriage on the map is
+// untouched). `ratePerYear` is the per-single annual marriage hazard; the generator scales it UP as the living
+// count falls below target — the population thermostat's intent applied at the REAL bottleneck (pairing, not
+// fertility, since boosting a pregnancy hazard gated to zero by a missing spouse does nothing). Deterministic
+// given the passed RNG. Returns the number of new marriages formed.
+export function pairUnpartneredAdults(
+    state: PopulationState,
+    livingIds: Iterable<PersonId>,
+    tick: number,
+    ticksPerYear: number,
+    rng: SeededRandom,
+    ratePerYear: number,
+    stepTicks: number,
+    minAgeYears = 18,
+    maxAgeYears = 45,
+    maxAgeGapYears = 12,
+): number {
+    if (ratePerYear <= 0 || stepTicks <= 0) {
+        return 0;
+    }
+    const pool = state.people;
+    const women: PersonId[] = [];
+    const men: PersonId[] = [];
+    for (const id of livingIds) {
+        const person = pool[id];
+        if (!person || !isAliveAt(person, tick)) {
+            continue;
+        }
+        const age = ageAt(person, tick, ticksPerYear);
+        if (age < minAgeYears || age > maxAgeYears || spouseAt(pool, id, tick) !== null) {
+            continue;
+        }
+        (person.gender === Genders.Female ? women : men).push(id);
+    }
+    // Deterministic shuffle so pairing never biases by id order (Fisher–Yates on the passed stream).
+    const shuffle = (arr: PersonId[]): void => {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = rng.nextInt(0, i);
+            const swap = arr[i]!;
+            arr[i] = arr[j]!;
+            arr[j] = swap;
+        }
+    };
+    shuffle(women);
+    shuffle(men);
+    // Per-step marriage probability from the annual hazard (Poisson-honest at any stride — K2).
+    const perStep = 1 - Math.exp(-ratePerYear * stepTicks / ticksPerYear);
+    const taken = new Set<PersonId>();
+    let married = 0;
+    for (const womanId of women) {
+        if (rng.next() >= perStep) {
+            continue; // she isn't pairing this step
+        }
+        const woman = pool[womanId]!;
+        // The nearest-age eligible man not already claimed this step and not a blood relative.
+        let best: PersonId | null = null;
+        let bestGap = Infinity;
+        for (const manId of men) {
+            if (taken.has(manId)) {
+                continue;
+            }
+            const man = pool[manId]!;
+            const gap = Math.abs(man.birthTick - woman.birthTick) / ticksPerYear;
+            if (gap <= maxAgeGapYears && !sharesParent(woman, man) && gap < bestGap) {
+                best = manId;
+                bestGap = gap;
+            }
+        }
+        if (best === null) {
+            continue;
+        }
+        taken.add(best);
+        // Create the coherent partnership directly (the coarse-sim `marry` pattern): `marital` becomes married
+        // and pregnancy/had_sex bindings resolve, so the couple reproduces on the normal probabilistic path.
+        woman.partnerships.push({ partnerId: best, startTick: tick, endTick: null });
+        pool[best]!.partnerships.push({ partnerId: womanId, startTick: tick, endTick: null });
+        married++;
+    }
+    return married;
 }

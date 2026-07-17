@@ -26,6 +26,7 @@ import { compress } from 'util/compress';
 
 const TINY: HistoryGeneratorParams = {
     ...DEFAULT_GENERATOR_PARAMS,
+    hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
     seed: 4242,
     founderCount: 30,
     recordThreshold: 20, // ≤ founderCount ⇒ epoch is reached immediately (exercises the recording + prune path)
@@ -135,6 +136,7 @@ describe('reduced-manifest generator mode (task 078)', () => {
     // objects), which is what the reduced manifest and the ActionEngine active-index/pruning touch.
     const LOGICAL: HistoryGeneratorParams = {
         ...DEFAULT_GENERATOR_PARAMS,
+        hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
         seed: 909,
         founderCount: 40,
         recordThreshold: 30,
@@ -194,29 +196,49 @@ describe('reduced-manifest generator mode (task 078)', () => {
 describe('generator — warm-up abort + empty-pool edge cases', () => {
     jest.setTimeout(60000);
 
-    test('aborts warm-up (never reaches recordThreshold) and still writes a valid, empty asset', async () => {
-        // Zero founders: living count is always 0, so the threshold (1) is never reached — the maxWarmupYears
-        // ceiling fires (the abort branch), epoch falls back to endTick, and the retained pool is empty (so the
-        // median-history helper hits its own empty-array branch too).
+    test('extinct warm-up (0 living) bails immediately and still writes a valid, empty asset', async () => {
+        // Zero founders: the living count is 0 from the start, so the extinction-bail fires at once (task 119:
+        // a 0-population never recovers — grinding the remaining warm-up years is pure waste). Epoch falls back
+        // to endTick, and the retained pool is empty (so the median-history helper hits its empty-array branch).
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
-            seed: 1, founderCount: 0, recordThreshold: 1, recordYears: 1, maxWarmupYears: 1, daysPerStep: 30,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
+            seed: 1, founderCount: 0, recordThreshold: 1, recordYears: 1, maxWarmupYears: 400, daysPerStep: 30,
             keepActionLog: false,
             populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
             logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
         };
         const asset = await generateHistoryAsset(params);
         expect(asset.meta.epochTick).toBe(asset.meta.endTick); // no threshold reached ⇒ epoch = endTick
-        expect(asset.meta.endTick).toBe(Math.round(params.maxWarmupYears * params.ticksPerYear));
+        // Bailed early on extinction — NOT ground out to the (400-year) ceiling.
+        expect(asset.meta.endTick).toBeLessThan(Math.round(params.maxWarmupYears * params.ticksPerYear));
         expect(Object.keys(asset.population.people)).toHaveLength(0);
         expect(asset.meta.stats.retainedPeople).toBe(0);
         expect(asset.meta.stats.medianHistoryLen).toBe(0);
+    });
+
+    test('warm-up hits the maxWarmupYears ceiling when a surviving population never reaches the threshold', async () => {
+        // Founders survive the short warm-up but the (unreachable) threshold is never met, so the ceiling
+        // fires — the abort branch — with a non-empty living pool (pairing is OFF here: config omits it).
+        const params: HistoryGeneratorParams = {
+            ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0,
+            seed: 1, founderCount: 20, recordThreshold: 1_000_000, recordYears: 1, maxWarmupYears: 1, daysPerStep: 30,
+            keepActionLog: false,
+            populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
+            logicalWorld: { enabled: false, homes: true, schools: true, jobs: true, objects: true },
+        };
+        const asset = await generateHistoryAsset(params);
+        expect(asset.meta.endTick).toBe(Math.round(params.maxWarmupYears * params.ticksPerYear));
+        expect(asset.meta.epochTick).toBe(asset.meta.endTick); // threshold never reached ⇒ epoch = endTick
+        expect(asset.meta.stats.livingAtEnd).toBeGreaterThan(0); // the founders survived the short warm-up
     });
 
     test('safety.maxPeople stops generation the instant the pool reaches the cap', async () => {
         // The cap equals the founder count, so the very first safety check (before any tick runs) trips it.
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 1, founderCount: 6, recordThreshold: 100, recordYears: 1, maxWarmupYears: 5, daysPerStep: 30,
             keepActionLog: false,
             safety: { maxRuntimeMs: 0, maxPeople: 6 },
@@ -232,6 +254,7 @@ describe('generator — warm-up abort + empty-pool edge cases', () => {
     test('onProgress fires per step with the phase, phase-relative ticks, and living count', async () => {
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 4242, founderCount: 30, recordThreshold: 20, recordYears: 1, daysPerStep: 30,
             keepActionLog: false,
             populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },
@@ -256,6 +279,7 @@ describe('generator — warm-up abort + empty-pool edge cases', () => {
         // which is known to produce warm-up deaths (verified empirically; deterministic per seed).
         const params: HistoryGeneratorParams = {
             ...DEFAULT_GENERATOR_PARAMS,
+            hotYears: 0, // cold-band fixture (pre-105 behavior; the two-band has its own suite)
             seed: 555, founderCount: 6, recordThreshold: 100, recordYears: 1, maxWarmupYears: 60, daysPerStep: 30,
             keepActionLog: false,
             populationControl: { enabled: true, target: 40, band: 0.05, suppressLevel: 0.1, allowLevel: 1 },

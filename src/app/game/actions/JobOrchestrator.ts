@@ -17,6 +17,8 @@ import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isOnShiftAtTick } from 'util/shifts';
 
 export const ORCHESTRATOR_SALT = 0x0b;
+// Below this health, a person calls in sick instead of starting the shift (task 092 / G2).
+export const SICK_HEALTH_THRESHOLD = 0.6;
 
 // On-duty and idle-or-leisure → the continuous work action, chosen by deterministic weighted rotation over
 // the job's repertoire (entry chancePerTick doubles as rotation weight; default 1). On-duty and already
@@ -46,6 +48,26 @@ export const jobOrchestratorHook: BrainHook = {
             return [];
         }
 
+        // The fitness gate (task 092 / G2): too sick to work. Instead of the shift, the person stays home
+        // sick — a real continuous action whose onStart fires called_in_sick, so the absence is a log entry
+        // with a cause, not a silent no-show. Health reads through the same context attribute the data uses.
+        const health = engine.contextFor(personId, deps).getAttr('health');
+        if (typeof health === 'number' && health < SICK_HEALTH_THRESHOLD) {
+            if (working && active) {
+                engine.interrupt(active.id, { source: 'brain', causationId: null }, deps, { died: [], born: [], signals: [], committed: [] });
+            }
+            const restingAlready = active ? active.defId === 'resting_at_home_sick' : false;
+            return restingAlready ? [] : [{
+                actionId: 'resting_at_home_sick',
+                sourceHook: 'jobOrchestrator',
+                priority: 90,
+                necessity: 'required',
+                band: 'obligation', // it replaces the shift in the same slot of the day
+                mayInterrupt: true,
+                causationId: null,
+            }];
+        }
+
         const rng = new SeededRandom(deps.state.worldSeed).fork(deps.tick).fork(hashStringToSeed(personId)).fork(ORCHESTRATOR_SALT);
 
         if (!working) {
@@ -53,13 +75,19 @@ export const jobOrchestratorHook: BrainHook = {
             if (!pick) {
                 return [];
             }
+            // Field work (task 099): an AMBULATORY work action keeps its own outdoor location — the
+            // officer's beat walk happens on the street, not inside the station. Everything else clocks
+            // in at the workplace as always.
+            const pickDef = engine.getManifest()[pick];
+            const fieldWork = pickDef?.ambulatory !== undefined && pickDef.location === 'outside';
             return [{
                 actionId: pick,
-                locationOverride: `building:${job.workplaceKey}`,
+                ...(fieldWork ? {} : { locationOverride: `building:${job.workplaceKey}` }),
                 sourceHook: 'jobOrchestrator',
                 priority: 100,
                 necessity: 'required',
-                mayInterrupt: true, // obligations displace leisure
+                band: 'obligation', // displaces commitment/leisure via the matrix (task 086)
+                mayInterrupt: true,
                 causationId: null,
             }];
         }
@@ -83,7 +111,8 @@ export const jobOrchestratorHook: BrainHook = {
             actionId,
             sourceHook: 'jobOrchestrator',
             priority: 50,
-            necessity: 'optional',
+            necessity: 'optional' as const,
+            band: 'opportunity' as const, // on-duty flavor seasons the shift, never steers it
             mayInterrupt: false,
             causationId: active?.startLogSeq ?? null, // flavor chains to the running work action
         }));

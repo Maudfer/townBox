@@ -4,24 +4,27 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserved**.
+Totals: 738 events — **27 vital**, **45 wired**, **511 texture**, **155 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
 | aced_final | education | probabilistic+manual | texture | — |
 | action_declined | social | manual | wired | lent_an_object.onDecline, gave_object_to_person.onDecline |
 | action_failed | mishap | manual | reserved | — |
-| adopted_cat | pet | probabilistic+manual | texture | — |
+| adopted_a_pet | pet | manual | vital | adopted_a_pet.onComplete |
+| adopted_cat | pet | manual | reserved | — |
 | adopted_child | family | probabilistic+manual | texture | — |
-| adopted_dog | pet | probabilistic+manual | texture | — |
-| adopted_goldfish | pet | probabilistic+manual | texture | — |
+| adopted_dog | pet | manual | reserved | — |
+| adopted_goldfish | pet | manual | reserved | — |
 | apologized_first | social | probabilistic+manual | texture | — |
 | apologized_for_snapping | emotion-mood | probabilistic+manual | texture | — |
+| application_rejected | career | probabilistic+manual | texture | — |
 | argued_with_coworker | career | probabilistic+manual | texture | — |
 | argued_with_partner | romance | probabilistic+manual | texture | — |
 | argued_with_sibling | family | probabilistic+manual | texture | — |
-| argument | social | probabilistic | vital | — |
-| asked_someone_out | romance | probabilistic+manual | texture | — |
+| argument | social | probabilistic+manual | vital | argued_with_person.onCompleteTarget |
+| arrested_suspect | crime | manual | reserved | — |
+| asked_someone_out | romance | manual | wired | asked_person_out.onComplete |
 | assembled_flatpack | possessions | probabilistic+manual | texture | — |
 | ate_at_restaurant | food | probabilistic+manual | texture | — |
 | ate_questionable_leftover | food | probabilistic+manual | texture | — |
@@ -38,6 +41,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | beat_high_score | achievement | probabilistic+manual | texture | — |
 | beat_long_illness | health | probabilistic | texture | — |
 | became_aunt_or_uncle | family | manual | reserved | — |
+| became_close_friends | social | manual | vital | — |
 | became_estranged | family | probabilistic | texture | — |
 | became_grandparent | milestone | manual | reserved | — |
 | became_great_grandparent | milestone | manual | reserved | — |
@@ -85,7 +89,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | business_went_under | achievement | manual | reserved | — |
 | called_as_witness | legal | manual | reserved | — |
 | called_exterminator | housing | probabilistic+manual | texture | — |
-| called_in_sick | career | probabilistic+manual | texture | — |
+| called_in_sick | career | manual | wired | resting_at_home_sick.onStart |
 | came_home_from_vacation | travel | manual | reserved | — |
 | came_out_of_retirement | career | probabilistic | texture | — |
 | canceled_trip | travel | probabilistic+manual | texture | — |
@@ -110,6 +114,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | celebrated_work_anniversary | career | manual | reserved | — |
 | changed_legal_name | legal | probabilistic | texture | — |
 | changed_locks | housing | probabilistic+manual | texture | — |
+| chase_concluded | crime | manual | vital | fleeing_the_police.onComplete |
 | chased_runaway_hat | weather-reaction | probabilistic+manual | texture | — |
 | checked_bucket_list_item | milestone | probabilistic+manual | texture | — |
 | choked_on_food | accident | probabilistic+manual | texture | — |
@@ -120,6 +125,8 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | cleared_of_charges | legal | manual | reserved | — |
 | climbed_tree | childhood | probabilistic+manual | texture | — |
 | collected_souvenir | travel | probabilistic+manual | texture | — |
+| committed_pickpocketing | crime | manual | vital | pickpocketed_someone.onComplete |
+| committed_shoplifting | crime | manual | vital | pocketed_merchandise.onComplete |
 | complained_about_heat | weather-reaction | probabilistic+manual | texture | — |
 | complained_about_knees | aging | probabilistic | texture | — |
 | completed_puzzle | hobby | probabilistic+manual | texture | — |
@@ -137,6 +144,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | decluttered_house | possessions | probabilistic+manual | wired | cleaning_house.onComplete |
 | defaulted_on_loan | finance | manual | reserved | — |
 | delivered_eulogy | death | manual | reserved | — |
+| depressive_episode | health | probabilistic+manual | vital | — |
 | developed_crush | romance | probabilistic+manual | texture | — |
 | developed_hearing_loss | aging | probabilistic | texture | — |
 | developed_insomnia | health | probabilistic+manual | texture | — |
@@ -169,6 +177,8 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | enrolled_child_in_school | family | manual | reserved | — |
 | enrolled_in_trade_school | education | probabilistic+manual | texture | — |
 | entered_pet_show | pet | probabilistic+manual | texture | — |
+| escaped_a_fire | health | manual | wired | evacuating.onComplete |
+| evaded_the_police | crime | manual | reserved | — |
 | excluded_from_group | social | probabilistic | texture | — |
 | failed_driving_test | milestone | probabilistic+manual | texture | — |
 | failed_exam | education | probabilistic+manual | texture | — |
@@ -178,12 +188,13 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | fell_asleep_with_cat | pet | probabilistic+manual | texture | — |
 | fell_down_stairs | accident | probabilistic+manual | texture | — |
 | fell_for_prank | crime-mischief | probabilistic+manual | texture | — |
-| fell_ill | health | probabilistic | vital | — |
+| fell_ill | health | probabilistic+manual | vital | — |
 | fell_in_love | romance | probabilistic+manual | texture | — |
 | fell_into_arrears | finance | manual | reserved | — |
 | fell_off_bike | childhood | probabilistic+manual | texture | — |
 | fell_off_ladder | accident | probabilistic+manual | texture | — |
 | fell_out_of_love | romance | probabilistic | texture | — |
+| fell_seriously_ill | health | probabilistic+manual | vital | — |
 | felt_homesick | emotion-mood | probabilistic+manual | texture | — |
 | felt_jealous_of_friend | emotion-mood | probabilistic | texture | — |
 | felt_lonely | emotion-mood | probabilistic+manual | texture | — |
@@ -216,25 +227,28 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | found_mold | housing | probabilistic+manual | texture | — |
 | found_money_on_street | finance | probabilistic+manual | wired | found_coin.onComplete |
 | found_shortcut | travel | probabilistic+manual | texture | — |
+| founded_business | career | manual | vital | — |
 | framed_first_dollar | achievement | manual | reserved | — |
 | fridge_went_empty | food | manual | reserved | — |
 | gained_weight | health | probabilistic+manual | texture | — |
 | gave_away_kittens | pet | manual | reserved | — |
 | gave_birth | family | manual | wired | City.handleTick (birth, task 076) |
 | gave_directions | community | probabilistic+manual | texture | — |
-| gave_gift | social | probabilistic+manual | wired | gave_object_to_person.onComplete |
+| gave_gift | social | manual | wired | gave_object_to_person.onComplete |
 | gave_up_driving | aging | probabilistic | texture | — |
 | gave_up_hobby | hobby | probabilistic | texture | — |
 | gave_up_sweets | food | probabilistic | texture | — |
 | gave_valedictorian_speech | education | manual | reserved | — |
 | get_job | career | probabilistic | vital | — |
-| got_away_with_it | crime-mischief | manual | reserved | — |
+| got_a_ride | social | manual | reserved | — |
+| got_away_with_it | crime | manual | reserved | — |
 | got_back_on_feet | housing | manual | wired | City.runRecovery (homeless recovery, task 076) |
 | got_back_together | romance | probabilistic+manual | texture | — |
 | got_blister_hiking | travel | probabilistic+manual | texture | — |
 | got_braces | childhood | probabilistic | texture | — |
 | got_braces_off | childhood | manual | reserved | — |
 | got_car_repaired | possessions | manual | reserved | — |
+| got_caught | crime | manual | vital | — |
 | got_clean_bill_of_health | health | manual | reserved | — |
 | got_concussion | accident | probabilistic+manual | texture | — |
 | got_demoted | career | probabilistic+manual | texture | — |
@@ -242,7 +256,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | got_detention | education | probabilistic+manual | texture | — |
 | got_divorced | romance | probabilistic+manual | texture | — |
 | got_drivers_license | milestone | probabilistic+manual | texture | — |
-| got_engaged | romance | probabilistic+manual | texture | — |
+| got_engaged | romance | manual | wired | proposed_marriage.onComplete, proposed_marriage.onCompleteTarget |
 | got_food_poisoning | health | probabilistic+manual | texture | — |
 | got_hearing_aids | aging | probabilistic+manual | texture | — |
 | got_hip_replacement | aging | probabilistic+manual | texture | — |
@@ -258,6 +272,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | got_paper_cut | accident | probabilistic+manual | texture | — |
 | got_parking_ticket | legal | probabilistic+manual | texture | — |
 | got_permit_approved | legal | manual | reserved | — |
+| got_pickpocketed | crime | manual | wired | pickpocketed_someone.onCompleteTarget |
 | got_promoted | career | manual | vital | SkillProgression promotion evaluation (task 065) |
 | got_raise | career | probabilistic+manual | texture | — |
 | got_scholarship | education | probabilistic+manual | texture | — |
@@ -316,6 +331,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | had_wonderful_dream | emotion-mood | probabilistic+manual | texture | — |
 | had_workplace_near_miss | accident | probabilistic+manual | texture | — |
 | haggled_great_deal | finance | probabilistic+manual | texture | — |
+| heard_gossip | social | manual | wired | shared_gossip.onCompleteTarget |
 | held_back_a_year | education | probabilistic | texture | — |
 | held_breath_longest | achievement | probabilistic+manual | texture | — |
 | held_yard_sale | possessions | probabilistic+manual | texture | — |
@@ -335,7 +351,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | inherited_estate | death | manual | reserved | — |
 | inherited_heirloom | family | manual | reserved | — |
 | injured_at_work | career | probabilistic+manual | texture | — |
-| injury | health | probabilistic | vital | — |
+| injury | health | probabilistic+manual | vital | — |
 | investment_paid_off | finance | probabilistic+manual | texture | — |
 | investment_went_bust | finance | probabilistic+manual | texture | — |
 | jaywalked | crime-mischief | probabilistic+manual | texture | — |
@@ -360,7 +376,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | learned_instrument | hobby | probabilistic+manual | texture | — |
 | learned_language | achievement | probabilistic | texture | — |
 | learned_magic_tricks | hobby | probabilistic | texture | — |
-| learned_new_skill | education | probabilistic+manual | texture | — |
+| learned_new_skill | education | probabilistic+manual | wired | taught_person_something.onCompleteTarget |
 | learned_to_read | education | probabilistic+manual | texture | — |
 | learned_to_ride_bike | childhood | probabilistic+manual | texture | — |
 | learned_to_swim | milestone | probabilistic+manual | texture | — |
@@ -374,6 +390,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | lent_money_to_friend | finance | probabilistic+manual | texture | — |
 | let_lawn_go_wild | housing | probabilistic | texture | — |
 | let_slip_secret | social | probabilistic | texture | — |
+| lifted_spirits | health | probabilistic+manual | vital | — |
 | lit_candles_in_outage | weather-reaction | manual | reserved | — |
 | locked_out_of_house | housing | probabilistic+manual | texture | — |
 | lost_argument | social | manual | reserved | — |
@@ -383,6 +400,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | lost_close_friend | death | manual | reserved | — |
 | lost_election | community | manual | reserved | — |
 | lost_first_tooth | childhood | probabilistic+manual | texture | — |
+| lost_home_to_fire | housing | manual | reserved | — |
 | lost_home_to_foreclosure | housing | manual | reserved | — |
 | lost_house_keys | housing | probabilistic+manual | texture | — |
 | lost_keys | possessions | probabilistic | texture | — |
@@ -395,7 +413,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | lost_wallet | finance | probabilistic+manual | texture | — |
 | lost_weight | health | probabilistic+manual | texture | — |
 | made_frenemy | social | probabilistic | texture | — |
-| made_friend | social | probabilistic | vital | — |
+| made_friend | social | manual | vital | — |
 | made_honor_roll | education | manual | reserved | — |
 | made_it_official | romance | probabilistic+manual | texture | — |
 | made_new_friend | social | probabilistic+manual | texture | — |
@@ -423,12 +441,13 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | needed_reading_glasses | aging | probabilistic | texture | — |
 | never_paid_back | finance | probabilistic | texture | — |
 | notarized_document | legal | probabilistic+manual | texture | — |
-| nursing_school | education | probabilistic | vital | — |
+| nursing_school | education | probabilistic+manual | vital | — |
 | object_acquired | possessions | manual | wired | grab.onComplete |
 | object_consumed | possessions | manual | reserved | — |
 | object_given | possessions | manual | reserved | — |
 | object_lost | possessions | manual | wired | discard_object.onComplete |
-| object_received | possessions | manual | reserved | — |
+| object_received | possessions | manual | wired | lent_an_object.onCompleteTarget, returned_borrowed_object.onCompleteTarget, shared_food_with_person.onCompleteTarget |
+| offered_a_ride | social | manual | reserved | — |
 | opened_bank_account | finance | manual | reserved | — |
 | opened_own_business | achievement | probabilistic+manual | texture | — |
 | organized_food_drive | community | probabilistic | texture | — |
@@ -457,7 +476,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | pet_got_sick | pet | probabilistic+manual | texture | — |
 | pet_had_litter | pet | probabilistic | texture | — |
 | pet_learned_trick | pet | probabilistic+manual | texture | — |
-| pet_passed_away | pet | probabilistic+manual | texture | — |
+| pet_passed_away | pet | manual | reserved | — |
 | pet_ran_away | pet | probabilistic+manual | texture | — |
 | pet_recovered | pet | manual | reserved | — |
 | pet_won_ribbon | pet | probabilistic+manual | texture | — |
@@ -490,7 +509,9 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | ran_lemonade_stand | childhood | probabilistic+manual | texture | — |
 | reached_retirement_age | milestone | manual | reserved | — |
 | read_bedtime_story | family | probabilistic+manual | texture | — |
-| received_gift | social | probabilistic+manual | texture | — |
+| received_a_hug | social | manual | wired | hugged_person.onCompleteTarget |
+| received_a_visitor | crime | manual | reserved | — |
+| received_gift | social | manual | wired | gave_object_to_person.onCompleteTarget |
 | received_inheritance | finance | manual | reserved | — |
 | received_love_letter | romance | probabilistic+manual | texture | — |
 | received_noise_complaint | legal | manual | reserved | — |
@@ -512,6 +533,8 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | regifted_present | social | probabilistic | texture | — |
 | regretted_leftover | food | manual | reserved | — |
 | reinvented_themselves | milestone | probabilistic | texture | — |
+| relative_arrested | crime | manual | reserved | — |
+| released_from_jail | crime | manual | vital | — |
 | renewed_vows | romance | probabilistic | texture | — |
 | renovated_kitchen | housing | probabilistic+manual | texture | — |
 | reported_burglary | crime-mischief | manual | reserved | — |
@@ -536,6 +559,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | set_personal_best | achievement | probabilistic+manual | texture | — |
 | settled_neighbor_dispute | community | probabilistic | texture | — |
 | settled_out_of_court | legal | probabilistic | texture | — |
+| shared_gossip | social | manual | wired | shared_gossip.onComplete |
 | shocked_by_outlet | accident | probabilistic+manual | texture | — |
 | shook_off_loneliness | emotion-mood | probabilistic | texture | — |
 | shoplifted_candy_bar | crime-mischief | probabilistic+manual | texture | — |
@@ -614,8 +638,9 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | took_up_smoking | health | probabilistic | texture | — |
 | took_up_woodworking | hobby | probabilistic | texture | — |
 | tped_neighbors_tree | crime-mischief | probabilistic+manual | texture | — |
-| trade_school | education | probabilistic | vital | — |
+| trade_school | education | probabilistic+manual | vital | — |
 | trained_new_coworker | career | probabilistic+manual | texture | — |
+| treated_a_patient | health | manual | wired | treating_patient.onComplete |
 | trespassed_empty_lot | crime-mischief | probabilistic | texture | — |
 | tried_exotic_food | food | probabilistic+manual | texture | — |
 | tried_new_recipe | food | probabilistic+manual | wired | cooking_meal.onComplete |
@@ -636,6 +661,8 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | visited_by_tooth_fairy | childhood | manual | reserved | — |
 | visited_grave | death | probabilistic+manual | texture | — |
 | visited_next_town | travel | probabilistic | texture | — |
+| visited_person_in_jail | crime | manual | wired | visiting_the_detained.onComplete |
+| visited_sick_relative | health | manual | wired | visiting_the_sick.onComplete |
 | volunteered_at_shelter | community | probabilistic+manual | texture | — |
 | voted_in_election | community | manual | reserved | — |
 | vowed_to_travel_more | travel | probabilistic | texture | — |
@@ -643,11 +670,12 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | walked_dog | pet | probabilistic+manual | texture | — |
 | walked_into_glass_door | accident | probabilistic+manual | texture | — |
 | wallet_returned | finance | probabilistic | texture | — |
-| was_arrested | crime-mischief | probabilistic+manual | texture | — |
+| was_arrested | crime | manual | reserved | — |
 | was_audited | finance | probabilistic+manual | texture | — |
 | was_born | milestone | manual | wired | City.handleTick (birth, task 076) |
 | was_burgled | crime-mischief | probabilistic+manual | texture | — |
 | was_cheated_on | romance | manual | reserved | — |
+| was_detained | crime | manual | vital | — |
 | was_evicted | housing | manual | reserved | — |
 | was_fired | career | probabilistic+manual | texture | — |
 | was_gossiped_about | social | probabilistic+manual | texture | — |
@@ -662,7 +690,9 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | was_scammed | legal | probabilistic+manual | texture | — |
 | was_scolded | family | probabilistic+manual | texture | — |
 | was_snowed_in | weather-reaction | manual | reserved | — |
+| was_treated_by_doctor | health | manual | wired | treating_patient.onCompleteTarget |
 | was_turned_down | romance | probabilistic+manual | texture | — |
+| was_visited_while_sick | health | manual | reserved | — |
 | was_wrongly_accused | legal | probabilistic | texture | — |
 | washed_car | possessions | probabilistic+manual | texture | — |
 | watched_child_graduate | family | manual | reserved | — |
@@ -677,7 +707,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | went_fishing | hobby | probabilistic+manual | texture | — |
 | went_fully_gray | aging | probabilistic | texture | — |
 | went_grocery_shopping | food | probabilistic+manual | wired | shopping_trip.onComplete |
-| went_on_first_date | romance | probabilistic+manual | texture | — |
+| went_on_first_date | romance | manual | wired | asked_person_out.onCompleteTarget |
 | went_on_vacation | travel | probabilistic | texture | — |
 | went_stargazing | travel | probabilistic+manual | texture | — |
 | went_straight | crime-mischief | probabilistic | texture | — |
@@ -685,6 +715,7 @@ Totals: 707 events — **15 vital**, **29 wired**, **521 texture**, **142 reserv
 | went_to_work | career | manual | reserved | — |
 | went_trick_or_treating | childhood | probabilistic+manual | texture | — |
 | whistled_all_day | emotion-mood | probabilistic | texture | — |
+| witnessed_a_scene | social | manual | reserved | — |
 | witnessed_crime | crime-mischief | probabilistic+manual | texture | — |
 | woke_up | daily | manual | wired | sleep.onComplete |
 | woke_up_grumpy | emotion-mood | probabilistic | texture | — |

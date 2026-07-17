@@ -13,6 +13,12 @@
 // deterministic (seeded from the world seed; its RNG is forked so it never perturbs the event/action streams).
 
 import { generateBusiness } from 'game/economy/BusinessGen';
+import Agenda from 'game/actions/Agenda';
+import Habits from 'game/population/Habits';
+import Mood from 'game/population/Mood';
+import Needs from 'game/population/Needs';
+import Traits from 'game/population/Traits';
+import SocialGraph from 'game/population/SocialGraph';
 import EventEngine from 'game/events/EventEngine';
 import Inventory from 'game/objects/Inventory';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
@@ -73,7 +79,7 @@ interface LogicalBusiness {
 // TickRunner only needs the world + markets (jobMarket for get_job/layoff, skills for education) + inventory —
 // no jobOf/schoolOf/skillProgression facts.
 export interface LogicalTickFacts {
-    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null } };
+    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda; traits: Traits | null; habits: Habits; mood: Mood } };
     inventory: Inventory;
 }
 
@@ -96,6 +102,14 @@ export default class LogicalWorld implements WorldAdapter {
 
     // Subsystems (reused, scene-free).
     readonly inventory: Inventory;
+    // The elective social graph (task 083): off-map interactions grow the same edges live play does.
+    readonly socialGraph = new SocialGraph();
+    readonly needs = new Needs();
+    readonly mood = new Mood();
+    readonly habits = new Habits();
+    readonly agenda = new Agenda();
+    // Injected by the generator (task 087) — traits derive from the pool the generator owns.
+    traits: Traits | null = null;
     readonly schoolRegistry: SchoolRegistry;
     private schoolSeats: SchoolSeat[] = [];
     private jobMarket: LogicalJobMarket | null = null;
@@ -149,6 +163,10 @@ export default class LogicalWorld implements WorldAdapter {
         }
         set.add(personId);
         this.locKeyOf.set(personId, locKey);
+    }
+
+    hasVenue(): boolean {
+        return true; // abstract venues always exist off-map (task 107)
     }
 
     objectsAt(location: LogicalLocation): string[] {
@@ -210,6 +228,11 @@ export default class LogicalWorld implements WorldAdapter {
 
     onDeath(personId: PersonId): void {
         this.jobMarket?.fire(personId);
+        this.socialGraph.removePerson(personId); // death dissolves elective bonds (task 083)
+        this.needs.removePerson(personId);
+        this.mood.removePerson(personId);
+        this.habits.removePerson(personId);
+        this.agenda.removePerson(personId);
         this.schoolRegistry.release(personId);
         this.locationNow.delete(personId);
         // Remove from the co-location index so peopleAt never returns the dead (homeKeyOf is kept; the
@@ -438,7 +461,7 @@ export default class LogicalWorld implements WorldAdapter {
     tickFacts(skillBook: SkillBook, tick: number): LogicalTickFacts {
         const skillRegistry = new SkillRegistry(skillBook, tick);
         return {
-            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry } },
+            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda, traits: this.traits, habits: this.habits, mood: this.mood } },
             inventory: this.inventory,
         };
     }

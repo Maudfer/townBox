@@ -185,6 +185,20 @@ export default class Workplace extends Building {
         return laidOff;
     }
 
+    // The construction menu's pinned blueprint (task 108) — transient: consumed by City.setupBusiness at
+    // placement; never serialized (the generated business's blueprintKey is the persistent record).
+    private pendingBlueprint: string | null = null;
+
+    setPendingBlueprint(key: string): void {
+        this.pendingBlueprint = key;
+    }
+
+    takePendingBlueprint(): string | null {
+        const key = this.pendingBlueprint;
+        this.pendingBlueprint = null;
+        return key;
+    }
+
     public getEmployees(): Person[] {
         return this.employees;
     }

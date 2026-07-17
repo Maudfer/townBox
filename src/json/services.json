@@ -1,0 +1,74 @@
+{
+    "neutralCoverage": 0.5,
+    "advisoryBelow": 0.25,
+    "services": {
+        "healthcare": {
+            "label": "Healthcare",
+            "providerJobs": [
+                "doctor",
+                "nurse"
+            ],
+            "facilityBlueprints": [
+                "hospital",
+                "clinic"
+            ],
+            "residentsPerProvider": 40,
+            "warning": "Your town has no working healthcare - the sick recover slowly, and more of them die."
+        },
+        "education": {
+            "label": "Education",
+            "providerJobs": [
+                "teacher"
+            ],
+            "facilityBlueprints": [
+                "school"
+            ],
+            "residentsPerProvider": 30,
+            "warning": "Your town has no school seats - children grow up without their basics."
+        },
+        "police": {
+            "label": "Police",
+            "providerJobs": [
+                "police_officer"
+            ],
+            "facilityBlueprints": [
+                "police_station"
+            ],
+            "residentsPerProvider": 60,
+            "warning": "Your town is unpoliced - crimes go unanswered, and people learn they can get away with it."
+        },
+        "fire": {
+            "label": "Fire protection",
+            "providerJobs": [
+                "firefighter"
+            ],
+            "facilityBlueprints": [
+                "fire_station"
+            ],
+            "residentsPerProvider": 80,
+            "warning": "Your town has no fire protection - fires burn buildings to the ground."
+        },
+        "garbage": {
+            "label": "Garbage collection",
+            "providerJobs": [
+                "garbage_collector"
+            ],
+            "facilityBlueprints": [
+                "sanitation_depot"
+            ],
+            "residentsPerProvider": 70,
+            "warning": "Your town has no garbage collection - trash piles up on the curbs."
+        },
+        "jail": {
+            "label": "Jail capacity",
+            "providerJobs": [
+                "corrections_officer"
+            ],
+            "facilityBlueprints": [
+                "jail"
+            ],
+            "residentsPerProvider": 200,
+            "warning": "Your town has no jail - sentences are served in the police station holding cell."
+        }
+    }
+}

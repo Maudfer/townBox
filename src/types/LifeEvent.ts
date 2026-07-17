@@ -99,6 +99,7 @@ export type EffectType =
     | 'releaseSlot'
     | 'adjustMoney'
     | 'acquireSkill'
+    | 'adjustRelationship'
     | 'emit';
 
 export interface Effect {
@@ -115,6 +116,11 @@ export interface Effect {
     // acquireSkill only (task 059): the proficiency floor the grant raises the skill to (grant-to-at-least).
     // Absent = the adapter's default.
     proficiency?: number;
+    // adjustRelationship only (task 083): the strength delta applied on the elective social graph between the
+    // subject and the person bound to `role`; `kind` seeds a NEW edge's kind (default acquaintance). No-op
+    // (still commits) without a bound graph or role — the graph is an adapter like the ledger.
+    delta?: number;
+    kind?: string;
 }
 
 // A typed, scalar event-payload parameter (task 067).
@@ -137,6 +143,16 @@ export interface EventDefinition {
     parameters?: Record<string, EventParameterSpec>;
     // Occurrence limit across ALL trigger paths (optional).
     limit?: OccurrenceLimit;
+    // Reactions (task 094 / C3): what the SUBJECT of this commit may do about it, same tick, one level
+    // deep (a reaction's own events never re-dispatch reactions — chains are structurally impossible).
+    // targetParam names the event parameter holding the counterpart person ('from' on received_gift).
+    reactions?: { action: string; chance: number; targetParam?: string }[];
+    // Witnesses (task 094 / C4): co-located third parties log witnessed_a_scene when this commits (capped,
+    // once per witness per day). Cheap Dwarf-Fortress-grade texture; reputation (104) builds on it.
+    witnessable?: boolean;
+    // Mood valence (task 091 / G1): −3…+3 — this commit's emotional weight on its subject. Magnitude picks
+    // the impulse's half-life (a ±1 ripple fades in days, a ±3 blow shadows months). 0/absent = neutral.
+    valence?: number;
     // Presentation-only (task 032), ignored by the compiler and runtime: a human label for the person event-log
     // (027) and feed (029), and a coarse grouping for filtering/styling.
     label?: string;
@@ -185,15 +201,16 @@ export interface EventLogEntry {
 export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet';
 
 // An action lifecycle transition in the same append-only log (task 043). One entry per transition
-// ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones),
-// linked by instanceId — the log itself stays immutable.
+// ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones,
+// plus paused/resumed for resumable instances parked by a higher band — task 087), linked by instanceId —
+// the log itself stays immutable.
 export interface ActionLogEntry {
     seq: number;
     tick: number;
     kind: 'action';
     defId: string; // action id in the manifest
     instanceId: string | null; // null for discrete actions (no instance materializes)
-    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed';
+    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused' | 'resumed';
     params: Record<string, string | number | boolean>;
     parentInstanceId: string | null;
     // Why a runtime failure/decline happened (task 073) — a closed vocabulary, additive on the log.
@@ -216,7 +233,7 @@ export interface TickResult {
     born: { id: string; motherId: string; fatherId: string }[];
     signals: { signal: string; personId: string | null; tick: number; eventId: string; causationId: number; params?: Record<string, string | number | boolean> }[];
     // Every event commit this tick (task 046): Brain's onEventCommitted hooks consume these.
-    committed: { personId: string; eventId: string; seq: number }[];
+    committed: { personId: string; eventId: string; seq: number; params?: Record<string, string | number | boolean> }[];
 }
 
 // The money adapter the event runtime consults so the pure engine can read wealth (the `money` Context
@@ -224,6 +241,10 @@ export interface TickResult {
 export interface MoneyLedger {
     getPersonBalance(personId: string): number;
     adjustPerson(personId: string, delta: number): void;
+    // Materialized retail (task 089): a concrete stock purchase (person → business transfer + netting
+    // counters) and the conjured-stock fallback. Optional — off-map/pure contexts have no money.
+    recordPurchase?(personId: string, businessKey: string, price: number): void;
+    recordFallbackPurchase?(personId: string, price: number): void;
 }
 
 // The employment adapter the event runtime consults so the pure engine can reason about (and effect) hiring

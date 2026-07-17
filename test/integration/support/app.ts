@@ -152,14 +152,21 @@ interface Box { x: number; y: number; width: number; height: number; }
 // moved boxes; throws fast (~a few seconds) rather than letting a downstream assertion hit the test timeout.
 export async function dragWindowBy(page: Page, testId: string, dx: number, dy: number): Promise<{ before: Box; after: Box }> {
     const win = page.getByTestId(testId);
-    for (let attempt = 0; attempt < 5; attempt++) {
-        const before = (await win.boundingBox())!;
-        const hb = (await win.locator('.window-header').boundingBox())!;
+    // Wait for the window to actually lay out before measuring — a freshly-opened window can be attached but
+    // not yet positioned on a slow CI runner, so boundingBox() returns null (the flake that read as `null.x`).
+    await win.waitFor({ state: 'visible' });
+    for (let attempt = 0; attempt < 8; attempt++) {
+        const before = await win.boundingBox();
+        const hb = await win.locator('.window-header').boundingBox();
+        if (!before || !hb) {
+            await page.waitForTimeout(100); // not laid out yet — retry rather than throwing on a null box
+            continue;
+        }
         const grabX = hb.x + hb.width - 55;
         const grabY = hb.y + hb.height / 2;
         await dragMouse(page, grabX, grabY, grabX + dx, grabY + dy);
-        const after = (await win.boundingBox())!;
-        if (Math.hypot(after.x - before.x, after.y - before.y) > 10) {
+        const after = await win.boundingBox();
+        if (after && Math.hypot(after.x - before.x, after.y - before.y) > 10) {
             return { before, after };
         }
     }
@@ -170,14 +177,19 @@ export async function dragWindowBy(page: Page, testId: string, dx: number, dy: n
 // robustness as dragWindowBy.
 export async function resizeWindowSE(page: Page, testId: string, dx: number, dy: number): Promise<{ before: Box; after: Box }> {
     const win = page.getByTestId(testId);
-    for (let attempt = 0; attempt < 5; attempt++) {
-        const before = (await win.boundingBox())!;
-        const hb = (await page.locator('.window-resize-se').boundingBox())!;
+    await win.waitFor({ state: 'visible' });
+    for (let attempt = 0; attempt < 8; attempt++) {
+        const before = await win.boundingBox();
+        const hb = await page.locator('.window-resize-se').boundingBox();
+        if (!before || !hb) {
+            await page.waitForTimeout(100);
+            continue;
+        }
         const grabX = hb.x + hb.width / 2;
         const grabY = hb.y + hb.height / 2;
         await dragMouse(page, grabX, grabY, grabX + dx, grabY + dy);
-        const after = (await win.boundingBox())!;
-        if (after.width - before.width > 10 || after.height - before.height > 10) {
+        const after = await win.boundingBox();
+        if (after && (after.width - before.width > 10 || after.height - before.height > 10)) {
             return { before, after };
         }
     }
@@ -275,4 +287,13 @@ export async function build(
 
 export async function bulldoze(page: Page, row: number, col: number): Promise<void> {
     await page.evaluate(([r, c]) => window.__townbox!.bulldoze(r, c), [row, col] as const);
+}
+
+// Places a building through the construction menu (task 108): open the menu (the Construction tool button),
+// pick the entry — which arms the placement cursor and closes the menu — then REAL-click the tile.
+// `entryId` is a json/construction.json id ('house' = Residence, 'business' = generic work, 'supermarket', …).
+export async function placeViaConstruction(page: Page, entryId: string, row: number, col: number): Promise<void> {
+    await page.getByTestId('tool-construction').click(); // opens the building grid
+    await page.getByTestId(`construction-${entryId}`).click(); // arms the cursor + closes the menu
+    await clickTile(page, row, col);
 }

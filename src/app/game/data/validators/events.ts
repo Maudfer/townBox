@@ -11,9 +11,9 @@ import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/events/EventCompile
 import { EventManifest } from 'types/LifeEvent';
 import { KNOWN_SIGNALS } from 'util/notifications';
 
-const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category'];
+const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category', 'valence', 'reactions', 'witnessable'];
 const ROLE_KEYS = ['where', 'bind'];
-const BIND_RELATIONS = ['partnerOf']; // EventEngine.resolveBind's vocabulary
+const BIND_RELATIONS = ['partnerOf', 'partnerOrDatingOf', 'engagedOf']; // EventEngine.resolveBind's vocabulary
 
 // Per-effect-kind field rules ('type' and 'target' are always allowed; target must name a declared role).
 const EFFECT_RULES: Record<string, { required: readonly string[]; optional: readonly string[] }> = {
@@ -26,6 +26,7 @@ const EFFECT_RULES: Record<string, { required: readonly string[]; optional: read
     releaseSlot: { required: ['resource'], optional: [] },
     adjustMoney: { required: ['amount'], optional: [] },
     acquireSkill: { required: ['value'], optional: ['proficiency'] },
+    adjustRelationship: { required: ['role', 'delta'], optional: ['kind'] },
     emit: { required: ['signal'], optional: [] },
 };
 
@@ -63,6 +64,42 @@ export function validateEventsStructure(data: unknown, issues: IssueCollector): 
         validateEffects(issues, id, event['effects'], roleNames);
         if ('label' in event) {
             checkString(issues, `${id}.label`, event['label']);
+        }
+        if ('witnessable' in event && typeof event['witnessable'] !== 'boolean') {
+            issues.add(id + '.witnessable', 'expected a boolean');
+        }
+        if ('reactions' in event) {
+            // Task 094: authored answers to this commit. Structural here; the action/param cross-checks are
+            // in semantics (the action must exist; targetParam must be a declared event parameter).
+            if (!Array.isArray(event['reactions'])) {
+                issues.add(id + '.reactions', 'expected an array');
+            } else {
+                (event['reactions'] as unknown[]).forEach((reaction, index) => {
+                    const reactionPath = id + '.reactions[' + index + ']';
+                    if (!checkRecord(issues, reactionPath, reaction)) {
+                        return;
+                    }
+                    const r = reaction as Record<string, unknown>;
+                    checkUnknownKeys(issues, reactionPath, r, ['action', 'chance', 'targetParam']);
+                    checkString(issues, reactionPath + '.action', r['action']);
+                    if (typeof r['chance'] !== 'number' || r['chance'] <= 0 || r['chance'] > 1) {
+                        issues.add(reactionPath + '.chance', 'expected a probability in (0, 1]');
+                    }
+                    if ('targetParam' in r) {
+                        checkString(issues, reactionPath + '.targetParam', r['targetParam']);
+                        const parameters = (event['parameters'] ?? {}) as Record<string, unknown>;
+                        if (typeof r['targetParam'] === 'string' && !(r['targetParam'] in parameters)) {
+                            issues.add(reactionPath + '.targetParam', 'must name a declared event parameter');
+                        }
+                    }
+                });
+            }
+        }
+        if ('valence' in event) {
+            const valence = event['valence'];
+            if (typeof valence !== 'number' || valence < -3 || valence > 3) {
+                issues.add(id + '.valence', 'expected a number in [-3, 3]');
+            }
         }
         if ('category' in event) {
             checkString(issues, `${id}.category`, event['category']);

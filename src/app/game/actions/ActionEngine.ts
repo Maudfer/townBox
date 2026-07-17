@@ -18,7 +18,9 @@ import { CommitContext, applyPlan, planConsequences, planOAR } from 'game/events
 import EventEngine from 'game/events/EventEngine';
 import LifeLog from 'game/events/LifeLog';
 import Inventory from 'game/objects/Inventory';
+import { resolveStanding } from 'game/population/SocialGraph';
 import actionsConfig from 'json/actions.json';
+import arbitration from 'json/arbitration.json';
 import oarConfig from 'json/object-action-relationships.json';
 import { EventLink,
     ActionCause,
@@ -28,6 +30,7 @@ import { EventLink,
     ActionInstanceId,
     ActionManifest,
     ActionStartOutcome,
+    IntentBand,
     OAREntry,
     OARTable,
     PoolChildSpec,
@@ -84,6 +87,9 @@ export default class ActionEngine {
     // discrete, the one-active-continuous rule blocks a second, and history lives in the LifeLog), so both the
     // scan set and memory stay bounded over a centuries-long run.
     private activeByPerson: Map<PersonId, Set<ActionInstanceId>>;
+    // Paused resumable instances (task 087 / L5): max ONE per person, parked by a higher band, waiting for
+    // resumption within the authored window. Rebuilt on load like the active index.
+    private pausedByPerson: Map<PersonId, ActionInstanceId>;
     // Transient --profile sub-timer (task 079), set for the duration of an advance() call so finish() can
     // attribute its internal cost (consequence planning / log append / onComplete event fire) without every
     // caller threading it. Undefined outside profiled advances (finish from interrupt etc. isn't sub-timed).
@@ -108,6 +114,7 @@ export default class ActionEngine {
         this.state = { instances: {}, nextInstanceSeq: 0, actionHistory: {} };
         this.handles = new Map();
         this.activeByPerson = new Map();
+        this.pausedByPerson = new Map();
         this.oarByAction = new Map();
         for (const entry of Object.values(oar)) {
             const entries = this.oarByAction.get(entry.action) ?? [];
@@ -131,11 +138,14 @@ export default class ActionEngine {
     // order) did. Called on load; construction starts with an empty state so the index starts empty.
     private rebuildActiveIndex(): void {
         this.activeByPerson = new Map();
+        this.pausedByPerson = new Map();
         const ids = Object.keys(this.state.instances).sort((a, b) => a.localeCompare(b));
         for (const id of ids) {
             const instance = this.state.instances[id]!;
             if (ACTIVE_STATUSES.has(instance.status)) {
                 this.indexActivate(instance);
+            } else if (instance.status === 'paused') {
+                this.pausedByPerson.set(instance.personId, instance.id);
             }
         }
     }
@@ -181,6 +191,16 @@ export default class ActionEngine {
 
     // The person's currently active continuous instance (at most one; Brain owns the single-activity rule
     // and this engine enforces it at start).
+    // Arbitration provenance (task 086): Brain tags a freshly started continuous instance with the band +
+    // utility of the intent that won, so the interruption matrix can weigh later challengers against it.
+    tagInstance(instanceId: ActionInstanceId, band: IntentBand, utility: number): void {
+        const instance = this.state.instances[instanceId];
+        if (instance) {
+            instance.band = band;
+            instance.utility = utility;
+        }
+    }
+
     activeInstanceOf(personId: PersonId): ActionInstance | null {
         count('action.activeLookup'); // perf: call frequency of the O(1)-indexed active-instance lookup (task 078)
         // O(1) via the active index (task 078): the first still-active instance for the person, in id order —
@@ -341,6 +361,14 @@ export default class ActionEngine {
                 cache.set(key, { epoch, result });
                 return result;
             },
+            relationshipWith: name => {
+                // Relationship standing (task 083): `name` addresses an ACTION parameter (usually 'target').
+                const otherId = params?.[name];
+                if (typeof otherId !== 'string') {
+                    return null;
+                }
+                return resolveStanding(deps.state.people, deps.ctx.markets?.social ?? null, personId, otherId, deps.tick);
+            },
         };
         if (params === undefined) {
             this.ctxMemo = { personId, tick: deps.tick, world, inventory, epoch: inventory?.getMutationEpoch() ?? -1, context };
@@ -359,7 +387,7 @@ export default class ActionEngine {
     // The event's own eligibility applies; a rejection is fine (e.g. the person died this tick).
     // Resolve a lifecycle EventLink (067): the object form maps an event payload from the action's params
     // ('$params.<name>') or literal scalars; the string shorthand fires with no payload.
-    private fireEvent(link: EventLink | undefined, personId: PersonId, causationSeq: number, deps: ActionDeps, result: TickResult, actionParams?: Record<string, Value>): void {
+    private fireEvent(link: EventLink | undefined, personId: PersonId, causationSeq: number, deps: ActionDeps, result: TickResult, actionParams?: Record<string, Value>, actorId?: PersonId): void {
         if (!link) {
             return;
         }
@@ -372,6 +400,11 @@ export default class ActionEngine {
                     const value = actionParams?.[mapping.slice('$params.'.length)];
                     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
                         payload[name] = value;
+                    }
+                } else if (mapping === '$actor') {
+                    // Counterpart mapping (task 082): the acting person's id, from the TARGET's perspective.
+                    if (actorId) {
+                        payload[name] = actorId;
                     }
                 } else {
                     payload[name] = mapping;
@@ -396,6 +429,30 @@ export default class ActionEngine {
         result.born.push(...eventResult.born);
         result.signals.push(...eventResult.signals);
         result.committed.push(...eventResult.committed);
+    }
+
+    // The interaction target bound in an action's params, or null. Counterpart events (task 082) fire at this
+    // person; the target was validated live at start, and invoke's own eligibility re-checks at fire time
+    // (a rejection — e.g. the target died within the tick — is a fine no-op).
+    private targetOf(def: ActionDefinition, params: Record<string, Value>): PersonId | null {
+        if (!def.interaction) {
+            return null;
+        }
+        const targetId = params[def.interaction.targetParam];
+        return typeof targetId === 'string' ? targetId : null;
+    }
+
+    // Fires the counterpart link (task 082 / proposal C1) at the interaction target: same causation seq as
+    // the actor's lifecycle entry, subject = the target, '$actor' resolving to the acting person.
+    private fireTargetEvent(link: EventLink | undefined, def: ActionDefinition, actorId: PersonId, params: Record<string, Value>, causationSeq: number, deps: ActionDeps, result: TickResult): void {
+        if (!link) {
+            return;
+        }
+        const targetId = this.targetOf(def, params);
+        if (!targetId) {
+            return;
+        }
+        this.fireEvent(link, targetId, causationSeq, deps, result, params, actorId);
     }
 
     // --- Starting ------------------------------------------------------------
@@ -439,14 +496,28 @@ export default class ActionEngine {
                     return { ok: false, reason: 'targetNotPresent' };
                 }
             }
+        }
+        // Requirements gate BEFORE consent (task 090): "am I even in a position to do this" is the actor's
+        // own question — nobody gets asked to be kissed by someone who fails the dating gate. Relationship
+        // predicates resolve against the bound params, so target-conditioned gates work here.
+        if (def.requirements && !evaluatePredicateCached(def.requirements, this.contextFor(personId, deps, params))) {
+            return { ok: false, reason: 'requirementsUnmet' };
+        }
+        if (def.interaction) {
+            const targetId = params[def.interaction.targetParam] as PersonId;
             // Consent (task 073): askFirst actions consult the TARGET's decision layer before anything
             // commits. A decline is a real, traceable outcome — a 'failed' log entry with the reason and the
             // full params snapshot — never a silent skip; it also counts toward the actor's action history,
             // so selection cooldowns apply to declined attempts (no immediate re-tries).
             if (def.interaction.askFirst) {
+                // The TARGET's standing toward the ASKER scores the accept probability (task 083 / B6).
                 const consented = evaluateConsent({
                     actionId, params, sourcePersonId: personId, targetPersonId: targetId,
                     tick: deps.tick, worldSeed: deps.state.worldSeed,
+                    relationship: resolveStanding(deps.state.people, deps.ctx.markets?.social ?? null, targetId, personId, deps.tick),
+                    targetTraits: deps.ctx.markets?.traits?.traitsOf(targetId) ?? null,
+                    targetMood: deps.ctx.markets?.mood?.moodOf(targetId, deps.tick) ?? null,
+                    targetKnowsNegative: deps.ctx.markets?.knownFacts?.negativeCountAbout(targetId, personId, deps.tick) ?? null,
                 });
                 if (!consented) {
                     const seq = this.lifeLog.append(personId, {
@@ -458,12 +529,11 @@ export default class ActionEngine {
                     // Curated decline events (task 074): only actions that wire events.onDecline fire one —
                     // the failed log entry above is the universal record; the event is for consumers.
                     this.fireEvent(def.events?.onDecline, personId, seq, deps, result, params);
+                    // The decliner's side of the story (task 082): they turned someone down, and know it.
+                    this.fireTargetEvent(def.events?.onDeclineTarget, def, personId, params, seq, deps, result);
                     return { ok: false, reason: 'consentDeclined' };
                 }
             }
-        }
-        if (def.requirements && !evaluatePredicateCached(def.requirements, this.contextFor(personId, deps, params))) {
-            return { ok: false, reason: 'requirementsUnmet' };
         }
 
         if (def.type === 'discrete') {
@@ -495,8 +565,18 @@ export default class ActionEngine {
             applyPlan(opsPlan);
             onOutputs?.(commitCtx.outputs);
             this.recordAction(personId, actionId, deps.tick);
+            // Needs satisfaction (task 084): a discrete commit credits its authored `satisfies` amounts.
+            if (def.satisfies) {
+                deps.ctx.markets?.needs?.satisfy(personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            // Habit practice (task 095): committing a habit-linked action bumps its counter.
+            if (def.habit) {
+                deps.ctx.markets?.habits?.practice(personId, def.habit, deps.tick);
+            }
             this.fireEvent(def.events?.onStart, personId, seq, deps, result, params);
             this.fireEvent(def.events?.onComplete, personId, seq, deps, result, params);
+            // Counterpart event (task 082): the target's half of the interaction, chained to the same seq.
+            this.fireTargetEvent(def.events?.onCompleteTarget, def, personId, params, seq, deps, result);
             return { ok: true, instanceId: null, logSeq: seq };
         }
 
@@ -542,12 +622,18 @@ export default class ActionEngine {
         const world = deps.ctx.world;
         // Per-instance override (task 046): a shared work action's location is the person's OWN workplace,
         // supplied by the caller (Brain/Orchestrator) rather than authored on the shared definition.
-        const requiredLocation = instance.locationOverride ?? def.location;
+        let requiredLocation = instance.locationOverride ?? def.location;
+        // Follow-the-person targeting (task 085): 'person:<id>' resolves to that person's CURRENT location,
+        // re-read on every materialize pass so a moved target re-routes the transition below.
+        if (requiredLocation?.startsWith('person:') && world) {
+            requiredLocation = locationKey(world.locationOf(requiredLocation.slice('person:'.length)));
+        }
         if (requiredLocation && world) {
             const at = locationKey(world.locationOf(instance.personId));
             if (at !== requiredLocation) {
                 let handle = this.handles.get(instance.id) ?? null;
-                if (!handle || handle.status === 'cancelled') {
+                const stale = handle && handle.status === 'arrived' && locationKey(handle.target) !== requiredLocation;
+                if (!handle || handle.status === 'cancelled' || stale) {
                     handle = world.requestTransition(instance.personId, parseLocationKey(requiredLocation), deps.tick, instance.causationId);
                     this.handles.set(instance.id, handle);
                     instance.transitionHandleId = handle.id;
@@ -597,6 +683,23 @@ export default class ActionEngine {
             }
         };
         this.advanceSub = sub;
+
+        // Paused-instance expiry (task 087 / L5): a pause outliving its resume window becomes a real
+        // interruption (the log reads started → paused → interrupted — an abandoned plan is also story).
+        // Engine-owned so no hook ever mutates; snapshotted first since finish() edits the map.
+        const resumeWindow = (arbitration as { resumeWindowTicks?: number }).resumeWindowTicks ?? 12;
+        for (const [personId, instanceId] of [...this.pausedByPerson.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+            const paused = this.state.instances[instanceId];
+            if (!paused || paused.status !== 'paused') {
+                this.pausedByPerson.delete(personId);
+                continue;
+            }
+            if (deps.tick > (paused.pausedAtTick ?? deps.tick) + resumeWindow) {
+                this.pausedByPerson.delete(personId);
+                this.finish(paused, 'interrupted', { source: 'system', causationId: null }, deps, result);
+            }
+        }
+
         // Iterate the active index (task 078) instead of scanning every instance ever created. Snapshotted to
         // an array first so finishes/starts during the loop don't mutate what we're iterating.
         const tScan = clock ? clock() : 0;
@@ -687,6 +790,57 @@ export default class ActionEngine {
         return true;
     }
 
+    // Parks a resumable instance (task 087 / L5): logs 'paused', keeps the instance, frees the active slot.
+    // Max one paused per person — a second pause turns the first into a real interruption.
+    pause(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult): boolean {
+        this.ctxMemo = null;
+        const instance = this.state.instances[instanceId];
+        if (!instance || !ACTIVE_STATUSES.has(instance.status)) {
+            return false;
+        }
+        const previous = this.pausedByPerson.get(instance.personId);
+        if (previous && this.state.instances[previous]) {
+            this.finish(this.state.instances[previous]!, 'interrupted', cause, deps, result);
+        }
+        this.pausedByPerson.delete(instance.personId);
+        this.lifeLog.append(instance.personId, {
+            tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: 'paused',
+            params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
+        });
+        instance.status = 'paused';
+        instance.pausedAtTick = deps.tick;
+        instance.transitionHandleId = null;
+        this.handles.delete(instance.id);
+        this.indexDeactivate(instance);
+        this.pausedByPerson.set(instance.personId, instance.id);
+        return true;
+    }
+
+    // Resumes a paused instance (same id — the log reads started → paused → resumed → …): back to pending,
+    // so the next advance re-materializes (incl. re-requesting the location transition).
+    resume(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps): boolean {
+        this.ctxMemo = null;
+        const instance = this.state.instances[instanceId];
+        if (!instance || instance.status !== 'paused') {
+            return false;
+        }
+        this.lifeLog.append(instance.personId, {
+            tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: 'resumed',
+            params: { ...instance.params }, parentInstanceId: instance.parentInstanceId, triggerSource: cause.source, causationId: cause.causationId,
+        });
+        instance.status = 'pending';
+        instance.pausedAtTick = null;
+        this.pausedByPerson.delete(instance.personId);
+        this.indexActivate(instance);
+        return true;
+    }
+
+    // The person's paused instance, if any (the resume hook's read).
+    pausedInstanceOf(personId: PersonId): ActionInstance | null {
+        const id = this.pausedByPerson.get(personId);
+        return id ? this.state.instances[id] ?? null : null;
+    }
+
     private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {
         this.ctxMemo = null; // completion consequences/events mutate — drop the proposal memo
         const def = this.manifest[instance.defId]!;
@@ -733,8 +887,18 @@ export default class ActionEngine {
                 completionCtx.causationId = seq;
                 applyPlan(completionPlan);
             }
+            // Needs satisfaction (task 084): a COMPLETED continuous action credits its authored amounts
+            // (interruptions/blocks credit nothing — finishing matters).
+            if (def.satisfies) {
+                deps.ctx.markets?.needs?.satisfy(instance.personId, def.satisfies, deps.tick, deps.state.worldSeed);
+            }
+            // Habit practice (task 095): only a COMPLETED instance practices — same discipline as needs.
+            if (def.habit) {
+                deps.ctx.markets?.habits?.practice(instance.personId, def.habit, deps.tick);
+            }
             const tEvent = fclock ? fclock() : 0;
             this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
+            this.fireTargetEvent(def.events?.onCompleteTarget, def, instance.personId, instance.params, seq, deps, result);
             addF('finish:onCompleteEvent', tEvent);
         } else if (outcome === 'interrupted') {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
@@ -763,15 +927,22 @@ export default class ActionEngine {
             if (entry.cooldownTicks !== undefined && deps.tick - bookkeeping.lastTick < entry.cooldownTicks) {
                 continue;
             }
-            if (entry.requirements && !evaluatePredicateCached(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
-                continue;
-            }
+            // The chance rolls FIRST (task 118 — the 079 social-gate lesson): most entries lose the roll,
+            // so the requirement predicate (object queries, carries scans) is only paid on a hit. This
+            // changes which entries consume draws (requirement-gated entries now always roll), so the RNG
+            // stream moves — deterministic per seed, and byte-identity was already off the table this arc.
             const slots = Math.max(1, entry.maxPerTick ?? 1);
             let count = 0;
             for (let slot = 0; slot < slots; slot++) {
                 if (rng.chance(entry.chancePerTick)) {
                     count += 1;
                 }
+            }
+            if (count === 0) {
+                continue;
+            }
+            if (entry.requirements && !evaluatePredicateCached(entry.requirements, this.contextFor(instance.personId, deps, instance.params))) {
+                continue;
             }
             // Re-check the per-lifetime cap against what this tick would add.
             if (entry.maxTotal !== undefined) {

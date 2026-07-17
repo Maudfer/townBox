@@ -156,6 +156,20 @@ export default class SaveManager {
             actions: this.game.actionEngine?.getState(),
             schools: this.game.schools?.getState(),
             skillBook: this.game.skillBook?.getState(),
+            // The elective social graph (v15, task 083).
+            socialGraph: this.game.socialGraph?.serialize(),
+            // The needs ledger (v16, task 084).
+            needs: this.game.needs?.serialize(),
+            // The agenda (v16, task 085).
+            agenda: this.game.agenda?.serialize(),
+            // Mood impulses (v16 family, task 091).
+            mood: this.game.mood?.serialize(),
+            habits: this.game.habits?.serialize(),
+            incidents: this.game.incidents?.serialize(),
+            detention: this.game.detention?.serialize(),
+            buildingConditions: this.game.buildingConditions?.serialize(),
+            pets: this.game.pets?.serialize(),
+            knownFacts: this.game.knownFacts?.serialize(),
             // Lazy history hydration (v14): pin the asset ref + who is already hydrated, so households placed
             // after a load keep receiving pre-game histories. Absent for cold-start worlds.
             historyHydration: this.game.getHistoryHydrationState?.(),
@@ -360,6 +374,27 @@ export default class SaveManager {
         // Lazy history hydration (v14+, task 012 follow-up). Older saves carry none → hydration disabled
         // (people placed later arrive without pre-game histories; the sim itself never needed them).
         this.game.setHistoryHydrationState?.(snapshot.historyHydration);
+
+        // The elective social graph (v15, task 083). Absent (older saves) loads empty — edges regrow.
+        this.game.socialGraph?.loadState(snapshot.socialGraph);
+
+        // The needs ledger (v16, task 084). Absent (older saves) re-seeds lazily per person.
+        this.game.needs?.loadState(snapshot.needs);
+
+        // The agenda (v16, task 085). Absent (older saves) loads empty — routines re-plan.
+        this.game.agenda?.loadState(snapshot.agenda);
+
+        // Mood impulses (v16 family, task 091). Absent rests at the baseline.
+        this.game.mood?.loadState(snapshot.mood);
+        this.game.habits?.loadState(snapshot.habits);
+        this.game.incidents?.loadState(snapshot.incidents);
+        this.game.detention?.loadState(snapshot.detention);
+        this.game.buildingConditions?.loadState(snapshot.buildingConditions);
+        this.game.pets?.loadState(snapshot.pets);
+        this.game.knownFacts?.loadState(snapshot.knownFacts);
+
+        // Traits are derived, not stored — but the memo keyed the OLD world; drop it (task 087).
+        this.game.traits?.reset();
 
         // Skill records (v10+, tasks 059-062). Pre-v10 saves carry none: every loaded person is
         // re-initialized deterministically (same seed convention as materialization) and their legacy

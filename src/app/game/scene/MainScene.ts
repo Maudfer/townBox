@@ -3,6 +3,7 @@ import Phaser from 'phaser';
 import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
+import Building from 'game/world/Building';
 import House from 'game/world/House';
 import Soil from 'game/world/Soil';
 import Tile from 'game/world/Tile';
@@ -12,6 +13,8 @@ import config from 'json/config.json';
 import inputConfig from 'json/input.json';
 import { AssetManifest } from 'types/Assets';
 import { Cursor, Tool } from 'types/Cursor';
+import { FireStateChange } from 'types/Events';
+import constructionConfig from 'json/construction.json';
 import { Image, SceneConfig } from 'types/Phaser';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { directionToRadianRotation } from 'util/tools';
@@ -41,7 +44,12 @@ export default class MainScene extends Phaser.Scene {
 
         Game.on("tileSpawned", { callback: this.drawTile, context: this });
         Game.on("personSpawned", { callback: this.drawPerson, context: this });
+        // Activity bubbles (task 093 / J2): refresh label text/visibility once per in-game minute.
+        Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
+        // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
+        Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
+        Game.on("gameLoaded", { callback: this.clearFireEmitters, context: this });
 
         Game.on("windowDragStart", { callback: () => {
             this.cursorActive = false;
@@ -75,9 +83,43 @@ export default class MainScene extends Phaser.Scene {
         this.input.mouse.disableContextMenu();
         this.setCursor(Tool.Road);
 
+        // Civic placeholder textures (task 108): flat colored 48x48 squares generated at boot — the
+        // construction menu's civic tiles. Saves persist assetName, so these keys must exist before any
+        // load redraws.
+        for (const entry of (constructionConfig as { entries: { id: string; color?: string }[] }).entries) {
+            if (!entry.color || this.textures.exists('civic_' + entry.id)) {
+                continue;
+            }
+            const graphics = this.add.graphics();
+            graphics.fillStyle(Number.parseInt(entry.color.slice(1), 16), 1);
+            graphics.fillRect(0, 0, 48, 48);
+            graphics.generateTexture('civic_' + entry.id, 48, 48);
+            graphics.destroy();
+        }
+
+        // Construction-menu picks (task 108): arm the placement cursor with the chosen building. The pick
+        // rides every tileClicked until another tool is selected.
+        Game.on("constructionSelected", {
+            callback: (pick: import('types/Events').ConstructionPick) => {
+                this.constructionPick = { ...(pick.blueprintKey !== undefined ? { blueprintKey: pick.blueprintKey } : {}), ...(pick.asset !== undefined ? { asset: pick.asset } : {}) };
+                this.setCursor(pick.tool, pick.asset);
+            },
+            context: this,
+        });
+
         // Tool selection flows through the `toolSelected` bus event so the keyboard and the React toolbar
         // stay in sync (task 030): both the keys below and the toolbar emit it; the scene consumes it here.
-        Game.on("toolSelected", { callback: (tool: Tool) => this.setCursor(tool), context: this });
+        Game.on("toolSelected", {
+            callback: (tool: Tool) => {
+                this.constructionPick = null; // a plain tool change disarms any construction pick (task 108)
+                if (tool === Tool.Construction) {
+                    this.hideCursor(); // the menu window (Hud) takes over; the pick arms the real cursor
+                    return;
+                }
+                this.setCursor(tool);
+            },
+            context: this,
+        });
 
         inputConfig.inputMappings.forEach(mapping => {
             this.input.keyboard?.addKey(mapping.key).on('down', () => {
@@ -113,6 +155,21 @@ export default class MainScene extends Phaser.Scene {
         this.input.keyboard.addKey('G').on('down', () => {
             this.toggleGrid();
         });
+
+        // The observation scaffolding (task 117, masterSwitch-gated like the other debug overlays):
+        // T cycles the time throttle (1×/4×/16× — a frame-delta multiplier on the clock), and a fixed
+        // overlay line tracks the town's vitals (people / employed / open incidents / worst service).
+        if (config.debug.masterSwitch) {
+            this.debugOverlay = this.add.text(8, 8, '', {
+                fontSize: '11px', color: '#aef2ae', backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                padding: { x: 5, y: 3 },
+            }).setScrollFactor(0).setDepth(1_000_000);
+            this.input.keyboard.addKey('T').on('down', () => {
+                Game.cycleTimeScale();
+                this.refreshDebugOverlay();
+            });
+            Game.on("timeChanged", { callback: this.refreshDebugOverlay, context: this });
+        }
 
         this.input.on('pointermove', (pointer: Pointer) => {
             // Drag-paint for build/bulldoze tools; the Select (inspector) tool only acts on a discrete click.
@@ -240,8 +297,16 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
-        Game.emit("tileClicked", { position: placement.position, tool: cursor.tool });
+        Game.emit("tileClicked", {
+            position: placement.position,
+            tool: cursor.tool,
+            ...(this.constructionPick ?? {}),
+        });
     }
+
+    // The construction menu's armed pick (task 108): a pinned blueprint and/or placeholder asset that
+    // rides tileClicked. Null when a plain tool is active.
+    private constructionPick: { blueprintKey?: string; asset?: string } | null = null;
 
     getCursor(): Cursor {
         return this.cursor;
@@ -253,7 +318,7 @@ export default class MainScene extends Phaser.Scene {
         this.cameras.main.centerOn(worldX, worldY);
     }
 
-    setCursor(tool: Tool): void {
+    setCursor(tool: Tool, assetOverride?: string): void {
         if (!this.cursor) {
             this.cursor = {
                 tool,
@@ -267,7 +332,7 @@ export default class MainScene extends Phaser.Scene {
         }
         
         this.cursor.tool = tool;
-        const assetName = Game.toolbelt[this.cursor.tool as Tool];
+        const assetName = assetOverride ?? Game.toolbelt[this.cursor.tool as Tool];
         if (!assetName) {
             return;
         }
@@ -400,6 +465,135 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    // The observation overlay (task 117): one fixed line of town vitals, refreshed per in-game minute.
+    private debugOverlay: Phaser.GameObjects.Text | null = null;
+
+    private refreshDebugOverlay(): void {
+        if (!this.debugOverlay) {
+            return;
+        }
+        const people = Game.field?.getPeople() ?? [];
+        const employed = people.filter(person => person.work.getJob() !== null).length;
+        const openIncidents = Game.incidents?.open().length ?? 0;
+        const services = Game.city?.getCityStats().services ?? [];
+        const worst = [...services].sort((a, b) => a.ratio - b.ratio || a.service.localeCompare(b.service))[0];
+        this.debugOverlay.setText(
+            `×${Game.getTimeScale()} | people ${people.length} (${employed} employed) | open incidents ${openIncidents}`
+            + (worst ? ` | worst service: ${worst.label} ${(worst.ratio * 100).toFixed(0)}%` : ''),
+        );
+    }
+
+    // Fire particles (task 116): a small emitter of orange/red flecks + gray smoke anchored on any building
+    // with an open fire incident — created on City's ignition event, destroyed on resolution. The texture is
+    // a generated 3×3 white square, tinted per particle; nothing fancy, the fire just reads as fire.
+    private fireEmitters = new Map<string, Phaser.GameObjects.Particles.ParticleEmitter>();
+
+    private handleFireStateChanged(change: FireStateChange): void {
+        const existing = this.fireEmitters.get(change.buildingKey);
+        if (!change.burning) {
+            existing?.destroy();
+            this.fireEmitters.delete(change.buildingKey);
+            return;
+        }
+        if (existing) {
+            return;
+        }
+        const structure = Game.field?.getStructures()
+            .find((candidate): candidate is Building => candidate instanceof Building && candidate.getIdentifier() === change.buildingKey);
+        const tile = structure?.getPosition() ?? null;
+        const pixel = tile ? Game.tileToPixelPosition(tile) : null;
+        if (!structure || !pixel) {
+            return;
+        }
+        if (!this.textures.exists('fire_spark')) {
+            const graphics = this.make.graphics({ x: 0, y: 0 }, false);
+            graphics.fillStyle(0xffffff, 1);
+            graphics.fillRect(0, 0, 3, 3);
+            graphics.generateTexture('fire_spark', 3, 3);
+            graphics.destroy();
+        }
+        const flames = this.add.particles(pixel.x, pixel.y, 'fire_spark', {
+            speed: { min: 8, max: 35 },
+            angle: { min: 250, max: 290 }, // upward cone
+            lifespan: { min: 350, max: 900 },
+            frequency: 55,
+            quantity: 2,
+            scale: { start: 1.8, end: 0 },
+            tint: [0xff5a00, 0xff2d00, 0xffa200, 0x777777], // flames + a drift of smoke
+            gravityY: -25,
+        });
+        flames.setDepth(structure.calculateDepth() + 5);
+        this.fireEmitters.set(change.buildingKey, flames);
+    }
+
+    // A load rebuilds the world wholesale — stale emitters would float over the wrong lots.
+    private clearFireEmitters(): void {
+        for (const emitter of this.fireEmitters.values()) {
+            emitter.destroy();
+        }
+        this.fireEmitters.clear();
+    }
+
+    // Activity bubbles (task 093 / J2): a small label over each visible OUTDOOR person naming their
+    // current activity — the street narrates itself. Text refreshes per in-game minute; position follows
+    // the sprite each frame via the person's redraw closure. (Task 115 fixed a latent 093 gap: the labels
+    // were never CREATED — the map stayed empty forever — so the street never actually narrated. They are
+    // now created lazily on the first refresh that sees the person.)
+    private activityLabels = new Map<Person, Phaser.GameObjects.Text>();
+    // Pets on the street (task 115): a tiny brown rectangle trailing the owner while walking_the_dog runs
+    // — no pathfinding of its own, it shadows the owner's sprite with a small offset.
+    private petDots = new Map<Person, Phaser.GameObjects.Rectangle>();
+
+    private refreshActivityLabels(): void {
+        const field = Game.field;
+        const engine = Game.actionEngine;
+        if (!field || !engine) {
+            return;
+        }
+        const roster = new Set(field.getPeople());
+        for (const [person, text] of this.activityLabels) {
+            if (!roster.has(person)) {
+                text.destroy();
+                this.activityLabels.delete(person);
+            }
+        }
+        for (const [person, dot] of this.petDots) {
+            if (!roster.has(person)) {
+                dot.destroy();
+                this.petDots.delete(person);
+            }
+        }
+        for (const person of roster) {
+            const personId = person.social.getPersonId();
+            if (!personId) {
+                continue;
+            }
+            let text = this.activityLabels.get(person);
+            if (!text) {
+                text = this.add.text(0, 0, '', {
+                    fontSize: '9px', color: '#ffffff', backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                    padding: { x: 3, y: 1 },
+                }).setOrigin(0.5, 1).setVisible(false);
+                this.activityLabels.set(person, text);
+            }
+            const active = engine.activeInstanceOf(personId);
+            const show = !!active && active.status === 'running' && !person.isIndoors();
+            if (show) {
+                text.setText(engine.getActionLabel(active!.defId));
+            }
+            text.setVisible(show);
+
+            // The dog appears exactly while the walk runs and despawns with the instance.
+            let dot = this.petDots.get(person);
+            const walking = show && active!.defId === 'walking_the_dog';
+            if (walking && !dot) {
+                dot = this.add.rectangle(0, 0, 6, 4, 0x8b5a2b).setVisible(false);
+                this.petDots.set(person, dot);
+            }
+            dot?.setVisible(walking);
+        }
+    }
+
     private drawPerson(person: Person): void {
         const position: PixelPosition = person.getPosition();
         if (position === null) {
@@ -437,6 +631,19 @@ export default class MainScene extends Phaser.Scene {
             personAsset.setRotation(rotation);
             personAsset.setPosition(position.x, position.y);
             personAsset.setDepth(person.getDepth());
+
+            // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
+            const bubble = this.activityLabels.get(person);
+            if (bubble && bubble.visible) {
+                bubble.setPosition(position.x, position.y - 12);
+                bubble.setDepth(person.getDepth() + 2);
+            }
+            // The dog trails the owner (task 115): a fixed lag behind the sprite, same depth layer.
+            const pet = this.petDots.get(person);
+            if (pet && pet.visible) {
+                pet.setPosition(position.x - 6, position.y + 5);
+                pet.setDepth(person.getDepth() + 1);
+            }
         });
     }
 

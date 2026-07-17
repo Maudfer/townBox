@@ -24,11 +24,22 @@
                         ]
                     },
                     "multiply": 250
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 1.6
                 }
             ]
         },
         "events": {
             "onComplete": "woke_up"
+        },
+        "satisfies": {
+            "rest": 85
         }
     },
     "rest": {
@@ -37,7 +48,20 @@
         "category": "recovery",
         "durationTicks": 2,
         "selection": {
-            "weight": 0.6
+            "weight": 0.6,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 2.5
+                }
+            ]
+        },
+        "satisfies": {
+            "rest": 25
         }
     },
     "read_book": {
@@ -74,6 +98,14 @@
                         "value": 65
                     },
                     "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -105,7 +137,14 @@
                     }
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 5
+        },
+        "affinity": [
+            "solitary"
+        ],
+        "ambulatory": "stroll"
     },
     "bake_cake": {
         "label": "Baking a cake",
@@ -147,7 +186,15 @@
             "objectAtLocation": {
                 "archetype": "oven"
             }
-        }
+        },
+        "satisfies": {
+            "food": 10,
+            "purpose": 12
+        },
+        "affinity": [
+            "craft",
+            "indulgent"
+        ]
     },
     "sat_on_bench": {
         "label": "Sat on a bench",
@@ -157,7 +204,10 @@
     "greeted_neighbor": {
         "label": "Greeted a neighbor",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 2
+        }
     },
     "found_coin": {
         "label": "Found a coin",
@@ -485,6 +535,14 @@
                         "value": 25
                     },
                     "multiply": 0.5
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -515,7 +573,15 @@
                     "maxTotal": 1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 10,
+            "rest": 5
+        },
+        "resumable": true,
+        "affinity": [
+            "cozy"
+        ]
     },
     "visiting_beach": {
         "label": "Visiting the beach",
@@ -559,6 +625,22 @@
                         "value": 25
                     },
                     "multiply": 0.4
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -603,7 +685,16 @@
                     "cooldownTicks": 3
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 25,
+            "social": 5
+        },
+        "resumable": true,
+        "affinity": [
+            "active",
+            "indulgent"
+        ]
     },
     "at_the_bar": {
         "label": "Spending time at the bar",
@@ -646,6 +737,22 @@
                         ]
                     },
                     "multiply": 1.4
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 35
+                    },
+                    "multiply": 4
                 }
             ]
         },
@@ -675,7 +782,16 @@
                     "chancePerTick": 0.1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 20,
+            "social": 15
+        },
+        "affinity": [
+            "social",
+            "indulgent"
+        ],
+        "habit": "drinking"
     },
     "shopping_trip": {
         "label": "Going on a shopping trip",
@@ -711,6 +827,14 @@
                         "value": false
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -758,12 +882,24 @@
                     "action": "bought_gift_wrap",
                     "chancePerTick": 0.05,
                     "maxTotal": 1
+                },
+                {
+                    "action": "bought_fresh_bread",
+                    "chancePerTick": 0.2,
+                    "maxTotal": 1
                 }
             ]
         },
         "events": {
             "onComplete": "went_grocery_shopping"
-        }
+        },
+        "satisfies": {
+            "purpose": 10,
+            "fun": 5
+        },
+        "affinity": [
+            "indulgent"
+        ]
     },
     "browsing_store": {
         "label": "Browsing a store",
@@ -799,6 +935,14 @@
                         "value": 30
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -823,7 +967,13 @@
                     "chancePerTick": 0.15
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 10
+        },
+        "affinity": [
+            "indulgent"
+        ]
     },
     "exercising": {
         "label": "Exercising",
@@ -875,6 +1025,14 @@
                         ]
                     },
                     "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -904,7 +1062,15 @@
                     }
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 10,
+            "purpose": 15
+        },
+        "affinity": [
+            "active",
+            "industrious"
+        ]
     },
     "gardening": {
         "label": "Gardening",
@@ -948,6 +1114,14 @@
                         ]
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
                 }
             ]
         },
@@ -996,7 +1170,16 @@
             "objectAtLocation": {
                 "tag": "garden"
             }
-        }
+        },
+        "satisfies": {
+            "purpose": 20,
+            "fun": 10
+        },
+        "resumable": true,
+        "affinity": [
+            "craft",
+            "tidy"
+        ]
     },
     "cleaning_house": {
         "label": "Cleaning the house",
@@ -1074,6 +1257,11 @@
                     "maxTotal": 1
                 },
                 {
+                    "action": "filled_the_trash_bag",
+                    "chancePerTick": 0.15,
+                    "maxTotal": 1
+                },
+                {
                     "action": "repaired_an_item",
                     "chancePerTick": 0.1,
                     "requirements": {
@@ -1105,7 +1293,15 @@
                     }
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "hygiene": 10,
+            "purpose": 15
+        },
+        "affinity": [
+            "tidy",
+            "industrious"
+        ]
     },
     "cooking_meal": {
         "label": "Cooking a meal",
@@ -1223,12 +1419,24 @@
                     "action": "packed_a_lunch",
                     "chancePerTick": 0.12,
                     "maxTotal": 1
+                },
+                {
+                    "action": "filled_the_trash_bag",
+                    "chancePerTick": 0.15,
+                    "maxTotal": 1
                 }
             ]
         },
         "events": {
             "onComplete": "tried_new_recipe"
-        }
+        },
+        "satisfies": {
+            "food": 15,
+            "purpose": 5
+        },
+        "affinity": [
+            "craft"
+        ]
     },
     "watching_television": {
         "label": "Watching television",
@@ -1260,6 +1468,14 @@
                         "value": true
                     },
                     "multiply": 1.4
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 1.5
                 }
             ]
         },
@@ -1289,7 +1505,15 @@
                     "maxTotal": 1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 20
+        },
+        "resumable": true,
+        "affinity": [
+            "cozy",
+            "indulgent"
+        ]
     },
     "using_computer": {
         "label": "Using the computer",
@@ -1511,7 +1735,16 @@
                     "chancePerTick": 0.1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 20,
+            "purpose": 15
+        },
+        "resumable": true,
+        "affinity": [
+            "craft",
+            "solitary"
+        ]
     },
     "caring_for_children": {
         "label": "Caring for the children",
@@ -1588,7 +1821,15 @@
                     "maxTotal": 1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "social": 15,
+            "purpose": 20
+        },
+        "affinity": [
+            "social",
+            "industrious"
+        ]
     },
     "running_errands": {
         "label": "Running errands",
@@ -1663,7 +1904,14 @@
                     "cooldownTicks": 2
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "purpose": 15
+        },
+        "affinity": [
+            "industrious",
+            "tidy"
+        ]
     },
     "playing_at_playground": {
         "label": "Playing at the playground",
@@ -1703,6 +1951,22 @@
                         "value": 8
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -1754,7 +2018,15 @@
                     "chancePerTick": 0.05
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 30,
+            "social": 10
+        },
+        "affinity": [
+            "active",
+            "social"
+        ]
     },
     "spending_time_at_home": {
         "label": "Spending time at home",
@@ -1788,6 +2060,14 @@
                         "value": true
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 2
                 }
             ]
         },
@@ -1853,6 +2133,11 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "satisfies": {
+            "rest": 10,
+            "fun": 5,
+            "food": 6
         }
     },
     "taking_a_walk": {
@@ -1946,9 +2231,24 @@
                         "op": ">=",
                         "value": 60
                     }
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 10,
+            "purpose": 5
+        },
+        "resumable": true,
+        "affinity": [
+            "solitary",
+            "active"
+        ],
+        "ambulatory": "stroll"
     },
     "listening_to_music": {
         "label": "Listening to music",
@@ -2021,7 +2321,14 @@
                     }
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 15
+        },
+        "resumable": true,
+        "affinity": [
+            "cozy"
+        ]
     },
     "people_watching": {
         "label": "People watching",
@@ -2065,6 +2372,14 @@
                         ]
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -2089,7 +2404,15 @@
                     "chancePerTick": 0.1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "fun": 10,
+            "social": 5
+        },
+        "resumable": true,
+        "affinity": [
+            "solitary"
+        ]
     },
     "fed_the_pigeons": {
         "label": "Fed the pigeons",
@@ -2104,7 +2427,10 @@
     "dozed_off": {
         "label": "Dozed off",
         "type": "discrete",
-        "category": "recovery"
+        "category": "recovery",
+        "satisfies": {
+            "rest": 8
+        }
     },
     "waded_in_the_water": {
         "label": "Waded in the water",
@@ -2119,6 +2445,9 @@
             "attr": "age",
             "op": "<",
             "value": 13
+        },
+        "satisfies": {
+            "fun": 8
         }
     },
     "collected_a_seashell": {
@@ -2151,16 +2480,19 @@
         "category": "leisure",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "granola_bar",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -5
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "granola_bar"
+                },
+                "price": 5,
+                "fallback": "granola_bar"
             }
+        ],
+        "satisfies": {
+            "food": 12
+        },
+        "affinity": [
+            "indulgent"
         ]
     },
     "ordered_a_drink": {
@@ -2187,7 +2519,10 @@
     "watched_the_game": {
         "label": "Watched the game",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 8
+        }
     },
     "bought_a_round": {
         "label": "Bought a round for the bar",
@@ -2211,22 +2546,29 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "flour_bag",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "flour_bag"
+                },
+                "price": 18,
+                "fallback": "flour_bag"
             },
             {
-                "op": "createObject",
-                "archetype": "tomato",
-                "quantity": 2,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "tomato"
+                },
+                "price": 12,
+                "fallback": "tomato",
+                "fallbackQuantity": 2
             },
             {
-                "op": "adjustMoney",
-                "amount": -30
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "cream_jar"
+                },
+                "price": 8,
+                "fallback": "cream_jar"
             }
         ]
     },
@@ -2256,16 +2598,17 @@
         "category": "leisure",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "souvenir_magnet",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -12
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "souvenir_magnet"
+                },
+                "price": 12,
+                "fallback": "souvenir_magnet"
             }
+        ],
+        "affinity": [
+            "indulgent",
+            "thrill"
         ]
     },
     "did_stretches": {
@@ -2281,7 +2624,10 @@
     "stopped_to_rest": {
         "label": "Stopped to rest",
         "type": "discrete",
-        "category": "recovery"
+        "category": "recovery",
+        "satisfies": {
+            "rest": 5
+        }
     },
     "pulled_a_muscle": {
         "label": "Pulled a muscle",
@@ -2296,12 +2642,18 @@
             "objectAtLocation": {
                 "tag": "garden"
             }
+        },
+        "satisfies": {
+            "purpose": 5
         }
     },
     "pulled_weeds": {
         "label": "Pulled some weeds",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "purpose": 6
+        }
     },
     "planted_seeds": {
         "label": "Planted some seeds",
@@ -2346,17 +2698,77 @@
     "swept_the_floor": {
         "label": "Swept the floor",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 6
+        }
     },
     "did_the_dishes": {
         "label": "Did the dishes",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 8,
+            "purpose": 5
+        }
     },
     "took_out_the_trash": {
         "label": "Took out the trash",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "bag_of_garbage"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "bag_of_garbage"
+                    }
+                },
+                "container": "outside"
+            }
+        ],
+        "satisfies": {
+            "hygiene": 8
+        }
+    },
+    "filled_the_trash_bag": {
+        "label": "Filled the trash bag",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "bag_of_garbage",
+                "owner": "none",
+                "container": "location"
+            }
+        ]
+    },
+    "collected_the_trash": {
+        "label": "Collected the curbside trash",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "bag_of_garbage"
+            }
+        },
+        "consequences": [
+            {
+                "op": "consumeObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "bag_of_garbage"
+                    }
+                },
+                "quantity": 1
+            }
+        ]
     },
     "found_something_under_the_couch": {
         "label": "Found something under the couch",
@@ -2375,7 +2787,14 @@
     "tidied_up": {
         "label": "Tidied up",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 6,
+            "purpose": 5
+        },
+        "affinity": [
+            "tidy"
+        ]
     },
     "chopped_ingredients": {
         "label": "Chopped the ingredients",
@@ -2390,7 +2809,10 @@
     "tasted_the_dish": {
         "label": "Tasted the dish",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "food": 5
+        }
     },
     "burned_something_slightly": {
         "label": "Burned something slightly",
@@ -2405,12 +2827,18 @@
     "channel_surfed": {
         "label": "Channel surfed",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 3
+        }
     },
     "watched_a_rerun": {
         "label": "Watched a rerun",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 5
+        }
     },
     "argued_with_the_news": {
         "label": "Argued with the news",
@@ -2460,7 +2888,10 @@
     "made_some_progress": {
         "label": "Made some progress",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "purpose": 8
+        }
     },
     "admired_the_handiwork": {
         "label": "Admired the handiwork",
@@ -2480,7 +2911,11 @@
     "played_a_game_together": {
         "label": "Played a game together",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "fun": 10,
+            "social": 8
+        }
     },
     "refereed_a_squabble": {
         "label": "Refereed a squabble",
@@ -2501,7 +2936,10 @@
                 "op": "adjustMoney",
                 "amount": -2
             }
-        ]
+        ],
+        "satisfies": {
+            "purpose": 4
+        }
     },
     "picked_up_a_prescription": {
         "label": "Picked up a prescription",
@@ -2509,22 +2947,22 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "medicine_bottle",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -10
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "medicine_bottle"
+                },
+                "price": 10,
+                "fallback": "medicine_bottle"
             }
         ]
     },
     "crossed_something_off_the_list": {
         "label": "Crossed something off the list",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "purpose": 8
+        }
     },
     "bumped_into_an_acquaintance": {
         "label": "Bumped into an acquaintance",
@@ -2614,7 +3052,11 @@
                 },
                 "quantity": 1
             }
-        ]
+        ],
+        "satisfies": {
+            "food": 8,
+            "social": 5
+        }
     },
     "went_quiet": {
         "label": "Went quiet for a while",
@@ -2648,12 +3090,18 @@
             "objectAtLocation": {
                 "archetype": "television"
             }
+        },
+        "satisfies": {
+            "fun": 8
         }
     },
     "took_a_nap": {
         "label": "Took a nap",
         "type": "discrete",
-        "category": "recovery"
+        "category": "recovery",
+        "satisfies": {
+            "rest": 15
+        }
     },
     "took_a_shower": {
         "label": "Took a shower",
@@ -2672,17 +3120,26 @@
                     }
                 }
             ]
+        },
+        "satisfies": {
+            "hygiene": 40
         }
     },
     "rearranged_possessions": {
         "label": "Rearranged some possessions",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "affinity": [
+            "tidy"
+        ]
     },
     "called_a_relative": {
         "label": "Called a relative",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 10
+        }
     },
     "looked_for_something": {
         "label": "Looked for something",
@@ -2711,12 +3168,18 @@
     "discovered_a_new_song": {
         "label": "Discovered a new song",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 8
+        }
     },
     "danced_a_little": {
         "label": "Danced a little",
         "type": "discrete",
-        "category": "leisure"
+        "category": "leisure",
+        "satisfies": {
+            "fun": 6
+        }
     },
     "nodded_at_a_passerby": {
         "label": "Nodded at a passerby",
@@ -2760,6 +3223,22 @@
                         }
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -2842,7 +3321,13 @@
         },
         "events": {
             "onComplete": "reconnected_with_relative"
-        }
+        },
+        "satisfies": {
+            "social": 25
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "visiting_friends": {
         "label": "Visiting friends",
@@ -2876,6 +3361,22 @@
                         }
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -2915,7 +3416,14 @@
                     "maxTotal": 1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "social": 30,
+            "fun": 15
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "hosting_gathering": {
         "label": "Hosting a gathering",
@@ -2950,6 +3458,22 @@
                         }
                     },
                     "multiply": 1.3
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -3002,7 +3526,14 @@
         },
         "events": {
             "onComplete": "hosted_dinner_party"
-        }
+        },
+        "satisfies": {
+            "social": 35,
+            "fun": 10
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "catching_up_over_coffee": {
         "label": "Catching up over coffee",
@@ -3038,6 +3569,22 @@
                         "value": true
                     },
                     "multiply": 1.2
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.25
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
                 }
             ]
         },
@@ -3063,17 +3610,31 @@
                     "maxTotal": 1
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "social": 25,
+            "food": 8
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "talked_with_relative": {
         "label": "Talked with a relative",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8
+        }
     },
     "shared_a_meal": {
         "label": "Shared a meal",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "food": 40,
+            "social": 10
+        }
     },
     "watched_tv_together": {
         "label": "Watched TV together",
@@ -3083,6 +3644,10 @@
             "objectAtLocation": {
                 "archetype": "television"
             }
+        },
+        "satisfies": {
+            "fun": 8,
+            "social": 6
         }
     },
     "helped_tidy_up": {
@@ -3153,7 +3718,10 @@
     "chatted_with_friend": {
         "label": "Chatted with a friend",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8
+        }
     },
     "played_a_game": {
         "label": "Played a game",
@@ -3168,7 +3736,10 @@
     "swapped_stories": {
         "label": "Swapped stories",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 6
+        }
     },
     "lent_an_object": {
         "label": "Lent an object",
@@ -3200,6 +3771,10 @@
                     }
                 },
                 "target": "targetPerson"
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 2
             }
         ],
         "selection": {
@@ -3212,6 +3787,12 @@
                 "params": {
                     "action": "lent_an_object",
                     "reason": "consent_declined"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "object_received",
+                "params": {
+                    "from": "$actor"
                 }
             }
         }
@@ -3259,17 +3840,33 @@
                     "param": "object"
                 },
                 "target": "targetPerson"
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 2
             }
         ],
         "selection": {
-            "weight": 3.0,
+            "weight": 3,
             "cooldownTicks": 12
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "object_received",
+                "params": {
+                    "from": "$actor"
+                }
+            }
         }
     },
     "laughed_together": {
         "label": "Laughed together",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8,
+            "fun": 5
+        }
     },
     "argued_over_nothing": {
         "label": "Argued over nothing",
@@ -3310,12 +3907,18 @@
     "cleaned_up_after": {
         "label": "Cleaned up afterwards",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "hygiene": 6
+        }
     },
     "chatted_over_coffee": {
         "label": "Chatted over coffee",
         "type": "discrete",
-        "category": "social"
+        "category": "social",
+        "satisfies": {
+            "social": 8
+        }
     },
     "paid_the_bill": {
         "label": "Paid the bill",
@@ -3351,7 +3954,19 @@
         "selection": {
             "weight": 1.5,
             "cooldownTicks": 2
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 0.5
+            }
+        ],
+        "satisfies": {
+            "social": 2
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "talked_to_person": {
         "label": "Talked to someone",
@@ -3371,7 +3986,19 @@
         "selection": {
             "weight": 1.2,
             "cooldownTicks": 2
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ],
+        "satisfies": {
+            "social": 6
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "asked_for_help": {
         "label": "Asked for help",
@@ -3411,7 +4038,13 @@
         "selection": {
             "weight": 0.6,
             "cooldownTicks": 8
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2
+            }
+        ]
     },
     "apologized_to_person": {
         "label": "Apologized to someone",
@@ -3431,7 +4064,13 @@
         "selection": {
             "weight": 0.15,
             "cooldownTicks": 24
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 3
+            }
+        ]
     },
     "argued_with_person": {
         "label": "Argued with someone",
@@ -3451,7 +4090,24 @@
         "selection": {
             "weight": 0.15,
             "cooldownTicks": 24
-        }
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "argument",
+                "params": {
+                    "with": "$actor"
+                }
+            }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": -8
+            }
+        ],
+        "affinity": [
+            "thrill"
+        ]
     },
     "invited_person_over": {
         "label": "Invited someone over",
@@ -3472,7 +4128,13 @@
         "selection": {
             "weight": 0.2,
             "cooldownTicks": 48
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1.5
+            }
+        ]
     },
     "told_a_joke": {
         "label": "Told a joke",
@@ -3492,7 +4154,20 @@
         "selection": {
             "weight": 0.7,
             "cooldownTicks": 6
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ],
+        "satisfies": {
+            "social": 4,
+            "fun": 4
+        },
+        "affinity": [
+            "social"
+        ]
     },
     "asked_for_advice": {
         "label": "Asked for advice",
@@ -3512,7 +4187,13 @@
         "selection": {
             "weight": 0.4,
             "cooldownTicks": 12
-        }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ]
     },
     "offered_job_lead": {
         "label": "Offered a job lead",
@@ -3552,6 +4233,16 @@
         "selection": {
             "weight": 0.3,
             "cooldownTicks": 24
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 3
+            }
+        ],
+        "satisfies": {
+            "social": 12,
+            "fun": 8
         }
     },
     "consoled_person": {
@@ -3572,6 +4263,15 @@
         "selection": {
             "weight": 0.2,
             "cooldownTicks": 24
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 3
+            }
+        ],
+        "satisfies": {
+            "social": 6
         }
     },
     "played_with_person": {
@@ -3592,6 +4292,16 @@
         "selection": {
             "weight": 0.5,
             "cooldownTicks": 8
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2
+            }
+        ],
+        "satisfies": {
+            "fun": 8,
+            "social": 8
         }
     },
     "taught_person_something": {
@@ -3613,6 +4323,24 @@
         "selection": {
             "weight": 0.25,
             "cooldownTicks": 24
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "learned_new_skill",
+                "params": {
+                    "from": "$actor"
+                }
+            }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2.5
+            }
+        ],
+        "satisfies": {
+            "purpose": 10,
+            "social": 6
         }
     },
     "gave_object_to_person": {
@@ -3645,6 +4373,10 @@
                     }
                 },
                 "owner": "targetPerson"
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 4
             }
         ],
         "events": {
@@ -3654,6 +4386,12 @@
                 "params": {
                     "action": "gave_object_to_person",
                     "reason": "consent_declined"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "received_gift",
+                "params": {
+                    "from": "$actor"
                 }
             }
         },
@@ -3692,11 +4430,23 @@
                     }
                 },
                 "quantity": 1
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 2.5
             }
         ],
         "selection": {
             "weight": 0.4,
             "cooldownTicks": 12
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "object_received",
+                "params": {
+                    "from": "$actor"
+                }
+            }
         }
     },
     "balancing_the_till": {
@@ -3957,7 +4707,10 @@
     "ate_a_meal": {
         "label": "Ate a meal",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "food": 45
+        }
     },
     "packed_a_lunch": {
         "label": "Packed a lunch",
@@ -4003,12 +4756,26 @@
                     "action": "baked_bread_loaf"
                 }
             ]
-        }
+        },
+        "satisfies": {
+            "food": 8,
+            "purpose": 10
+        },
+        "affinity": [
+            "craft"
+        ]
     },
     "repaired_an_item": {
         "label": "Repaired a broken item",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "purpose": 15
+        },
+        "affinity": [
+            "craft",
+            "industrious"
+        ]
     },
     "noticed_a_broken_keepsake": {
         "label": "Noticed a keepsake had broken",
@@ -4033,36 +4800,38 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "potato",
-                "quantity": 2,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "potato"
+                },
+                "price": 5,
+                "fallback": "potato",
+                "fallbackQuantity": 2
             },
             {
-                "op": "createObject",
-                "archetype": "onion",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "onion"
+                },
+                "price": 3,
+                "fallback": "onion"
             },
             {
-                "op": "createObject",
-                "archetype": "lettuce",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "lettuce"
+                },
+                "price": 4,
+                "fallback": "lettuce"
             },
             {
-                "op": "createObject",
-                "archetype": "egg",
-                "quantity": 4,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -18
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "egg"
+                },
+                "price": 6,
+                "fallback": "egg",
+                "fallbackQuantity": 4
             }
         ]
     },
@@ -4072,22 +4841,21 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "detergent_pod",
-                "quantity": 3,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "detergent_pod"
+                },
+                "price": 8,
+                "fallback": "detergent_pod",
+                "fallbackQuantity": 3
             },
             {
-                "op": "createObject",
-                "archetype": "sponge",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -12
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "sponge"
+                },
+                "price": 4,
+                "fallback": "sponge"
             }
         ]
     },
@@ -4097,15 +4865,12 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "toolbox",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -45
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "toolbox"
+                },
+                "price": 45,
+                "fallback": "toolbox"
             }
         ]
     },
@@ -4115,29 +4880,34 @@
         "category": "maintenance",
         "consequences": [
             {
-                "op": "createObject",
-                "archetype": "wrapping_paper",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "wrapping_paper"
+                },
+                "price": 6,
+                "fallback": "wrapping_paper"
             },
             {
-                "op": "createObject",
-                "archetype": "gift_bow",
-                "quantity": 1,
-                "owner": "person",
-                "container": "possessions"
-            },
-            {
-                "op": "adjustMoney",
-                "amount": -10
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "gift_bow"
+                },
+                "price": 4,
+                "fallback": "gift_bow"
             }
         ]
     },
     "deep_cleaned_the_kitchen": {
         "label": "Deep-cleaned the kitchen",
         "type": "discrete",
-        "category": "maintenance"
+        "category": "maintenance",
+        "satisfies": {
+            "hygiene": 15,
+            "purpose": 10
+        },
+        "affinity": [
+            "tidy"
+        ]
     },
     "wrapped_a_gift": {
         "label": "Wrapped a gift",
@@ -4353,6 +5123,1753 @@
         "selection": {
             "weight": 0.6,
             "cooldownTicks": 8
+        },
+        "events": {
+            "onCompleteTarget": {
+                "event": "received_a_hug",
+                "params": {
+                    "from": "$actor"
+                }
+            }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2.5
+            }
+        ],
+        "satisfies": {
+            "social": 8
+        }
+    },
+    "kissed_partner": {
+        "label": "Kissed their partner",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "requirements": {
+            "relationship": {
+                "to": "target",
+                "kinds": [
+                    "dating",
+                    "spouse"
+                ]
+            }
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 2
+            }
+        ],
+        "selection": {
+            "weight": 0.8,
+            "cooldownTicks": 6
+        },
+        "satisfies": {
+            "social": 10
+        }
+    },
+    "invite_to_activity": {
+        "label": "Invited someone to spend time together",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            },
+            "activity": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "consequences": [
+            {
+                "op": "planJointActivity",
+                "activityParam": "activity",
+                "afterTicks": 4,
+                "windowTicks": 14
+            },
+            {
+                "op": "adjustRelationship",
+                "delta": 1.5
+            }
+        ],
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 48
+        },
+        "satisfies": {
+            "social": 4
+        },
+        "affinity": [
+            "social"
+        ]
+    },
+    "bought_fresh_bread": {
+        "label": "Bought fresh bread",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "bread_loaf"
+                },
+                "price": 7,
+                "fallback": "bread_loaf"
+            }
+        ],
+        "satisfies": {
+            "food": 5
+        }
+    },
+    "asked_person_out": {
+        "label": "Asked someone out",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 16
+                },
+                {
+                    "attr": "marital",
+                    "op": "!=",
+                    "value": "married"
+                },
+                {
+                    "not": {
+                        "relationship": {
+                            "to": "target",
+                            "kinds": [
+                                "dating",
+                                "engaged",
+                                "spouse",
+                                "family",
+                                "rival"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 12,
+                "kind": "dating"
+            }
+        ],
+        "events": {
+            "onComplete": {
+                "event": "asked_someone_out",
+                "params": {
+                    "with": "$params.target"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "went_on_first_date",
+                "params": {
+                    "with": "$actor"
+                }
+            }
+        },
+        "selection": {
+            "weight": 0.15,
+            "cooldownTicks": 168,
+            "modifiers": [
+                {
+                    "when": {
+                        "relationship": {
+                            "to": "target",
+                            "kinds": [
+                                "friend",
+                                "close_friend"
+                            ],
+                            "minStrength": 20
+                        }
+                    },
+                    "multiply": 4
+                }
+            ]
+        },
+        "satisfies": {
+            "social": 8
+        },
+        "affinity": [
+            "social",
+            "thrill"
+        ]
+    },
+    "proposed_marriage": {
+        "label": "Proposed marriage",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": true,
+            "onDecline": "skipStep"
+        },
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "marital",
+                    "op": "!=",
+                    "value": "married"
+                },
+                {
+                    "relationship": {
+                        "to": "target",
+                        "kinds": [
+                            "dating"
+                        ],
+                        "minStrength": 45
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 15,
+                "kind": "engaged"
+            }
+        ],
+        "events": {
+            "onComplete": {
+                "event": "got_engaged",
+                "params": {
+                    "with": "$params.target"
+                }
+            },
+            "onCompleteTarget": {
+                "event": "got_engaged",
+                "params": {
+                    "with": "$actor"
+                }
+            }
+        },
+        "selection": {
+            "weight": 0.08,
+            "cooldownTicks": 720
+        },
+        "satisfies": {
+            "social": 15
+        }
+    },
+    "resting_at_home_sick": {
+        "label": "Resting at home, sick",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "home",
+        "durationTicks": 8,
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "rest": 50
+        },
+        "events": {
+            "onStart": "called_in_sick"
+        }
+    },
+    "jogging": {
+        "label": "Jogging",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "jog",
+        "durationTicks": 2,
+        "resumable": true,
+        "requirements": {
+            "attr": "health",
+            "op": ">=",
+            "value": 0.6
+        },
+        "selection": {
+            "weight": 0.7,
+            "cooldownTicks": 20,
+            "modifiers": [
+                {
+                    "when": {
+                        "any": [
+                            {
+                                "all": [
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": ">=",
+                                        "value": 6
+                                    },
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": "<=",
+                                        "value": 8
+                                    }
+                                ]
+                            },
+                            {
+                                "all": [
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": ">=",
+                                        "value": 18
+                                    },
+                                    {
+                                        "attr": "hourOfDay",
+                                        "op": "<=",
+                                        "value": 20
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    "multiply": 2.2
+                },
+                {
+                    "when": {
+                        "attr": "age",
+                        "op": ">=",
+                        "value": 60
+                    },
+                    "multiply": 0.4
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "jogged_a_lap",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "did_stretches",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "pulled_a_muscle",
+                    "chancePerTick": 0.04,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 12,
+            "purpose": 15
+        },
+        "affinity": [
+            "active"
+        ]
+    },
+    "riding_skateboard": {
+        "label": "Riding a skateboard",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "jog",
+        "durationTicks": 2,
+        "resumable": true,
+        "requirements": {
+            "all": [
+                {
+                    "carries": {
+                        "archetype": "skateboard"
+                    }
+                },
+                {
+                    "attr": "age",
+                    "op": "<=",
+                    "value": 45
+                },
+                {
+                    "attr": "health",
+                    "op": ">=",
+                    "value": 0.6
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0.9,
+            "cooldownTicks": 16,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.25
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 25
+        },
+        "affinity": [
+            "thrill",
+            "active"
+        ]
+    },
+    "cleaning_the_sidewalk": {
+        "label": "Cleaning the sidewalk",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "outside",
+        "durationTicks": 2,
+        "requirements": {
+            "carries": {
+                "archetype": "broom"
+            }
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 72,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 8
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 18
+                            }
+                        ]
+                    },
+                    "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "objectAtLocation": {
+                            "archetype": "gum_wrapper"
+                        }
+                    },
+                    "multiply": 3
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "swept_the_floor",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "picked_up_litter",
+                    "chancePerTick": 0.5
+                }
+            ]
+        },
+        "satisfies": {
+            "purpose": 18,
+            "hygiene": 6
+        },
+        "affinity": [
+            "tidy",
+            "industrious"
+        ]
+    },
+    "evening_stroll": {
+        "label": "An evening stroll",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 2,
+        "resumable": true,
+        "selection": {
+            "weight": 0.6,
+            "cooldownTicks": 20,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 17
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 21
+                            }
+                        ]
+                    },
+                    "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": "<",
+                        "value": 16
+                    },
+                    "multiply": 0.1
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "watched_the_clouds",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 10,
+            "rest": 6
+        },
+        "affinity": [
+            "cozy"
+        ]
+    },
+    "street_games": {
+        "label": "Playing street games",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 5
+                },
+                {
+                    "attr": "age",
+                    "op": "<=",
+                    "value": 14
+                }
+            ]
+        },
+        "selection": {
+            "weight": 1.4,
+            "cooldownTicks": 10,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 15
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 19
+                            }
+                        ]
+                    },
+                    "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "ran_around",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "laughed_together",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "climbed_the_structure",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 30,
+            "social": 12
+        },
+        "affinity": [
+            "active",
+            "social"
+        ]
+    },
+    "window_shopping": {
+        "label": "Window shopping",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 2,
+        "resumable": true,
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 30,
+            "modifiers": [
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 10
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 19
+                            }
+                        ]
+                    },
+                    "multiply": 1.6
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "checked_a_price_tag",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "invented_a_story_about_a_stranger",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "dropped_a_wrapper",
+                    "chancePerTick": 0.05,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 12
+        },
+        "affinity": [
+            "indulgent"
+        ]
+    },
+    "taking_a_walk_together": {
+        "label": "Taking a walk together",
+        "type": "continuous",
+        "category": "social",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 3,
+        "resumable": true,
+        "selection": {
+            "weight": 0,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "chatted_with_friend",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "laughed_together",
+                    "chancePerTick": 0.25
+                },
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.3
+                }
+            ]
+        },
+        "satisfies": {
+            "social": 25,
+            "fun": 12
+        }
+    },
+    "thanked_person": {
+        "label": "Thanked someone",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
+        },
+        "consequences": [
+            {
+                "op": "adjustRelationship",
+                "delta": 1
+            }
+        ],
+        "selection": {
+            "weight": 0.2,
+            "cooldownTicks": 4
+        },
+        "satisfies": {
+            "social": 3
+        }
+    },
+    "drank_alone": {
+        "label": "Drinking alone",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "home",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 18
+        },
+        "selection": {
+            "weight": 0.1,
+            "cooldownTicks": 24,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 40
+                    },
+                    "multiply": 5
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 19
+                    },
+                    "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": "<=",
+                        "value": 15
+                    },
+                    "multiply": 0.1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 5
+        },
+        "habit": "drinking",
+        "affinity": [
+            "indulgent",
+            "solitary"
+        ]
+    },
+    "stayed_in_bed_all_day": {
+        "label": "Stayed in bed all day",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "home",
+        "durationTicks": 8,
+        "selection": {
+            "weight": 0.05,
+            "cooldownTicks": 48,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 12
+                },
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 25
+                    },
+                    "multiply": 4
+                }
+            ]
+        },
+        "satisfies": {
+            "rest": 30
+        },
+        "affinity": [
+            "solitary",
+            "cozy"
+        ]
+    },
+    "job_hunting": {
+        "label": "Out looking for work",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 3,
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "employed",
+                    "op": "==",
+                    "value": false
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 24,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 9
+                    },
+                    "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 18
+                    },
+                    "multiply": 0.1
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 150
+                    },
+                    "multiply": 2.5
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "applied_for_a_job",
+                    "chancePerTick": 0.55,
+                    "cooldownTicks": 1
+                },
+                {
+                    "action": "asked_about_openings",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.15
+                }
+            ]
+        },
+        "satisfies": {
+            "purpose": 12
+        },
+        "affinity": [
+            "industrious"
+        ]
+    },
+    "applied_for_a_job": {
+        "label": "Applied for a job",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "employed",
+                    "op": "==",
+                    "value": false
+                }
+            ]
+        }
+    },
+    "asked_about_openings": {
+        "label": "Asked around about openings",
+        "type": "discrete",
+        "category": "maintenance"
+    },
+    "patrolling": {
+        "label": "Patrolling the streets",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 4,
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "kept_an_eye_on_the_street",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "gave_directions_to_a_stranger",
+                    "chancePerTick": 0.15
+                },
+                {
+                    "action": "jotted_a_note",
+                    "chancePerTick": 0.1
+                }
+            ]
+        }
+    },
+    "kept_an_eye_on_the_street": {
+        "label": "Kept an eye on the street",
+        "type": "discrete",
+        "category": "work"
+    },
+    "shoplifting": {
+        "label": "Lingering by the shelves",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:supermarket",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 14
+        },
+        "selection": {
+            "weight": 0.03,
+            "cooldownTicks": 96,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 60
+                    },
+                    "multiply": 8
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": ">=",
+                        "value": 400
+                    },
+                    "multiply": 0.05
+                },
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 35
+                    },
+                    "multiply": 2.5
+                },
+                {
+                    "when": {
+                        "attr": "policeCoverage",
+                        "op": ">=",
+                        "value": 0.7
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "attr": "policeCoverage",
+                        "op": "<",
+                        "value": 0.2
+                    },
+                    "multiply": 2
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "browsed_the_aisles",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "pocketed_merchandise",
+                    "chancePerTick": 0.6,
+                    "maxTotal": 1,
+                    "cooldownTicks": 1
+                }
+            ]
+        },
+        "affinity": [
+            "thrill"
+        ],
+        "habit": "crime"
+    },
+    "pocketed_merchandise": {
+        "label": "Pocketed merchandise without paying",
+        "type": "discrete",
+        "category": "leisure",
+        "requirements": {
+            "objectAtLocation": {
+                "flag": "pocketable"
+            }
+        },
+        "consequences": [
+            {
+                "op": "moveObject",
+                "object": {
+                    "atLocation": {
+                        "flag": "pocketable"
+                    }
+                },
+                "container": "possessions"
+            }
+        ],
+        "events": {
+            "onComplete": "committed_shoplifting"
+        }
+    },
+    "pickpocketed_someone": {
+        "label": "Pickpocketed someone",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false,
+            "covert": true
+        },
+        "requirements": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 14
+                },
+                {
+                    "attr": "money",
+                    "op": "<",
+                    "value": 80
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0.02,
+            "cooldownTicks": 120,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "mood",
+                        "op": "<",
+                        "value": 30
+                    },
+                    "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "policeCoverage",
+                        "op": ">=",
+                        "value": 0.7
+                    },
+                    "multiply": 0.3
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": 15
+            },
+            {
+                "op": "adjustMoney",
+                "amount": -15,
+                "target": "targetPerson"
+            }
+        ],
+        "events": {
+            "onComplete": "committed_pickpocketing",
+            "onCompleteTarget": "got_pickpocketed"
+        },
+        "affinity": [
+            "thrill"
+        ],
+        "habit": "crime"
+    },
+    "fleeing_the_police": {
+        "label": "Running from the police!",
+        "type": "continuous",
+        "category": "movement",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "events": {
+            "onComplete": "chase_concluded"
+        }
+    },
+    "chasing_a_suspect": {
+        "label": "Chasing a suspect!",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
+    },
+    "serving_time": {
+        "label": "Serving time",
+        "type": "continuous",
+        "category": "obligation",
+        "durationTicks": 24,
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "paced_the_cell",
+                    "chancePerTick": 0.3
+                },
+                {
+                    "action": "ate_prison_food",
+                    "chancePerTick": 0.15,
+                    "cooldownTicks": 4
+                },
+                {
+                    "action": "worked_in_the_laundry",
+                    "chancePerTick": 0.12,
+                    "cooldownTicks": 8
+                },
+                {
+                    "action": "stared_at_the_wall",
+                    "chancePerTick": 0.2
+                }
+            ]
+        }
+    },
+    "paced_the_cell": {
+        "label": "Paced the cell",
+        "type": "discrete",
+        "category": "obligation"
+    },
+    "ate_prison_food": {
+        "label": "Ate prison food",
+        "type": "discrete",
+        "category": "obligation",
+        "satisfies": {
+            "food": 30
+        }
+    },
+    "worked_in_the_laundry": {
+        "label": "Worked a shift in the prison laundry",
+        "type": "discrete",
+        "category": "obligation",
+        "satisfies": {
+            "purpose": 8
+        }
+    },
+    "stared_at_the_wall": {
+        "label": "Stared at the wall",
+        "type": "discrete",
+        "category": "obligation"
+    },
+    "dropped_a_wrapper": {
+        "label": "Dropped a wrapper on the street",
+        "type": "discrete",
+        "category": "leisure",
+        "consequences": [
+            {
+                "op": "createObject",
+                "archetype": "gum_wrapper",
+                "owner": "none",
+                "container": "location"
+            }
+        ]
+    },
+    "collection_rounds": {
+        "label": "On the collection route",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 4,
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "collected_the_trash",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "picked_up_litter",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "swept_up_butts",
+                    "chancePerTick": 0.35
+                },
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.1
+                },
+                {
+                    "action": "hummed_while_working",
+                    "chancePerTick": 0.1
+                }
+            ]
+        }
+    },
+    "picked_up_litter": {
+        "label": "Picked up litter",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "gum_wrapper"
+            }
+        },
+        "consequences": [
+            {
+                "op": "consumeObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "gum_wrapper"
+                    }
+                },
+                "quantity": 1
+            }
+        ]
+    },
+    "swept_up_butts": {
+        "label": "Swept up cigarette butts",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "objectAtLocation": {
+                "archetype": "cigarette_butt"
+            }
+        },
+        "consequences": [
+            {
+                "op": "consumeObject",
+                "object": {
+                    "atLocation": {
+                        "archetype": "cigarette_butt"
+                    }
+                },
+                "quantity": 1
+            }
+        ]
+    },
+    "evacuating": {
+        "label": "Evacuating!",
+        "type": "continuous",
+        "category": "movement",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "events": {
+            "onComplete": "escaped_a_fire"
+        }
+    },
+    "rushing_to_the_fire": {
+        "label": "Rushing to the fire!",
+        "type": "continuous",
+        "category": "work",
+        "location": "outside",
+        "ambulatory": "run",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
+    },
+    "responding_to_fire": {
+        "label": "Fighting the fire",
+        "type": "continuous",
+        "category": "work",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
+    },
+    "receiving_treatment": {
+        "label": "Receiving treatment at the hospital",
+        "type": "continuous",
+        "category": "recovery",
+        "location": "venue:hospital",
+        "durationTicks": 4,
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "rest": 25
+        }
+    },
+    "treating_patient": {
+        "label": "Treating a patient",
+        "type": "continuous",
+        "category": "work",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
+        },
+        "events": {
+            "onComplete": "treated_a_patient",
+            "onCompleteTarget": "was_treated_by_doctor"
+        }
+    },
+    "visiting_the_sick": {
+        "label": "Visiting a sick relative",
+        "type": "continuous",
+        "category": "social",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "social": 15
+        },
+        "parameters": {
+            "target": {
+                "type": "string",
+                "required": true
+            }
+        },
+        "events": {
+            "onComplete": {
+                "event": "visited_sick_relative",
+                "params": {
+                    "target": "$params.target"
+                }
+            }
+        }
+    },
+    "visiting_the_pet_shop": {
+        "label": "Visiting the pet shop",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:pet_shop",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 16
+        },
+        "selection": {
+            "weight": 0.15,
+            "cooldownTicks": 240,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 10
+                    },
+                    "multiply": 1.5
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 20
+                    },
+                    "multiply": 0.1
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "petted_the_puppies",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "adopted_a_pet",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 15
+        },
+        "affinity": [
+            "cozy"
+        ]
+    },
+    "petted_the_puppies": {
+        "label": "Petted the puppies",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "fun": 5
+        }
+    },
+    "adopted_a_pet": {
+        "label": "Adopted a pet",
+        "type": "discrete",
+        "category": "leisure",
+        "requirements": {
+            "attr": "petCount",
+            "op": "<",
+            "value": 2
+        },
+        "events": {
+            "onComplete": "adopted_a_pet"
+        }
+    },
+    "walking_the_dog": {
+        "label": "Walking the dog",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "petCount",
+            "op": ">=",
+            "value": 1
+        },
+        "selection": {
+            "weight": 0.7,
+            "cooldownTicks": 20,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 7
+                    },
+                    "multiply": 1.6
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 22
+                    },
+                    "multiply": 0.2
+                },
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.6
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "greeted_neighbor",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "enjoyed_the_fresh_air",
+                    "chancePerTick": 0.25
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 12,
+            "purpose": 8
+        },
+        "affinity": [
+            "active",
+            "cozy"
+        ]
+    },
+    "caring_for_the_pet": {
+        "label": "Feeding and caring for the pet",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "home",
+        "durationTicks": 1,
+        "requirements": {
+            "attr": "petCount",
+            "op": ">=",
+            "value": 1
+        },
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 20
+        },
+        "satisfies": {
+            "purpose": 10
+        },
+        "affinity": [
+            "cozy"
+        ]
+    },
+    "shared_gossip": {
+        "label": "Shared a bit of gossip",
+        "type": "discrete",
+        "category": "social",
+        "parameters": {
+            "target": {
+                "type": "person",
+                "required": true
+            }
+        },
+        "interaction": {
+            "targetParam": "target",
+            "requiresSameBuilding": true,
+            "askFirst": false
+        },
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 12,
+            "modifiers": [
+                {
+                    "when": {
+                        "relationship": {
+                            "to": "target",
+                            "kinds": [
+                                "acquaintance",
+                                "friend",
+                                "close_friend"
+                            ]
+                        }
+                    },
+                    "multiply": 2
+                }
+            ]
+        },
+        "events": {
+            "onComplete": {
+                "event": "shared_gossip",
+                "params": {
+                    "target": "$params.target"
+                }
+            },
+            "onCompleteTarget": "heard_gossip"
+        },
+        "satisfies": {
+            "social": 8
+        },
+        "affinity": [
+            "social"
+        ]
+    },
+    "responding_to_incident": {
+        "label": "Responding to an incident",
+        "type": "continuous",
+        "category": "work",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        }
+    },
+    "visiting_the_detained": {
+        "label": "Visiting a loved one in custody",
+        "type": "continuous",
+        "category": "social",
+        "durationTicks": 2,
+        "selection": {
+            "weight": 0
+        },
+        "events": {
+            "onComplete": {
+                "event": "visited_person_in_jail",
+                "params": {
+                    "target": "$params.target"
+                }
+            }
+        },
+        "satisfies": {
+            "social": 15
+        },
+        "parameters": {
+            "target": {
+                "type": "string",
+                "required": true
+            }
         }
     }
 }

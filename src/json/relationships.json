@@ -1,0 +1,72 @@
+{
+    "halfLifeDays": {
+        "acquaintance": 120,
+        "friend": 300,
+        "close_friend": 600,
+        "rival": 200,
+        "dating": 400,
+        "ex_partner": 1200,
+        "engaged": 600
+    },
+    "ladder": [
+        {
+            "kind": "acquaintance",
+            "promoteAt": 30,
+            "next": "friend",
+            "onPromote": "made_friend"
+        },
+        {
+            "kind": "friend",
+            "promoteAt": 65,
+            "next": "close_friend",
+            "onPromote": "became_close_friends",
+            "demoteBelow": 10,
+            "downTo": "acquaintance"
+        },
+        {
+            "kind": "close_friend",
+            "demoteBelow": 35,
+            "downTo": "friend"
+        }
+    ],
+    "hostility": {
+        "to": "rival",
+        "strength": 15
+    },
+    "reconciliation": {
+        "to": "acquaintance",
+        "strength": 5
+    },
+    "consent": {
+        "base": {
+            "none": 0.35,
+            "acquaintance": 0.55,
+            "friend": 0.8,
+            "close_friend": 0.9,
+            "rival": 0.05,
+            "dating": 0.95,
+            "ex_partner": 0.25,
+            "spouse": 0.95,
+            "family": 0.85,
+            "engaged": 0.95
+        },
+        "strengthWeight": 0.001,
+        "moodWeight": 0.003
+    },
+    "socialTargeting": {
+        "kindWeight": {
+            "none": 1,
+            "acquaintance": 1.5,
+            "friend": 3,
+            "close_friend": 5,
+            "rival": 1.2,
+            "dating": 6,
+            "ex_partner": 0.7,
+            "spouse": 5,
+            "family": 2.5,
+            "engaged": 7
+        },
+        "strengthWeight": 0.03
+    },
+    "pruneBelow": 0.25
+}

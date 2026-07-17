@@ -8,6 +8,9 @@ import { bootFixture, cityStats, getTick, step } from '../support/app';
 // is live, which is the load-bearing claim.)
 
 test('the monthly economy cascade moves money over months', async ({ page }) => {
+    // Stepping ~a month of the post-aliveness sim (each tick ~30× heavier than pre-arc) runs comfortably
+    // (~17s locally) but can exceed the 60s default on a loaded CI runner — triple the budget for headroom.
+    test.slow();
     await bootFixture(page, 'small-town');
 
     const before = (await cityStats(page))!;

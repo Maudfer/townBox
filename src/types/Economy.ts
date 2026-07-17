@@ -14,6 +14,10 @@ export interface EconomyState {
     // money adjustments) is balanced against, so the grand total (people + businesses + external) is conserved
     // and a long run can be checked for drift. Optional for pre-H3 saves (derived on load).
     externalBalance?: number;
+    // Materialized retail counters (task 089): month-to-date micro-purchase revenue per business and
+    // spend per person, netted out of the monthly resolution. Optional for pre-089 saves.
+    materializedSales?: Record<string, number>;
+    materializedSpend?: Record<string, number>;
 }
 
 // Tunable economy values (src/json/economy.json).
@@ -29,6 +33,11 @@ export interface EconomyParams {
     reoccupancyMonths: number; // months a work building stays vacant before it can attract a new business (task 037)
     evictionArrearsMonths: number; // consecutive months of arrears before a household is evicted (task 022)
     recoveryFunds: number; // pooled funds a homeless household needs to occupy a vacant home again (task 022)
+    foundingCapitalThreshold: number; // savings a qualified unemployed adult needs to found a business (task 097/I3)
+    foundingChancePerMonth: number; // deterministic monthly founding chance when a candidate + lot + demand line up (097)
+    crimeFineAmount: number; // the fine a caught petty criminal pays (task 099; mirrored against the external sector)
+    detentionDays: number; // the second offense's sentence (task 100; served at the jail, else the police station)
+    detentionDaysRepeat: number; // third-and-later offenses (task 109): the long stretch
 }
 
 export type AccountKind = 'person' | 'business';

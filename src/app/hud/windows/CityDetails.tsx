@@ -75,6 +75,22 @@ const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => 
                     </ul>
                 </section>
 
+                {stats.services.length > 0 && (
+                    <section>
+                        <h4>City services</h4>
+                        <ul style={{ margin: 0, paddingLeft: 16 }} data-testid="city-services">
+                            {stats.services.map(line => (
+                                <li key={line.service}>
+                                    {line.label}: <strong>{(line.ratio * 100).toFixed(0)}%</strong>
+                                    {line.facilities === 0
+                                        ? ' — no facility'
+                                        : ` (${line.providers} provider${line.providers === 1 ? '' : 's'}, ${line.facilities} facilit${line.facilities === 1 ? 'y' : 'ies'})`}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                )}
+
                 <section>
                     <h4>Since this session</h4>
                     <ul style={{ margin: 0, paddingLeft: 16 }}>

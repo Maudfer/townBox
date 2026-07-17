@@ -10,7 +10,9 @@ import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/da
 import { ActionManifest } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies', 'resumable', 'affinity', 'ambulatory', 'habit'];
+// The closed need vocabulary (task 084) — mirrors types/Needs.ts NEED_IDS.
+const NEED_KEYS = ['food', 'rest', 'social', 'fun', 'hygiene', 'purpose'];
 const ACTION_TYPES = ['discrete', 'continuous'];
 const CATEGORIES = ['obligation', 'work', 'leisure', 'social', 'recovery', 'movement', 'maintenance'];
 const PARAMETER_TYPES = ['person', 'objectArchetype', 'objectInstance', 'recipe', 'string', 'number', 'boolean'];
@@ -89,6 +91,42 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         if ('children' in action) {
             validateChildren(issues, id, action['children'], parameterNames);
         }
+        if ('resumable' in action) {
+            // Pause/resume (task 087) only makes sense for continuous instances.
+            checkBoolean(issues, `${id}.resumable`, action['resumable']);
+            if (action['type'] !== 'continuous') {
+                issues.add(`${id}.resumable`, 'only continuous actions can pause/resume (discrete commits are instant)');
+            }
+        }
+        if ('habit' in action) {
+            checkString(issues, id + '.habit', action['habit']);
+        }
+        if ('ambulatory' in action) {
+            // Street roaming (task 093): a gait for a continuous OUTDOOR action.
+            checkEnum(issues, `${id}.ambulatory`, action['ambulatory'], ['stroll', 'jog', 'run']);
+            if (action['type'] !== 'continuous') {
+                issues.add(`${id}.ambulatory`, 'only continuous actions can roam (discrete commits are instant)');
+            }
+            if (action['location'] !== 'outside') {
+                issues.add(`${id}.ambulatory`, 'an ambulatory action must be located outside (streets are the venue)');
+            }
+        }
+        if ('affinity' in action) {
+            // Trait affinity tags (task 087) — cross-checked against json/traits.json in semantics.
+            if (!Array.isArray(action['affinity']) || !(action['affinity'] as unknown[]).every(tag => typeof tag === 'string')) {
+                issues.add(`${id}.affinity`, 'expected an array of trait-affinity tag strings');
+            }
+        }
+        if ('satisfies' in action && checkRecord(issues, `${id}.satisfies`, action['satisfies'])) {
+            // Needs satisfaction (task 084): keys from the closed need set, values finite numbers.
+            const satisfies = action['satisfies'] as Record<string, unknown>;
+            checkUnknownKeys(issues, `${id}.satisfies`, satisfies, NEED_KEYS);
+            for (const [need, amount] of Object.entries(satisfies)) {
+                if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+                    issues.add(`${id}.satisfies.${need}`, 'satisfaction amounts must be finite numbers');
+                }
+            }
+        }
         if ('consequences' in action) {
             validateConsequenceOps(issues, `${id}.consequences`, action['consequences']);
         }
@@ -99,7 +137,7 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
         }
         if ('interaction' in action && checkRecord(issues, `${id}.interaction`, action['interaction'])) {
             const interaction = action['interaction'] as Record<string, unknown>;
-            checkUnknownKeys(issues, `${id}.interaction`, interaction, ['targetParam', 'requiresSameBuilding', 'askFirst', 'allowSelf', 'onDecline']);
+            checkUnknownKeys(issues, `${id}.interaction`, interaction, ['targetParam', 'requiresSameBuilding', 'askFirst', 'allowSelf', 'onDecline', 'covert']);
             if (checkString(issues, `${id}.interaction.targetParam`, interaction['targetParam'])
                 && !personParams.includes(interaction['targetParam'] as string)) {
                 issues.add(`${id}.interaction.targetParam`, `must name a declared person-typed parameter (have: ${personParams.join(', ') || 'none'})`);
@@ -116,11 +154,19 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
             if ('onDecline' in interaction) {
                 checkEnum(issues, `${id}.interaction.onDecline`, interaction['onDecline'], ['blockParent', 'skipStep', 'failParent']);
             }
+            if ('covert' in interaction) {
+                // Covert posture (task 099): done WITHOUT the target's knowledge — asking first is a
+                // contradiction in terms, so the two flags are mutually exclusive.
+                checkBoolean(issues, `${id}.interaction.covert`, interaction['covert']);
+                if (interaction['covert'] === true && interaction['askFirst'] === true) {
+                    issues.add(`${id}.interaction.covert`, 'a covert action cannot be askFirst (you don\'t ask permission to pick a pocket)');
+                }
+            }
         }
         if ('events' in action && checkRecord(issues, `${id}.events`, action['events'])) {
             const events = action['events'] as Record<string, unknown>;
-            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt', 'onDecline']);
-            for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline']) {
+            checkUnknownKeys(issues, `${id}.events`, events, ['onStart', 'onComplete', 'onInterrupt', 'onDecline', 'onCompleteTarget', 'onDeclineTarget']);
+            for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline', 'onCompleteTarget', 'onDeclineTarget']) {
                 if (!(hook in events)) {
                     continue;
                 }
@@ -297,10 +343,19 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
         if (action.events?.onDecline && action.interaction?.askFirst !== true) {
             issues.add(`${id}.events.onDecline`, 'declares a decline event but the action is not askFirst — nothing can ever decline it');
         }
+        if (action.events?.onDeclineTarget && action.interaction?.askFirst !== true) {
+            issues.add(`${id}.events.onDeclineTarget`, 'declares a target decline event but the action is not askFirst — nothing can ever decline it');
+        }
+        // Counterpart links (task 082): only an interaction has a target to fire at.
+        for (const hook of ['onCompleteTarget', 'onDeclineTarget'] as const) {
+            if (action.events?.[hook] && !action.interaction) {
+                issues.add(`${id}.events.${hook}`, 'declares a counterpart event but the action has no interaction contract (no target to fire at)');
+            }
+        }
 
         // Lifecycle event links: the event must exist AND be manually triggerable (both directions of the
         // action↔event coupling are managed data — 038 §7).
-        for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline'] as const) {
+        for (const hook of ['onStart', 'onComplete', 'onInterrupt', 'onDecline', 'onCompleteTarget', 'onDeclineTarget'] as const) {
             const link = action.events?.[hook];
             if (!link) {
                 continue;
@@ -327,6 +382,11 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
                         if (!(paramName in (action.parameters ?? {}))) {
                             issues.add(`${id}.events.${hook}.params.${key}`, `mapping references undeclared action parameter "${paramName}"`);
                         }
+                    }
+                    // '$actor' (task 082) resolves only when firing at a target — actor-side links have no
+                    // separate "actor" to name.
+                    if (mapping === '$actor' && hook !== 'onCompleteTarget' && hook !== 'onDeclineTarget') {
+                        issues.add(`${id}.events.${hook}.params.${key}`, `'$actor' is only meaningful on counterpart (target) links`);
                     }
                 }
             }

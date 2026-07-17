@@ -1,0 +1,12 @@
+{
+    "coverageBelow": 0.4,
+    "chancePerHousehold": 0.25,
+    "minAgeYears": 25,
+    "maxAgeYears": 55,
+    "templates": {
+        "healthcare": {
+            "event": "nursing_school",
+            "atAgeYears": 24
+        }
+    }
+}

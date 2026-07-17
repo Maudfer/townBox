@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test } from '../support/fixtures';
 
-import { bootNewGame, buildings, cityStats, clickTile, people, pressToolKey, selectBuilding, structureCounts } from '../support/app';
+import { bootNewGame, buildings, cityStats, clickTile, people, placeViaConstruction, pressToolKey, selectBuilding, structureCounts } from '../support/app';
 
 // §4.3 scenario: placing a house draws a coherent household from the genealogy pool and materialises its living
 // members, whose family tree renders in the inspector.
@@ -17,8 +17,7 @@ test('placing a house materialises a household whose family tree renders', async
     await placeRoad(page, 190);
     await placeRoad(page, 193);
 
-    await pressToolKey(page, 'F3'); // house tool
-    await clickTile(page, 193, 190);
+    await placeViaConstruction(page, 'house', 193, 190); // Residence via the construction menu (task 108)
     await page.evaluate(() => window.__townbox!.stepTicks(1));
 
     // A coherent household of living members materialised.

@@ -5,7 +5,17 @@ import { PopulationState } from 'types/Genealogy';
 import { Household } from 'types/Household';
 import { EventHistoryTable, EventLogTable, ScheduleState } from 'types/LifeEvent';
 import { Direction } from 'types/Movement';
+import { AgendaState } from 'types/Agenda';
+import { HabitsState } from 'types/Habits';
+import { IncidentsState } from 'types/Incidents';
+import { DetentionState } from 'types/Detention';
+import { BuildingConditionsState } from 'types/Fire';
+import { PetsState } from 'types/Pets';
+import { KnownFactsState } from 'types/Reputation';
+import { MoodState } from 'types/Mood';
+import { NeedsState } from 'types/Needs';
 import { InventoryState } from 'types/Objects';
+import { SocialGraphState } from 'types/Relationship';
 import { SchoolRegistryState } from 'types/School';
 import { SkillBookState } from 'types/Skill';
 import { Gender, Relationships } from 'types/Social';
@@ -39,7 +49,11 @@ import { JobPosition } from 'types/Work';
 //          game was selected from + who has already been hydrated, so households placed AFTER a load keep
 //          receiving pre-game histories. Additive optional field; older saves load with hydration disabled
 //          (people placed later simply arrive without pre-game logs — the sim itself never needed them).
-export const SAVE_VERSION = 14;
+// v14 → v15: the elective social graph (task 083). `socialGraph` carries friendship/rivalry/romance edges;
+//          additive — absent reads as an empty graph (edges regrow from real interactions).
+// v15 → v16: the needs ledger (task 084). `needs` carries per-person meters; additive — absent re-seeds
+//          lazily and deterministically per person on first read.
+export const SAVE_VERSION = 16;
 
 // The default save slot used by the in-game save button, Ctrl+S, and the title-screen "Load Game" option.
 export const DEFAULT_SAVE_SLOT = 'autosave';
@@ -149,6 +163,26 @@ export interface WorldSnapshot {
     // Lazy history hydration (v14, task 012 follow-up): the asset ref (dir/window/createdAt fingerprint) plus
     // who has already been hydrated. Optional: absent = hydration disabled (cold-start worlds, older saves).
     historyHydration?: HistoryHydrationSave;
+    // The elective social graph (v15, task 083). Optional so older saves load with an empty graph.
+    socialGraph?: SocialGraphState;
+    // The needs ledger (v16, task 084). Optional so older saves lazily re-seed per person.
+    needs?: NeedsState;
+    // The agenda (v16, task 085). Optional so older saves load with no pending plans (routines re-plan).
+    agenda?: AgendaState;
+    // Mood impulses (v16 family, task 091). Optional so older saves rest at the baseline.
+    mood?: MoodState;
+    // Habit counters (task 095, v16 family) — absent in older saves (everyone starts habit-free).
+    habits?: HabitsState;
+    // City incidents (task 099, v16 family) — absent in older saves (a clean blotter).
+    incidents?: IncidentsState;
+    // Detention (task 100, v16 family) — absent in older saves (nobody is serving time).
+    detention?: DetentionState;
+    // Building condition (task 102, v16 family) — absent in older saves (everything reads pristine).
+    buildingConditions?: BuildingConditionsState;
+    // Pets (task 103, v16 family) — absent in older saves (no companions yet).
+    pets?: PetsState;
+    // Known facts (task 104, v16 family) — absent in older saves (nobody knows anything yet).
+    knownFacts?: KnownFactsState;
 }
 
 // See WorldSnapshot.historyHydration. `dir` and `createdAt` identify the exact asset generation the world was

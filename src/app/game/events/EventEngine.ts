@@ -4,6 +4,13 @@ import { fakerPT_BR } from '@faker-js/faker';
 
 import { compileEvents, EventGraph, GateComparison } from 'game/events/EventCompiler';
 import LifeLog from 'game/events/LifeLog';
+import { SERVICES_CONFIG } from 'game/economy/CityServices';
+import { MOOD_CONFIG } from 'game/population/Mood';
+import { resolveStanding } from 'game/population/SocialGraph';
+import { MoodReader } from 'types/Mood';
+import { ServiceCoverageReader } from 'types/Services';
+import { PetsReader } from 'types/Pets';
+import { EdgeKind, RelationshipGraph } from 'types/Relationship';
 
 import { ExecutionContext } from 'types/Execution';
 
@@ -64,6 +71,13 @@ export const DEFAULT_EVENT_MANIFEST: EventManifest = eventsConfig as unknown as 
 // all of that pay for probability factors, limits, full predicates, and role searches.
 
 const ROLE_SUBJECT = 'subject';
+
+// Recency window for the jobApplications attribute (task 097): applications older than a week stop counting.
+const JOB_APPLICATION_WINDOW_TICKS = 168;
+
+// Recency window for the recentlyTreated attribute (task 111): a doctor's treatment boosts the recovery
+// hazard for a week, then the personal multiplier fades (coverage — the system level — stays).
+const TREATMENT_WINDOW_TICKS = 168;
 
 // Shared empty agent list for invoke() on events with no candidate-search role (task 079). resolveRoles only
 // reads agentIds (never mutates), so a single shared instance is safe and avoids a per-call allocation.
@@ -154,6 +168,10 @@ export default class EventEngine {
     private ledger: MoneyLedger | null; // money (task 017)
     private housing: HousingMarket | null; // move-out eligibility (task 024)
     private skills: SkillRegistry | null; // skill grants from education events (task 032)
+    private social: RelationshipGraph | null; // the elective social graph (task 083)
+    private moodLedger: MoodReader | null; // mood impulses from event valence (task 091)
+    private servicesReader: ServiceCoverageReader | null; // coverage ratios for hazard factors (task 096)
+    private petsReader: PetsReader | null; // petCount attribute (task 103)
     // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
     // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
     // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
@@ -228,6 +246,10 @@ export default class EventEngine {
         this.ledger = null;
         this.housing = null;
         this.skills = null;
+        this.social = null;
+        this.moodLedger = null;
+        this.servicesReader = null;
+        this.petsReader = null;
     }
 
     // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
@@ -275,6 +297,11 @@ export default class EventEngine {
     // A person's life log, oldest first. The inspector renders it newest-first (its concern, not the engine's).
     getPersonLog(personId: PersonId): PersonLogEntry[] {
         return this.lifeLog.getPersonLog(personId);
+    }
+
+    // The loaded manifest (read-only) — reaction/witness dispatch (task 094) reads authored fields off it.
+    getManifest(): EventManifest {
+        return this.manifest;
     }
 
     getNextLogSeq(): number {
@@ -348,6 +375,13 @@ export default class EventEngine {
         const existing = personHistory[eventId];
         personHistory[eventId] = { count: (existing?.count ?? 0) + 1, lastTick: tick };
         this.history[personId] = personHistory;
+
+        // Mood impulse (task 091 / G1): the event's authored valence lands on the SUBJECT of this commit —
+        // counterpart events carry their own valence, so both sides of an interaction feel their own halves.
+        const valence = this.manifest[eventId]?.valence ?? 0;
+        if (valence !== 0) {
+            this.moodLedger?.impulse(personId, valence, tick);
+        }
         return seq;
     }
 
@@ -390,6 +424,34 @@ export default class EventEngine {
             case 'retired':
                 // Set true by the retirement event (task 032); gates get_job so retirees aren't re-hired.
                 return (this.overlay[id]?.['retired'] as boolean) ?? false;
+            case 'depressed':
+                // Depression state (task 095): set by depressive_episode, cleared by lifted_spirits. The
+                // withdrawal modifiers in the action data gate on it; unset reads false, never undefined.
+                return (this.overlay[id]?.['depressed'] as boolean) ?? false;
+            case 'mood':
+                // Morale 0–100 (task 091): baseline without a bound ledger. Vice/withdrawal data gates on it.
+                return this.moodLedger ? this.moodLedger.moodOf(id, tick) : MOOD_CONFIG.baseline;
+            case 'healthcareCoverage':
+                // The services ledger (task 096): recovery hazards read it as a factor. Unmeasured contexts
+                // read the neutral level, at which the published curves pass through 1 (no ledger, no effect).
+                return this.servicesReader ? this.servicesReader.coverageOf('healthcare') : SERVICES_CONFIG.neutralCoverage;
+            case 'petCount':
+                // Pets (task 103): adoption caps and dog-walk gates read the registry; 0 without one.
+                return this.petsReader ? this.petsReader.countOf(id) : 0;
+            case 'policeCoverage':
+                // The services ledger (task 099): crime selection gates read it — a patrolled town tempts
+                // less. Unmeasured contexts read neutral, where the authored modifiers are inert.
+                return this.servicesReader ? this.servicesReader.coverageOf('police') : SERVICES_CONFIG.neutralCoverage;
+            case 'jobApplications':
+                // Job seeking made visible (task 097 / I1): recent applied_for_a_job commits in the shared
+                // log. get_job's hazard factor reads it (an active applicant is hired in days, not months)
+                // and application_rejected gates on it. Zero without seeking — the status-quo rate holds.
+                return this.lifeLog.countRecentActions(id, 'applied_for_a_job', tick - JOB_APPLICATION_WINDOW_TICKS);
+            case 'recentlyTreated':
+                // Treatment as lived behavior (task 111): recent was_treated_by_doctor commits in the shared
+                // log. recovered's hazard factor reads it — the PERSONAL multiplier on top of the system-level
+                // healthcareCoverage. Zero without a doctor's visit — the status-quo rate holds.
+                return this.lifeLog.countRecentEvents(id, 'was_treated_by_doctor', tick - TREATMENT_WINDOW_TICKS);
             case 'hourOfDay':
                 // Time-of-day (0..23) for probability gradients (task 048: arguments at 03:00 are rarer than
                 // at dinner time) and predicates. Derived from the tick, identical in both execution modes.
@@ -416,6 +478,14 @@ export default class EventEngine {
                 const roleId = roleMap[name];
                 return roleId ? this.makeContext(state, roleId, {}, tick, ticksPerYear) : null;
             },
+            relationshipWith: (name: string) => {
+                // Relationship standing (task 083): `name` addresses a bound ROLE in event contexts.
+                const otherId = roleMap[name];
+                if (!otherId) {
+                    return null;
+                }
+                return resolveStanding(state.people, this.social, id, otherId, tick);
+            },
         };
     }
 
@@ -430,6 +500,25 @@ export default class EventEngine {
             const partnerId = spouseAt(state.people, baseId, tick);
             if (partnerId && state.people[partnerId] && isAliveAt(state.people[partnerId]!, tick)) {
                 return partnerId;
+            }
+        }
+        // Romance-arc binds (task 090 / proposal B4), read from the elective social graph:
+        // partnerOrDatingOf — the genealogy spouse first, else the strongest dating/engaged edge; engagedOf —
+        // the strongest engaged edge only (the marriage event's gate: no engagement, no wedding).
+        if (relation === 'partnerOrDatingOf' || relation === 'engagedOf') {
+            if (relation === 'partnerOrDatingOf') {
+                const partnerId = spouseAt(state.people, baseId, tick);
+                if (partnerId && state.people[partnerId] && isAliveAt(state.people[partnerId]!, tick)) {
+                    return partnerId;
+                }
+            }
+            const kinds = relation === 'engagedOf' ? ['engaged'] : ['dating', 'engaged'];
+            const edges = this.social?.edgesOf(baseId, tick)
+                .filter(edge => kinds.includes(edge.view.kind)
+                    && state.people[edge.otherId] && isAliveAt(state.people[edge.otherId]!, tick)) ?? [];
+            if (edges.length > 0) {
+                const best = edges.reduce((top, edge) => edge.view.strength > top.view.strength ? edge : top);
+                return best.otherId;
             }
         }
         return null;
@@ -570,6 +659,9 @@ export default class EventEngine {
                     this.marry(state, subjectId, partnerId, tick);
                     this.setOverlay(subjectId, 'marital', 'married');
                     this.setOverlay(partnerId, 'marital', 'married');
+                    // The wedding consumes the engagement edge (task 090): spouse standing derives from the
+                    // genealogy from here on — without this, engagedOf could re-marry a divorced pair forever.
+                    this.social?.removeEdgeBetween?.(subjectId, partnerId);
                 }
                 return true;
             }
@@ -579,6 +671,9 @@ export default class EventEngine {
                 this.setOverlay(subjectId, 'marital', 'divorced');
                 if (partnerId) {
                     this.setOverlay(partnerId, 'marital', 'divorced');
+                    // Exes stay in each other's stories (task 090): a lingering ex_partner edge seasons
+                    // future consent/targeting without any scripting.
+                    this.social?.setKind(subjectId, partnerId, 'ex_partner', tick, 20);
                 }
                 return true;
             }
@@ -621,6 +716,17 @@ export default class EventEngine {
                 const targetId = effect.target ? roleMap[effect.target] : subjectId;
                 if (this.ledger && targetId) {
                     this.ledger.adjustPerson(targetId, effect.amount ? evaluateCurve(effect.amount, 0) : 0);
+                }
+                return true;
+            }
+            // Adjust the elective social graph between the subject and a bound role (task 083). No-op (still
+            // commits) without a graph/binding. Kind transitions from THIS path fire no events (the action-
+            // consequence path owns transition events — invoking mid-effect would recurse the engine).
+            case 'adjustRelationship': {
+                const otherId = effect.role ? roleMap[effect.role] : undefined;
+                if (this.social && otherId && otherId !== subjectId) {
+                    this.social.adjust(subjectId, otherId, effect.delta ?? 0, tick,
+                        effect.kind ? { kind: effect.kind as EdgeKind } : {});
                 }
                 return true;
             }
@@ -838,6 +944,10 @@ export default class EventEngine {
         this.ledger = markets.ledger ?? null;
         this.housing = markets.housing ?? null;
         this.skills = markets.skills ?? null;
+        this.social = markets.social ?? null;
+        this.moodLedger = markets.mood ?? null;
+        this.servicesReader = markets.services ?? null;
+        this.petsReader = markets.pets ?? null;
     }
 
     // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
@@ -851,6 +961,10 @@ export default class EventEngine {
         this.ledger = null;
         this.housing = null;
         this.skills = null;
+        this.social = null;
+        this.moodLedger = null;
+        this.servicesReader = null;
+        this.petsReader = null;
     }
 
     // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,
@@ -939,7 +1053,7 @@ export default class EventEngine {
             return null;
         }
         const seq = this.recordEvent(subjectId, eventId, tick, roleMap, source, causationId, params);
-        result.committed.push({ personId: subjectId, eventId, seq });
+        result.committed.push({ personId: subjectId, eventId, seq, ...(params ? { params } : {}) });
         for (const pending of pendingSignals) {
             // The payload rides the signal (067) so feed builders can interpolate it.
             result.signals.push({ ...pending, eventId, causationId: seq, ...(params ? { params } : {}) });

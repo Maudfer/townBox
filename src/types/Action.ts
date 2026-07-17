@@ -69,16 +69,25 @@ export interface ActionEventLinks {
     // Fired when an askFirst consent is DECLINED (task 074) — wired only where a downstream consumer exists
     // (curated: object transfers); everything else lets the failed log entry be the record.
     onDecline?: EventLink;
+    // Counterpart events (task 082 / proposal C1): fired with the interaction TARGET as the event subject and
+    // the SAME causation seq as the actor's lifecycle entry, so both sides of an interaction log the same
+    // moment ("Gave a gift" ↔ "Received a gift"). Param mappings may use '$actor' for the acting person's id
+    // in addition to '$params.<name>' and literals. Only meaningful on actions with an interaction contract.
+    onCompleteTarget?: EventLink;
+    onDeclineTarget?: EventLink;
 }
 
 // The interaction contract every Person-targeted action must declare (task 072): which parameter names the
 // target, same-building co-location (REQUIRED true this iteration — no remote interaction yet; the field
 // exists so relaxing later is data), whether consent is asked first (073 implements the flow), whether the
 // action may target its own actor, and how a declined/failed instance behaves as a sequence child.
+// covert (task 099): a person-targeted action performed WITHOUT the target's knowledge — never askFirst
+// (the validator enforces mutual exclusion). Whether anyone SAW it is the witness machinery's question.
 export interface InteractionContract {
     targetParam: string;
     requiresSameBuilding: boolean;
     askFirst: boolean;
+    covert?: boolean;
     allowSelf?: boolean;
     onDecline?: StepFailurePolicy;
 }
@@ -107,15 +116,39 @@ export interface ActionDefinition {
     // person-typed parameter.
     interaction?: InteractionContract;
     consequences?: ConsequenceOp[];
+    // What the action restores (task 084 / proposal A): need-id → satisfaction points, credited when the
+    // action commits (discrete: at perform; continuous: at completion). Urgency of these needs multiplies
+    // the action's selection weight through the shared gradient (json/needs.json).
+    satisfies?: Partial<Record<import('types/Needs').NeedId, number>>;
+    // Continuous only (task 087 / proposal L5): a higher-band interruption PARKS the instance (paused →
+    // later resumed, same instance id) instead of killing it — the walk continues after the chase. The
+    // resume window is authored in json/arbitration.json; past it, the pause becomes a real interruption.
+    resumable?: boolean;
+    // Continuous outdoor only (task 093 / proposal E1): while the instance runs, the person visibly roams
+    // the street network (the wander machinery at the named gait). Live-mode only — bootstrap/logical worlds
+    // have no streets to walk; the lifecycle records are identical either way (the 040 seam holds).
+    ambulatory?: 'stroll' | 'jog' | 'run';
+    // Habit linkage (task 095 / G3): committing this action practices the named habit; the habit level
+    // multiplies this action's selection weight (escalation). Cooling is authored in json/habits.json.
+    habit?: string;
+    // Trait affinity tags (task 087 / proposal M2): which temperament axes this action appeals to, mapped
+    // through json/traits.json — a high-orderliness person actually keeps their house clean.
+    affinity?: string[];
 }
 
 export type ActionManifest = Record<ActionId, ActionDefinition>;
 
 // --- Runtime ---------------------------------------------------------------------------------------------
 
-export type ActionStatus = 'pending' | 'waiting_for_materialization' | 'running' | 'completed' | 'interrupted' | 'blocked' | 'failed';
+export type ActionStatus = 'pending' | 'waiting_for_materialization' | 'running' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused';
 
 export type ActionOutcome = 'completed' | 'interrupted' | 'blocked' | 'failed';
+
+// Arbitration bands (task 086 / proposal L2): the closed priority ladder every intent declares, highest
+// first. Bands govern both ordering and INTERRUPTION (a running continuous action is displaced only from a
+// strictly higher band; same-band displacement needs a utility delta over the authored hysteresis).
+export const INTENT_BANDS = ['survival', 'obligation', 'commitment', 'need', 'opportunity', 'fallback'] as const;
+export type IntentBand = (typeof INTENT_BANDS)[number];
 
 // A live (or finished) continuous-action instance. Discrete actions don't materialize instances — they
 // commit straight to the log.
@@ -143,6 +176,12 @@ export interface ActionInstance {
     // Per-child occurrence bookkeeping for pool children: count + last occurrence tick.
     poolState: Record<ActionId, { count: number; lastTick: number }>;
     lastPoolChild: string | null; // interleaving: the last child that occurred within the current tick
+    // Arbitration provenance (task 086): the band + in-band utility of the intent that started this
+    // instance, read by the interruption matrix. Additive (older saves/instances read as 'fallback'/0).
+    band?: IntentBand;
+    utility?: number;
+    // When the instance was parked by a higher band (task 087, status 'paused'); bounds the resume window.
+    pausedAtTick?: number | null;
 }
 
 // Aggregate action history (mirror of the event aggregate): O(1) hasAction queries.
@@ -188,8 +227,9 @@ export type ConsequenceOp =
     | { op: 'createObject'; archetype: string; quantity?: number; state?: Record<string, Value>; owner?: OwnershipTarget; container?: 'possessions' | 'location'; bindAs?: string }
     | { op: 'consumeObject'; object: ObjectRef; quantity?: number }
     | { op: 'removeObject'; object: ObjectRef }
-    // Physical movement only (ownership untouched): pocket something / put it down.
-    | { op: 'moveObject'; object: ObjectRef; container: 'possessions' | 'location' }
+    // Physical movement only (ownership untouched): pocket something / put it down. 'outside' is the curb
+    // (task 112): the shared street location, so taking the trash out lands it where collectors sweep.
+    | { op: 'moveObject'; object: ObjectRef; container: 'possessions' | 'location' | 'outside' }
     // Physical hand-off only (ownership untouched): the object lands in the target person's Possessions.
     // Lending and returning — the counterpart of moveObject when the destination is another person.
     | { op: 'moveObjectToPerson'; object: ObjectRef; target: 'targetPerson' }
@@ -198,6 +238,21 @@ export type ConsequenceOp =
     | { op: 'setObjectState'; object: ObjectRef; key: string; value: Value }
     // Approved person mutation: money through the ledger (never raw writes).
     | { op: 'adjustMoney'; amount: number; target?: 'person' | 'targetPerson' }
+    // Materialized retail (task 089 / F3): buy a matching BUSINESS-OWNED instance at the person's current
+    // location — ownership transfers, the object lands in Possessions, money moves person → business through
+    // the ledger, and the sale is recorded for monthly netting. Without matching stock, `fallback` conjures
+    // the archetype instead (the documented 071 keep-list path — venues without real stock) with a one-sided
+    // spend. The 12k-bread mountain finally has an outlet.
+    | { op: 'purchaseObject'; query: { archetype?: string; tag?: string }; price: number; fallback?: string; fallbackQuantity?: number }
+    // Adjust the elective social graph between the actor and the action's target (task 083). Kind transitions
+    // (acquaintance → friend, …) fire their authored events (json/relationships.json ladder) for BOTH sides,
+    // chained to this commit. No-op without a graph in context (pure tests).
+    | { op: 'adjustRelationship'; delta: number; kind?: string }
+    // Install MIRRORED agenda entries for the actor and the action's target (task 085 / proposal D3): both
+    // plan the activity named by `activityParam` inside [now+afterTicks, +windowTicks], the guest following
+    // the host ('person:<actor>'). This is the consented joint-plan mechanism — couple walks, dinner guests —
+    // riding two linked instances instead of a multi-person action. No-op without an agenda in context.
+    | { op: 'planJointActivity'; activityParam: string; afterTicks: number; windowTicks: number }
     // Fire a manual Event now / schedule an automated one — both through the Event engine, with causation.
     | { op: 'triggerEvent'; event: string }
     | { op: 'scheduleEvent'; event: string; afterTicks: number };

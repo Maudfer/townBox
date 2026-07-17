@@ -1,9 +1,7 @@
 import {
     mdiCursorDefault,
     mdiRoadVariant,
-    mdiGrass,
-    mdiHomePlus,
-    mdiOfficeBuilding,
+    mdiHomeCity,
     mdiBulldozer,
     mdiContentSave,
 } from '@mdi/js';
@@ -16,13 +14,13 @@ import { HUDProps } from 'types/HUD';
 // Toolbar buttons select tools by emitting the `toolSelected` bus event (task 030); MainScene consumes it,
 // and the F1–F6 keys emit the same event, so keyboard and toolbar stay in sync. The active tool is tracked
 // by listening to `toolSelected` and highlighted.
+// Consolidated toolbar (task 108): House/Work/Soil are gone — Construction opens the building menu (which
+// arms placement), and Bulldoze alone reverts ANY tile to grass with the coherent logical teardown.
 const TOOL_BUTTONS: { tool: Tool; icon: string; label: string }[] = [
-    { tool: Tool.Select, icon: mdiCursorDefault, label: 'Select / Inspect (F5)' },
+    { tool: Tool.Select, icon: mdiCursorDefault, label: 'Select / Inspect (F1)' },
     { tool: Tool.Road, icon: mdiRoadVariant, label: 'Road (F2)' },
-    { tool: Tool.Soil, icon: mdiGrass, label: 'Soil / Grass (F1)' },
-    { tool: Tool.House, icon: mdiHomePlus, label: 'House (F3)' },
-    { tool: Tool.Work, icon: mdiOfficeBuilding, label: 'Workplace (F4)' },
-    { tool: Tool.Bulldoze, icon: mdiBulldozer, label: 'Bulldoze (F6)' },
+    { tool: Tool.Construction, icon: mdiHomeCity, label: 'Construction (F3)' },
+    { tool: Tool.Bulldoze, icon: mdiBulldozer, label: 'Bulldoze (F4)' },
 ];
 
 const Toolbar: React.FC<HUDProps> = ({ game }) => {

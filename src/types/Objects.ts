@@ -52,6 +52,9 @@ export interface ObjectArchetype {
     category: string; // broad grouping (food, stationery, tool, …); the 039 validator pins the vocabulary
     size: ObjectDimensions;
     weightGrams: number;
+    // Perishables (task 089 / F3): the instance spoils (is removed by the daily sweep) this many ticks
+    // after creation. Absent = never spoils.
+    expiresAfterTicks?: number;
     flags: ObjectFlags;
     container?: ContainerBehavior;
     tags?: string[];

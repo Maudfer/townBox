@@ -399,13 +399,27 @@ export default class Person {
         }
     }
 
+    // Ambulatory (task 093 / E1): while the person's active continuous action is authored `ambulatory`
+    // (a walk, a jog), they visibly roam the street network — the wander machinery, temporarily. Transient
+    // (derived each in-game minute from the Brain status by City); never serialized.
+    private ambulatory = false;
+
+    setAmbulatory(ambulatory: boolean): void {
+        this.ambulatory = ambulatory;
+    }
+
+    isAmbulatory(): boolean {
+        return this.ambulatory;
+    }
+
     update(currentTile: Tile, timeDelta: number, destinations: Set<string>, pathFinder: PathFinder): void {
         if (this.destinationBuilding) {
             this.processTravel(currentTile, timeDelta, pathFinder);
         } else {
             this.walk(currentTile, timeDelta);
-            // Only debug test people wander; residents stay put until dispatched (commute, task 006).
-            if (this.wander) {
+            // Debug test people wander; residents stay put until dispatched (commute, task 006) — unless
+            // their current activity is ambulatory (task 093): joggers jog, strollers stroll, visibly.
+            if (this.wander || this.ambulatory) {
                 this.updateDestination(currentTile, destinations, pathFinder);
             }
         }
@@ -421,6 +435,10 @@ export default class Person {
     }
 
     getPosition(): PixelPosition {
+        return { x: this.x, y: this.y };
+    }
+
+    getPixelPosition(): { x: number; y: number } {
         return { x: this.x, y: this.y };
     }
 

@@ -11,7 +11,7 @@ export type ComparisonOp = '==' | '!=' | '<' | '<=' | '>' | '>=' | 'in';
 
 // Grammar version (task 043): bump when node kinds are added/changed so downstream tooling (the 054
 // relationship docs, external validators) can pin what it understands.
-export const PREDICATE_VERSION = 2;
+export const PREDICATE_VERSION = 3; // v3 (task 083): the `relationship` standing node
 
 export type Predicate =
     | { all: Predicate[] }
@@ -25,6 +25,10 @@ export type Predicate =
     | { carries: ObjectQuery }
     // v2 (task 043): a matching Object Instance is physically at the agent's current location.
     | { objectAtLocation: ObjectQuery }
+    // v3 (task 083): the agent's relationship standing toward another participant — `to` names an action
+    // parameter (action contexts; default 'target') or a bound role (event contexts). Standing kinds include
+    // graph edge kinds plus the derived 'spouse'/'family'. Runtime-only (never part of the static event graph).
+    | { relationship: { to?: string; kinds: string[]; minStrength?: number } }
     | { role: string; where: Predicate };
 
 // A predicate compiled to a closure (task 079 pass 3). `evaluatePredicate` re-walks the JSON AST on every
@@ -91,6 +95,16 @@ export function compilePredicate(pred: Predicate): CompiledPredicate {
     if ('objectAtLocation' in pred) {
         const query = pred.objectAtLocation;
         return ctx => ctx.objectAtLocation ? ctx.objectAtLocation(query) : false;
+    }
+    if ('relationship' in pred) {
+        const { to = 'target', kinds, minStrength } = pred.relationship;
+        return ctx => {
+            const view = ctx.relationshipWith ? ctx.relationshipWith(to) : null;
+            if (!view || !kinds.includes(view.kind)) {
+                return false;
+            }
+            return minStrength === undefined || view.strength >= minStrength;
+        };
     }
     if ('where' in pred) {
         const role = pred.role;
@@ -164,6 +178,14 @@ export function evaluatePredicate(pred: Predicate, ctx: SimulationContext): bool
     }
     if ('objectAtLocation' in pred) {
         return ctx.objectAtLocation ? ctx.objectAtLocation(pred.objectAtLocation) : false;
+    }
+    if ('relationship' in pred) {
+        const { to = 'target', kinds, minStrength } = pred.relationship;
+        const view = ctx.relationshipWith ? ctx.relationshipWith(to) : null;
+        if (!view || !kinds.includes(view.kind)) {
+            return false;
+        }
+        return minStrength === undefined || view.strength >= minStrength;
     }
     if ('where' in pred) {
         const sub = ctx.role(pred.role);

@@ -54,6 +54,10 @@ export default class BootstrapWorld implements WorldAdapter {
         return ids.sort();
     }
 
+    hasVenue(): boolean {
+        return true; // abstract venues always exist off-map (task 107)
+    }
+
     objectsAt(location: LogicalLocation): string[] {
         return (this.inventory?.instancesAtLocation(locationKey(location)) ?? []).map(instance => instance.id);
     }

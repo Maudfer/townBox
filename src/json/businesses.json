@@ -132,7 +132,8 @@
                 "base": 4000,
                 "perUnit": 2500
             }
-        }
+        },
+        "placement": "civic"
     },
     "school": {
         "friendlyName": "School",
@@ -1668,12 +1669,12 @@
                     "value": 1
                 }
             },
-            "security_guard": {
+            "police_officer": {
                 "count": {
                     "mode": "linear",
                     "base": 3,
                     "perUnit": 2,
-                    "max": 16
+                    "max": 14
                 }
             }
         },
@@ -1686,7 +1687,8 @@
                 "base": 2200,
                 "perUnit": 1300
             }
-        }
+        },
+        "placement": "civic"
     },
     "fire_station": {
         "friendlyName": "Fire Station",
@@ -1705,12 +1707,12 @@
                     "value": 1
                 }
             },
-            "security_guard": {
+            "firefighter": {
                 "count": {
                     "mode": "linear",
                     "base": 3,
                     "perUnit": 2,
-                    "max": 16
+                    "max": 14
                 }
             }
         },
@@ -1723,7 +1725,8 @@
                 "base": 2200,
                 "perUnit": 1300
             }
-        }
+        },
+        "placement": "civic"
     },
     "church": {
         "friendlyName": "Church",
@@ -1926,5 +1929,84 @@
                 "perUnit": 700
             }
         }
+    },
+    "jail": {
+        "friendlyName": "County Jail",
+        "category": "services",
+        "tags": [
+            "police-station",
+            "office"
+        ],
+        "size": {
+            "min": 1,
+            "max": 4
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "corrections_officer": {
+                "count": {
+                    "mode": "linear",
+                    "base": 3,
+                    "perUnit": 2,
+                    "max": 12
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.2,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 2000,
+                "perUnit": 1100
+            }
+        },
+        "placement": "civic"
+    },
+    "sanitation_depot": {
+        "friendlyName": "Landfill",
+        "category": "services",
+        "tags": [
+            "warehouse",
+            "garage",
+            "office"
+        ],
+        "size": {
+            "min": 1,
+            "max": 4
+        },
+        "jobs": {
+            "manager": {
+                "count": {
+                    "mode": "const",
+                    "value": 1
+                }
+            },
+            "garbage_collector": {
+                "count": {
+                    "mode": "linear",
+                    "base": 3,
+                    "perUnit": 2,
+                    "max": 12
+                }
+            }
+        },
+        "materialsPerUnit": {},
+        "products": {},
+        "economics": {
+            "priceMarkup": 1.2,
+            "fixedCostsPerMonth": {
+                "mode": "linear",
+                "base": 1600,
+                "perUnit": 900
+            }
+        },
+        "placement": "civic"
     }
 }

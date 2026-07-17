@@ -57,4 +57,11 @@ export interface SimulationContext {
     // Whether a matching Object Instance is physically present at this agent's current location — task 043,
     // backed by WorldAdapter.objectsAt (040/041).
     objectAtLocation?(query: ObjectQuery): boolean;
+
+    // The agent's relationship standing toward the person addressed by `name` (task 083): an action
+    // parameter name in action contexts, a bound role name in event contexts. Returns the resolved standing
+    // — a social-graph edge kind, or the derived 'spouse'/'family' — with its (decayed) strength, or null
+    // when no such person/tie resolves. Contexts predating the social graph simply lack it (predicates
+    // evaluate false).
+    relationshipWith?(name: string): { kind: string; strength: number } | null;
 }

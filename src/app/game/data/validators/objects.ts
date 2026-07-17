@@ -12,7 +12,7 @@ export const OBJECT_CATEGORIES = [
     'vehicle/vehicle-part', 'decoration', 'document', 'container', 'instrument', 'misc',
 ];
 
-const ARCHETYPE_KEYS = ['label', 'category', 'size', 'weightGrams', 'flags', 'container', 'tags', 'placement', 'generation'];
+const ARCHETYPE_KEYS = ['label', 'category', 'size', 'weightGrams', 'flags', 'container', 'tags', 'placement', 'generation', 'expiresAfterTicks'];
 const FLAG_KEYS = ['carryable', 'pocketable', 'stackable', 'consumable', 'equippable', 'placeable'];
 
 // Physical sanity rails (grams / cm). Deliberately generous — they exist to catch data-entry mistakes
@@ -30,6 +30,10 @@ export function validateObjectsStructure(data: unknown, issues: IssueCollector):
             continue;
         }
         checkUnknownKeys(issues, id, archetype, ARCHETYPE_KEYS);
+        if ('expiresAfterTicks' in archetype) {
+            // Perishables (task 089/F3): spoil after this many ticks from creation.
+            checkNumber(issues, id + '.expiresAfterTicks', archetype['expiresAfterTicks'], { min: 1, integer: true });
+        }
         checkString(issues, `${id}.label`, archetype['label']);
         if (checkString(issues, `${id}.category`, archetype['category']) && !OBJECT_CATEGORIES.includes(archetype['category'] as string)) {
             issues.add(`${id}.category`, `unknown category "${archetype['category']}" (allowed: ${OBJECT_CATEGORIES.join(', ')})`);

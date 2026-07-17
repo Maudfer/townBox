@@ -71,6 +71,9 @@ export interface BusinessJobSpec {
 
 // A business blueprint (src/json/businesses.json): the probabilistic/scaling recipe for a line of work.
 export interface BusinessBlueprint {
+    // Civic buildings (task 108) are placed deliberately through the construction menu — excluded from the
+    // generic draw, re-occupancy, and entrepreneurship. Absent = a normal, randomly-drawable business.
+    placement?: 'civic';
     friendlyName: string; // display label for the line of work, e.g. "Super Market"
     category: string;
     // Placement/context tags this business type contains (task 069; json/placement.json vocabulary).

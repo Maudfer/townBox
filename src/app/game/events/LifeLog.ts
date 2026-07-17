@@ -36,6 +36,41 @@ export default class LifeLog {
         return this.nextSeq;
     }
 
+    // Recent-action count for the shared log (task 097): how many times the person committed the given
+    // action at or after `sinceTick`. Entries are append-ordered, so the backwards scan bails at the first
+    // entry older than the window — cheap even on asset-hydrated logs with tens of thousands of entries.
+    countRecentActions(personId: PersonId, defId: string, sinceTick: number): number {
+        const entries = this.table[personId] ?? [];
+        let count = 0;
+        for (let index = entries.length - 1; index >= 0; index--) {
+            const entry = entries[index]!;
+            if (entry.tick < sinceTick) {
+                break;
+            }
+            if (entry.kind === 'action' && entry.defId === defId) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
+    // The event twin (task 111): recent EVENT commits in the window (recentlyTreated reads
+    // was_treated_by_doctor through it). Same backwards bail-out scan.
+    countRecentEvents(personId: PersonId, defId: string, sinceTick: number): number {
+        const entries = this.table[personId] ?? [];
+        let count = 0;
+        for (let index = entries.length - 1; index >= 0; index--) {
+            const entry = entries[index]!;
+            if (entry.tick < sinceTick) {
+                break;
+            }
+            if (entry.kind === 'event' && entry.defId === defId) {
+                count += 1;
+            }
+        }
+        return count;
+    }
+
     // Installs a person's PRE-GAME log entries from the history asset (lazy hydration, task 012 follow-up).
     // Asset entries predate anything committed live, so they go BEFORE any existing entries, and `nextSeq` is
     // raised past the installed seqs so future commits never collide. (Loops, not spreads — a person's
