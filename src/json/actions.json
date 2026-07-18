@@ -4452,102 +4452,202 @@
     "balancing_the_till": {
         "label": "Balancing the till",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "prepping_ingredients": {
         "label": "Prepping ingredients",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "restocking_shelves": {
         "label": "Restocking shelves",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "reviewing_charts": {
         "label": "Reviewing charts",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "grading_papers": {
         "label": "Grading papers",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "patrolling_the_floor": {
         "label": "Patrolling the floor",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "mixing_batter": {
         "label": "Mixing batter",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "servicing_a_vehicle": {
         "label": "Servicing a vehicle",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "drawing_blueprints": {
         "label": "Drawing blueprints",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "leading_a_workout": {
         "label": "Leading a workout",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "checking_in_guests": {
         "label": "Checking in guests",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "projecting_the_matinee": {
         "label": "Projecting the matinee",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "sorting_deliveries": {
         "label": "Sorting deliveries",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "updating_ledgers": {
         "label": "Updating ledgers",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "sterilizing_equipment": {
         "label": "Sterilizing equipment",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "shelving_returns": {
         "label": "Shelving returns",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "wiping_down_tables": {
         "label": "Wiping down tables",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "pruning_displays": {
         "label": "Pruning displays",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "counting_inventory": {
         "label": "Counting inventory",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "supervising_the_team": {
         "label": "Supervising the team",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "sharpened_a_pencil": {
         "label": "Sharpened a pencil",
@@ -6169,6 +6269,11 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "kept_an_eye_on_the_street": {
@@ -6372,6 +6477,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "serving_time": {
@@ -6473,6 +6583,11 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "picked_up_litter": {
@@ -6540,6 +6655,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "responding_to_fire": {
@@ -6549,6 +6669,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "receiving_treatment": {
@@ -6844,6 +6969,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "visiting_the_detained": {

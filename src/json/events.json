@@ -1011,7 +1011,10 @@
         "triggers": {
             "manual": {}
         },
-        "effects": []
+        "effects": [],
+        "limit": {
+            "once": "perDay"
+        }
     },
     "stopped_working": {
         "label": "Stopped working",

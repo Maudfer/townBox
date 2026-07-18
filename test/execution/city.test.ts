@@ -624,3 +624,54 @@ describe('reactive wakes (LP-12)', () => {
         expect(actionEngine.activeInstanceOf('p1')).toBeNull();
     });
 });
+
+// LP-3 (proposal simulation-aliveness-2 P0-3): the live work keystone. An on-shift employee's obligation
+// intent must produce a real work instance — departing (logged), commuting, and firing started_working on
+// physical arrival. The audit found a doctor who never attempted work in 16 days; this pins the whole
+// live path at the City level so any break in the chain (orchestrator facts, arbitration, transition,
+// arrival resolution) fails a test instead of a playtest.
+describe('live work reliability (LP-3 keystone)', () => {
+    function employedHarness() {
+        const harness = makeGame(30, 30);
+        const { game, field, population, clock, eventEngine } = harness;
+        const actionEngine = new ActionEngine(undefined, eventEngine.getLifeLog());
+        const brain = new Brain(actionEngine);
+        (game as unknown as { actionEngine: ActionEngine }).actionEngine = actionEngine;
+        (game as unknown as { brain: Brain }).brain = brain;
+        // Tuesday 09:00 (day 1 of the week cycle): inside the doctor's 08:00–18:00 all-days shift.
+        const tickNow = (7 * 24) + 9 + 24 * 30; // an arbitrary mid-run Tuesday 09:00
+        const adult: GenPerson = { id: 'doc', firstName: 'Vi', familyName: 'Ba', gender: Genders.Male, birthTick: tickNow - 35 * TICKS_PER_YEAR, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
+        loadState(population, clock, { doc: adult }, ['doc'], tickNow);
+        const house = field.loadStructure('house', 4, 4, 'h') as House;
+        // A road ring so the commute can spawn a car on the street.
+        field.loadStructure('road', 1, 4, 'r');
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        const person = materialize(field, house, 'doc', 72, 72);
+        person.social.setAge(35);
+        person.work.setJob({ title: 'Doctor', salary: 5000, requirements: [], shiftStart: 480, shiftEnd: 1080, daysOfWeek: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as never, rankId: 'entry', workDaysInRank: 0, totalWorkDays: 0 });
+        person.work.setWorkplace(workplace);
+        return { ...harness, actionEngine, brain, person, workplace, tickNow };
+    }
+
+    test('an on-shift employee attempts work: instance created, departure logged, started_working on arrival', async () => {
+        const { city, eventEngine, actionEngine, person, workplace, tickNow } = employedHarness();
+        await city.handleTick({ timestamp: {} as never, tick: tickNow });
+
+        // The obligation intent produced a WORK instance (running or en route) — the doctor case regression.
+        const active = actionEngine.activeInstanceOf('doc');
+        expect(active).not.toBeNull();
+        expect(actionEngine.getDefinition(active!.defId)?.category).toBe('work');
+
+        // If the commute is pending, the departure is in the log (LP-2) and arrival starts the shift.
+        if (active!.status !== 'running') {
+            const log = eventEngine.getPersonLog('doc');
+            expect(log.some(entry => entry.kind === 'action' && entry.lifecycle === 'departed')).toBe(true);
+            city.getWorld().pump(tickNow); // flush the deferred departure
+            person.setCurrentBuilding(workplace);
+            city.getWorld().pump(tickNow + 1);
+            await city.handleTick({ timestamp: {} as never, tick: tickNow + 1 });
+        }
+        const started = eventEngine.getPersonLog('doc').some(entry => entry.kind === 'event' && entry.defId === 'started_working');
+        expect(started).toBe(true);
+    });
+});

@@ -19,7 +19,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 
 | Actions | Lifecycle → Event |
 |---|---|
-| `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
+| `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film`, `balancing_the_till`, `prepping_ingredients`, `restocking_shelves`, `reviewing_charts`, `grading_papers`, `patrolling_the_floor`, `mixing_batter`, `servicing_a_vehicle`, `drawing_blueprints`, `leading_a_workout`, `checking_in_guests`, `projecting_the_matinee`, `sorting_deliveries`, `updating_ledgers`, `sterilizing_equipment`, `shelving_returns`, `wiping_down_tables`, `pruning_displays`, `counting_inventory`, `supervising_the_team`, `patrolling`, `chasing_a_suspect`, `collection_rounds`, `rushing_to_the_fire`, `responding_to_fire`, `responding_to_incident` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
 | `adopted_a_pet` | onComplete → `adopted_a_pet` |
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
@@ -67,8 +67,8 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
 | `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
-| `started_working` | manual | — | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 13 more |
-| `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 29 more |
+| `started_working` | manual | once: perDay | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 39 more |
+| `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 81 more |
 | `treated_a_patient` | manual | — | `treating_patient`.onComplete (continuous) |
 | `tried_new_recipe` | probabilistic + manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
 | `was_treated_by_doctor` | manual | — | `treating_patient`.onCompleteTarget (continuous) |
@@ -96,9 +96,9 @@ Of the 569 manual-triggered events, 545 have no action source yet — they are i
 | Occurrence limit | Events |
 |---|---|
 | cooldown window | 631 |
-| — | 51 |
+| — | 50 |
 | once: ever | 50 |
-| once: perDay | 6 |
+| once: perDay | 7 |
 
 ## Object-action transformations
 
