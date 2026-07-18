@@ -687,7 +687,12 @@ export default class City {
             }
         }
         const schoolSeats = this.listSchools().reduce((sum, school) => sum + school.seats, 0);
-        const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren };
+        // The squalor outcome reading (LP-8): garbage that actually sits at the curb. The shared curb is
+        // the 'outside' location (task 112); the count is what collection rounds failed to consume.
+        const curbBags = (Game.inventory?.instancesAtLocation('outside') ?? [])
+            .filter(instance => instance.archetypeId === 'bag_of_garbage')
+            .reduce((total, instance) => total + instance.quantity, 0);
+        const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren, curbBags };
         const coverages = this.services.update(inputs);
         // The live surface (task 114): the nagbar derives its warnings from exactly what the ledger holds.
         Game.emit('servicesChanged', this.services.latest());

@@ -588,6 +588,26 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "driver": "subject.squalor",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 0.4,
+                                    "value": 1.4
+                                },
+                                {
+                                    "at": 0.8,
+                                    "value": 2.2
+                                }
+                            ]
+                        }
                     }
                 ]
             },
@@ -26815,6 +26835,43 @@
         "triggers": {
             "probabilistic": {
                 "perYear": 400
+            }
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": [],
+        "valence": -1
+    },
+    "sick_of_the_filth": {
+        "label": "Was sick of the filth in the streets",
+        "category": "texture-community",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 10
+                        },
+                        {
+                            "attr": "squalor",
+                            "op": ">=",
+                            "value": 0.6
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 30
             }
         },
         "limit": {

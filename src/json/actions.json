@@ -2736,6 +2736,18 @@
         ],
         "satisfies": {
             "hygiene": 8
+        },
+        "selection": {
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "squalor",
+                        "op": ">=",
+                        "value": 0.5
+                    },
+                    "multiply": 2.5
+                }
+            ]
         }
     },
     "filled_the_trash_bag": {
@@ -5748,6 +5760,14 @@
                         }
                     },
                     "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "squalor",
+                        "op": ">=",
+                        "value": 0.5
+                    },
+                    "multiply": 2.5
                 }
             ]
         },
@@ -6638,7 +6658,19 @@
                 },
                 "quantity": 1
             }
-        ]
+        ],
+        "selection": {
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "squalor",
+                        "op": ">=",
+                        "value": 0.5
+                    },
+                    "multiply": 2.5
+                }
+            ]
+        }
     },
     "swept_up_butts": {
         "label": "Swept up cigarette butts",

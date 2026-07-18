@@ -152,3 +152,28 @@ describe('gestation (LP-6)', () => {
         expect(again.outcome.ok).toBe(false);
     });
 });
+
+// Squalor epidemiology (LP-8 / P1-2): the audit's founding example — 95 uncollected curb bags with zero
+// consequence. A filthy town now measurably sickens more people through the fell_ill factor.
+describe('squalor → illness (LP-8)', () => {
+    function illnessesOver(squalor: number): number {
+        const engine = new EventEngine();
+        const ids = Array.from({ length: 60 }, (_, index) => `q${String(index).padStart(2, '0')}`);
+        const people: Record<string, GenPerson> = {};
+        for (const id of ids) {
+            people[id] = gen(id);
+        }
+        const pool: PopulationState = { worldSeed: 33, people, drawSeed: 1, placedIds: [], nextSeq: 5, lastSimulatedYear: 0 };
+        const services = { coverageOf: () => 0.5, squalorOf: () => squalor };
+        for (let tick = 2000; tick < 2000 + 24 * 90; tick += 24) {
+            engine.simulateTick(pool, ids, tick, TPY, { markets: { services } } as never, 24);
+        }
+        return ids.filter(id => engine.getPersonLog(id).some(entry => entry.kind === 'event' && entry.defId === 'fell_ill')).length;
+    }
+
+    test('a filthy town sickens strictly more people than a clean one (same seed, same cohort)', () => {
+        const clean = illnessesOver(0);
+        const filthy = illnessesOver(1);
+        expect(filthy).toBeGreaterThan(clean);
+    });
+});

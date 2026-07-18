@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 740 events — **30 vital**, **44 wired**, **510 texture**, **156 reserved**.
+Totals: 741 events — **30 vital**, **44 wired**, **511 texture**, **156 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -565,6 +565,7 @@ Totals: 740 events — **30 vital**, **44 wired**, **510 texture**, **156 reserv
 | shoplifted_candy_bar | crime-mischief | probabilistic+manual | texture | — |
 | shoveled_driveway | weather-reaction | probabilistic+manual | texture | — |
 | shoveled_neighbors_walk | community | probabilistic+manual | texture | — |
+| sick_of_the_filth | texture-community | probabilistic | texture | — |
 | signed_contract | legal | manual | reserved | — |
 | skipped_breakfast | food | probabilistic+manual | texture | — |
 | skipped_class | education | probabilistic+manual | texture | — |

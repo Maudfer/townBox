@@ -35,9 +35,22 @@ export function computeCoverage(inputs: ServiceInputs, config: ServicesConfig = 
     return lines.sort((a, b) => a.service.localeCompare(b.service));
 }
 
+// Squalor saturation (LP-8): this many uncollected curb bags PER RESIDENT reads as full squalor (1.0).
+// Below it the reading scales linearly — a working collection loop keeps the town near 0.
+export const BAGS_PER_RESIDENT_FULL_SQUALOR = 3;
+
+// Pure derivation (LP-8): uncollected curb bags per resident, clamped to [0, 1].
+export function computeSqualor(curbBags: number, population: number): number {
+    if (population <= 0 || curbBags <= 0) {
+        return 0;
+    }
+    return Math.min(1, curbBags / (population * BAGS_PER_RESIDENT_FULL_SQUALOR));
+}
+
 export default class CityServices implements ServiceCoverageReader {
     private coverages: Map<string, ServiceCoverage> | null; // null until the first sweep = unmeasured
     private config: ServicesConfig;
+    private squalor = 0; // outcome reading (LP-8): 0 until a sweep measures curb bags
 
     constructor(config: ServicesConfig = SERVICES_CONFIG) {
         this.coverages = null;
@@ -47,6 +60,7 @@ export default class CityServices implements ServiceCoverageReader {
     update(inputs: ServiceInputs): ServiceCoverage[] {
         const lines = computeCoverage(inputs, this.config);
         this.coverages = new Map(lines.map(line => [line.service, line]));
+        this.squalor = computeSqualor(inputs.curbBags ?? 0, inputs.population);
         return lines;
     }
 
@@ -55,6 +69,12 @@ export default class CityServices implements ServiceCoverageReader {
             return this.config.neutralCoverage;
         }
         return this.coverages.get(service)?.ratio ?? 0;
+    }
+
+    // Town squalor 0..1 (LP-8): garbage that actually sits uncollected — the coverage ledger's OUTCOME
+    // sibling. The proposal's founding example: piled trash must cause disease, not just render bags.
+    squalorOf(): number {
+        return this.squalor;
     }
 
     latest(): ServiceCoverage[] {

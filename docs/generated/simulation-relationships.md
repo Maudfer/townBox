@@ -10,7 +10,7 @@
 | Manifest | Entries | Notes |
 |---|---|---|
 | `actions.json` | 313 | 95 continuous / 218 discrete |
-| `events.json` | 740 | 168 probabilistic, 370 probabilistic + manual, 199 manual, 3 manual + automated |
+| `events.json` | 741 | 169 probabilistic, 370 probabilistic + manual, 199 manual, 3 manual + automated |
 | `object-action-relationships.json` | 38 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -91,7 +91,7 @@ Of the 572 manual-triggered events, 548 have no action source yet — they are i
 |---|---|
 | probabilistic + manual | 370 |
 | manual | 199 |
-| probabilistic | 168 |
+| probabilistic | 169 |
 | manual + automated | 3 |
 
 | Occurrence limit | Events |
@@ -99,7 +99,7 @@ Of the 572 manual-triggered events, 548 have no action source yet — they are i
 | cooldown window | 630 |
 | — | 51 |
 | once: ever | 50 |
-| once: perDay | 9 |
+| once: perDay | 10 |
 
 ## Object-action transformations
 

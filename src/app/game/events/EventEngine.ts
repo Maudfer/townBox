@@ -466,6 +466,11 @@ export default class EventEngine {
             case 'petCount':
                 // Pets (task 103): adoption caps and dog-walk gates read the registry; 0 without one.
                 return this.petsReader ? this.petsReader.countOf(id) : 0;
+            case 'squalor':
+                // Uncollected-garbage squalor 0..1 (LP-8 / P1-2): fell_ill's factor and the cleaning
+                // weights read it. Absent reader (pure tests, the off-map generator whose curb is
+                // collected daily) reads 0 — clean, every factor curve at 1.
+                return this.servicesReader?.squalorOf?.() ?? 0;
             case 'policeCoverage':
                 // The services ledger (task 099): crime selection gates read it — a patrolled town tempts
                 // less. Unmeasured contexts read neutral, where the authored modifiers are inert.
