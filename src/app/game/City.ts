@@ -62,6 +62,9 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
+// Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
+// than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
+const MIGRATION_MIN_OPEN_POSITIONS = 3;
 const SCHOOL_CONFIG = schoolsConfig as unknown as SchoolConfig;
 const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
 // Civic blueprints (task 108) are placed deliberately through the construction menu — never drawn onto
@@ -640,8 +643,70 @@ export default class City {
         // the recovery attempt (see the looked_for_housing commit handler). Dedup rides the routineId.
         this.enqueueHomeSeeking(event.tick, clock.getTicksPerYear());
 
+        // Migration (W1 / proposal simulation-aliveness-3 P0-3): a town whose businesses want workers and
+        // whose people are all employed ATTRACTS a household into a vacant home — the labor inflow every
+        // city builder lives on. At most one draw per day, only under a genuine labor shortage.
+        this.runMigration(event.tick, clock.getTicksPerYear());
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
+    }
+
+    // Blueprint keys of businesses serving a coverage line below neutral (W1 / P0-3): the JobMarket boosts
+    // openings there so the town staffs its critical services first. Empty before the first day sweep.
+    private criticalServiceBlueprints(): Set<string> {
+        const critical = new Set<string>();
+        for (const line of this.services.latest()) {
+            if (line.ratio >= SERVICES_CONFIG.neutralCoverage) {
+                continue;
+            }
+            for (const blueprintKey of SERVICES_CONFIG.services[line.service]?.facilityBlueprints ?? []) {
+                critical.add(blueprintKey);
+            }
+        }
+        return critical;
+    }
+
+    // The labor inflow (W1 / proposal simulation-aliveness-3 P0-3): when every materialized adult is
+    // employed, real openings remain, and a fully-vacant home stands, ONE household is drawn into it —
+    // through the normal setupHousehold path (hydration, skills, career retcons included), so arrivals are
+    // as real as day-one residents. Self-limiting: the arrivals are unemployed, which blocks the next draw
+    // until the market absorbs them.
+    private runMigration(tick: number, ticksPerYear: number): void {
+        const field = Game.field;
+        const population = Game.population;
+        if (!field || !population) {
+            return;
+        }
+        const pool = population.getPeople();
+        let unemployedAdults = 0;
+        for (const [id, person] of this.indexMaterialized()) {
+            const record = pool[id];
+            if (!record || ageAt(record, tick, ticksPerYear) < ADULT_AGE_YEARS) {
+                continue;
+            }
+            if (person.work.getJob() === null) {
+                unemployedAdults += 1;
+            }
+        }
+        if (unemployedAdults > 0) {
+            return; // locals first — migration answers a shortage, not a preference
+        }
+        let openPositions = 0;
+        for (const structure of field.getStructures()) {
+            if (structure instanceof Workplace && structure.getBusiness()) {
+                openPositions += structure.getOpenPositions().length;
+            }
+        }
+        if (openPositions < MIGRATION_MIN_OPEN_POSITIONS) {
+            return;
+        }
+        const house = this.findVacantHouse();
+        if (!house) {
+            return;
+        }
+        void this.setupHousehold(house);
+        this.announce('migration', tick, 'A new household moved to town, drawn by open jobs', null);
     }
 
     private enqueueHomeSeeking(tick: number, ticksPerYear: number): void {
@@ -893,7 +958,7 @@ export default class City {
 
         const hasRecord = (id: PersonId): boolean => engine
             .contextFor(population.getState(), id, tick, ticksPerYear).hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS });
-        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, tick, hasRecord) : null;
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, tick, hasRecord, this.criticalServiceBlueprints()) : null;
         const housing = new HousingMarket(personByGenId, field);
         const skills = Game.skillBook ? new SkillRegistry(Game.skillBook, tick) : null;
         const ctx = { mode: 'live' as const, world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, pets: Game.pets ?? null, knownFacts: Game.knownFacts ?? null, mood: Game.mood ?? null, services: this.services } };
@@ -1002,7 +1067,7 @@ export default class City {
         const hasRecord = (id: PersonId): boolean => Game.eventEngine
             ? Game.eventEngine.contextFor(population.getState(), id, event.tick, ticksPerYear).hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS })
             : false;
-        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick, hasRecord) : null;
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, event.tick, hasRecord, this.criticalServiceBlueprints()) : null;
         // Housing market gates move-out eligibility (task 024): a person can only leave home when a vacant one
         // exists. Rebuilt each tick over the current materialized people, like the job market.
         const housing = new HousingMarket(personByGenId, field);

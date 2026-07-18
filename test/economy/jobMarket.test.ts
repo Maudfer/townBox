@@ -170,3 +170,43 @@ describe('JobMarket', () => {
         expect(market.hire('ghost')).toBe(false);
     });
 });
+
+// W1 — the labor answer (proposal simulation-aliveness-3 P0-3): front-line-first hiring, the chosen
+// position actually filled, and the critical-service boost.
+describe('W1: scarcity-aware hiring', () => {
+    test('front-line-first: the role with more open slots wins over the single Manager slot', () => {
+        const field = makeField(40, 40);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const shop = field.loadStructure('work', 7, 7, 'w') as Workplace;
+        // Manager listed FIRST (the audit's trap: first-fit made everyone a Manager).
+        setBusiness(shop, 'Shop', [
+            position('Manager', 'assist_customers'),
+            position('Clerk', 'assist_customers'),
+            position('Clerk', 'assist_customers'),
+            position('Clerk', 'assist_customers'),
+        ]);
+        const person = materialize(field, 'p1', home);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]));
+
+        expect(market.hire('p1')).toBe(true);
+        expect(person.work.getJob()?.title).toBe('Clerk'); // 3 open clerk slots beat 1 manager slot
+        // The manager slot is still open — filled last, when the front line is staffed.
+        expect(shop.getOpenPositions().filter(p => p.title === 'Manager')).toHaveLength(1);
+    });
+
+    test('the critical-service boost pulls a hire to the under-covered service across town', () => {
+        const field = makeField(80, 80);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const near = field.loadStructure('work', 7, 7, 'w') as Workplace;
+        setBusiness(near, 'Gym', [position('Clerk', 'assist_customers')]);
+        const far = field.loadStructure('work', 25, 25, 'w2') as Workplace;
+        far.setBusiness({ blueprintKey: 'hospital', name: 'Clinic', lineOfWork: 'Care', size: 1, positions: [position('Clerk', 'assist_customers')] });
+
+        const person = materialize(field, 'p1', home);
+        const critical = new Set(['hospital']);
+        const market = new JobMarket(new Map([['p1', person]]), field, skillBookWith([['p1', ['assist_customers']]]), 0, undefined, critical);
+
+        expect(market.hire('p1')).toBe(true);
+        expect(person.work.getWorkplace()).toBe(far); // the boost beats the distance penalty
+    });
+});

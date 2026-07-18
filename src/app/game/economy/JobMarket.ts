@@ -34,6 +34,9 @@ const SKILL_WEIGHT = 8;
 const CRIMINAL_RECORD_PENALTY = 25;
 const DISTANCE_WEIGHT = 1;
 const NO_HOME_DISTANCE = 9999;
+// W1 (P0-3): a decisive-but-not-absolute pull toward businesses whose service line sits below neutral
+// coverage — the town staffs its hospital/police/sanitation before its third gym clerk.
+const CRITICAL_SERVICE_BOOST = 40;
 const RANK_FIT_WEIGHT = 10;
 
 const JOBS = jobsConfig as unknown as JobTable;
@@ -56,7 +59,12 @@ export default class JobMarket implements IJobMarket {
     private workplaces: Workplace[];
     private defByTitle: Map<string, { key: string; def: JobDefinition }>;
 
-    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0, private hasCriminalRecord?: (personId: PersonId) => boolean) {
+    constructor(private byGenId: Map<PersonId, Person>, field: Field, private skillBook: SkillBook, private tick: number = 0, private hasCriminalRecord?: (personId: PersonId) => boolean,
+        // Service-criticality (W1 / proposal simulation-aliveness-3 P0-3): blueprint keys of businesses
+        // serving a coverage line below neutral — their openings get a decisive cross-workplace boost so
+        // the town staffs its hospital/police/sanitation before the third gym clerk. Supplied by City from
+        // the services ledger; absent in pure harnesses (no boost).
+        private criticalBlueprints?: Set<string>) {
         this.workplaces = field.getStructures().filter((tile): tile is Workplace => tile instanceof Workplace);
         this.defByTitle = new Map(Object.entries(JOBS).map(([key, def]) => [def.title, { key, def }]));
     }
@@ -101,7 +109,9 @@ export default class JobMarket implements IJobMarket {
             }
         }
 
-        const job = workplace.hire(person, requirements => this.positionFillable(personId, requirements, rankMatch));
+        // The chosen position is the one that gets filled (W1 / P0-3): the first-fit fallback inside
+        // Workplace.hire only applies if the pick was taken between scoring and hiring.
+        const job = workplace.hire(person, requirements => this.positionFillable(personId, requirements, rankMatch), match.position);
         if (!job) {
             return false;
         }
@@ -248,11 +258,26 @@ export default class JobMarket implements IJobMarket {
         let bestKey = '';
 
         for (const workplace of this.workplaces) {
-            let workplaceBest: { position: JobPosition; rankMatch: RankMatch } | null = null;
-            for (const position of workplace.getOpenPositions()) {
-                const rankMatch = this.matchPosition(personId, position);
-                if (rankMatch && (!workplaceBest || rankMatch.fit > workplaceBest.rankMatch.fit)) {
-                    workplaceBest = { position, rankMatch };
+            // Front-line-first (W1 / P0-3): within a workplace, prefer the ROLE with the most unfilled
+            // slots — role scarcity balance. Fit only breaks ties inside a role tier, so the supermarket
+            // hires its clerks before its manager instead of the fit-maximizing walk that made 14 of 24
+            // townspeople "Manager" in the audit.
+            const openByTitle = new Map<string, number>();
+            for (const opening of workplace.getOpenPositions()) {
+                openByTitle.set(opening.title, (openByTitle.get(opening.title) ?? 0) + 1);
+            }
+            let workplaceBest: { position: JobPosition; rankMatch: RankMatch; slots: number } | null = null;
+            for (const opening of workplace.getOpenPositions()) {
+                const rankMatch = this.matchPosition(personId, opening);
+                if (!rankMatch) {
+                    continue;
+                }
+                const slots = openByTitle.get(opening.title) ?? 1;
+                const better = !workplaceBest
+                    || slots > workplaceBest.slots
+                    || (slots === workplaceBest.slots && rankMatch.fit > workplaceBest.rankMatch.fit);
+                if (better) {
+                    workplaceBest = { position: opening, rankMatch, slots };
                 }
             }
             if (!workplaceBest) {
@@ -263,7 +288,8 @@ export default class JobMarket implements IJobMarket {
                 ? Math.abs(homePos.row - position.row) + Math.abs(homePos.col - position.col)
                 : NO_HOME_DISTANCE;
             const recordPenalty = this.hasCriminalRecord?.(personId) ? CRIMINAL_RECORD_PENALTY : 0;
-            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance - recordPenalty;
+            const criticalBoost = this.criticalBlueprints?.has(workplace.getBusiness()?.blueprintKey ?? '') ? CRITICAL_SERVICE_BOOST : 0;
+            const score = SKILL_WEIGHT * workplaceBest.rankMatch.fit - DISTANCE_WEIGHT * distance - recordPenalty + criticalBoost;
             const key = workplace.getIdentifier();
             if (score > bestScore || (score === bestScore && key < bestKey)) {
                 bestScore = score;

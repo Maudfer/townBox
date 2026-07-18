@@ -132,15 +132,24 @@ export default class Workplace extends Building {
 
     // `canFill` answers whether the person meets a position's skill requirements — supplied by the caller
     // (JobMarket reads the central SkillBook, task 059) so the scene class stays decoupled from the store.
-    public hire(person: Person, canFill: (requirements: string[]) => boolean = () => true): PotentialJob {
+    // `preferred` (W1 / proposal simulation-aliveness-3 P0-3): the caller's CHOSEN position — the old
+    // first-fit walk ignored the JobMarket's pick, and because Manager sits first in every blueprint's
+    // expansion, whole towns hired 14 managers and one clerk.
+    public hire(person: Person, canFill: (requirements: string[]) => boolean = () => true, preferred?: PotentialJob): PotentialJob {
         if(!person){
             console.error(person);
             throw new Error('Person is not valid for hire');
         }
 
-        // Take the first open position whose requirements the person meets, removing it from the open pool so
-        // filled/open counts stay correct.
-        const index = this.avaiableJobs.findIndex(job => canFill(job.requirements));
+        // Fill the caller's chosen position when it is still open and fillable; otherwise fall back to the
+        // first open position the person meets. Splicing keeps filled/open counts correct either way.
+        let index = preferred ? this.avaiableJobs.indexOf(preferred) : -1;
+        if (index !== -1 && !canFill(this.avaiableJobs[index]!.requirements)) {
+            index = -1;
+        }
+        if (index === -1) {
+            index = this.avaiableJobs.findIndex(job => canFill(job.requirements));
+        }
 
         if (index === -1) {
             return null;
