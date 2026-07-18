@@ -15,6 +15,11 @@ import { isOnShiftAtTick } from 'util/shifts';
 const DOCTOR_JOB_KEY = 'doctor';
 // One treatment per patient per day: the doctor's rounds move on to the untreated.
 const RETREAT_COOLDOWN_TICKS = 24;
+// Patient-side re-seek guard (LP-5 quick fix; the 117 balancing notes' #1 flag): a treatment session is
+// short (4 ticks), and without a cooldown a sick person re-entered treatment the moment it ended — camping
+// at the hospital in a rapid re-fire loop (18,201 starts against ~210 illness onsets in the 117 cohort).
+// One session per day mirrors the doctors' own rounds cadence; between sessions the 092 rest behavior holds.
+export const SEEK_COOLDOWN_TICKS = 24;
 
 export const treatmentHook: BrainHook = {
     id: 'treatment',
@@ -38,6 +43,9 @@ export const treatmentHook: BrainHook = {
         const active = engine.activeInstanceOf(personId);
         if (active?.defId === 'receiving_treatment') {
             return [];
+        }
+        if (engine.hasAction(personId, 'receiving_treatment', deps.tick, { withinTicks: SEEK_COOLDOWN_TICKS })) {
+            return []; // treated recently — rest at home until tomorrow's session (the re-seek guard)
         }
         // Urgency-scaled: barely under the threshold edges out the sick-rest proposal (90); severe illness
         // clears the interruption hysteresis and pulls the person out of bed and into the car.
