@@ -22,22 +22,22 @@ describe('edges & decay', () => {
         graph.adjust('a', 'b', 20, 0);
         expect(graph.edgeBetween('a', 'b', 0)).toEqual({ kind: 'acquaintance', strength: 20 });
 
-        // acquaintance half-life = 120 days = 2880 ticks: exactly half after one half-life.
-        const view = graph.edgeBetween('a', 'b', 2880)!;
+        // acquaintance half-life = 150 days = 3600 ticks (LP-9 decode-audit tune): exactly half after one.
+        const view = graph.edgeBetween('a', 'b', 3600)!;
         expect(view.strength).toBeCloseTo(10, 6);
         // Closed-form: the read at T is identical whether or not intermediate reads happened (K2 rule).
         const graph2 = new SocialGraph();
         graph2.adjust('a', 'b', 20, 0);
         graph2.edgeBetween('a', 'b', 1000);
         graph2.edgeBetween('a', 'b', 2000);
-        expect(graph2.edgeBetween('a', 'b', 2880)!.strength).toBeCloseTo(view.strength, 12);
+        expect(graph2.edgeBetween('a', 'b', 3600)!.strength).toBeCloseTo(view.strength, 12);
     });
 
     test('edges below pruneBelow read as gone and are physically pruned on adjust', () => {
         const graph = new SocialGraph();
         graph.adjust('a', 'b', 2, 0);
         // 2 → below the 0.25 prune floor after 4 half-lives.
-        expect(graph.edgeBetween('a', 'b', 2880 * 4)).toBeNull();
+        expect(graph.edgeBetween('a', 'b', 3600 * 4)).toBeNull();
     });
 
     test('pair key is unordered: a→b and b→a address the same edge', () => {
@@ -49,18 +49,18 @@ describe('edges & decay', () => {
 });
 
 describe('the authored ladder', () => {
-    test('acquaintance promotes to friend at 30, reporting the made_friend transition event', () => {
+    test('acquaintance promotes to friend at 22 (LP-9: reachable off-map), reporting made_friend', () => {
         const graph = new SocialGraph();
-        graph.adjust('a', 'b', 25, 0);
+        graph.adjust('a', 'b', 18, 0);
         const result = graph.adjust('a', 'b', 10, 1);
         expect(result.promoted).toEqual({ to: 'friend', onPromote: 'made_friend' });
         expect(graph.edgeBetween('a', 'b', 1)!.kind).toBe('friend');
     });
 
-    test('friend promotes to close_friend at 65', () => {
+    test('friend promotes to close_friend at 55 (LP-9 tune)', () => {
         const graph = new SocialGraph();
-        graph.adjust('a', 'b', 40, 0); // promoted to friend at 30
-        const result = graph.adjust('a', 'b', 30, 1); // 70 ≥ 65
+        graph.adjust('a', 'b', 40, 0); // promoted to friend at 22
+        const result = graph.adjust('a', 'b', 30, 1); // 70 ≥ 55
         expect(result.promoted?.to).toBe('close_friend');
         expect(result.promoted?.onPromote).toBe('became_close_friends');
     });
@@ -82,15 +82,17 @@ describe('hostility & reconciliation', () => {
         graph.adjust('a', 'b', 5, 0);
         const result = graph.adjust('a', 'b', -10, 1);
         expect(result.flipped).toBe('rival');
-        expect(graph.edgeBetween('a', 'b', 1)).toEqual({ kind: 'rival', strength: 15 });
+        // A fresh grudge seeds WEAK now (LP-9: hostility 15 → 6 — the asset held 3,412 standing rivals
+        // against 70 friendships because a spat with a near-stranger minted a years-long feud).
+        expect(graph.edgeBetween('a', 'b', 1)).toEqual({ kind: 'rival', strength: 6 });
     });
 
     test('positive deltas COOL a rivalry; cooled to zero it reconciles to acquaintance', () => {
         const graph = new SocialGraph();
         graph.adjust('a', 'b', 5, 0);
-        graph.adjust('a', 'b', -10, 1); // rival @ 15
-        graph.adjust('a', 'b', 10, 1);  // heat 15 → 5 (same tick: no decay in between)
-        expect(graph.edgeBetween('a', 'b', 1)).toEqual({ kind: 'rival', strength: 5 });
+        graph.adjust('a', 'b', -10, 1); // rival @ 6
+        graph.adjust('a', 'b', 3, 1);  // heat 6 → 3 (same tick: no decay in between)
+        expect(graph.edgeBetween('a', 'b', 1)).toEqual({ kind: 'rival', strength: 3 });
         const result = graph.adjust('a', 'b', 10, 1); // cooled through zero
         expect(result.flipped).toBe('acquaintance');
         expect(graph.edgeBetween('a', 'b', 1)).toEqual({ kind: 'acquaintance', strength: 5 });
@@ -99,9 +101,9 @@ describe('hostility & reconciliation', () => {
     test('negative deltas HEAT a rivalry', () => {
         const graph = new SocialGraph();
         graph.adjust('a', 'b', 5, 0);
-        graph.adjust('a', 'b', -10, 1); // rival @ 15
-        graph.adjust('a', 'b', -10, 1); // heat 15 → 25 (same tick: no decay in between)
-        expect(graph.edgeBetween('a', 'b', 1)!.strength).toBe(25);
+        graph.adjust('a', 'b', -10, 1); // rival @ 6
+        graph.adjust('a', 'b', -10, 1); // heat 6 → 16 (same tick: no decay in between)
+        expect(graph.edgeBetween('a', 'b', 1)!.strength).toBe(16);
     });
 });
 

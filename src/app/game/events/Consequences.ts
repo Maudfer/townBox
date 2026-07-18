@@ -391,6 +391,20 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     if (!graph || otherId === ctx.personId) {
                         return;
                     }
+                    // Dating is exclusive here (LP-9): the decode audit found 1,172 STANDING dating edges
+                    // (~9 per living person) because a consented ask seeded a new edge and nothing ever
+                    // closed the others. Starting to date someone demotes both parties' other romances to
+                    // ex_partner — the 090 arc is a ladder (dating → engaged → married), not a web.
+                    if (op.kind === 'dating') {
+                        for (const person of [ctx.personId, otherId]) {
+                            for (const edge of graph.edgesOf(person, ctx.deps.tick)) {
+                                const kind = edge.view?.kind;
+                                if ((kind === 'dating' || kind === 'engaged') && edge.otherId !== (person === ctx.personId ? otherId : ctx.personId)) {
+                                    graph.setKind(person, edge.otherId, 'ex_partner', ctx.deps.tick, edge.view.strength);
+                                }
+                            }
+                        }
+                    }
                     const adjusted = graph.adjust(ctx.personId, otherId, op.delta, ctx.deps.tick,
                         { ...(op.kind ? { kind: op.kind as EdgeKind } : {}), provenance: ctx.causationId });
                     // A ladder promotion fires its authored event for BOTH sides, chained to this commit.

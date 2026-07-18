@@ -579,6 +579,41 @@ premise promises.
 
 ---
 
+## Part 7 — The LP-9 generator edge-dynamics decode audit (findings of record)
+
+Decoded from the committed asset's `socialGraph.tbz` (28,642 edges at end-of-run, ~250 living):
+
+| Kind | n | avg strength | avg days since touch |
+|---|---|---|---|
+| acquaintance | 23,903 | 4.8 | 82 |
+| rival | 3,412 | 7.4 | 101 |
+| dating | 1,172 | 47.1 | 18 |
+| friend | 70 | 29.7 | 49 |
+| close_friend | 39 | 76.6 | 23 |
+| ex_partner | 42 | 37.0 | 96 |
+| engaged | 4 | 85.0 | 12 |
+
+Diagnoses and the fixes applied:
+
+1. **Rivals outnumber friendships 49:1** because hostility was a one-shot mint: any negative delta driving
+   a friendly edge to zero flipped it to a rival seeded at strength 15 — and the average acquaintance sits
+   at 4.8, so a single argument with a near-stranger (delta −8) almost always minted a months-long feud,
+   while friendship required accumulating to 30 through +0.5…+3 deltas against a 120-day half-life.
+   *Fixes:* hostility seeds at 6 (a weak grudge that fades in ~9 months unless fed — feeding still heats
+   it through the existing rival sign inversion), rival half-life 200 → 60 days (landed earlier),
+   promoteAt 30 → 22 and 65 → 55, acquaintance half-life 120 → 150 days.
+2. **~4.7 standing dating edges per living person** because a consented ask seeded a new romance and
+   nothing ever closed the others. *Fixes:* weddings settle the couple's other romances (landed earlier),
+   and dating is now EXCLUSIVE at formation — starting to date demotes both parties' other dating/engaged
+   edges to ex_partner (the 090 arc is a ladder, not a web). Regression: `romanceArc.test.ts`.
+3. **The 23.9k acquaintance carpet is healthy** — average 82 days since touch means those edges are
+   actively maintained town texture (~96 weak ties per person over a century), not corpses. `pruneBelow`
+   stays at 0.25; a raise to 2 was tried and reverted (it made small-delta edge formation impossible).
+
+The before-numbers above are the pinned baseline for the post-regeneration re-measure.
+
+---
+
 ## Appendix — repro notes
 
 - Boot: `http://localhost:3000/?test=1&boot=asset&seed=20260717` (dev server; keep the tab visible).
