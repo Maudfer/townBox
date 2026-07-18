@@ -3,7 +3,7 @@
         "acquaintance": 120,
         "friend": 300,
         "close_friend": 600,
-        "rival": 200,
+        "rival": 60,
         "dating": 400,
         "ex_partner": 1200,
         "engaged": 600

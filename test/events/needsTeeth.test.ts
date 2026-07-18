@@ -207,3 +207,25 @@ describe('texture coherence (LP-7 slice)', () => {
         expect(spoiled.outcome.ok).toBe(false);
     });
 });
+
+// LP-9: the wedding settles the couple's OTHER romances — the audit's asset carried ~4.7 dating edges per
+// drawn person because off-map marriages never closed them.
+describe('marriage settles dangling romances (LP-9)', () => {
+    test('a third-party dating edge demotes to ex_partner on the wedding', async () => {
+        const { default: SocialGraph } = await import('game/population/SocialGraph');
+        const engine = new EventEngine();
+        const social = new SocialGraph();
+        const bride = { ...gen('b'), maxChildren: 2 };
+        const groom = { ...gen('g'), gender: Genders.Male, maxChildren: 2 };
+        const ex = { ...gen('x'), gender: Genders.Male };
+        const pool: PopulationState = { worldSeed: 5, people: { b: bride, g: groom, x: ex }, drawSeed: 1, placedIds: [], nextSeq: 9, lastSimulatedYear: 0 };
+        social.setKind('b', 'g', 'engaged', 100, 60);
+        social.setKind('b', 'x', 'dating', 100, 30); // the dangling romance
+        engine.bindMarkets({ markets: { social } } as never);
+        const wed = engine.invoke(pool, 'marriage', 'b', 200, TPY, { source: 'system', causationId: null });
+        engine.unbindMarkets();
+        expect(wed.outcome.ok).toBe(true);
+        const leftover = social.edgesOf('b', 201).find(edge => edge.otherId === 'x');
+        expect(leftover?.view.kind).toBe('ex_partner');
+    });
+});

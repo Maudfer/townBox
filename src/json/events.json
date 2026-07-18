@@ -247,7 +247,8 @@
         "triggers": {
             "probabilistic": {
                 "perYear": 6
-            }
+            },
+            "manual": {}
         },
         "effects": [
             {

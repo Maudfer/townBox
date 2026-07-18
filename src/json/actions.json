@@ -1435,7 +1435,8 @@
             "onComplete": "tried_new_recipe"
         },
         "satisfies": {
-            "purpose": 5
+            "purpose": 5,
+            "food": 10
         },
         "affinity": [
             "craft"

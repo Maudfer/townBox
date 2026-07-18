@@ -712,6 +712,17 @@ export default class EventEngine {
                     // The wedding consumes the engagement edge (task 090): spouse standing derives from the
                     // genealogy from here on — without this, engagedOf could re-marry a divorced pair forever.
                     this.social?.removeEdgeBetween?.(subjectId, partnerId);
+                    // And settles the couple's OTHER romances (LP-9): dangling dating/engaged edges demote
+                    // to ex_partner — the audit's asset carried ~4.7 dating edges per drawn person because
+                    // off-map marriages never closed them.
+                    for (const spouse of [subjectId, partnerId]) {
+                        for (const edge of this.social?.edgesOf?.(spouse, tick) ?? []) {
+                            const kind = edge.view?.kind;
+                            if (kind === 'dating' || kind === 'engaged') {
+                                this.social?.setKind?.(spouse, edge.otherId, 'ex_partner', tick, edge.view.strength);
+                            }
+                        }
+                    }
                 }
                 return true;
             }

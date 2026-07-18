@@ -638,5 +638,38 @@
             }
         ],
         "outputs": []
+    },
+    "ate_meal_from_banana": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "banana",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_granola": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "granola_bar",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_cheese": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "cheese_wedge",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
     }
 }

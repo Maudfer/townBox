@@ -422,7 +422,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **508 texture**, **159 reserv
 | made_resolution | emotion-mood | manual | reserved | — |
 | made_risky_investment | finance | probabilistic+manual | texture | — |
 | made_work_friend | career | probabilistic+manual | texture | — |
-| marriage | relationship | probabilistic | vital | — |
+| marriage | relationship | probabilistic+manual | vital | — |
 | mentored_young_neighbor | aging | probabilistic | texture | — |
 | met_charming_stranger | romance | probabilistic+manual | texture | — |
 | met_new_in_law | family | manual | reserved | — |

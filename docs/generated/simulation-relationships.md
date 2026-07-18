@@ -10,8 +10,8 @@
 | Manifest | Entries | Notes |
 |---|---|---|
 | `actions.json` | 314 | 96 continuous / 218 discrete |
-| `events.json` | 741 | 168 probabilistic, 368 probabilistic + manual, 202 manual, 3 manual + automated |
-| `object-action-relationships.json` | 38 | first-satisfiable entry per action commit |
+| `events.json` | 741 | 167 probabilistic, 369 probabilistic + manual, 202 manual, 3 manual + automated |
+| `object-action-relationships.json` | 41 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
 
@@ -77,7 +77,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 573 manual-triggered events, 548 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 574 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -91,9 +91,9 @@ Of the 573 manual-triggered events, 548 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 368 |
+| probabilistic + manual | 369 |
 | manual | 202 |
-| probabilistic | 168 |
+| probabilistic | 167 |
 | manual + automated | 3 |
 
 | Occurrence limit | Events |
@@ -147,6 +147,9 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `served_family_from_staples` | `served_the_family` | 2× `egg` (consumed)<br>1× `tomato` (consumed) | — | — |
 | `served_family_from_loaf` | `served_the_family` | 1× `bread_loaf` (consumed) | — | — |
 | `served_family_from_potatoes` | `served_the_family` | 2× `potato` (consumed)<br>1× `onion` (consumed) | — | — |
+| `ate_meal_from_banana` | `ate_a_meal` | 1× `banana` (consumed) | — | — |
+| `ate_meal_from_granola` | `ate_a_meal` | 1× `granola_bar` (consumed) | — | — |
+| `ate_meal_from_cheese` | `ate_a_meal` | 1× `cheese_wedge` (consumed) | — | — |
 
 ## Interaction contracts (person-targeted actions)
 
