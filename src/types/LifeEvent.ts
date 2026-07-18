@@ -198,7 +198,10 @@ export interface EventLogEntry {
 // consequence plan was unsatisfiable — the pre-073 silent downgrade, now labeled). 'target_not_present' and
 // 'requirements_unmet' are reserved for runtime paths that don't yet log (start-time rejections stay typed
 // ActionStartOutcome reasons with zero mutations and no entry).
-export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet';
+export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet'
+    // LP-2 (proposal simulation-aliveness-2 P0-3a): a blocked instance says WHY — the world found no route
+    // to the required location (missing venue, unroutable building).
+    | 'no_route';
 
 // An action lifecycle transition in the same append-only log (task 043). One entry per transition
 // ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones,
@@ -210,7 +213,10 @@ export interface ActionLogEntry {
     kind: 'action';
     defId: string; // action id in the manifest
     instanceId: string | null; // null for discrete actions (no instance materializes)
-    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused' | 'resumed';
+    // 'departed' (LP-2): logged ONCE when the instance's location transition first goes pending — travel
+    // toward an action used to be invisible in the log, making stuck/cancelled commutes undiagnosable
+    // (the audit's 40-stops-vs-7-starts asymmetry).
+    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused' | 'resumed' | 'departed';
     params: Record<string, string | number | boolean>;
     parentInstanceId: string | null;
     // Why a runtime failure/decline happened (task 073) — a closed vocabulary, additive on the log.

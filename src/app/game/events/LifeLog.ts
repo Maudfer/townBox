@@ -55,7 +55,8 @@ export default class LifeLog {
             if (entry.tick < sinceTick) {
                 break;
             }
-            if (entry.kind === 'action' && entry.defId === defId) {
+            // 'departed' is travel-toward, not a commit (LP-2) — recency counts commits only.
+            if (entry.kind === 'action' && entry.defId === defId && entry.lifecycle !== 'departed') {
                 count += 1;
             }
         }

@@ -87,6 +87,13 @@ export default class Field {
     }
 
     update(event: UpdateEvent): void {
+        // Movement runs on SIM time, not wall time (LP-2 / proposal simulation-aliveness-2 P0-5): the debug
+        // time-throttle (task 117) scales the clock by timeScale, and movement must scale identically or a
+        // 16× session makes every commute consume 16× its in-game duration — arrival-gated behavior (work
+        // starts, school runs, dispatch, collection rounds) silently degrades. Larger per-frame deltas are
+        // safe for the axis-clamped walkers; vehicles may corner slightly rougher at 16× — a debug-view
+        // trade accepted over a desynced sim.
+        const timeDelta = event.timeDelta * (Game.getTimeScale?.() ?? 1);
         this.people.forEach((person: Person) => {
             const currentPixelPosition = person.getPosition();
             if (currentPixelPosition === null) {
@@ -103,8 +110,8 @@ export default class Field {
                 return;
             }
 
-            person.update(currentTile, event.timeDelta, this.destinations, this.pathFinder);
-            person.redraw(event.timeDelta);
+            person.update(currentTile, timeDelta, this.destinations, this.pathFinder);
+            person.redraw(timeDelta);
         });
 
         this.vehicles.forEach((vehicle: Vehicle) => {
@@ -123,13 +130,13 @@ export default class Field {
                 return;
             }
 
-            vehicle.drive(currentTile, event.timeDelta);
+            vehicle.drive(currentTile, timeDelta);
             // Commute cars are driven by their owner's travel state machine; only un-owned (test/idle) cars
             // pick a random destination to wander to.
             if (!vehicle.isControlled()) {
                 vehicle.updateDestination(currentTile, this.destinations, this.pathFinder);
             }
-            vehicle.redraw(event.timeDelta);
+            vehicle.redraw(timeDelta);
         });
     }
 

@@ -244,6 +244,14 @@ export default class GameManager {
         const debugTools = new DebugTools();
 
         const postSceneInit = async (_: Phaser.Scene) => {
+            // Idempotence guard (LP-2 / proposal simulation-aliveness-2 P2-5): MainScene.create was observed
+            // firing twice in one boot (a Phaser scene re-create), and this handler used to rebuild EVERY
+            // engine — double asset selection, double world, perturbed RNG. A world is built once per
+            // GameManager lifetime; a duplicate init is logged and ignored.
+            if (this.field) {
+                console.warn('[GameManager] Duplicate sceneInitialized ignored (scene re-created?).');
+                return;
+            }
             if (config.debug.masterSwitch) {
                 this.on("tileSpawned", { callback: debugTools.drawTileDebugInfo, context: this }) // Huge performance hit, disabled by default
                 this.on("roadBuilt", { callback: debugTools.drawRoadCurbs, context: this });

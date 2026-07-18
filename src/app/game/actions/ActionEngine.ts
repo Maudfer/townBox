@@ -633,6 +633,17 @@ export default class ActionEngine {
                     handle = world.requestTransition(instance.personId, parseLocationKey(requiredLocation), deps.tick, instance.causationId);
                     this.handles.set(instance.id, handle);
                     instance.transitionHandleId = handle.id;
+                    // Departure entry (LP-2): the travel toward this action is part of its story — without
+                    // it, a commute that never arrives leaves NO trace (the audit found people "clocking
+                    // out" of shifts they never reached, undiagnosable from the log). Once per instance.
+                    if (handle.status === 'pending' && !instance.departureLogged) {
+                        instance.departureLogged = true;
+                        this.lifeLog.append(instance.personId, {
+                            tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: 'departed',
+                            params: { ...instance.params, destination: requiredLocation }, parentInstanceId: instance.parentInstanceId,
+                            triggerSource: cause.source, causationId: cause.causationId,
+                        });
+                    }
                 }
                 if (handle.status === 'pending') {
                     instance.status = 'waiting_for_materialization';
@@ -640,7 +651,7 @@ export default class ActionEngine {
                 }
                 if (handle.status === 'cancelled') {
                     // No route to the required location (e.g. no such building): the action can't proceed.
-                    this.finish(instance, 'blocked', cause, deps, result);
+                    this.finish(instance, 'blocked', cause, deps, result, 'no_route');
                     return;
                 }
                 // arrived — fall through to running.
@@ -837,10 +848,10 @@ export default class ActionEngine {
         return id ? this.state.instances[id] ?? null : null;
     }
 
-    private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult): void {
+    private finish(instance: ActionInstance, outcome: 'completed' | 'interrupted' | 'blocked' | 'failed', cause: ActionCause, deps: ActionDeps, result: TickResult, reason?: import('types/LifeEvent').ActionFailureReason): void {
         this.ctxMemo = null; // completion consequences/events mutate — drop the proposal memo
         const def = this.manifest[instance.defId]!;
-        let failureReason: import('types/LifeEvent').ActionFailureReason | undefined;
+        let failureReason: import('types/LifeEvent').ActionFailureReason | undefined = reason;
 
         // Completion consequences (task 044): planned before the outcome is logged — an unsatisfiable plan
         // turns the completion into a failure with zero mutations. Outputs are seeded from the sequence's

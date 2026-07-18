@@ -170,6 +170,9 @@ export interface ActionInstance {
     startLogSeq: number | null; // seq of the 'started' log entry (causation for children/lifecycle events)
     ticksRun: number;
     transitionHandleId: number | null; // pending world transition, when waiting_for_materialization
+    // Whether the 'departed' log entry was written for this instance (LP-2) — once per instance, even
+    // when a moved person:<id> target re-routes the transition. Optional: absent in older saves.
+    departureLogged?: boolean;
     sequenceIndex: number; // next step to run (sequence children)
     // Output variables bound by the most recent step's consequences ("$previous.output", 038 §7.3/7.4).
     previousOutputs: Record<string, string>;

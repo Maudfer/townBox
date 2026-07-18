@@ -212,16 +212,40 @@ describe('continuous lifecycle', () => {
         const outcome = actions.startAction('a', 'nap_at_home', {}, cause, deps, emptyResult());
         const instance = actions.getInstance((outcome as { instanceId: string }).instanceId)!;
         expect(instance.status).toBe('waiting_for_materialization');
-        expect(actionEntries(engine, 'a')).toHaveLength(0); // nothing logged until the action actually starts
+        // The departure IS logged (LP-2): travel toward an action used to be invisible, making stuck
+        // commutes undiagnosable. Exactly one entry, carrying the destination.
+        expect(actionEntries(engine, 'a')).toHaveLength(1);
+        expect(actionEntries(engine, 'a')[0]).toMatchObject({ lifecycle: 'departed', tick: 1000, params: { destination: 'home' } });
 
         actions.advance({ ...deps, tick: 1001 });
         expect(instance.status).toBe('waiting_for_materialization'); // still commuting
+        expect(actionEntries(engine, 'a')).toHaveLength(1); // departed logs ONCE, not per tick
 
         handle!.status = 'arrived';
         location = { kind: 'home' };
         actions.advance({ ...deps, tick: 1002 });
         expect(instance.status).toBe('running');
-        expect(actionEntries(engine, 'a')[0]).toMatchObject({ lifecycle: 'started', tick: 1002 });
+        expect(actionEntries(engine, 'a')[1]).toMatchObject({ lifecycle: 'started', tick: 1002 });
+        // Departures are travel, not commits: recency counts the 'started' entry but NOT the departure.
+        expect(engine.getLifeLog().countRecentActions('a', 'nap_at_home', 0)).toBe(1);
+    });
+
+    test('a cancelled transition blocks the instance with a typed no_route reason (LP-2)', () => {
+        const state = pool(1000);
+        const world: WorldAdapter = {
+            mode: 'live',
+            locationOf: () => ({ kind: 'outside' }),
+            objectLocationOf: () => ({ kind: 'outside' }),
+            peopleAt: () => [],
+            objectsAt: () => [],
+            hasVenue: () => true,
+            requestTransition: (personId, target, tick, causationId) =>
+                ({ id: 0, personId, target, status: 'cancelled', requestedAtTick: tick, resolvedAtTick: null, causationId }),
+        };
+        const { deps, engine, actions } = makeDeps(state, 1000, world);
+        actions.startAction('a', 'nap_at_home', {}, cause, deps, emptyResult());
+        const blocked = actionEntries(engine, 'a').find(entry => entry.lifecycle === 'blocked');
+        expect(blocked).toMatchObject({ failureReason: 'no_route' });
     });
 });
 

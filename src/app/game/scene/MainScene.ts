@@ -576,16 +576,22 @@ export default class MainScene extends Phaser.Scene {
                 }).setOrigin(0.5, 1).setVisible(false);
                 this.activityLabels.set(person, text);
             }
+            // Travel narrates too (LP-2 / proposal simulation-aliveness-2 P2-1): a person en route to an
+            // action is in `waiting_for_materialization` — the street's most common visible state — and
+            // used to show nothing. "→ Working the register" walks past "Jogging".
             const active = engine.activeInstanceOf(personId);
-            const show = !!active && active.status === 'running' && !person.isIndoors();
+            const running = !!active && active.status === 'running';
+            const traveling = !!active && active.status === 'waiting_for_materialization';
+            const show = (running || traveling) && !person.isIndoors();
             if (show) {
-                text.setText(engine.getActionLabel(active!.defId));
+                const label = engine.getActionLabel(active!.defId);
+                text.setText(traveling ? `→ ${label}` : label);
             }
             text.setVisible(show);
 
-            // The dog appears exactly while the walk runs and despawns with the instance.
+            // The dog appears exactly while the walk RUNS (not en route to it) and despawns with the instance.
             let dot = this.petDots.get(person);
-            const walking = show && active!.defId === 'walking_the_dog';
+            const walking = running && show && active!.defId === 'walking_the_dog';
             if (walking && !dot) {
                 dot = this.add.rectangle(0, 0, 6, 4, 0x8b5a2b).setVisible(false);
                 this.petDots.set(person, dot);

@@ -10,8 +10,11 @@ import { PixelPosition, TilePosition } from 'types/Position';
 // tile position, tile position resolves to no tile) — which normal Person/Vehicle instances can't
 // naturally trigger, so minimal fakes are injected directly into Field's private roster.
 
-function makeGame(rows: number, cols: number) {
+function makeGame(rows: number, cols: number, timeScale?: number) {
     const game = {
+        // The debug time-throttle (LP-2): present only when a test opts in, so the default-1x fallback
+        // path (harness games without the method) stays covered too.
+        ...(timeScale !== undefined ? { getTimeScale: () => timeScale } : {}),
         gridParams: {
             rows, cols,
             cells: { width: 16, height: 16 },
@@ -215,5 +218,40 @@ describe('Field.update', () => {
             expect(driveFn).toHaveBeenCalledTimes(1);
             expect(updateDestinationFn).not.toHaveBeenCalled();
         });
+    });
+});
+
+// LP-2 (proposal simulation-aliveness-2 P0-5): movement runs on SIM time. The debug throttle scales the
+// clock by timeScale — movement must scale by the same factor or a 16× session makes every commute consume
+// 16× its in-game duration (arrival-gated behavior silently degrades).
+describe('Field.update: time-throttle movement scaling (LP-2)', () => {
+    function makeThrottledField(scale: number) {
+        return makeGame(15, 15, scale);
+    }
+
+    test('the frame delta passed to people and vehicles is multiplied by the current timeScale', () => {
+        const field = makeThrottledField(4);
+        const personUpdate = jest.fn();
+        const fakePerson = { getPosition: () => ({ x: 24, y: 24 }), update: personUpdate, redraw: jest.fn() } as unknown as Person;
+        (field as unknown as { people: Person[] }).people.push(fakePerson);
+        const drive = jest.fn();
+        const fakeVehicle = { getPosition: () => ({ x: 40, y: 40 }), drive, redraw: jest.fn(), isControlled: () => true } as unknown as Vehicle;
+        (field as unknown as { vehicles: Vehicle[] }).vehicles.push(fakeVehicle);
+
+        field.update({ time: 0, timeDelta: 16 });
+
+        expect(personUpdate).toHaveBeenCalledWith(expect.anything(), 64, expect.anything(), expect.anything());
+        expect(drive).toHaveBeenCalledWith(expect.anything(), 64);
+    });
+
+    test('a harness game without getTimeScale defaults to 1x (no scaling)', () => {
+        const field = makeGame(15, 15);
+        const personUpdate = jest.fn();
+        const fakePerson = { getPosition: () => ({ x: 24, y: 24 }), update: personUpdate, redraw: jest.fn() } as unknown as Person;
+        (field as unknown as { people: Person[] }).people.push(fakePerson);
+
+        field.update({ time: 0, timeDelta: 16 });
+
+        expect(personUpdate).toHaveBeenCalledWith(expect.anything(), 16, expect.anything(), expect.anything());
     });
 });
