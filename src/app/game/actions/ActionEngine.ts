@@ -831,15 +831,36 @@ export default class ActionEngine {
     }
 
     // External interruption (Brain arbitration, shift obligations, death reconciliation).
-    interrupt(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult): boolean {
+    // `handover` (W3 / P1-3d): a work→work switch inside the same shift — the doctor turning from her
+    // charts to a patient — suppresses the lifecycle EVENTS (no stopped_working mid-shift; the audit
+    // watched clock-outs fire for task switches), while the instance's own log entry still lands.
+    interrupt(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult, handover = false): boolean {
         this.ctxMemo = null; // finishing may mutate — drop the proposal memo
         const instance = this.state.instances[instanceId];
         if (!instance || !ACTIVE_STATUSES.has(instance.status)) {
             return false;
         }
-        this.finish(instance, 'interrupted', cause, deps, result);
+        if (handover) {
+            this.suppressLifecycleEvents = true;
+        }
+        // A natural conclusion is not an interruption (W3 / proposal simulation-aliveness-3 P1-3): an
+        // instance that already ran its FULL duration when the displacing intent arrives completes —
+        // onComplete fires, the log reads 'completed'. The audit's every-morning "sleep interrupted"
+        // (26 starts / 27 interrupted / 0 completed) was the wake-up obligation winning arbitration in the
+        // same tick sleep would have completed; biographies read as chronic sleep disruption.
+        const def = this.manifest[instance.defId];
+        const ranFullDuration = instance.status === 'running'
+            && def?.durationTicks !== undefined
+            && instance.runningSinceTick !== undefined && instance.runningSinceTick !== null
+            && deps.tick - instance.runningSinceTick >= def.durationTicks;
+        this.finish(instance, ranFullDuration ? 'completed' : 'interrupted', cause, deps, result);
+        this.suppressLifecycleEvents = false;
         return true;
     }
+
+    // Transient (never serialized): set for the duration of ONE handover interrupt (W3) so finish() skips
+    // its onInterrupt/onComplete event fire — a mid-shift task switch is not a clock-out.
+    private suppressLifecycleEvents = false;
 
     // Parks a resumable instance (task 087 / L5): logs 'paused', keeps the instance, frees the active slot.
     // Max one paused per person — a second pause turns the first into a real interruption.
@@ -959,10 +980,13 @@ export default class ActionEngine {
                 deps.ctx.markets?.habits?.practice(instance.personId, def.habit, deps.tick);
             }
             const tEvent = fclock ? fclock() : 0;
-            this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
-            this.fireTargetEvent(def.events?.onCompleteTarget, def, instance.personId, instance.params, seq, deps, result);
+            // A handover (W3) suppresses the lifecycle events: the mid-shift task switch is not a clock-out.
+            if (!this.suppressLifecycleEvents) {
+                this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
+                this.fireTargetEvent(def.events?.onCompleteTarget, def, instance.personId, instance.params, seq, deps, result);
+            }
             addF('finish:onCompleteEvent', tEvent);
-        } else if (outcome === 'interrupted') {
+        } else if (outcome === 'interrupted' && !this.suppressLifecycleEvents) {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
         }
 

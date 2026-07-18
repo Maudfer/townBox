@@ -231,10 +231,23 @@ export function validateArbitrationStructure(data: unknown, issues: IssueCollect
         return;
     }
     const config = data as Record<string, unknown>;
-    checkUnknownKeys(issues, 'arbitration', config, ['sameBandUtilityDelta', 'decisionCooldownTicks', 'resumeWindowTicks']);
+    checkUnknownKeys(issues, 'arbitration', config, ['sameBandUtilityDelta', 'decisionCooldownTicks', 'resumeWindowTicks', 'aftershock']);
     checkNumber(issues, 'arbitration.sameBandUtilityDelta', config['sameBandUtilityDelta'], { min: 0 });
     checkNumber(issues, 'arbitration.decisionCooldownTicks', config['decisionCooldownTicks'], { min: 0, integer: true });
     checkNumber(issues, 'arbitration.resumeWindowTicks', config['resumeWindowTicks'], { min: 1, integer: true });
+    // The aftershock (W3 / proposal simulation-aliveness-3 P1-3c): recent high-shock events dampen the
+    // outgoing (social/leisure) free-time weights for a few hours — people lie low after an arrest or fire.
+    if ('aftershock' in config) {
+        const aftershock = config['aftershock'] as Record<string, unknown>;
+        if (checkRecord(issues, 'arbitration.aftershock', aftershock)) {
+            checkUnknownKeys(issues, 'arbitration.aftershock', aftershock, ['events', 'withinTicks', 'outgoingMultiplier']);
+            if (!Array.isArray(aftershock['events']) || aftershock['events'].some(entry => typeof entry !== 'string')) {
+                issues.add('arbitration.aftershock.events', 'must be an array of event ids');
+            }
+            checkNumber(issues, 'arbitration.aftershock.withinTicks', aftershock['withinTicks'], { min: 1, integer: true });
+            checkNumber(issues, 'arbitration.aftershock.outgoingMultiplier', aftershock['outgoingMultiplier'], { min: 0 });
+        }
+    }
 }
 
 // json/inventory.json (task 088): carry budgets + the acquisitive hook's chances.

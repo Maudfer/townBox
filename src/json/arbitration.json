@@ -1,5 +1,15 @@
 {
     "sameBandUtilityDelta": 25,
     "decisionCooldownTicks": 2,
-    "resumeWindowTicks": 12
+    "resumeWindowTicks": 12,
+    "aftershock": {
+        "events": [
+            "was_arrested",
+            "got_caught",
+            "lost_home_to_fire",
+            "escaped_a_fire"
+        ],
+        "withinTicks": 12,
+        "outgoingMultiplier": 0.25
+    }
 }

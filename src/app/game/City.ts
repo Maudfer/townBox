@@ -1560,6 +1560,20 @@ export default class City {
             .sort()[0] ?? null;
         let arrestSeq: number | null = null;
         if (officerId) {
+            // The arrest interrupts the OFFICER's life too (W3 / proposal simulation-aliveness-3 P1-3):
+            // the audit watched an officer make an arrest mid-coffee-date without the date so much as
+            // pausing — the target's side was a real interruption, the actor's wasn't. A non-work activity
+            // ends before the ceremony; an on-duty work action keeps running (arresting IS the job).
+            const actionEngine = Game.actionEngine;
+            const officerActive = actionEngine?.activeInstanceOf(officerId);
+            if (actionEngine && officerActive && actionEngine.getDefinition(officerActive.defId)?.category !== 'work') {
+                actionEngine.interrupt(officerActive.id, { source: 'system', causationId: null }, {
+                    state, tick, ticksPerYear,
+                    ctx: { mode: 'live', world: this.world },
+                    eventEngine: engine,
+                    inventory: Game.inventory ?? null,
+                }, { died: [], born: [], signals: [], committed: [] });
+            }
             const { outcome } = engine.invoke(state, 'arrested_suspect', officerId, tick,
                 ticksPerYear, { source: 'system', causationId: null }, {}, {}, { target: suspectId });
             arrestSeq = outcome.ok ? outcome.seq : null;

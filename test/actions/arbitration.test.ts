@@ -166,3 +166,110 @@ describe('the L7 equivalence corpus (old sort vs bands)', () => {
         expect(actions.activeInstanceOf('a')?.defId).toBe('errand');
     });
 });
+
+// W3 — scenes, not events (proposal simulation-aliveness-3 P1-3): natural conclusions, work handovers,
+// and the aftershock dampener.
+describe('W3: interruption semantics', () => {
+    const W3_ACTIONS = {
+        napping: { label: 'Napping', type: 'continuous', category: 'recovery', durationTicks: 3, selection: { weight: 0 }, events: { onComplete: 'rested_up' } },
+        work_a: { label: 'Working the desk', type: 'continuous', category: 'work', durationTicks: 10, selection: { weight: 0 }, events: { onInterrupt: 'clocked_out' } },
+        work_b: { label: 'Helping a customer', type: 'continuous', category: 'work', durationTicks: 10, selection: { weight: 0 } },
+        stroll: { label: 'Strolling', type: 'continuous', category: 'leisure', durationTicks: 10, selection: { weight: 0 } },
+    } as unknown as ActionManifest;
+    const W3_EVENTS = {
+        rested_up: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { manual: {} }, effects: [] },
+        clocked_out: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { manual: {} }, effects: [] },
+    } as unknown as EventManifest;
+
+    function w3harness() {
+        const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+        const world = new BootstrapWorld(inventory);
+        const engine = new EventEngine(W3_EVENTS);
+        const actions = new ActionEngine(W3_ACTIONS, engine.getLifeLog());
+        const brain = new Brain(actions);
+        const queue: ActionIntent[] = [];
+        brain.registerHook({ id: 'test', kind: 'onTick', propose: () => queue.splice(0) });
+        const state: PopulationState = { worldSeed: 3, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 10, lastSimulatedYear: 0 };
+        world.register('a');
+        const deps: BrainDeps & ActionDeps = { state, tick: 100, ticksPerYear: TPY, ctx: { mode: 'bootstrap', world }, eventEngine: engine, inventory };
+        return { engine, actions, brain, queue, deps };
+    }
+
+    test('interrupting an instance that ran its FULL duration records a completion — the morning wake is not an interruption', () => {
+        const { engine, actions, deps } = w3harness();
+        const started = actions.startAction('a', 'napping', {}, { source: 'system', causationId: null }, deps, result());
+        expect(started.ok).toBe(true);
+        const instanceId = (started as { instanceId: string }).instanceId;
+        // Displaced at tick 103 — exactly its 3-tick duration elapsed: a natural conclusion.
+        actions.interrupt(instanceId, { source: 'brain', causationId: null }, { ...deps, tick: 103 }, result());
+        const log = engine.getPersonLog('a');
+        expect(log.some(e => e.kind === 'action' && e.defId === 'napping' && e.lifecycle === 'completed')).toBe(true);
+        expect(log.some(e => e.kind === 'action' && e.defId === 'napping' && e.lifecycle === 'interrupted')).toBe(false);
+        expect(log.some(e => e.kind === 'event' && e.defId === 'rested_up')).toBe(true); // onComplete fired
+    });
+
+    test('interrupting MID-duration stays an interruption', () => {
+        const { engine, actions, deps } = w3harness();
+        const started = actions.startAction('a', 'napping', {}, { source: 'system', causationId: null }, deps, result());
+        actions.interrupt((started as { instanceId: string }).instanceId, { source: 'brain', causationId: null }, { ...deps, tick: 101 }, result());
+        const log = engine.getPersonLog('a');
+        expect(log.some(e => e.kind === 'action' && e.defId === 'napping' && e.lifecycle === 'interrupted')).toBe(true);
+        expect(log.some(e => e.kind === 'event' && e.defId === 'rested_up')).toBe(false);
+    });
+
+    test('a work→work HANDOVER suppresses the clock-out event; a work→leisure switch fires it', () => {
+        const { engine, actions, brain, queue, deps } = w3harness();
+        // On the desk…
+        actions.startAction('a', 'work_a', {}, { source: 'brain', causationId: null }, deps, result());
+        // …a same-band work intent displaces it (utility high enough to clear the hysteresis + cooldown).
+        queue.push({ actionId: 'work_b', sourceHook: 'test', priority: 200, necessity: 'required', band: 'obligation', mayInterrupt: true, causationId: null });
+        brain.processTick(['a'], { ...deps, tick: 104 }, [], result());
+        let log = engine.getPersonLog('a');
+        expect(log.some(e => e.kind === 'action' && e.defId === 'work_a' && e.lifecycle === 'interrupted')).toBe(true);
+        expect(log.some(e => e.kind === 'event' && e.defId === 'clocked_out')).toBe(false); // the handover
+
+        // Now a leisure intent displaces work: clear work_b (handover — silent), restart work_a, then stroll.
+        const activeB = actions.activeInstanceOf('a')!;
+        actions.interrupt(activeB.id, { source: 'brain', causationId: null }, { ...deps, tick: 110 }, result(), true);
+        expect(actions.startAction('a', 'work_a', {}, { source: 'brain', causationId: null }, { ...deps, tick: 110 }, result()).ok).toBe(true);
+        queue.push({ actionId: 'stroll', sourceHook: 'test', priority: 400, necessity: 'required', band: 'survival', mayInterrupt: true, causationId: null });
+        brain.processTick(['a'], { ...deps, tick: 114 }, [], result());
+        log = engine.getPersonLog('a');
+        expect(log.some(e => e.kind === 'event' && e.defId === 'clocked_out')).toBe(true); // a REAL exit fires it
+    });
+});
+
+describe('W3: the aftershock — lying low after a shock', () => {
+    test('a fresh was_arrested dampens outgoing picks toward home for the config window', () => {
+        const AFTERSHOCK_ACTIONS = {
+            out_socializing: { label: 'Out socializing', type: 'continuous', category: 'leisure', durationTicks: 1, selection: { weight: 1 } },
+            puttering_at_home: { label: 'Puttering at home', type: 'continuous', category: 'maintenance', durationTicks: 1, selection: { weight: 1 } },
+        } as unknown as ActionManifest;
+        const AFTERSHOCK_EVENTS = {
+            was_arrested: { roles: { subject: { where: { attr: 'alive', op: '==', value: true } } }, triggers: { manual: {} }, effects: [] },
+        } as unknown as EventManifest;
+        const run = (arrested: boolean): number => {
+            const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+            const world = new BootstrapWorld(inventory);
+            const engine = new EventEngine(AFTERSHOCK_EVENTS);
+            const actions = new ActionEngine(AFTERSHOCK_ACTIONS, engine.getLifeLog());
+            const brain = new Brain(actions);
+            const state: PopulationState = { worldSeed: 9, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 10, lastSimulatedYear: 0 };
+            world.register('a');
+            if (arrested) {
+                engine.invoke(state, 'was_arrested', 'a', 99, TPY, { source: 'system', causationId: null });
+            }
+            let outings = 0;
+            for (let tick = 100; tick < 111; tick++) { // inside the 12-tick aftershock window
+                const deps: BrainDeps = { state, tick, ticksPerYear: TPY, ctx: { mode: 'bootstrap', world }, eventEngine: engine, inventory };
+                if (brain.selectFreeTimeAction('a', deps) === 'out_socializing') {
+                    outings++;
+                }
+            }
+            return outings;
+        };
+        const calm = run(false);
+        const shaken = run(true);
+        expect(shaken).toBeLessThan(calm); // the 0.25 dampener bites (same seed, same ticks)
+    });
+});

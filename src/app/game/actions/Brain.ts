@@ -75,6 +75,12 @@ export interface ActionIntent {
 const BAND_RANK: Record<IntentBand, number> = { survival: 0, obligation: 1, commitment: 2, need: 3, opportunity: 4, fallback: 5 };
 // The authored interruption thresholds (task 086 / L4, L6).
 export const ARBITRATION_CONFIG = arbitrationConfig as { sameBandUtilityDelta: number; decisionCooldownTicks: number };
+// The aftershock (W3 / proposal simulation-aliveness-3 P1-3c): a recent high-shock event dampens the
+// OUTGOING (social/leisure) free-time weights for a few hours — people lie low after an arrest or a fire.
+// Home/maintenance/recovery candidates keep their weights, so the bias reads as staying in, not paralysis.
+export const AFTERSHOCK_CONFIG = (arbitrationConfig as unknown as {
+    aftershock?: { events: string[]; withinTicks: number; outgoingMultiplier: number };
+}).aftershock ?? { events: [], withinTicks: 0, outgoingMultiplier: 1 };
 // Carry budgets + the acquisitive hook's chances (task 088 / F1–F2).
 export const INVENTORY_CONFIG = inventoryConfig as {
     maxCarriedWeightGrams: number; maxBulkyItems: number; stowAboveFraction: number;
@@ -356,7 +362,11 @@ export default class Brain {
                 if (activeDef?.resumable && intentRank < activeRank) {
                     this.actionEngine.pause(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
                 } else {
-                    this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
+                    // Work→work is a HANDOVER (W3 / P1-3d): switching tasks inside the shift must not fire
+                    // stopped_working — the audit watched the doctor 'clock out' by turning to a patient.
+                    const incomingDef = this.actionEngine.getDefinition(intent.actionId);
+                    const handover = activeDef?.category === 'work' && incomingDef?.category === 'work';
+                    this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result, handover);
                 }
             }
             // Resume intents (task 087): revive the paused instance instead of starting a new one.
@@ -435,6 +445,14 @@ export default class Brain {
         return candidates;
     }
 
+    // Recent high-shock event? (W3 / P1-3c) — the outgoing free-time weights dampen while it's fresh.
+    private static isShaken(context: import('types/Simulation').SimulationContext): boolean {
+        if (AFTERSHOCK_CONFIG.events.length === 0) {
+            return false;
+        }
+        return AFTERSHOCK_CONFIG.events.some(eventId => context.hasEvent(eventId, { withinTicks: AFTERSHOCK_CONFIG.withinTicks }));
+    }
+
     // The best available continuous action addressing one need (the needsHook's pick, task 084): the normal
     // free-time machinery (cooldowns, hard gates, modifiers, urgency) restricted to candidates that satisfy
     // the need meaningfully. Deterministic per (seed, tick, person) on a salted fork of the free-time stream.
@@ -444,6 +462,7 @@ export default class Brain {
         const traitsReader = deps.ctx.markets?.traits ?? null;
         const habitsReader = deps.ctx.markets?.habits ?? null;
         const urgency = needsLedger?.urgencyByNeed?.(personId, deps.tick, deps.state.worldSeed) ?? null;
+        const shaken = Brain.isShaken(context);
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
@@ -454,6 +473,9 @@ export default class Brain {
             }
             const selection = def.selection;
             let weight = baseWeight;
+            if (shaken && (def.category === 'social' || def.category === 'leisure')) {
+                weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)
+            }
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue;
             }
@@ -544,10 +566,14 @@ export default class Brain {
         const tLoop = clock ? clock() : 0;
         let reqMs = 0;
         let modMs = 0;
+        const shaken = Brain.isShaken(context);
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind, satisfiesEntries } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
             let weight = baseWeight;
+            if (shaken && (def.category === 'social' || def.category === 'leisure')) {
+                weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)
+            }
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue; // anti-repetition
             }
