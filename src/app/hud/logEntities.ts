@@ -17,6 +17,39 @@ export interface ResolvedParam {
     person?: Person; // materialized referent — chip click opens their inspector
 }
 
+// One piece of a templated label (LP-14 layer 3): plain text, or a resolved param rendered inline —
+// "Hugged {target}" becomes [text "Hugged ", param(Ana Souza)]. Person params stay clickable inline.
+export interface LabelSegment {
+    text: string;
+    param?: ResolvedParam;
+}
+
+// Renders a (possibly templated) label against resolved params. Placeholders consume their param;
+// unreferenced params are returned as leftovers so the caller can append them as chips — an untemplated
+// label degrades to exactly the pre-template rendering.
+export function renderLabelSegments(label: string, resolved: ResolvedParam[]): { segments: LabelSegment[]; leftovers: ResolvedParam[] } {
+    const segments: LabelSegment[] = [];
+    const used = new Set<string>();
+    const parts = label.split(/\{(\w+)\}/g); // odd indices are placeholder keys
+    for (let index = 0; index < parts.length; index++) {
+        const part = parts[index]!;
+        if (index % 2 === 0) {
+            if (part.length > 0) {
+                segments.push({ text: part });
+            }
+            continue;
+        }
+        const param = resolved.find(candidate => candidate.key === part);
+        if (param) {
+            used.add(param.key);
+            segments.push({ text: param.text, param });
+        } else {
+            segments.push({ text: part.replace(/_/g, ' ') }); // undeclared placeholder (validator-guarded) — degrade readably
+        }
+    }
+    return { segments, leftovers: resolved.filter(param => !used.has(param.key)) };
+}
+
 // Person ids in params come from person-typed parameters ('target') and counterpart sources ('from',
 // 'with'). Anything whose value matches a pool person resolves as one.
 export function resolveLogParams(game: GameManager, params: Record<string, string | number | boolean>): ResolvedParam[] {

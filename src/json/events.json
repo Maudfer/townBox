@@ -923,7 +923,7 @@
         "valence": 1
     },
     "made_friend": {
-        "label": "Made a new friend",
+        "label": "Became friends with {with}",
         "category": "social",
         "roles": {
             "subject": {
@@ -953,7 +953,7 @@
         "witnessable": true
     },
     "argument": {
-        "label": "Had a falling-out",
+        "label": "Had a falling-out with {with}",
         "category": "social",
         "roles": {
             "subject": {
@@ -1848,7 +1848,7 @@
         "valence": 1
     },
     "went_on_first_date": {
-        "label": "Went on a first date",
+        "label": "Went on a first date with {with}",
         "category": "romance",
         "roles": {
             "subject": {
@@ -1929,7 +1929,7 @@
         "valence": 1
     },
     "asked_someone_out": {
-        "label": "Asked someone out",
+        "label": "Asked {with} out",
         "category": "romance",
         "roles": {
             "subject": {
@@ -2068,7 +2068,7 @@
         "valence": 1
     },
     "got_engaged": {
-        "label": "Got engaged",
+        "label": "Got engaged to {with}",
         "category": "romance",
         "roles": {
             "subject": {
@@ -8053,7 +8053,7 @@
         "witnessable": true
     },
     "received_gift": {
-        "label": "Received a gift",
+        "label": "Received a gift from {from}",
         "category": "social",
         "roles": {
             "subject": {
@@ -25809,7 +25809,7 @@
         "valence": 1
     },
     "object_acquired": {
-        "label": "Acquired an object",
+        "label": "Acquired {object}",
         "category": "possessions",
         "roles": {
             "subject": {
@@ -25832,7 +25832,7 @@
         "effects": []
     },
     "object_given": {
-        "label": "Gave an object away",
+        "label": "Gave {object} away",
         "category": "possessions",
         "roles": {
             "subject": {
@@ -25855,7 +25855,7 @@
         "effects": []
     },
     "object_received": {
-        "label": "Received an object",
+        "label": "Received {object} from {from}",
         "category": "possessions",
         "roles": {
             "subject": {
@@ -25887,7 +25887,7 @@
         ]
     },
     "object_lost": {
-        "label": "Lost an object",
+        "label": "Lost {object}",
         "category": "possessions",
         "roles": {
             "subject": {
@@ -25910,7 +25910,7 @@
         "effects": []
     },
     "object_consumed": {
-        "label": "Used an object up",
+        "label": "Used up {object}",
         "category": "possessions",
         "roles": {
             "subject": {
@@ -25987,7 +25987,7 @@
         "valence": -1
     },
     "received_a_hug": {
-        "label": "Received a hug",
+        "label": "Got a hug from {from}",
         "category": "social",
         "roles": {
             "subject": {
@@ -26017,7 +26017,7 @@
         ]
     },
     "became_close_friends": {
-        "label": "Became close friends",
+        "label": "Became close friends with {with}",
         "category": "social",
         "roles": {
             "subject": {
@@ -26615,7 +26615,7 @@
         ]
     },
     "shared_gossip": {
-        "label": "Passed a story along",
+        "label": "Passed a story along to {target}",
         "category": "social",
         "roles": {
             "subject": {
@@ -26656,7 +26656,7 @@
         "effects": []
     },
     "arrested_suspect": {
-        "label": "Made an arrest",
+        "label": "Arrested {target}",
         "category": "crime",
         "roles": {
             "subject": {
@@ -26697,7 +26697,7 @@
         "effects": []
     },
     "offered_a_ride": {
-        "label": "Offered someone a ride",
+        "label": "Offered {target} a ride",
         "category": "social",
         "roles": {
             "subject": {
@@ -26738,7 +26738,7 @@
         "effects": []
     },
     "visited_person_in_jail": {
-        "label": "Visited a loved one in jail",
+        "label": "Visited {target} in jail",
         "category": "crime",
         "parameters": {
             "target": {
@@ -26815,7 +26815,7 @@
         "effects": []
     },
     "visited_sick_relative": {
-        "label": "Visited a sick relative",
+        "label": "Visited {target}",
         "category": "health",
         "parameters": {
             "target": {

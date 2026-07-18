@@ -20,7 +20,7 @@ function rankLabel(job: { title: string; rankId?: string }): string | null {
 }
 import { DetailsWindowProps } from 'types/HUD';
 import { formatTickAtMinute } from 'util/time';
-import { resolveLogParams } from 'hud/logEntities';
+import { resolveLogParams, renderLabelSegments } from 'hud/logEntities';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;
@@ -268,19 +268,24 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                                 const label = entry.kind === 'action'
                                     ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle}${failureSuffix})` : ''}`
                                     : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
-                                // Entity-linked params (LP-14 / M5): "Hugged a person [Ana Souza]" — names, not ids,
-                                // for BOTH entry kinds (action targets carried ids the HUD never rendered), with a
-                                // clickable chip when the referent is materialized.
-                                const chips = entry.params ? resolveLogParams(game, entry.params) : [];
+                                // Entity-linked, templated labels (LP-14 / M5): "Hugged Ana Souza" rendered inline
+                                // from the label's {placeholders}; unreferenced params still append as chips, and
+                                // person references stay clickable either way.
+                                const resolved = entry.params ? resolveLogParams(game, entry.params) : [];
+                                const { segments, leftovers } = renderLabelSegments(label, resolved);
+                                const chip = (key: string, param: NonNullable<ReturnType<typeof resolveLogParams>[number]>, inline: boolean): JSX.Element =>
+                                    param.person
+                                        ? <button key={key} type="button" onClick={() => game.emit('PersonSelected', param.person!)}
+                                            style={{ marginLeft: inline ? 0 : 4, cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: '#7fd0ff', textDecoration: 'underline', font: 'inherit' }}>
+                                            {param.text}
+                                        </button>
+                                        : <span key={key} style={{ marginLeft: inline ? 0 : 4, opacity: inline ? 1 : 0.85 }}>{inline ? param.text : `[${param.text}]`}</span>;
                                 return (
                                     <li key={entry.seq}>
-                                        {label}
-                                        {chips.map(chip => chip.person
-                                            ? <button key={chip.key} type="button" onClick={() => game.emit('PersonSelected', chip.person!)}
-                                                style={{ marginLeft: 4, cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: '#7fd0ff', textDecoration: 'underline', font: 'inherit' }}>
-                                                {chip.text}
-                                            </button>
-                                            : <span key={chip.key} style={{ marginLeft: 4, opacity: 0.85 }}>[{chip.text}]</span>)}
+                                        {segments.map((segment, index) => segment.param
+                                            ? chip(`s${index}`, segment.param, true)
+                                            : <span key={`s${index}`}>{segment.text}</span>)}
+                                        {leftovers.map(param => chip(param.key, param, false))}
                                         {' — '}<small>{formatTickAtMinute(entry.tick, entry.minute)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
                                     </li>
                                 );

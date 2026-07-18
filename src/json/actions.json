@@ -3757,7 +3757,7 @@
         }
     },
     "lent_an_object": {
-        "label": "Lent an object",
+        "label": "Lent an object to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -3829,7 +3829,7 @@
         ]
     },
     "returned_borrowed_object": {
-        "label": "Returned a borrowed object",
+        "label": "Returned {object} to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -3952,7 +3952,7 @@
         "category": "social"
     },
     "greeted_person": {
-        "label": "Greeted someone",
+        "label": "Greeted {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -3984,7 +3984,7 @@
         ]
     },
     "talked_to_person": {
-        "label": "Talked to someone",
+        "label": "Talked to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4016,7 +4016,7 @@
         ]
     },
     "asked_for_help": {
-        "label": "Asked for help",
+        "label": "Asked {target} for help",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4036,7 +4036,7 @@
         }
     },
     "complimented_person": {
-        "label": "Complimented someone",
+        "label": "Complimented {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4062,7 +4062,7 @@
         ]
     },
     "apologized_to_person": {
-        "label": "Apologized to someone",
+        "label": "Apologized to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4088,7 +4088,7 @@
         ]
     },
     "argued_with_person": {
-        "label": "Argued with someone",
+        "label": "Argued with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4125,7 +4125,7 @@
         ]
     },
     "invited_person_over": {
-        "label": "Invited someone over",
+        "label": "Invited {target} over",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4152,7 +4152,7 @@
         ]
     },
     "told_a_joke": {
-        "label": "Told a joke",
+        "label": "Told {target} a joke",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4185,7 +4185,7 @@
         ]
     },
     "asked_for_advice": {
-        "label": "Asked for advice",
+        "label": "Asked {target} for advice",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4211,7 +4211,7 @@
         ]
     },
     "offered_job_lead": {
-        "label": "Offered a job lead",
+        "label": "Offered {target} a job lead",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4231,7 +4231,7 @@
         }
     },
     "celebrated_with_person": {
-        "label": "Celebrated with someone",
+        "label": "Celebrated with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4261,7 +4261,7 @@
         }
     },
     "consoled_person": {
-        "label": "Consoled someone",
+        "label": "Consoled {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4290,7 +4290,7 @@
         }
     },
     "played_with_person": {
-        "label": "Played with someone",
+        "label": "Played with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4320,7 +4320,7 @@
         }
     },
     "taught_person_something": {
-        "label": "Taught someone something",
+        "label": "Taught {target} something",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4359,7 +4359,7 @@
         }
     },
     "gave_object_to_person": {
-        "label": "Gave an object to someone",
+        "label": "Gave an object to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4416,7 +4416,7 @@
         }
     },
     "shared_food_with_person": {
-        "label": "Shared food with someone",
+        "label": "Shared food with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5106,7 +5106,7 @@
         }
     },
     "grab": {
-        "label": "Grabbed an object",
+        "label": "Picked up {object}",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5160,7 +5160,7 @@
         }
     },
     "put_down": {
-        "label": "Put an object down",
+        "label": "Put {object} down",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5187,7 +5187,7 @@
         ]
     },
     "discard_object": {
-        "label": "Threw an object away",
+        "label": "Threw {object} away",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5231,7 +5231,7 @@
         }
     },
     "use_object": {
-        "label": "Used an object",
+        "label": "Used {object}",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5247,7 +5247,7 @@
         }
     },
     "hugged_person": {
-        "label": "Hugged someone",
+        "label": "Hugged {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5285,7 +5285,7 @@
         }
     },
     "kissed_partner": {
-        "label": "Kissed their partner",
+        "label": "Kissed {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5324,7 +5324,7 @@
         }
     },
     "invite_to_activity": {
-        "label": "Invited someone to spend time together",
+        "label": "Invited {target} to spend time together",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5385,7 +5385,7 @@
         }
     },
     "asked_person_out": {
-        "label": "Asked someone out",
+        "label": "Asked {target} out",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5477,7 +5477,7 @@
         ]
     },
     "proposed_marriage": {
-        "label": "Proposed marriage",
+        "label": "Proposed marriage to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -6070,7 +6070,7 @@
         }
     },
     "thanked_person": {
-        "label": "Thanked someone",
+        "label": "Thanked {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -6436,7 +6436,7 @@
         }
     },
     "pickpocketed_someone": {
-        "label": "Pickpocketed someone",
+        "label": "Pickpocketed {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -6755,7 +6755,7 @@
         }
     },
     "treating_patient": {
-        "label": "Treating a patient",
+        "label": "Treating {target}",
         "type": "continuous",
         "category": "work",
         "durationTicks": 2,
@@ -6779,7 +6779,7 @@
         }
     },
     "visiting_the_sick": {
-        "label": "Visiting a sick relative",
+        "label": "Visiting {target}",
         "type": "continuous",
         "category": "social",
         "durationTicks": 2,
@@ -6978,7 +6978,7 @@
         ]
     },
     "shared_gossip": {
-        "label": "Shared a bit of gossip",
+        "label": "Shared a bit of gossip with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -7042,7 +7042,7 @@
         }
     },
     "visiting_the_detained": {
-        "label": "Visiting a loved one in custody",
+        "label": "Visiting {target} in custody",
         "type": "continuous",
         "category": "social",
         "durationTicks": 2,
@@ -7104,7 +7104,7 @@
         }
     },
     "applying_at_business": {
-        "label": "Applying for a job",
+        "label": "Applying for a job at {employer}",
         "type": "continuous",
         "category": "maintenance",
         "durationTicks": 2,

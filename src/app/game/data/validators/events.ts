@@ -64,6 +64,15 @@ export function validateEventsStructure(data: unknown, issues: IssueCollector): 
         validateEffects(issues, id, event['effects'], roleNames);
         if ('label' in event) {
             checkString(issues, `${id}.label`, event['label']);
+            // Label templates (LP-14 layer 3): every {placeholder} must name a declared parameter.
+            if (typeof event['label'] === 'string') {
+                const declared = new Set(Object.keys((event['parameters'] as Record<string, unknown> | undefined) ?? {}));
+                for (const match of (event['label'] as string).matchAll(/\{(\w+)\}/g)) {
+                    if (!declared.has(match[1]!)) {
+                        issues.add(`${id}.label`, `template placeholder {${match[1]}} does not name a declared parameter`);
+                    }
+                }
+            }
         }
         if ('witnessable' in event && typeof event['witnessable'] !== 'boolean') {
             issues.add(id + '.witnessable', 'expected a boolean');

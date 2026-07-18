@@ -426,6 +426,8 @@ describe('actions validation (task 043)', () => {
         ['an out-of-range pool chance', { a: { ...continuous, children: { mode: 'pool', entries: [{ action: 'b', chancePerTick: 2 }] } } }, /expected <= 1/],
         ['an unknown binding', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$sibling.output' } }] } } }, /unknown binding/],
         ['a binding to an undeclared parent parameter', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$parent.ghost' } }] } } }, /undeclared parent parameter "ghost"/],
+        // Label templates (LP-14 layer 3): placeholders must name declared parameters.
+        ['a label placeholder naming no declared parameter', { a: { ...discrete, label: 'Hugged {target}' } }, /placeholder \{target\}/],
     ])('structure rejects %s', (_label, fixture, pattern) => {
         expect(messagesOf(structure(validateActionsStructure, fixture))).toMatch(pattern);
     });

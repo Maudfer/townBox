@@ -117,6 +117,16 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
                 issues.add(`${id}.affinity`, 'expected an array of trait-affinity tag strings');
             }
         }
+        // Label templates (LP-14 layer 3): every {placeholder} in a label must name a declared parameter —
+        // a typo'd placeholder would render as a bare word forever.
+        if (typeof action['label'] === 'string') {
+            const declared = new Set(Object.keys((action['parameters'] as Record<string, unknown> | undefined) ?? {}));
+            for (const match of (action['label'] as string).matchAll(/\{(\w+)\}/g)) {
+                if (!declared.has(match[1]!)) {
+                    issues.add(`${id}.label`, `template placeholder {${match[1]}} does not name a declared parameter`);
+                }
+            }
+        }
         // The workday lifecycle contract (LP-3 / proposal simulation-aliveness-2 P0-3): every continuous
         // work action must announce the shift — onStart started_working and stopped_working on BOTH exits.
         // The audit found 27 of 43 unwired, so shifts started invisibly and the day-progression seam
