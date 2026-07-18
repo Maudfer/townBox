@@ -169,7 +169,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.6,
+                "perYear": 0.15,
                 "factors": [
                     {
                         "driver": "subject.age",
@@ -8916,7 +8916,7 @@
             "manual": {}
         },
         "limit": {
-            "withinTicks": 1440
+            "withinTicks": 17280
         },
         "effects": [
             {
@@ -8985,6 +8985,27 @@
         },
         "effects": [],
         "valence": -3
+    },
+    "attended_a_wedding": {
+        "label": "Attended a wedding",
+        "category": "relationship",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "limit": {
+            "withinTicks": 24
+        },
+        "effects": [],
+        "valence": 2
     },
     "looked_for_housing": {
         "label": "Went looking for a home",

@@ -14,6 +14,7 @@ import HousingMarket from 'game/economy/HousingMarket';
 import JobMarket from 'game/economy/JobMarket';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
 import { DEFAULT_POPULATION_PARAMS } from 'game/population/Population';
+import { maybeConceive } from 'game/population/Conception';
 import { SchoolSeat } from 'game/skills/SchoolRegistry';
 import SkillProgression from 'game/skills/SkillProgression';
 import SkillRegistry from 'game/skills/SkillRegistry';
@@ -1189,6 +1190,10 @@ export default class City {
                         // P1-11): a committed looking_for_a_home run triggers the recovery attempt for the
                         // seeker's household NOW — the get_job-at-the-counter pattern applied to housing.
                         this.attemptRecoveryFor(commit.personId, event.tick);
+                    } else if (commit.eventId === 'had_sex' && Game.eventEngine) {
+                        // Conception rides intimacy (W4 / P1-6): the pregnancy event's own eligibility
+                        // keeps the last word; the demoted probabilistic trigger stays as background.
+                        maybeConceive(population.getState(), Game.eventEngine, commit.personId, event.tick, ticksPerYear, commit.seq);
                     }
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
@@ -2227,6 +2232,31 @@ export default class City {
         // the connected street before the paperwork — displacement is a visible scene, not a vanishing.
         this.ejectOccupants(house);
 
+        // Household-unit rehousing FIRST (W4 / P1-4): the audit's fire split a couple — she moved in with
+        // kin, he went homeless at the supermarket — because relocation was per-member by blood relation.
+        // If ANY member's relative can take the WHOLE living group, everyone goes together; only when no
+        // host fits them all does the flow fall back to the per-member offers below.
+        {
+            const livingGroup = household.memberIds.filter(id => byGenId.has(id));
+            for (const memberId of [...livingGroup].sort()) {
+                const host = this.findRelativeHouse(memberId, byGenId, pool, house, tick);
+                if (!host) {
+                    continue;
+                }
+                const freeSlots = host.getOverview().maxResidents - host.getResidents().length;
+                if (freeSlots < livingGroup.length) {
+                    continue; // can't take them all — keep looking for a bigger-hearted (or -housed) relative
+                }
+                for (const id of livingGroup) {
+                    this.relocateMember(id, byGenId, house, host);
+                    this.fireMilestone('taken_in_by_relatives', id, tick);
+                }
+                house.clearHousehold();
+                this.vacateIfEmpty(house);
+                return { householdName, rehoused: livingGroup.length, homeless: 0 };
+            }
+        }
+
         const homelessIds: PersonId[] = [];
         let rehoused = 0;
         for (const memberId of [...household.memberIds]) {
@@ -2704,6 +2734,22 @@ export default class City {
         const spouseId = spouseAt(pool, subjectId, tick);
         if (!spouseId) {
             return;
+        }
+
+        // The wedding is a family scene (W4 / proposal simulation-aliveness-3 P1-6): the couple's close kin
+        // attend — a same-day milestone in every guest's log and mood, not just two silent marital flags.
+        {
+            const guests = new Set<PersonId>();
+            for (const coupleHalf of [subjectId, spouseId]) {
+                for (const kinId of [...parentsOf(pool, coupleHalf), ...childrenOf(pool, coupleHalf), ...siblingsOf(pool, coupleHalf)]) {
+                    guests.add(kinId);
+                }
+            }
+            guests.delete(subjectId);
+            guests.delete(spouseId);
+            for (const guestId of [...guests].sort()) {
+                this.fireMilestone('attended_a_wedding', guestId, tick);
+            }
         }
 
         const byGenId = this.indexByGenId();

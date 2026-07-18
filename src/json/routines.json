@@ -99,7 +99,17 @@
                     "value": 18
                 },
                 {
+                    "attr": "age",
+                    "op": "<",
+                    "value": 68
+                },
+                {
                     "attr": "employed",
+                    "op": "==",
+                    "value": false
+                },
+                {
+                    "attr": "retired",
                     "op": "==",
                     "value": false
                 }

@@ -8,9 +8,9 @@
   "brain.freeTimeCompute": 805,
   "event.invokeScan": 0,
   "event.roll": 1509120,
-  "event.subjectEval": 329,
+  "event.subjectEval": 328,
   "inv.carriedBuild": 1033,
   "inv.contentsBuild": 427,
-  "predicate.evalCached": 98211,
+  "predicate.evalCached": 99756,
   "world.peopleAt": 320
 }

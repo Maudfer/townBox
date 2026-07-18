@@ -512,6 +512,14 @@
                 },
                 {
                     "when": {
+                        "attr": "retired",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 1.6
+                },
+                {
+                    "when": {
                         "all": [
                             {
                                 "attr": "hourOfDay",
@@ -1696,6 +1704,14 @@
                         "op": "==",
                         "value": true
                     },
+                    "multiply": 1.6
+                },
+                {
+                    "when": {
+                        "attr": "retired",
+                        "op": "==",
+                        "value": true
+                    },
                     "multiply": 1.5
                 },
                 {
@@ -2149,6 +2165,14 @@
         "selection": {
             "weight": 1,
             "modifiers": [
+                {
+                    "when": {
+                        "attr": "retired",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 1.6
+                },
                 {
                     "when": {
                         "any": [
@@ -6237,7 +6261,17 @@
                     "value": 18
                 },
                 {
+                    "attr": "age",
+                    "op": "<",
+                    "value": 68
+                },
+                {
                     "attr": "employed",
+                    "op": "==",
+                    "value": false
+                },
+                {
+                    "attr": "retired",
                     "op": "==",
                     "value": false
                 }

@@ -202,3 +202,36 @@ describe('W9: bulldoze truth and visible displacement', () => {
         expect(personA.social.getHome()).not.toBeNull();
     });
 });
+
+// W4 — household truth 2 (proposal simulation-aliveness-3 P1-4): households rehouse as a UNIT.
+describe('W4: household-unit rehousing', () => {
+    test('a displaced couple moves in together when a relative can take BOTH — never split', () => {
+        const tickNow = 40 * TPY;
+        const { field, population, economy } = makeGame(40, 40);
+        const dad = gen('dad', Genders.Male, 80, tickNow);
+        dad.deathTick = tickNow - 5 * TPY;
+        const a = gen('a', Genders.Female, 40, tickNow, { fatherId: 'dad' });
+        const partner = gen('p', Genders.Male, 41, tickNow); // NOT blood kin of the sibling host
+        a.partnerships = [{ partnerId: 'p', startTick: tickNow - 10 * TPY, endTick: null }];
+        partner.partnerships = [{ partnerId: 'a', startTick: tickNow - 10 * TPY, endTick: null }];
+        const sib = gen('sib', Genders.Male, 44, tickNow, { fatherId: 'dad' });
+        loadState(population, { dad, a, p: partner, sib }, ['a', 'p', 'sib']);
+
+        const home = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        const personA = materialize(field, home, 'a', 72, 72);
+        const personP = materialize(field, home, 'p', 72, 72);
+        home.setHousehold({ id: 'hh-1', houseKey: home.getIdentifier(), headId: 'a', memberIds: ['a', 'p'], arrangement: HouseholdArrangements.Nuclear });
+
+        const hostHome = field.loadStructure('house', 16, 16, 'building_1x1x1_1') as House;
+        materialize(field, hostHome, 'sib', 256, 256);
+        hostHome.setHousehold({ id: 'hh-2', houseKey: hostHome.getIdentifier(), headId: 'sib', memberIds: ['sib'], arrangement: HouseholdArrangements.Single });
+        economy.setPersonBalance('sib', 50000);
+
+        field.bulldoze({ position: { row: 4, col: 4 }, tool: Tool.Bulldoze });
+
+        // BOTH landed with the sibling — the audit's fire split exactly this pairing.
+        expect(personA.social.getHome()).toBe(hostHome);
+        expect(personP.social.getHome()).toBe(hostHome);
+        expect(hostHome.getHousehold()!.memberIds).toEqual(expect.arrayContaining(['a', 'p']));
+    });
+});

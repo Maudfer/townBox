@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 742 events — **30 vital**, **45 wired**, **506 texture**, **161 reserved**.
+Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserved**.
 
 | Event | Category | Triggers | Disposition | Quirk | Invoked by |
 |---|---|---|---|---|---|
@@ -28,6 +28,7 @@ Totals: 742 events — **30 vital**, **45 wired**, **506 texture**, **161 reserv
 | assembled_flatpack | possessions | probabilistic+manual | texture | quirk | — |
 | ate_at_restaurant | food | probabilistic+manual | texture | quirk | — |
 | ate_questionable_leftover | food | probabilistic+manual | texture | quirk | — |
+| attended_a_wedding | relationship | manual | reserved | — | — |
 | attended_funeral | death | manual | reserved | — | — |
 | attended_party | social | probabilistic+manual | texture | quirk | — |
 | attended_town_fair | community | probabilistic+manual | texture | quirk | — |

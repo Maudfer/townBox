@@ -26,6 +26,7 @@ import PetRegistry, { PETS_CONFIG } from 'game/population/PetRegistry';
 import Traits from 'game/population/Traits';
 import SocialGraph from 'game/population/SocialGraph';
 import EventEngine from 'game/events/EventEngine';
+import { maybeConceive } from 'game/population/Conception';
 import Inventory from 'game/objects/Inventory';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
 import SchoolRegistry, { SchoolSeat, SchoolCandidate } from 'game/skills/SchoolRegistry';
@@ -644,6 +645,11 @@ export default class LogicalWorld implements WorldAdapter {
             }
         }
         for (const commit of result.committed) {
+            if (commit.eventId === 'had_sex') {
+                // Conception rides intimacy (W4 / P1-6) — the same salted roll live play runs, so the
+                // deep-sim and the map agree on how babies happen.
+                maybeConceive(state, engine, commit.personId, tick, ticksPerYear, commit.seq);
+            }
             if (commit.eventId === 'moved_out_of_parents') {
                 this.moveOutOfParents(state, commit.personId, tick, ticksPerYear);
             } else if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
