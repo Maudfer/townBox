@@ -483,6 +483,23 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 });
                 break;
             }
+            case 'satisfyNeed': {
+                // Household care (LP-5 / P1-7): feed the co-located — the cook's serving credits everyone
+                // sharing the room. Needs-less contexts (pure tests) and empty rooms are benign no-ops.
+                steps.push(() => {
+                    const needs = ctx.deps.ctx.markets?.needs ?? null;
+                    const world = ctx.deps.ctx.world ?? null;
+                    if (!needs || !world) {
+                        return;
+                    }
+                    const here = world.locationOf(ctx.personId);
+                    const served = world.peopleAt(here).filter(id => id !== ctx.personId).slice(0, 8);
+                    for (const id of served) {
+                        needs.satisfy(id, { [op.need]: op.amount }, ctx.deps.tick, ctx.deps.state.worldSeed);
+                    }
+                });
+                break;
+            }
             case 'planJointActivity': {
                 // Joint plans (task 085 / D3): a consented invitation installs mirrored agenda entries. The
                 // activity id and target come from the action's params; missing either is a plan failure.

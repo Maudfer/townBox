@@ -7,10 +7,10 @@
   "action.scanWalked": 2880,
   "brain.freeTimeCompute": 783,
   "event.invokeScan": 0,
-  "event.roll": 1546560,
-  "event.subjectEval": 151,
+  "event.roll": 1552320,
+  "event.subjectEval": 447,
   "inv.carriedBuild": 1049,
   "inv.contentsBuild": 315,
   "predicate.evalCached": 79513,
-  "world.peopleAt": 323
+  "world.peopleAt": 322
 }

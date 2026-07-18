@@ -1423,6 +1423,11 @@
                     "action": "filled_the_trash_bag",
                     "chancePerTick": 0.15,
                     "maxTotal": 1
+                },
+                {
+                    "action": "served_the_family",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -4816,6 +4821,25 @@
         "category": "maintenance",
         "satisfies": {
             "food": 45
+        },
+        "requirements": {
+            "any": [
+                {
+                    "carries": {
+                        "tag": "meal"
+                    }
+                },
+                {
+                    "carries": {
+                        "tag": "ingredient"
+                    }
+                },
+                {
+                    "carries": {
+                        "tag": "snack"
+                    }
+                }
+            ]
         }
     },
     "packed_a_lunch": {
@@ -7011,5 +7035,36 @@
         "label": "Stocked the shelves",
         "type": "discrete",
         "category": "work"
+    },
+    "served_the_family": {
+        "label": "Served the family a meal",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "any": [
+                {
+                    "carries": {
+                        "tag": "meal"
+                    }
+                },
+                {
+                    "carries": {
+                        "tag": "ingredient"
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "satisfyNeed",
+                "need": "food",
+                "amount": 35,
+                "scope": "coLocated"
+            }
+        ],
+        "satisfies": {
+            "food": 20,
+            "purpose": 8
+        }
     }
 }

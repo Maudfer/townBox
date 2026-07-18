@@ -563,6 +563,26 @@
                                 }
                             ]
                         }
+                    },
+                    {
+                        "driver": "subject.foodLevel",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 2.5
+                                },
+                                {
+                                    "at": 15,
+                                    "value": 1.5
+                                },
+                                {
+                                    "at": 30,
+                                    "value": 1
+                                }
+                            ]
+                        }
                     }
                 ]
             },
@@ -26683,5 +26703,69 @@
         },
         "valence": 2,
         "effects": []
+    },
+    "went_hungry": {
+        "label": "Went hungry",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "foodLevel",
+                            "op": "<",
+                            "value": 10
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 400
+            }
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": [],
+        "valence": -2
+    },
+    "utterly_exhausted": {
+        "label": "Was utterly exhausted",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "restLevel",
+                            "op": "<",
+                            "value": 10
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "probabilistic": {
+                "perYear": 400
+            }
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": [],
+        "valence": -1
     }
 }

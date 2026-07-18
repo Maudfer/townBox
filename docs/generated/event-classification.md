@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 738 events — **27 vital**, **45 wired**, **511 texture**, **155 reserved**.
+Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -657,6 +657,7 @@ Totals: 738 events — **27 vital**, **45 wired**, **511 texture**, **155 reserv
 | updated_insurance | legal | probabilistic+manual | texture | — |
 | updated_will | death | probabilistic+manual | texture | — |
 | upgraded_phone | possessions | probabilistic+manual | texture | — |
+| utterly_exhausted | health | probabilistic | texture | — |
 | vandalized_fence | crime-mischief | probabilistic | texture | — |
 | visited_by_tooth_fairy | childhood | manual | reserved | — |
 | visited_grave | death | probabilistic+manual | texture | — |
@@ -707,6 +708,7 @@ Totals: 738 events — **27 vital**, **45 wired**, **511 texture**, **155 reserv
 | went_fishing | hobby | probabilistic+manual | texture | — |
 | went_fully_gray | aging | probabilistic | texture | — |
 | went_grocery_shopping | food | probabilistic+manual | wired | shopping_trip.onComplete |
+| went_hungry | health | probabilistic | texture | — |
 | went_on_first_date | romance | manual | wired | asked_person_out.onCompleteTarget |
 | went_on_vacation | travel | probabilistic | texture | — |
 | went_stargazing | travel | probabilistic+manual | texture | — |

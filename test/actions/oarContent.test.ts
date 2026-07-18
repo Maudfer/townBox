@@ -127,7 +127,9 @@ describe('consumption', () => {
         expect(inventory.possessionsOf('a').find(i => i.archetypeId === 'sandwich')!.quantity).toBe(1);
         expect(actions.startAction('a', 'ate_a_meal', {}, cause, deps, result()).ok).toBe(true);
         expect(inventory.possessionsOf('a').some(i => i.archetypeId === 'sandwich')).toBe(false);
-        expect(actions.startAction('a', 'ate_a_meal', {}, cause, deps, result())).toEqual({ ok: false, reason: 'inputsUnavailable' });
+        // LP-5: the carries-food requirement now gates BEFORE the OAR match, so an empty-handed eater is
+        // requirements-unmet (the pre-LP-5 shape was the OAR's inputsUnavailable — same zero mutations).
+        expect(actions.startAction('a', 'ate_a_meal', {}, cause, deps, result())).toEqual({ ok: false, reason: 'requirementsUnmet' });
     });
 });
 

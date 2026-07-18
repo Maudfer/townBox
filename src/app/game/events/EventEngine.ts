@@ -8,6 +8,7 @@ import { SERVICES_CONFIG } from 'game/economy/CityServices';
 import { MOOD_CONFIG } from 'game/population/Mood';
 import { resolveStanding } from 'game/population/SocialGraph';
 import { MoodReader } from 'types/Mood';
+import { NeedsReader } from 'types/Needs';
 import { ServiceCoverageReader } from 'types/Services';
 import { PetsReader } from 'types/Pets';
 import { EdgeKind, RelationshipGraph } from 'types/Relationship';
@@ -172,6 +173,7 @@ export default class EventEngine {
     private moodLedger: MoodReader | null; // mood impulses from event valence (task 091)
     private servicesReader: ServiceCoverageReader | null; // coverage ratios for hazard factors (task 096)
     private petsReader: PetsReader | null; // petCount attribute (task 103)
+    private needsLedger: NeedsReader | null = null; // foodLevel/restLevel attributes (LP-5)
     // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
     // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
     // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
@@ -250,6 +252,7 @@ export default class EventEngine {
         this.moodLedger = null;
         this.servicesReader = null;
         this.petsReader = null;
+        this.needsLedger = null;
     }
 
     // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
@@ -437,6 +440,14 @@ export default class EventEngine {
             case 'mood':
                 // Morale 0–100 (task 091): baseline without a bound ledger. Vice/withdrawal data gates on it.
                 return this.moodLedger ? this.moodLedger.moodOf(id, tick) : MOOD_CONFIG.baseline;
+            case 'foodLevel':
+                // The food need meter 0–100 (LP-5 / proposal simulation-aliveness-2 P1-1): starvation
+                // consequences (went_hungry, the fell_ill starvation factor) read it. Well-fed (100)
+                // without a bound needs ledger, so the gates are inert in pure/test runs.
+                return this.needsLedger ? this.needsLedger.levelOf(id, 'food', tick, state.worldSeed) : 100;
+            case 'restLevel':
+                // The rest meter 0–100 (LP-5): exhaustion consequences read it. Rested without a ledger.
+                return this.needsLedger ? this.needsLedger.levelOf(id, 'rest', tick, state.worldSeed) : 100;
             case 'healthcareCoverage':
                 // The services ledger (task 096): recovery hazards read it as a factor. Unmeasured contexts
                 // read the neutral level, at which the published curves pass through 1 (no ledger, no effect).
@@ -954,6 +965,7 @@ export default class EventEngine {
         this.moodLedger = markets.mood ?? null;
         this.servicesReader = markets.services ?? null;
         this.petsReader = markets.pets ?? null;
+        this.needsLedger = markets.needs ?? null;
     }
 
     // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
@@ -971,6 +983,7 @@ export default class EventEngine {
         this.moodLedger = null;
         this.servicesReader = null;
         this.petsReader = null;
+        this.needsLedger = null;
     }
 
     // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,

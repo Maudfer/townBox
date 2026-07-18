@@ -9,9 +9,9 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 312 | 95 continuous / 217 discrete |
-| `events.json` | 738 | 169 probabilistic, 368 probabilistic + manual, 199 manual, 2 manual + automated |
-| `object-action-relationships.json` | 29 | first-satisfiable entry per action commit |
+| `actions.json` | 313 | 95 continuous / 218 discrete |
+| `events.json` | 740 | 171 probabilistic, 368 probabilistic + manual, 199 manual, 2 manual + automated |
+| `object-action-relationships.json` | 38 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
 
@@ -90,7 +90,7 @@ Of the 569 manual-triggered events, 545 have no action source yet — they are i
 |---|---|
 | probabilistic + manual | 368 |
 | manual | 199 |
-| probabilistic | 169 |
+| probabilistic | 171 |
 | manual + automated | 2 |
 
 | Occurrence limit | Events |
@@ -98,7 +98,7 @@ Of the 569 manual-triggered events, 545 have no action source yet — they are i
 | cooldown window | 631 |
 | — | 50 |
 | once: ever | 50 |
-| once: perDay | 7 |
+| once: perDay | 9 |
 
 ## Object-action transformations
 
@@ -135,6 +135,15 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
 | `supermarket_restock` | `stocked_the_shelves` | — | 4× `egg`, owner: employer<br>2× `bread_loaf`, owner: employer<br>2× `milk_carton`, owner: employer<br>2× `tomato`, owner: employer<br>1× `lettuce`, owner: employer<br>2× `potato`, owner: employer<br>1× `onion`, owner: employer<br>1× `flour_bag`, owner: employer<br>1× `butter_stick`, owner: employer<br>1× `cheese_wedge`, owner: employer | — |
+| `ate_meal_from_loaf` | `ate_a_meal` | 1× `bread_loaf` (consumed) | — | — |
+| `ate_meal_from_eggs` | `ate_a_meal` | 2× `egg` (consumed) | — | — |
+| `ate_meal_from_salad` | `ate_a_meal` | 1× `tomato` (consumed)<br>1× `lettuce` (consumed) | — | — |
+| `ate_meal_from_potatoes` | `ate_a_meal` | 2× `potato` (consumed) | — | — |
+| `ate_meal_from_pasta` | `ate_a_meal` | 1× `pasta_box` (consumed) | — | — |
+| `ate_meal_from_fruit` | `ate_a_meal` | 1× `apple` (consumed) | — | — |
+| `served_family_from_staples` | `served_the_family` | 2× `egg` (consumed)<br>1× `tomato` (consumed) | — | — |
+| `served_family_from_loaf` | `served_the_family` | 1× `bread_loaf` (consumed) | — | — |
+| `served_family_from_potatoes` | `served_the_family` | 2× `potato` (consumed)<br>1× `onion` (consumed) | — | — |
 
 ## Interaction contracts (person-targeted actions)
 
