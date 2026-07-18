@@ -46,6 +46,8 @@ export default class MainScene extends Phaser.Scene {
         Game.on("personSpawned", { callback: this.drawPerson, context: this });
         // Activity bubbles (task 093 / J2): refresh label text/visibility once per in-game minute.
         Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
+        Game.on("timeChanged", { callback: this.refreshTrashPiles, context: this });
+        Game.on("timeChanged", { callback: this.refreshFormations, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
         // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
         Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
@@ -640,6 +642,108 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    // Formation offsets (W5 / proposal simulation-aliveness-3 Part 5.3): people doing the same activity in
+    // the same spot — a couple's walk, two officers on one chase — used to render as ONE overlapping
+    // sprite. Render-layer only: logical positions stay canonical (pathfinding/co-location untouched); each
+    // group member draws with a small lateral offset by stable slot index. The chase pair groups through an
+    // alias (fleeing↔chasing are one scene). Refreshed per in-game minute; applied in the redraw closure.
+    private formationOffsets = new Map<Person, number>();
+    private static readonly FORMATION_ALIASES: Record<string, string> = {
+        fleeing_the_police: 'chase', chasing_a_suspect: 'chase',
+    };
+
+    private refreshFormations(): void {
+        const field = Game.field;
+        const engine = Game.actionEngine;
+        this.formationOffsets.clear();
+        if (!field || !engine) {
+            return;
+        }
+        const groups = new Map<string, Person[]>();
+        for (const person of field.getPeople()) {
+            if (person.isIndoors()) {
+                continue;
+            }
+            const personId = person.social.getPersonId();
+            const active = personId ? engine.activeInstanceOf(personId) : null;
+            if (!active) {
+                continue;
+            }
+            const position = person.getPosition();
+            if (!position) {
+                continue;
+            }
+            const token = MainScene.FORMATION_ALIASES[active.defId] ?? active.defId;
+            const cell = `${token}|${Math.round(position.x / 32)}|${Math.round(position.y / 32)}`;
+            const members = groups.get(cell) ?? [];
+            members.push(person);
+            groups.set(cell, members);
+        }
+        for (const members of groups.values()) {
+            if (members.length < 2) {
+                continue;
+            }
+            members.sort((a, b) => (a.social.getPersonId() ?? '').localeCompare(b.social.getPersonId() ?? ''));
+            members.forEach((person, index) => {
+                this.formationOffsets.set(person, (index - (members.length - 1) / 2) * 7);
+            });
+        }
+    }
+
+    // Curb-bag piles (W5 / proposal simulation-aliveness-3 P1-7): the town's uncollected curb bags become
+    // VISIBLE — small brown mounds at the street side of occupied homes. The sim's curb pool is one shared
+    // 'outside' location (the 112 collection contract), so per-house attribution is a DISPLAY approximation:
+    // N bags render as piles at the curbs of the N lowest-keyed occupied homes (bags beyond one per home
+    // grow the pile). Squalor 1.0 finally LOOKS like squalor instead of a pristine street with a nagbar.
+    private trashPiles = new Map<string, Phaser.GameObjects.Rectangle>();
+
+    private refreshTrashPiles(): void {
+        const field = Game.field;
+        const inventory = Game.inventory;
+        if (!field || !inventory) {
+            return;
+        }
+        const curbBags = inventory.instancesAtLocation('outside')
+            .filter(instance => instance.archetypeId === 'bag_of_garbage' || instance.archetypeId === 'trash_bag')
+            .reduce((total, instance) => total + instance.quantity, 0);
+        const homes = field.getStructures()
+            .filter((structure): structure is import('game/world/House').default => structure instanceof House && structure.getResidents().length > 0)
+            .sort((a, b) => a.getIdentifier().localeCompare(b.getIdentifier()));
+        const seen = new Set<string>();
+        homes.forEach((home, index) => {
+            const key = home.getIdentifier();
+            if (homes.length === 0) {
+                return;
+            }
+            // Round-robin distribution: every home shows its share; the remainder lands lowest-key first.
+            const bagsHere = Math.floor(curbBags / homes.length) + (index < curbBags % homes.length ? 1 : 0);
+            if (bagsHere <= 0) {
+                return;
+            }
+            seen.add(key);
+            let pile = this.trashPiles.get(key);
+            const entrance = home.getEntrance();
+            if (!entrance) {
+                return;
+            }
+            const size = Math.min(10, 3 + bagsHere); // the pile grows with neglect, capped
+            if (!pile) {
+                pile = this.add.rectangle(0, 0, size, Math.max(2, size - 2), 0x5b4632);
+                this.trashPiles.set(key, pile);
+            }
+            pile.setSize(size, Math.max(2, size - 2));
+            pile.setPosition(entrance.x + 10, entrance.y + 4);
+            pile.setDepth(home.calculateDepth() + 1);
+            pile.setVisible(true);
+        });
+        for (const [key, pile] of this.trashPiles) {
+            if (!seen.has(key)) {
+                pile.destroy();
+                this.trashPiles.delete(key);
+            }
+        }
+    }
+
     private drawPerson(person: Person): void {
         const position: PixelPosition = person.getPosition();
         if (position === null) {
@@ -673,9 +777,10 @@ export default class MainScene extends Phaser.Scene {
 
             const direction = person.getDirection();
             const rotation = directionToRadianRotation(direction);
-            
+
             personAsset.setRotation(rotation);
-            personAsset.setPosition(position.x, position.y);
+            // Side-by-side formations (W5): the render offset separates co-walking group members.
+            personAsset.setPosition(position.x + (this.formationOffsets.get(person) ?? 0), position.y);
             personAsset.setDepth(person.getDepth());
 
             // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
