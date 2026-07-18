@@ -2690,6 +2690,27 @@ export default class City {
                 person.setAmbulatory(def?.ambulatory !== undefined);
             }
         }
+
+        // Orphan-vehicle sweep (W8 / P0-2, belt-and-suspenders): a controlled car no person links to has
+        // no driver coming back, ever — despawn it. The lifecycle fixes (abortTravel, the setVehicle guard,
+        // cancelTransition) should make this a no-op; the sweep guarantees the street can't silt up again.
+        if (field) {
+            const linked = new Set<unknown>();
+            for (const person of field.getPeople()) {
+                const vehicle = person.getVehicle();
+                if (vehicle) {
+                    linked.add(vehicle);
+                }
+            }
+            for (const vehicle of [...field.getVehicles()]) {
+                if (vehicle.isControlled() && !linked.has(vehicle)) {
+                    if (vehicle.isOccupied()) {
+                        vehicle.disembark();
+                    }
+                    field.removeVehicle(vehicle);
+                }
+            }
+        }
     }
 
     private startCommute(person: Person, destination: Building): void {

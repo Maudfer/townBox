@@ -84,11 +84,49 @@ export default class Person {
     }
 
     setVehicle(vehicle: Vehicle): void {
+        // A live link never gets silently overwritten (W8 / proposal simulation-aliveness-3 P0-2.1): the
+        // audit found 148 orphaned commute cars in a month — every mid-flight re-plan minted one. The old
+        // car is properly despawned (occupant cleared so no phantom driver) before the new link lands.
+        if (this.vehicle && this.vehicle !== vehicle) {
+            if (this.vehicle.isOccupied()) {
+                this.vehicle.disembark();
+            }
+            this.vehicle.setControlled(false);
+            Game.field?.removeVehicle(this.vehicle);
+        }
         this.vehicle = vehicle;
     }
 
     getVehicle(): Vehicle | null {
         return this.vehicle;
+    }
+
+    // Coherent travel abort (W8 / P0-2.3): called when the intent driving this trip dies (transition
+    // cancelled, instance interrupted). The body stops WHERE IT IS instead of finishing a stale trip into
+    // a building nobody asked for; a boarded person steps out at the car's position; the car despawns.
+    abortTravel(): void {
+        if (this.travelStep === TravelStep.Idle) {
+            return;
+        }
+        if (this.vehicle) {
+            // Boarded (EnteringCar → Driving): the person is "inside" the car — step out where it stands.
+            if (this.vehicle.isOccupied()) {
+                const carPosition = this.vehicle.getPosition();
+                if (carPosition) {
+                    this.x = carPosition.x;
+                    this.y = carPosition.y;
+                }
+                this.vehicle.disembark();
+                this.setIndoors(false);
+            }
+            this.vehicle.setControlled(false);
+            Game.field?.removeVehicle(this.vehicle);
+            this.vehicle = null;
+        }
+        this.destinationBuilding = null;
+        this.path = [];
+        this.currentDestination = null;
+        this.travelStep = TravelStep.Idle;
     }
 
     setDirection(direction: Direction): void {
@@ -300,6 +338,10 @@ export default class Person {
         switch (this.travelStep) {
             case TravelStep.ExitingBuilding:
                 this.setIndoors(false);
+                // Leaving means LEFT (W8): keeping the stale reference made LiveWorld's immediate-arrival
+                // check (`currentBuilding === destination`) treat a person mid-street as already back home
+                // — an instant false arrival for any return trip requested while walking.
+                this.currentBuilding = null;
                 this.currentDestination = null;
                 if (this.vehicle) {
                     const vehiclePos = this.vehicle.getPosition();
@@ -452,8 +494,23 @@ export default class Person {
     }
 
     setAsset(asset: Image): void {
+        // The spawn/despawn race (W8 / P0-2.2): sprite attachment rides an async bus handler, so a
+        // same-tick removal can run BEFORE the sprite exists — destroy() hits null and the sprite lands
+        // afterwards as a ghost in no list. A removed entity destroys any late-arriving sprite on contact.
+        if (this.removedFromField) {
+            asset?.destroy();
+            return;
+        }
         this.asset = asset;
     }
+
+    // Marks this person as removed from the field (Field.removePerson): any sprite attached after this
+    // point self-destroys instead of ghosting.
+    markRemoved(): void {
+        this.removedFromField = true;
+    }
+
+    private removedFromField = false;
 
     setRedrawFunction(redrawFunction: (timeDelta: number) => void): void {
         this.redrawFunction = redrawFunction;

@@ -585,7 +585,9 @@ export default class MainScene extends Phaser.Scene {
             const show = (running || traveling) && !person.isIndoors();
             if (show) {
                 const label = engine.getActionLabel(active!.defId);
-                text.setText(traveling ? `→ ${label}` : label);
+                const display = traveling ? `→ ${label}` : label;
+                text.setText(display);
+                text.setData('baseText', display); // the merge pass suffixes ×N onto this, never compounds
             }
             text.setVisible(show);
 
@@ -597,6 +599,37 @@ export default class MainScene extends Phaser.Scene {
                 this.petDots.set(person, dot);
             }
             dot?.setVisible(walking);
+        }
+
+        // Label collision pass (W8e / proposal simulation-aliveness-3 Part 5.1): co-located identical
+        // labels merge into one "×N" (couples on a walk, coworkers on the same rotation used to double-ink
+        // the same text over itself); distinct labels sharing a block stagger vertically instead of
+        // overlapping into unreadable chains. Recomputed per refresh; the per-frame redraw closure applies
+        // the stored stagger offset.
+        const cells = new Map<string, { first: Phaser.GameObjects.Text; base: string; count: number; stagger: number }[]>();
+        for (const [person, text] of this.activityLabels) {
+            text.setData('stagger', 0);
+            if (!text.visible) {
+                continue;
+            }
+            const position = person.getPosition();
+            if (!position) {
+                continue;
+            }
+            const cellKey = `${Math.round(position.x / 64)}:${Math.round(position.y / 24)}`;
+            const entries = cells.get(cellKey) ?? [];
+            const base = text.getData('baseText') as string ?? text.text;
+            const twin = entries.find(entry => entry.base === base);
+            if (twin) {
+                twin.count += 1;
+                twin.first.setText(`${twin.base} ×${twin.count}`);
+                text.setVisible(false); // merged into the twin's ×N
+            } else {
+                const stagger = entries.length * 11; // distinct labels stack upward within the block
+                text.setData('stagger', stagger);
+                entries.push({ first: text, base, count: 1, stagger });
+                cells.set(cellKey, entries);
+            }
         }
     }
 
@@ -639,9 +672,10 @@ export default class MainScene extends Phaser.Scene {
             personAsset.setDepth(person.getDepth());
 
             // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
+            // The stagger offset (W8e) lifts colliding labels apart within a block.
             const bubble = this.activityLabels.get(person);
             if (bubble && bubble.visible) {
-                bubble.setPosition(position.x, position.y - 12);
+                bubble.setPosition(position.x, position.y - 12 - ((bubble.getData('stagger') as number | undefined) ?? 0));
                 bubble.setDepth(person.getDepth() + 2);
             }
             // The dog trails the owner (task 115): a fixed lag behind the sprite, same depth layer.

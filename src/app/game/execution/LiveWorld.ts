@@ -261,6 +261,10 @@ export default class LiveWorld implements WorldAdapter {
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);
                 this.departures.delete(handle.id);
+                // The body stops with the trip (W8 / P0-2): a destination that vanished mid-flight
+                // (bulldozed, business closed) used to leave the walker finishing a stale journey and the
+                // commute car stranded forever.
+                person?.abortTravel?.();
                 continue;
             }
             if (person.getCurrentBuilding() === destination) {
@@ -276,5 +280,20 @@ export default class LiveWorld implements WorldAdapter {
 
     getPending(): TransitionHandle[] {
         return this.pending;
+    }
+
+    // Coherent travel abort (W8 / proposal simulation-aliveness-3 P0-2.3): the engine reports that the
+    // intent holding this handle died (interrupt/pause/block). The trip stops NOW — handle cancelled and
+    // dropped from every queue, the body parked where it stands, the commute car despawned — instead of
+    // the travel machine finishing a stale journey while a new intent runs somewhere else.
+    cancelTransition(handleId: number, personId: PersonId): void {
+        const handle = this.pending.find(pendingHandle => pendingHandle.id === handleId);
+        if (handle) {
+            handle.status = 'cancelled';
+            this.pending = this.pending.filter(pendingHandle => pendingHandle.id !== handleId);
+        }
+        this.resolvedVenues.delete(handleId);
+        this.departures.delete(handleId);
+        this.findPerson(personId)?.abortTravel?.();
     }
 }

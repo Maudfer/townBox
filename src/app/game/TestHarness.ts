@@ -125,6 +125,16 @@ export interface TownboxTestApi {
     // the workplace) silently stall. This is the honest way to fast-forward live play in an observation
     // or scenario session.
     stepGame(ticks: number, framesPerTick?: number, deltaMs?: number): Promise<void>;
+
+    // Sprite-vs-state invariants (W8 / proposal simulation-aliveness-3): the standing audit every
+    // observation session and the integration suite can assert. All-zero counters = a truthful street.
+    auditSprites(): {
+        vehicles: number;
+        peopleInFlight: number;          // travelStep !== idle
+        orphanControlledVehicles: number; // controlled but no person links to it — the P0-2 leak class
+        occupiedDriverlessVehicles: number; // occupant flag set but no person links — phantom drivers
+        visibleIndoorsPeople: number;     // sim says inside, sprite says visible — the linger class
+    };
 }
 
 // Builds the read/control API object over a live GameManager.
@@ -314,6 +324,20 @@ export function createTestApi(game: GameManager): TownboxTestApi {
                     await game.emit('update', { time: i * deltaMs, timeDelta: deltaMs });
                 }
             }
+        },
+
+        auditSprites() {
+            const field = game.field;
+            const people = field ? field.getPeople() : [];
+            const vehicles = field ? field.getVehicles() : [];
+            const linked = new Set(people.map(person => person.getVehicle()).filter(vehicle => vehicle !== null));
+            return {
+                vehicles: vehicles.length,
+                peopleInFlight: people.filter(person => String(person.getTravelStep()) !== 'idle').length,
+                orphanControlledVehicles: vehicles.filter(vehicle => vehicle.isControlled() && !linked.has(vehicle)).length,
+                occupiedDriverlessVehicles: vehicles.filter(vehicle => vehicle.isOccupied() && !linked.has(vehicle)).length,
+                visibleIndoorsPeople: people.filter(person => person.isIndoors() && person.getAsset()?.visible === true).length,
+            };
         },
     };
 }

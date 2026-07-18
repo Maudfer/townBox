@@ -729,6 +729,7 @@ export default class Field {
         }
         this.people.splice(index, 1);
         person.getAsset()?.destroy();
+        person.markRemoved(); // a late-attaching sprite (async draw handler) self-destroys — W8/P0-2.2
     }
 
     getVehicles(): Vehicle[] {
@@ -744,6 +745,7 @@ export default class Field {
         }
         this.vehicles.splice(index, 1);
         vehicle.getAsset()?.destroy();
+        vehicle.markRemoved(); // a late-attaching sprite (async draw handler) self-destroys — W8/P0-2.2
     }
 
     // Returns the distinct placed structures (roads & buildings). Soil/grass is the implicit default and is not

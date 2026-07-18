@@ -861,10 +861,21 @@ export default class ActionEngine {
         instance.status = 'paused';
         instance.pausedAtTick = deps.tick;
         instance.transitionHandleId = null;
-        this.handles.delete(instance.id);
+        this.releaseHandle(instance, deps);
         this.indexDeactivate(instance);
         this.pausedByPerson.set(instance.personId, instance.id);
         return true;
+    }
+
+    // Drops an instance's transition handle — and if the trip is still in flight, tells the world to stop
+    // it (W8 / proposal simulation-aliveness-3 P0-2.3): the body parks, the commute car despawns. Without
+    // this, an interrupted traveler finished the stale journey and every re-plan stranded a vehicle.
+    private releaseHandle(instance: ActionInstance, deps: ActionDeps): void {
+        const handle = this.handles.get(instance.id);
+        if (handle && handle.status === 'pending') {
+            deps.ctx.world?.cancelTransition?.(handle.id, instance.personId);
+        }
+        this.handles.delete(instance.id);
     }
 
     // Resumes a paused instance (same id — the log reads started → paused → resumed → …): back to pending,
@@ -925,7 +936,7 @@ export default class ActionEngine {
         instance.status = outcome;
         instance.outcome = outcome;
         instance.endedTick = deps.tick;
-        this.handles.delete(instance.id);
+        this.releaseHandle(instance, deps); // in-flight trips stop with the intent (W8 / P0-2.3)
         const tLog = fclock ? fclock() : 0;
         const seq = this.lifeLog.append(instance.personId, {
             tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: outcome,

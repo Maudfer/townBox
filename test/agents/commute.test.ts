@@ -139,3 +139,82 @@ describe('the live commute machinery behind the execution boundary', () => {
         expect(field.getVehicles()).toHaveLength(0);
     });
 });
+
+// W8 — sprite & travel truth (proposal simulation-aliveness-3 P0-2): the vehicle lifecycle is owned by the
+// transition, re-plans never orphan cars, and the travel machine stops when its intent dies.
+describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
+    test('a mid-flight re-plan despawns the old car instead of orphaning it (the 148-car leak)', () => {
+        const { city, field } = makeWorld();
+        const { person, workplace } = employ(field);
+        person.social.setPersonId('p1');
+
+        city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+        expect(field.getVehicles()).toHaveLength(1);
+        const firstCar = field.getVehicles()[0]!;
+        firstCar.board(); // simulate the commuter mid-drive (occupant flag set)
+
+        // The re-plan: a second commute begins while the first is in flight.
+        city.getWorld().requestTransition('p1', { kind: 'home' }, 11, null);
+        city.getWorld().pump(11);
+
+        // ONE car on the field — the old one despawned WITH its occupant flag cleared (no phantom driver).
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(field.getVehicles()[0]).not.toBe(firstCar);
+        expect(firstCar.isOccupied()).toBe(false);
+    });
+
+    test('cancelTransition parks the body and despawns the car — the trip stops with the intent', () => {
+        const { city, field } = makeWorld();
+        const { person, workplace } = employ(field);
+        person.social.setPersonId('p1');
+
+        const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(person.isIdle()).toBe(false);
+
+        city.getWorld().cancelTransition(handle.id, 'p1');
+        expect(handle.status).toBe('cancelled');
+        expect(field.getVehicles()).toHaveLength(0);
+        expect(person.isIdle()).toBe(true);
+        expect(person.getVehicle()).toBeNull();
+    });
+
+    test('abortTravel steps a boarded person out visible at the car, never leaves them hidden', () => {
+        const { city, field } = makeWorld();
+        const { person, workplace } = employ(field);
+        person.social.setPersonId('p1');
+
+        city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+        const car = person.getVehicle()!;
+        car.board();
+        person.setIndoors(true); // boarded: hidden "inside" the car (the EnteringCar state)
+
+        person.abortTravel();
+        expect(person.isIndoors()).toBe(false); // stepped out where the car stood
+        expect(person.isIdle()).toBe(true);
+        expect(field.getVehicles()).toHaveLength(0);
+        expect(car.isOccupied()).toBe(false);
+    });
+
+    test('leaving a building CLEARS currentBuilding — no instant false arrival for a return trip', () => {
+        const { city, field } = makeWorld();
+        const { person, home, workplace } = employ(field);
+        person.social.setPersonId('p1');
+        field.loadStructure('road', 1, 4, 'r');
+        person.setCurrentBuilding(home);
+        person.setIndoors(true);
+
+        city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+        // One movement frame: the travel machine runs ExitingBuilding — the person has LEFT home.
+        field.update({ time: 0, timeDelta: 16 });
+        expect(person.getCurrentBuilding()).toBeNull();
+
+        // A home transition requested mid-street must NOT resolve as already-arrived.
+        const homeward = city.getWorld().requestTransition('p1', { kind: 'home' }, 11, null);
+        expect(homeward.status).toBe('pending');
+    });
+});
