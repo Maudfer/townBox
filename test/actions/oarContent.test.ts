@@ -176,6 +176,23 @@ describe('per-job production (047 routing)', () => {
         const { actions, deps } = harness();
         expect(actions.startAction('a', 'assembled_a_crate', {}, cause, deps, result())).toEqual({ ok: false, reason: 'inputsUnavailable' });
     });
+
+    // LP-4 (proposal simulation-aliveness-2 P0-2): the grocery restock channel. restocking_shelves used to
+    // be pure flavor — no OAR entry, so a supermarket could NEVER stock food and the town starved at the
+    // shelf. The stocked_the_shelves child now produces employer-owned staples at the workplace, bounded by
+    // the 089 per-archetype ceiling like every production recipe.
+    test('stocking the shelves lands grocery staples in the business inventory (the restock channel)', () => {
+        const { actions, deps, inventory, world } = harness(() => '9-9');
+        world.requestTransition('a', { kind: 'building', key: '9-9' }, 1000, null);
+        expect(actions.startAction('a', 'stocked_the_shelves', {}, cause, deps, result()).ok).toBe(true);
+        const owned = inventory.instancesOwnedBy({ kind: 'business', key: '9-9' });
+        const archetypes = new Set(owned.map(instance => instance.archetypeId));
+        expect(archetypes.has('egg')).toBe(true);
+        expect(archetypes.has('bread_loaf')).toBe(true);
+        expect(archetypes.has('tomato')).toBe(true);
+        // All employer-owned, none pocketed.
+        expect(inventory.possessionsOf('a')).toHaveLength(0);
+    });
 });
 
 describe('long-run object sanity (task 053)', () => {

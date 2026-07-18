@@ -9,9 +9,9 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 311 | 95 continuous / 216 discrete |
+| `actions.json` | 312 | 95 continuous / 217 discrete |
 | `events.json` | 738 | 169 probabilistic, 368 probabilistic + manual, 199 manual, 2 manual + automated |
-| `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
+| `object-action-relationships.json` | 29 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
 
@@ -134,6 +134,7 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `workshop_planks` | `milled_some_planks` | — | 4× `wood_plank`, owner: employer | — |
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
+| `supermarket_restock` | `stocked_the_shelves` | — | 4× `egg`, owner: employer<br>2× `bread_loaf`, owner: employer<br>2× `milk_carton`, owner: employer<br>2× `tomato`, owner: employer<br>1× `lettuce`, owner: employer<br>2× `potato`, owner: employer<br>1× `onion`, owner: employer<br>1× `flour_bag`, owner: employer<br>1× `butter_stick`, owner: employer<br>1× `cheese_wedge`, owner: employer | — |
 
 ## Interaction contracts (person-targeted actions)
 
@@ -273,7 +274,7 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `hardware-store` | building | 32 | 1 |
 | `hospital` | building | 30 | 2 |
 | `hotel-room` | building | 27 | 1 |
-| `kitchen` | building | 39 | 4 |
+| `kitchen` | building | 50 | 4 |
 | `laundromat` | building | 26 | 1 |
 | `library` | building | 28 | 1 |
 | `living-room` | building | 34 | 1 |

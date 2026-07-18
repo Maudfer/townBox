@@ -458,5 +458,71 @@
                 "container": "location"
             }
         ]
+    },
+    "supermarket_restock": {
+        "action": "stocked_the_shelves",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "egg",
+                "quantity": 4,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "bread_loaf",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "milk_carton",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "tomato",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "lettuce",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "potato",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "onion",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "flour_bag",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "butter_stick",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "cheese_wedge",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
     }
 }

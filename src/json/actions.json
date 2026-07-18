@@ -188,7 +188,6 @@
             }
         },
         "satisfies": {
-            "food": 10,
             "purpose": 12
         },
         "affinity": [
@@ -1431,7 +1430,6 @@
             "onComplete": "tried_new_recipe"
         },
         "satisfies": {
-            "food": 15,
             "purpose": 5
         },
         "affinity": [
@@ -2136,8 +2134,7 @@
         },
         "satisfies": {
             "rest": 10,
-            "fun": 5,
-            "food": 6
+            "fun": 5
         }
     },
     "taking_a_walk": {
@@ -4477,6 +4474,15 @@
             "onStart": "started_working",
             "onComplete": "stopped_working",
             "onInterrupt": "stopped_working"
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "stocked_the_shelves",
+                    "chancePerTick": 0.6
+                }
+            ]
         }
     },
     "reviewing_charts": {
@@ -4858,7 +4864,6 @@
             ]
         },
         "satisfies": {
-            "food": 8,
             "purpose": 10
         },
         "affinity": [
@@ -7001,5 +7006,10 @@
                 "required": true
             }
         }
+    },
+    "stocked_the_shelves": {
+        "label": "Stocked the shelves",
+        "type": "discrete",
+        "category": "work"
     }
 }

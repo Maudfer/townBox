@@ -92,6 +92,18 @@ describe('purchaseObject (F3)', () => {
             .toEqual({ ok: false, reason: 'inputsUnavailable' });
         expect(economy.getPersonBalance('a')).toBe(100);
     });
+
+    // The solvency floor (LP-4 / P1-5): retail used to overdraft freely — balances drifted negative within
+    // days of live play. Being broke is a typed failure now, never a negative balance.
+    test('an unaffordable purchase fails typed and moves no money (the solvency floor)', () => {
+        const { actions, economy, inventory, deps } = harness();
+        economy.setPersonBalance('a', 3); // price is 7
+        inventory.createInstance({ archetypeId: 'bread_loaf', owner: { kind: 'business', key: '7-7' }, container: { kind: 'location', key: 'home' }, tick: 0 });
+        expect(actions.startAction('a', 'buy_bread', {}, cause, deps, result()))
+            .toEqual({ ok: false, reason: 'inputsUnavailable' });
+        expect(economy.getPersonBalance('a')).toBe(3);
+        expect(inventory.carriedInstances('a')).toHaveLength(0);
+    });
 });
 
 describe('the stock ceiling (F3)', () => {

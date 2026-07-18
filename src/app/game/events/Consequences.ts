@@ -449,6 +449,16 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 if (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback))) {
                     return null;
                 }
+                // The solvency floor (LP-4 / proposal simulation-aliveness-2 P1-5): retail micro-purchases
+                // used to overdraft freely — balances drifted negative within days. Being too broke to buy
+                // IS story: an unaffordable purchase is a typed plan failure (inputsUnavailable upstream),
+                // and the money-urgency selection modifiers get a truthful signal to steer around.
+                {
+                    const ledger = ctx.deps.ctx.markets?.ledger ?? null;
+                    if (ledger?.getPersonBalance && op.price > 0 && ledger.getPersonBalance(ctx.personId) < op.price) {
+                        return null;
+                    }
+                }
                 steps.push(() => {
                     const ledger = ctx.deps.ctx.markets?.ledger ?? null;
                     const id = stockId(); // re-resolve at apply time (earlier steps may have moved stock)

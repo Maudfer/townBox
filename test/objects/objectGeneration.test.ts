@@ -158,3 +158,29 @@ describe('object reachability (task 076/M2)', () => {
         expect(unreachable).toEqual([]);
     });
 });
+
+// LP-4 (proposal simulation-aliveness-2 P0-2): the pantry. A fresh home used to generate a kitchen with
+// one banana — cooking's ingredient requirements failed everywhere and the town pantomimed 169 cookings
+// into ~18 meals. Every kitchen now guarantees the home-cooking recipe staples; supermarkets guarantee
+// initial sellable stock through the same minPerBuilding mechanism.
+describe('the pantry (LP-4)', () => {
+    const SUPERMARKET_TAGS = (businessesConfig as Record<string, { tags: string[] }>)['supermarket']!.tags;
+
+    test('a fresh house is stocked with the cooking staples', () => {
+        const { inventory } = fill('4-4', HOUSE_TAGS, 'house');
+        const archetypes = inventory.instancesAtLocation('building:4-4').map(instance => instance.archetypeId);
+        for (const staple of ['egg', 'flour_bag', 'tomato', 'potato', 'onion', 'bread_loaf', 'butter_stick', 'cheese_wedge', 'lettuce']) {
+            expect(archetypes).toContain(staple);
+        }
+    });
+
+    test('a fresh supermarket is stocked with sellable (business-owned) food', () => {
+        const { inventory } = fill('9-9', SUPERMARKET_TAGS, 'business');
+        const stock = inventory.instancesAtLocation('building:9-9')
+            .filter(instance => instance.owner.kind === 'business');
+        const foodArchetypes = new Set(stock.map(instance => instance.archetypeId));
+        for (const staple of ['egg', 'bread_loaf', 'milk_carton', 'tomato']) {
+            expect(foodArchetypes.has(staple)).toBe(true);
+        }
+    });
+});

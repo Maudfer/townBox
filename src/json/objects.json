@@ -380,7 +380,8 @@
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 2
         }
     },
     "sandwich": {
@@ -436,13 +437,15 @@
             "giftable"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         },
         "expiresAfterTicks": 120
     },
@@ -1601,13 +1604,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 3,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         }
     },
     "egg": {
@@ -1631,13 +1636,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 6,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 4
         },
         "expiresAfterTicks": 480
     },
@@ -2013,13 +2020,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         }
     },
     "protein_shaker": {
@@ -2378,7 +2387,8 @@
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         }
     },
     "birthday_cake": {
@@ -2493,13 +2503,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         }
     },
     "caesar_salad": {
@@ -2704,13 +2716,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         },
         "expiresAfterTicks": 480
     },
@@ -3614,13 +3628,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         },
         "expiresAfterTicks": 168
     },
@@ -3884,13 +3900,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         },
         "expiresAfterTicks": 720
     },
@@ -3946,13 +3964,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         }
     },
     "peanut_bowl": {
@@ -4161,13 +4181,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 2
         },
         "expiresAfterTicks": 720
     },
@@ -4554,13 +4576,15 @@
             "ingredient"
         ],
         "placement": [
-            "supermarket"
+            "supermarket",
+            "kitchen"
         ],
         "generation": {
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 4,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 2
         },
         "expiresAfterTicks": 240
     },
