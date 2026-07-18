@@ -3576,7 +3576,7 @@
         "label": "Catching up over coffee",
         "type": "continuous",
         "category": "social",
-        "location": "venue:shop",
+        "location": "venue:cafe",
         "durationTicks": 2,
         "selection": {
             "weight": 0.6,
@@ -6339,6 +6339,557 @@
         "label": "Asked about a vacancy",
         "type": "discrete",
         "category": "maintenance"
+    },
+    "eating_out": {
+        "label": "Eating out",
+        "type": "continuous",
+        "category": "social",
+        "location": "venue:restaurant",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 12
+        },
+        "selection": {
+            "weight": 0.5,
+            "cooldownTicks": 48,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 11
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 21
+                            }
+                        ]
+                    },
+                    "multiply": 1.8
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 30
+                    },
+                    "multiply": 0.1
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "ordered_a_meal",
+                    "chancePerTick": 0.7,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "chatted_over_dinner",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "left_a_tip",
+                    "chancePerTick": 0.25,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "food": 15,
+            "social": 15,
+            "fun": 10
+        },
+        "affinity": [
+            "indulgent",
+            "social"
+        ]
+    },
+    "ordered_a_meal": {
+        "label": "Ordered a meal",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": -22
+            }
+        ],
+        "satisfies": {
+            "food": 45
+        }
+    },
+    "chatted_over_dinner": {
+        "label": "Chatted over dinner",
+        "type": "discrete",
+        "category": "social",
+        "satisfies": {
+            "social": 12
+        }
+    },
+    "left_a_tip": {
+        "label": "Left a tip",
+        "type": "discrete",
+        "category": "social",
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": -3
+            }
+        ]
+    },
+    "night_at_the_cinema": {
+        "label": "A night at the cinema",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:cinema",
+        "durationTicks": 3,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 8
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 96,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "attr": "hourOfDay",
+                        "op": ">=",
+                        "value": 17
+                    },
+                    "multiply": 2
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 20
+                    },
+                    "multiply": 0.1
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "watched_a_movie",
+                    "chancePerTick": 0.8,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "shared_popcorn",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 25,
+            "social": 10
+        },
+        "affinity": [
+            "indulgent"
+        ]
+    },
+    "watched_a_movie": {
+        "label": "Watched a movie",
+        "type": "discrete",
+        "category": "leisure",
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": -12
+            }
+        ],
+        "satisfies": {
+            "fun": 30
+        }
+    },
+    "shared_popcorn": {
+        "label": "Shared popcorn",
+        "type": "discrete",
+        "category": "social",
+        "satisfies": {
+            "food": 8,
+            "social": 8
+        }
+    },
+    "working_out_at_the_gym": {
+        "label": "Working out at the gym",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:gym",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 14
+        },
+        "selection": {
+            "weight": 0.4,
+            "cooldownTicks": 48,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "attr": "health",
+                        "op": "<",
+                        "value": 0.6
+                    },
+                    "multiply": 0.2
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "lifted_weights",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "ran_the_treadmill",
+                    "chancePerTick": 0.4
+                },
+                {
+                    "action": "paid_gym_fee",
+                    "chancePerTick": 0.6,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 15,
+            "purpose": 15
+        },
+        "affinity": [
+            "active"
+        ]
+    },
+    "lifted_weights": {
+        "label": "Lifted weights",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "purpose": 8
+        }
+    },
+    "ran_the_treadmill": {
+        "label": "Ran the treadmill",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "fun": 8
+        }
+    },
+    "paid_gym_fee": {
+        "label": "Paid the gym fee",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": -8
+            }
+        ]
+    },
+    "reading_at_the_library": {
+        "label": "Reading at the library",
+        "type": "continuous",
+        "category": "leisure",
+        "location": "venue:library",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 7
+        },
+        "selection": {
+            "weight": 0.35,
+            "cooldownTicks": 48,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 9
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 18
+                            }
+                        ]
+                    },
+                    "multiply": 1.6
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "browsed_the_stacks",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "borrowed_a_book",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "fun": 15,
+            "purpose": 10
+        },
+        "affinity": [
+            "solitary"
+        ]
+    },
+    "browsed_the_stacks": {
+        "label": "Browsed the stacks",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "fun": 6
+        }
+    },
+    "borrowed_a_book": {
+        "label": "Borrowed a book",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "purpose": 6
+        }
+    },
+    "attending_a_service": {
+        "label": "Attending a service",
+        "type": "continuous",
+        "category": "social",
+        "location": "venue:church",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 6
+        },
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 120,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "sang_a_hymn",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "lit_a_candle",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "purpose": 25,
+            "social": 10
+        },
+        "affinity": [
+            "cozy"
+        ]
+    },
+    "sang_a_hymn": {
+        "label": "Sang a hymn",
+        "type": "discrete",
+        "category": "social",
+        "satisfies": {
+            "social": 6,
+            "purpose": 6
+        }
+    },
+    "lit_a_candle": {
+        "label": "Lit a candle",
+        "type": "discrete",
+        "category": "leisure",
+        "satisfies": {
+            "purpose": 6
+        }
+    },
+    "pampering_at_the_salon": {
+        "label": "Pampering at the salon",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "venue:salon",
+        "durationTicks": 2,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 14
+        },
+        "selection": {
+            "weight": 0.3,
+            "cooldownTicks": 168,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "attr": "money",
+                        "op": "<",
+                        "value": 25
+                    },
+                    "multiply": 0.1
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "got_a_haircut",
+                    "chancePerTick": 0.7,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "hygiene": 20,
+            "fun": 10
+        },
+        "affinity": [
+            "indulgent",
+            "tidy"
+        ]
+    },
+    "got_a_haircut": {
+        "label": "Got a haircut",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "adjustMoney",
+                "amount": -15
+            }
+        ],
+        "satisfies": {
+            "hygiene": 25
+        }
+    },
+    "fresh_bread_run": {
+        "label": "A fresh bread run",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "venue:bakery",
+        "durationTicks": 1,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 10
+        },
+        "selection": {
+            "weight": 0.35,
+            "cooldownTicks": 48,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                },
+                {
+                    "when": {
+                        "all": [
+                            {
+                                "attr": "hourOfDay",
+                                "op": ">=",
+                                "value": 7
+                            },
+                            {
+                                "attr": "hourOfDay",
+                                "op": "<=",
+                                "value": 12
+                            }
+                        ]
+                    },
+                    "multiply": 2
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "bought_fresh_bread",
+                    "chancePerTick": 0.8,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "satisfies": {
+            "purpose": 5,
+            "food": 5
+        }
     },
     "applied_for_a_job": {
         "label": "Applied for a job",

@@ -147,5 +147,56 @@
             "op": ">=",
             "value": 1
         }
+    },
+    "gym_habit": {
+        "action": "working_out_at_the_gym",
+        "cadenceDays": 3,
+        "window": [
+            7,
+            21
+        ],
+        "adoption": 0.35,
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 16
+        }
+    },
+    "weekly_service": {
+        "action": "attending_a_service",
+        "cadenceDays": 7,
+        "window": [
+            8,
+            12
+        ],
+        "adoption": 0.4,
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 10
+        }
+    },
+    "dinner_out": {
+        "action": "eating_out",
+        "cadenceDays": 6,
+        "window": [
+            17,
+            21
+        ],
+        "adoption": 0.45,
+        "requires": {
+            "all": [
+                {
+                    "attr": "age",
+                    "op": ">=",
+                    "value": 18
+                },
+                {
+                    "attr": "money",
+                    "op": ">=",
+                    "value": 60
+                }
+            ]
+        }
     }
 }

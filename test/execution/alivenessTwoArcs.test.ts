@@ -80,7 +80,10 @@ describe('the fed week (LP-4 + LP-5 keystone)', () => {
             console.log('[FEDWEEK]', JSON.stringify(counts));
             console.log('[FEDWEEK] food by day:', Array.from({length: 8}, (_, d) => Math.round(needs.levelOf('a', 'food', TICK_NOW + d * 24, state.worldSeed))).join(','));
         }
-        const meals = log.filter(entry => entry.kind === 'action' && (entry.defId ?? '').startsWith('ate_')).length;
+        // Eating out counts (W2): the venue repertoire added restaurant meals — a week's meals are the
+        // home ate_* commits PLUS ordered_a_meal at the restaurant. Both are honest food, neither pantomime.
+        const meals = log.filter(entry => entry.kind === 'action'
+            && ((entry.defId ?? '').startsWith('ate_') || entry.defId === 'ordered_a_meal')).length;
         expect(meals).toBeGreaterThanOrEqual(3); // a week holds real meals, not pantomime
 
         // Eating CONSUMED food honestly (LP-5's OAR alternatives) while shopping REFILLS the pantry (W0's

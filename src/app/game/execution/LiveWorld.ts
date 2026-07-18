@@ -16,6 +16,7 @@ import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 
 import { PersonId } from 'types/Genealogy';
 import { locationKey } from 'types/Objects';
 import { SeededRandom, hashStringToSeed } from 'util/random';
+import { isOnShiftAtTick } from 'util/shifts';
 import Workplace from 'game/world/Workplace';
 import venuesConfig from 'json/venues.json';
 
@@ -43,6 +44,9 @@ export default class LiveWorld implements WorldAdapter {
     private deps: LiveWorldDeps;
     private nextHandleId = 0;
     private pending: TransitionHandle[] = [];
+    // The venue clock (W2 / P1-2): opening hours read the last simulated tick — updated by every
+    // requestTransition and pump, so hasVenue/nearestVenueHost answer for "now" without a clock dependency.
+    private lastTick = 0;
     // Venue targets resolve ONCE at request time (task 107) — the person walks to THAT building even if a
     // nearer host opens mid-trip. Keyed by handle id; dropped when the handle leaves pending.
     private resolvedVenues: Map<number, string> = new Map();
@@ -145,6 +149,9 @@ export default class LiveWorld implements WorldAdapter {
             if (!blueprintKey || !hosts.includes(blueprintKey)) {
                 continue;
             }
+            if (!this.venueHostOpen(building)) {
+                continue; // closed (W2/P1-2): nobody walks to a dark shop
+            }
             const entrance = building.getEntrance?.();
             const at = person.getPixelPosition?.();
             const distance = entrance && at ? Math.abs(entrance.x - at.x) + Math.abs(entrance.y - at.y) : 0;
@@ -165,7 +172,20 @@ export default class LiveWorld implements WorldAdapter {
         }
         return this.deps.listBuildings().some(building => {
             const blueprintKey = building instanceof Workplace ? building.getBusiness()?.blueprintKey : undefined;
-            return blueprintKey !== undefined && hosts.includes(blueprintKey);
+            return blueprintKey !== undefined && hosts.includes(blueprintKey) && this.venueHostOpen(building as Workplace);
+        });
+    }
+
+    // Opening hours (W2 / proposal simulation-aliveness-3 P1-2): a venue is OPEN while at least one of its
+    // employees is on shift — the audit watched 2 AM shopping trips at unstaffed shops. Derived from the
+    // authored shifts (no new data); an unstaffed business is closed until the labor loop (W1) staffs it.
+    // Live-only truth: bootstrap/logical venues stay abstract and always open (the seam's sanctioned
+    // difference), so off-map lives and the generator are untouched.
+    private venueHostOpen(building: Workplace): boolean {
+        const employees = building.getEmployees?.() ?? [];
+        return employees.some(employee => {
+            const job = employee.work?.getJob?.();
+            return !!job && isOnShiftAtTick(job, this.lastTick);
         });
     }
 
@@ -180,6 +200,7 @@ export default class LiveWorld implements WorldAdapter {
     }
 
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
+        this.lastTick = tick; // the venue clock (W2/P1-2)
         const handle: TransitionHandle = {
             id: this.nextHandleId++,
             personId,
@@ -237,6 +258,7 @@ export default class LiveWorld implements WorldAdapter {
     // departure minute has come. Called on the minute cadence (minuteOfHour from the clock; callers
     // without minute context — tests, catch-up paths — omit it and everything departs immediately).
     pump(tick: number, minuteOfHour?: number): void {
+        this.lastTick = Math.max(this.lastTick, tick); // the venue clock (W2/P1-2)
         if (this.pending.length === 0) {
             return;
         }

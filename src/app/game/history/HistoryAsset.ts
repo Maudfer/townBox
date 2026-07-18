@@ -513,10 +513,16 @@ export async function generateHistoryAsset(
                 logical?.cohabit(state, wifeId, tick, tpy);
             }
         }
+        // Stamp the outcome-pass appends (W2 fix of a latent LP-11/121 seam): handleTickOutcomes and the
+        // cohabitation invokes above APPEND entries after runTick's phase-10 stamp — a drain here used to
+        // ship them minute-less while the in-memory path stamped them a tick later (the streamed and
+        // in-memory assets diverged on one entry whenever a flush boundary landed between). Stamping now,
+        // UNCONDITIONALLY in both paths, keeps the batches identical; group keys are (person, entry.tick),
+        // so the extra batch never changes a minute (the LP-11 batch-insensitivity rule).
+        engine.getLifeLog().stampMinutes(tick, state.worldSeed);
         // Streaming flush BEFORE the day-cadence invokes (LP-11): runDaily appends entries carrying the
         // NEXT tick's timestamp; a drain between them and that tick's stamp pass would split a (person,
         // tick) minute-stamp group across batches and diverge the streamed asset from an in-memory run.
-        // Here the pending-stamp queue is empty (runTick's phase 10 just ran), so the drain is stamp-safe.
         if (sink) {
             const flushBucket = Math.floor(tick / flushIntervalTicks);
             if (flushBucket !== lastFlushBucket) {
