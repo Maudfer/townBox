@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserved**.
+Totals: 742 events — **30 vital**, **45 wired**, **506 texture**, **161 reserved**.
 
 | Event | Category | Triggers | Disposition | Quirk | Invoked by |
 |---|---|---|---|---|---|
@@ -393,6 +393,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserv
 | lifted_spirits | health | probabilistic+manual | vital | — | — |
 | lit_candles_in_outage | weather-reaction | manual | reserved | — | — |
 | locked_out_of_house | housing | probabilistic+manual | texture | quirk | — |
+| looked_for_housing | housing | manual | wired | — | looking_for_a_home.onComplete |
 | lost_argument | social | manual | reserved | — | — |
 | lost_balloon | childhood | probabilistic+manual | texture | quirk | — |
 | lost_chess_match | hobby | probabilistic+manual | texture | quirk | — |

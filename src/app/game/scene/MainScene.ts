@@ -302,6 +302,13 @@ export default class MainScene extends Phaser.Scene {
             tool: cursor.tool,
             ...(this.constructionPick ?? {}),
         });
+
+        // One click, one building (W9 / proposal simulation-aliveness-3): a successful BUILDING placement
+        // returns the cursor to Select (the bus emit keeps the toolbar highlight and any construction pick
+        // in sync). Roads and the bulldozer keep the continuous drag-paint behavior.
+        if (cursor.tool === Tool.House || cursor.tool === Tool.Work) {
+            Game.emit("toolSelected", Tool.Select);
+        }
     }
 
     // The construction menu's armed pick (task 108): a pinned blueprint and/or placeholder asset that

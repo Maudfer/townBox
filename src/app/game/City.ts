@@ -635,8 +635,43 @@ export default class City {
         // Pet lifespans (task 103): old companions pass, and it genuinely hurts (a -3 mood impulse).
         this.runPetLifecycle(event.tick);
 
+        // Home seeking (W9 / proposal simulation-aliveness-3 P1-11): every homeless adult gets a daily
+        // looking_for_a_home agenda entry — a visible, ambulatory street search whose completion invokes
+        // the recovery attempt (see the looked_for_housing commit handler). Dedup rides the routineId.
+        this.enqueueHomeSeeking(event.tick, clock.getTicksPerYear());
+
         // Monthly economic update. Independent of the event engine, so it runs even in engine-less harnesses.
         this.processMonthlyEconomy(event.tick);
+    }
+
+    private enqueueHomeSeeking(tick: number, ticksPerYear: number): void {
+        const agenda = Game.agenda;
+        const population = Game.population;
+        if (!agenda || !population) {
+            return;
+        }
+        const pool = population.getPeople();
+        for (const household of this.homelessHouseholds) {
+            for (const memberId of household.memberIds) {
+                const member = pool[memberId];
+                if (!member || !isAliveAt(member, tick) || ageAt(member, tick, ticksPerYear) < 18) {
+                    continue;
+                }
+                if (agenda.hasPendingRoutine(memberId, 'home_seeking', tick)) {
+                    continue;
+                }
+                agenda.enqueue({
+                    personId: memberId,
+                    actionId: 'looking_for_a_home',
+                    enqueuedAtTick: tick,
+                    earliestTick: tick,
+                    latestTick: tick + 24,
+                    routineId: 'home_seeking',
+                    source: 'home_seeking',
+                    causationId: null,
+                });
+            }
+        }
     }
 
     // The daily services sweep (task 096 / H1): coverage derives from the real map — facilities from placed
@@ -1084,6 +1119,11 @@ export default class City {
                         // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
                         Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], event.tick, ticksPerYear,
                             { source: 'system', causationId: commit.seq });
+                    } else if (commit.eventId === 'looked_for_housing') {
+                        // The housing search pays off at the door (W9 / proposal simulation-aliveness-3
+                        // P1-11): a committed looking_for_a_home run triggers the recovery attempt for the
+                        // seeker's household NOW — the get_job-at-the-counter pattern applied to housing.
+                        this.attemptRecoveryFor(commit.personId, event.tick);
                     }
                 }
                 // Surface the tick's notable happenings to the HUD feed (task 029).
@@ -2104,6 +2144,10 @@ export default class City {
         const pool = population.getPeople();
         const byGenId = this.indexByGenId();
 
+        // Physical ejection (W9 / proposal simulation-aliveness-3 P1-11): whoever is INSIDE steps out onto
+        // the connected street before the paperwork — displacement is a visible scene, not a vanishing.
+        this.ejectOccupants(house);
+
         const homelessIds: PersonId[] = [];
         let rehoused = 0;
         for (const memberId of [...household.memberIds]) {
@@ -2117,11 +2161,11 @@ export default class City {
                 this.fireMilestone('taken_in_by_relatives', memberId, tick); // task 076/M4
                 rehoused += 1;
             } else {
-                // No taker → homeless: leave the home, keep materialized but hidden, await recovery.
+                // No taker → homeless: on the street, VISIBLE (W9/P1-11 — the old flow hid the most
+                // dramatic state in the game), seeking a home through the daily agenda until recovery.
                 house.removeResident(person);
                 house.removeOccupant(person);
                 person.social.setHome(null);
-                person.setIndoors(true);
                 this.fireMilestone('became_homeless', memberId, tick); // task 076/M4
                 homelessIds.push(memberId);
             }
@@ -2167,12 +2211,43 @@ export default class City {
 
     public demolishWorkplace(workplace: Workplace): void {
         const tick = Game.clock?.getCurrentTick() ?? 0;
+        // Physical ejection first (W9 / P1-11): staff and customers inside step out onto the street —
+        // their woken brains (businessClosed) then route them home or back to seeking, visibly.
+        this.ejectOccupants(workplace);
         const business = workplace.getBusiness();
         if (business) {
             this.closeBusiness(workplace, business, workplace.getIdentifier(), tick); // 021: lay off + clear + write off
         }
         const label = business ? `${business.name} was demolished` : 'A building was demolished';
         this.announce('structureDemolished', tick, label, null);
+    }
+
+    // Steps every person physically inside the building out onto the connected street (W9 / proposal
+    // simulation-aliveness-3 P1-11): position at the adjacent road (entrance fallback), visible, current
+    // building cleared, any in-flight travel toward the doomed building coherently aborted. Demolition and
+    // eviction become scenes the player can watch instead of silent disappearances.
+    private ejectOccupants(building: Building): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        const streetTile = field.getAdjacentRoadTile(building);
+        const spot = (streetTile ? Game.tileToPixelPosition(streetTile) : null) ?? building.getEntrance();
+        for (const person of field.getPeople()) {
+            const inside = person.getCurrentBuilding() === building;
+            const heading = person.getDestinationBuilding() === building;
+            if (!inside && !heading) {
+                continue;
+            }
+            person.abortTravel();
+            if (inside && spot) {
+                person.setPosition(spot.x, spot.y);
+            }
+            if (inside) {
+                person.setIndoors(false);
+                person.setCurrentBuilding(null);
+            }
+        }
     }
 
     // The placed home of a solvent relative (with spare capacity) willing to take someone in on eviction — broad
@@ -2225,56 +2300,87 @@ export default class City {
 
         const remaining: Household[] = [];
         for (const household of this.homelessHouseholds) {
-            const livingMembers = household.memberIds.filter(id => byGenId.has(id) && pool[id] && isAliveAt(pool[id]!, tick));
-            if (livingMembers.length === 0) {
-                continue; // everyone gone — drop the record
-            }
-
-            const funds = livingMembers.reduce((total, id) => total + economy.getPersonBalance(id), 0);
-            // Prefer a fully-vacant home; if none exists (task 076/L3: a fully-built city used to trap the
-            // homeless forever regardless of funds), fall back to any home with a spare slot — moving in with a
-            // relative or as roommates — so recovery stays reachable.
-            const target = funds >= DEFAULT_ECONOMY_PARAMS.recoveryFunds
-                ? (this.findVacantHouse() ?? this.findHouseWithCapacity(livingMembers))
-                : null;
-            if (!target) {
-                remaining.push({ ...household, memberIds: livingMembers, headId: livingMembers[0]! });
-                continue;
-            }
-
-            const existing = target.getHousehold();
-            const freeSlots = Math.max(0, target.getOverview().maxResidents - target.getResidents().length);
-            const movers = livingMembers.slice(0, freeSlots);
-            for (const id of movers) {
-                const person = byGenId.get(id)!;
-                person.social.setHome(target);
-                person.setIndoors(true);
-                target.addResident(person);
-                target.addOccupant(person);
-                this.fireMilestone('got_back_on_feet', id, tick); // task 076/M4
-            }
-            if (existing) {
-                // Joined an existing household (moved in with family/roommates): append, keep its head.
-                target.setHousehold({ ...existing, memberIds: [...existing.memberIds, ...movers] });
-            } else {
-                target.setHousehold({
-                    id: `hh-${target.getIdentifier()}`,
-                    houseKey: target.getIdentifier(),
-                    headId: movers[0]!,
-                    memberIds: movers,
-                    arrangement: movers.length === 1 ? HouseholdArrangements.Single : HouseholdArrangements.Nuclear,
-                });
-            }
-            Game.emit("tileSpawned", target); // now occupied → drop the vacant look
-            this.announce('rehoused', tick, `A homeless household found a home again`, null);
-
-            // Anyone who didn't fit stays homeless.
-            const leftover = livingMembers.slice(movers.length);
-            if (leftover.length > 0) {
-                remaining.push({ ...household, memberIds: leftover, headId: leftover[0]! });
+            const leftover = this.tryRecoverHousehold(household, tick, byGenId, pool);
+            if (leftover) {
+                remaining.push(leftover);
             }
         }
         this.homelessHouseholds = remaining;
+    }
+
+    // One household's recovery attempt (extracted for W9 / proposal simulation-aliveness-3 P1-11): returns
+    // the still-homeless remainder (null when everyone found a home or died). The monthly sweep loops it;
+    // the looking_for_a_home commit invokes it ON DEMAND — walking the streets looking genuinely causes the
+    // recovery check, the get_job-at-the-counter pattern applied to housing.
+    private tryRecoverHousehold(household: Household, tick: number, byGenId: Map<PersonId, Person>, pool: PersonTable): Household | null {
+        const economy = Game.economy;
+        if (!economy) {
+            return household;
+        }
+        const livingMembers = household.memberIds.filter(id => byGenId.has(id) && pool[id] && isAliveAt(pool[id]!, tick));
+        if (livingMembers.length === 0) {
+            return null; // everyone gone — drop the record
+        }
+
+        const funds = livingMembers.reduce((total, id) => total + economy.getPersonBalance(id), 0);
+        // Prefer a fully-vacant home; if none exists (task 076/L3: a fully-built city used to trap the
+        // homeless forever regardless of funds), fall back to any home with a spare slot — moving in with a
+        // relative or as roommates — so recovery stays reachable.
+        const target = funds >= DEFAULT_ECONOMY_PARAMS.recoveryFunds
+            ? (this.findVacantHouse() ?? this.findHouseWithCapacity(livingMembers))
+            : null;
+        if (!target) {
+            return { ...household, memberIds: livingMembers, headId: livingMembers[0]! };
+        }
+
+        const existing = target.getHousehold();
+        const freeSlots = Math.max(0, target.getOverview().maxResidents - target.getResidents().length);
+        const movers = livingMembers.slice(0, freeSlots);
+        for (const id of movers) {
+            const person = byGenId.get(id)!;
+            person.social.setHome(target);
+            person.setIndoors(true);
+            target.addResident(person);
+            target.addOccupant(person);
+            this.fireMilestone('got_back_on_feet', id, tick); // task 076/M4
+        }
+        if (existing) {
+            // Joined an existing household (moved in with family/roommates): append, keep its head.
+            target.setHousehold({ ...existing, memberIds: [...existing.memberIds, ...movers] });
+        } else {
+            target.setHousehold({
+                id: `hh-${target.getIdentifier()}`,
+                houseKey: target.getIdentifier(),
+                headId: movers[0]!,
+                memberIds: movers,
+                arrangement: movers.length === 1 ? HouseholdArrangements.Single : HouseholdArrangements.Nuclear,
+            });
+        }
+        Game.emit("tileSpawned", target); // now occupied → drop the vacant look
+        this.announce('rehoused', tick, `A homeless household found a home again`, null);
+
+        // Anyone who didn't fit stays homeless.
+        const leftoverMembers = livingMembers.slice(movers.length);
+        return leftoverMembers.length > 0 ? { ...household, memberIds: leftoverMembers, headId: leftoverMembers[0]! } : null;
+    }
+
+    // The looking_for_a_home payoff (W9 / P1-11): a committed housing search triggers the recovery attempt
+    // for the seeker's household NOW — not at the next monthly sweep.
+    public attemptRecoveryFor(personId: PersonId, tick: number): void {
+        const population = Game.population;
+        if (!population) {
+            return;
+        }
+        const index = this.homelessHouseholds.findIndex(household => household.memberIds.includes(personId));
+        if (index === -1) {
+            return;
+        }
+        const leftover = this.tryRecoverHousehold(this.homelessHouseholds[index]!, tick, this.indexByGenId(), population.getPeople());
+        if (leftover) {
+            this.homelessHouseholds[index] = leftover;
+        } else {
+            this.homelessHouseholds.splice(index, 1);
+        }
     }
 
     // Removes materialized residents who died this day from their house, household, and the field.

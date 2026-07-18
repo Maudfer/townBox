@@ -138,6 +138,12 @@ export default class Person {
         this.travelStep = TravelStep.ExitingBuilding;
     }
 
+    // Where the travel machine is currently headed (W9: demolition ejects people heading TO the doomed
+    // building too, not just those inside it).
+    getDestinationBuilding(): Building | null {
+        return this.destinationBuilding;
+    }
+
     getCurrentBuilding(): Building | null {
         return this.currentBuilding;
     }

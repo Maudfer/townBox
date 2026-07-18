@@ -1,4 +1,5 @@
 import City from 'game/City';
+import Agenda from 'game/actions/Agenda';
 import Clock from 'game/Clock';
 import GameManager from 'game/GameManager';
 import Person from 'game/agents/Person';
@@ -25,7 +26,7 @@ function gen(id: string, gender: Gender, ageYears: number, tickNow: number, pare
     };
 }
 
-function makeGame(rows: number, cols: number): { field: Field; population: Population; economy: Economy; city: City } {
+function makeGame(rows: number, cols: number): { field: Field; population: Population; economy: Economy; city: City; game: GameManager } {
     const population = new Population();
     const clock = new Clock();
     const economy = new Economy();
@@ -48,7 +49,7 @@ function makeGame(rows: number, cols: number): { field: Field; population: Popul
     const city = new City(game);
     (game as unknown as { city: City }).city = city;
     clock.setElapsedMs(40 * TPY * HOUR_MS);
-    return { field, population, economy, city };
+    return { field, population, economy, city, game };
 }
 
 function loadState(population: Population, people: PersonTable, placedIds: PersonId[]): void {
@@ -126,5 +127,78 @@ describe('Bulldoze teardown (task 025)', () => {
 
         expect(field.getTile(10, 10)).toBeInstanceOf(Soil);
         expect(employee.work.getJob()).toBeNull(); // laid off → re-enters the job market
+    });
+});
+
+// W9 — construction & demolition UX (proposal simulation-aliveness-3 P0-6 / P1-11).
+describe('W9: bulldoze truth and visible displacement', () => {
+    test('an OFF-ANCHOR bulldoze click still removes the whole structure — no ghost buildings', () => {
+        const tickNow = 40 * TPY;
+        const { field, population } = makeGame(40, 40);
+        const a = gen('a', Genders.Female, 40, tickNow);
+        loadState(population, { a }, ['a']);
+        const house = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        materialize(field, house, 'a', 72, 72);
+        house.setHousehold({ id: 'hh-1', houseKey: house.getIdentifier(), headId: 'a', memberIds: ['a'], arrangement: HouseholdArrangements.Single });
+
+        // The click lands on a corner CELL of the footprint, not the anchor.
+        field.bulldoze({ position: { row: 5, col: 5 }, tool: Tool.Bulldoze });
+
+        // Every cell of the 3×3 footprint is grass — the sprite-owning structure is fully torn down.
+        for (let row = 3; row <= 5; row++) {
+            for (let col = 3; col <= 5; col++) {
+                expect(field.getTile(row, col)).toBeInstanceOf(Soil);
+            }
+        }
+    });
+
+    test('demolition EJECTS occupants onto the street — visible, outside, nowhere-building', () => {
+        const tickNow = 40 * TPY;
+        const { field, population } = makeGame(40, 40);
+        const a = gen('a', Genders.Female, 40, tickNow);
+        loadState(population, { a }, ['a']);
+        field.loadStructure('road', 1, 4, 'road_1100'); // the connected street above the home
+        const house = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        const personA = materialize(field, house, 'a', 72, 72);
+        personA.setIndoors(true);
+        personA.setCurrentBuilding(house);
+        house.setHousehold({ id: 'hh-1', houseKey: house.getIdentifier(), headId: 'a', memberIds: ['a'], arrangement: HouseholdArrangements.Single });
+
+        field.bulldoze({ position: { row: 4, col: 4 }, tool: Tool.Bulldoze });
+
+        expect(personA.isIndoors()).toBe(false); // on the street, not hidden (the old flow hid the homeless)
+        expect(personA.getCurrentBuilding()).toBeNull();
+        // Standing on the connected street tile, not inside the dead footprint.
+        const tile = field.getTile(Math.floor(personA.getPosition()!.y / 16), Math.floor(personA.getPosition()!.x / 16));
+        expect(tile).not.toBeInstanceOf(House);
+    });
+
+    test('the homeless SEEK: a daily agenda entry, and a committed search triggers recovery at the door', () => {
+        const tickNow = 40 * TPY;
+        const { field, population, economy, city, game } = makeGame(40, 40);
+        const agenda = new Agenda();
+        (game as unknown as { agenda: Agenda }).agenda = agenda;
+        const a = gen('a', Genders.Female, 40, tickNow);
+        loadState(population, { a }, ['a']);
+        const house = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        materialize(field, house, 'a', 72, 72);
+        house.setHousehold({ id: 'hh-1', houseKey: house.getIdentifier(), headId: 'a', memberIds: ['a'], arrangement: HouseholdArrangements.Single });
+        field.bulldoze({ position: { row: 4, col: 4 }, tool: Tool.Bulldoze });
+        expect(city.getHomelessHouseholds()).toHaveLength(1);
+
+        // The daily producer enqueues the visible street search — once (dedup by routine id).
+        const producer = city as unknown as { enqueueHomeSeeking(tick: number, tpy: number): void };
+        producer.enqueueHomeSeeking(tickNow, TPY);
+        producer.enqueueHomeSeeking(tickNow, TPY);
+        expect(agenda.hasPendingRoutine('a', 'home_seeking', tickNow)).toBe(true);
+        expect(agenda.dueEntriesOf('a', tickNow, () => false).filter(e => e.actionId === 'looking_for_a_home')).toHaveLength(1);
+
+        // The committed search pays off at the door: funds + a vacant home → rehoused NOW, not next month.
+        economy.setPersonBalance('a', 50000);
+        field.loadStructure('house', 16, 16, 'building_1x1x1_1') as House;
+        city.attemptRecoveryFor('a', tickNow);
+        expect(city.getHomelessHouseholds()).toHaveLength(0);
+        const personA = field.getPeople().find(p => p.social.getPersonId() === 'a')!;
+        expect(personA.social.getHome()).not.toBeNull();
     });
 });

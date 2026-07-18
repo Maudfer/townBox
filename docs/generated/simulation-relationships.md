@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 314 | 96 continuous / 218 discrete |
-| `events.json` | 741 | 167 probabilistic, 357 probabilistic + manual, 214 manual, 3 manual + automated |
+| `actions.json` | 316 | 97 continuous / 219 discrete |
+| `events.json` | 742 | 167 probabilistic, 357 probabilistic + manual, 215 manual, 3 manual + automated |
 | `object-action-relationships.json` | 41 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -32,6 +32,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `gardening` | onComplete → `planted_garden` |
 | `gave_object_to_person` | onComplete → `gave_gift` |
 | `hosting_gathering` | onComplete → `hosted_dinner_party` |
+| `looking_for_a_home` | onComplete → `looked_for_housing` |
 | `pickpocketed_someone` | onComplete → `committed_pickpocketing`<br>onCompleteTarget → `got_pickpocketed` |
 | `pocketed_merchandise` | onComplete → `committed_shoplifting` |
 | `read_book` | onComplete → `finished_great_book` |
@@ -66,6 +67,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
 | `heard_gossip` | manual | — | `shared_gossip`.onCompleteTarget (discrete) |
 | `hosted_dinner_party` | manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
+| `looked_for_housing` | manual | once: perDay | `looking_for_a_home`.onComplete (continuous) |
 | `planted_garden` | manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
 | `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
@@ -77,7 +79,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | manual | cooldown 168 ticks | `bought_groceries`.onComplete (discrete) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 574 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 575 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -92,7 +94,7 @@ Of the 574 manual-triggered events, 549 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 357 |
-| manual | 214 |
+| manual | 215 |
 | probabilistic | 167 |
 | manual + automated | 3 |
 
@@ -101,7 +103,7 @@ Of the 574 manual-triggered events, 549 have no action source yet — they are i
 | cooldown window | 629 |
 | — | 51 |
 | once: ever | 51 |
-| once: perDay | 10 |
+| once: perDay | 11 |
 
 ## Object-action transformations
 

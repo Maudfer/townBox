@@ -26,7 +26,12 @@ type PlacementResult = {
 
 // How far (in tiles) the cursor may sit from a valid road-side placement and still soft-snap to it. Beyond this
 // the building placement is considered invalid.
-const BUILDING_SNAP_RADIUS_TILES = 4;
+// Much softer building snap (W9 / proposal simulation-aliveness-3): a candidate only captures the cursor
+// when it sits within the closest HALF of an adjacent tile (≤ 1.5 tiles) — the old 4-tile radius yanked
+// previews to spots the player never pointed at. Loop bounds stay at 2; the Euclidean gate below enforces
+// the 1.5-tile capture distance.
+const BUILDING_SNAP_RADIUS_TILES = 2;
+const BUILDING_SNAP_CAPTURE_TILES = 1.5;
 
 // How close (in world pixels) the Select cursor must be to a person sprite to pick it (task 026).
 const SELECT_RADIUS_PX = 12;
@@ -213,10 +218,15 @@ export default class Field {
     }
 
     bulldoze(event: BuildEvent): void {
-        const tilePosition = event.position;
+        let tilePosition = event.position;
         if (tilePosition === null) {
             return;
         }
+
+        // Authoritative anchor resolve (W9 / P0-6): whatever position the caller sent, the teardown targets
+        // the occupying structure's anchor so the soil stamp below covers its WHOLE footprint. Off-anchor
+        // stamps used to leave ghost buildings — sprite standing, household/business already destroyed.
+        tilePosition = this.resolvePlacement(Tool.Bulldoze, tilePosition).position ?? tilePosition;
 
         // Tear the structure down coherently before the soil overwrite (task 025): a house evicts its residents
         // (relatives or homelessness, 022) and a workplace closes its business (lay off, 021), so no Person,
@@ -229,6 +239,7 @@ export default class Field {
         }
 
         event.tool = Tool.Soil;
+        event.position = tilePosition;
         this.build(event);
     }
 
@@ -483,6 +494,19 @@ export default class Field {
             return this.resolveBuildingPlacement(position);
         }
 
+        // Bulldoze truth (W9 / proposal simulation-aliveness-3 P0-6): the bulldozer targets STRUCTURES —
+        // the clicked cell resolves to the occupying structure's ANCHOR so the soil stamp covers its whole
+        // footprint. An off-anchor click used to overwrite a partial footprint, leaving a ghost building
+        // (sprite + cells standing, household/business already destroyed). Empty ground keeps the
+        // paint-as-is soil semantics (grass IS the empty state, task 108).
+        if (tool === Tool.Bulldoze) {
+            const occupied = this.getTile(position.row, position.col);
+            if (occupied instanceof Road || occupied instanceof Building) {
+                return { position: occupied.getPosition(), valid: true };
+            }
+            return { position, valid: true };
+        }
+
         return { position, valid: true };
     }
 
@@ -561,6 +585,11 @@ export default class Field {
                 }
 
                 const distance = Math.pow(candidatePixel.x - cursorPixel.x, 2) + Math.pow(candidatePixel.y - cursorPixel.y, 2);
+                // The capture gate (W9): beyond 1.5 tiles the preview stays honestly invalid — no yanking.
+                const captureLimit = Math.pow(BUILDING_SNAP_CAPTURE_TILES * Game.gridParams.cells.width, 2);
+                if (distance > captureLimit) {
+                    continue;
+                }
                 if (distance < bestDistance) {
                     bestDistance = distance;
                     best = candidate;

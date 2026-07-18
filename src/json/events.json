@@ -8986,6 +8986,36 @@
         "effects": [],
         "valence": -3
     },
+    "looked_for_housing": {
+        "label": "Went looking for a home",
+        "category": "housing",
+        "roles": {
+            "subject": {
+                "where": {
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "age",
+                            "op": ">=",
+                            "value": 18
+                        }
+                    ]
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "limit": {
+            "once": "perDay"
+        },
+        "effects": [],
+        "valence": -1
+    },
     "got_back_on_feet": {
         "label": "Got back on their feet",
         "category": "housing",

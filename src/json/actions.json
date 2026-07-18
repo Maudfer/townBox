@@ -6298,6 +6298,48 @@
             "industrious"
         ]
     },
+    "looking_for_a_home": {
+        "label": "Looking for a home",
+        "type": "continuous",
+        "category": "maintenance",
+        "location": "outside",
+        "ambulatory": "stroll",
+        "durationTicks": 3,
+        "requirements": {
+            "attr": "age",
+            "op": ">=",
+            "value": 18
+        },
+        "selection": {
+            "weight": 0,
+            "cooldownTicks": 12
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "asked_about_a_vacancy",
+                    "chancePerTick": 0.5,
+                    "cooldownTicks": 1
+                },
+                {
+                    "action": "nodded_at_a_passerby",
+                    "chancePerTick": 0.15
+                }
+            ]
+        },
+        "events": {
+            "onComplete": "looked_for_housing"
+        },
+        "satisfies": {
+            "purpose": 10
+        }
+    },
+    "asked_about_a_vacancy": {
+        "label": "Asked about a vacancy",
+        "type": "discrete",
+        "category": "maintenance"
+    },
     "applied_for_a_job": {
         "label": "Applied for a job",
         "type": "discrete",
