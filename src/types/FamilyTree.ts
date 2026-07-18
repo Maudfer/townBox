@@ -7,6 +7,10 @@ export interface Node extends d3.SimulationNodeDatum {
     alive?: boolean;
     placed?: boolean; // belongs to a placed household (lives somewhere in the city)
     isSubject?: boolean; // a member of the household whose window this is
+    // Generational level relative to the household (LP-10): subjects 0, parents −1, children +1; spouses
+    // and siblings share their anchor's level. The renderer pins each level to a horizontal row so the
+    // tree reads as generations instead of a force-directed hairball.
+    generation?: number;
 }
 
 export interface Link extends d3.SimulationLinkDatum<Node> {

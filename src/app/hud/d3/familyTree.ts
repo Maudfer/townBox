@@ -118,18 +118,26 @@ export function createFamilyTree(nodes: Node[], links: Link[], size: WindowSize,
         updateNodes(tags.nodesTag, nodes, dragHandler);
     }
 
-    // Layout tuning (task-012): the old parameters (charge -10, link distance 400) asked every link to be
-    // longer than the panel itself with almost no repulsion — a guaranteed hairball with labels stacked on
-    // top of each other and edges spanning the whole viewport. Genealogies are dense; short link distances,
-    // real repulsion, a collision radius around each text label, and a gentle pull toward the centre (which
-    // also keeps DISCONNECTED family components from repelling each other off-canvas) make it legible.
+    // Generational layout (LP-10): nodes carry a `generation` level from the graph builder — each level is
+    // pinned hard to its own horizontal row (grandparents above, children below), with the force sim left
+    // to spread nodes WITHIN a row (x repulsion + collide + links pulling couples/parents together). Dense
+    // asset genealogies rendered as a force hairball before; rows make the structure legible at a glance.
+    // Nodes without a generation (the legacy residents-based builder) fall back to the vertical centre.
+    const generations = nodes.map(node => node.generation).filter((generation): generation is number => generation !== undefined);
+    const minGeneration = generations.length ? Math.min(...generations) : 0;
+    const maxGeneration = generations.length ? Math.max(...generations) : 0;
+    const rows = Math.max(1, maxGeneration - minGeneration + 1);
+    const rowHeight = (size.height - 2 * PADDING) / Math.max(1, rows);
+    const rowY = (node: Node): number => node.generation === undefined
+        ? size.height / 2
+        : PADDING + rowHeight * (node.generation - minGeneration + 0.5);
+
     const simulation = d3.forceSimulation(nodes)
         .force('charge', d3.forceManyBody().strength(-120))
-        .force('center', d3.forceCenter(size.width / 2, size.height / 2))
         .force('link', d3.forceLink<Node, Link>().links(links).distance(60))
         .force('collide', d3.forceCollide<Node>(26))
         .force('x', d3.forceX(size.width / 2).strength(0.06))
-        .force('y', d3.forceY(size.height / 2).strength(0.06))
+        .force('y', d3.forceY<Node>(rowY).strength(0.9)) // the generational row pin
         .on('tick', tickUpdate);
 
     return simulation;

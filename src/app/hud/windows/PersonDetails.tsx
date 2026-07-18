@@ -6,6 +6,7 @@ import Workplace from 'game/world/Workplace';
 import Window from 'hud/Window';
 import { isFollowed, toggleFollow, subscribeFollow } from 'hud/followStore';
 import jobsConfig from 'json/jobs.json';
+import SKILLS from 'json/skills.json';
 import { JobTable } from 'types/Business';
 
 const JOBS = jobsConfig as unknown as JobTable;
@@ -212,15 +213,35 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     ) : (
                         <p><em>Unemployed</em></p>
                     )}
-                    {skillEntries.length ? (
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {skillEntries.map(([skillId, record]) => (
-                                <li key={skillId} title={`since ${record.firstAcquiredTick}; ${record.provenance.join(', ')}`}>
-                                    {skillLabel(skillId)} — {record.proficiency.toFixed(1)}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
+                    {skillEntries.length ? (() => {
+                        // Grouped skills (LP-10): the flat list was a wall of ~70 rows. Top abilities stay
+                        // visible; the long tail and the (mostly-60.0) school basics collapse.
+                        const basics = skillEntries.filter(([skillId]) => (SKILLS as Record<string, { basic?: boolean }>)[skillId]?.basic === true);
+                        const abilities = skillEntries.filter(([skillId]) => (SKILLS as Record<string, { basic?: boolean }>)[skillId]?.basic !== true);
+                        const TOP = 8;
+                        const row = ([skillId, record]: typeof skillEntries[number]): JSX.Element => (
+                            <li key={skillId} title={`since ${record.firstAcquiredTick}; ${record.provenance.join(', ')}`}>
+                                {skillLabel(skillId)} — {record.proficiency.toFixed(1)}
+                            </li>
+                        );
+                        return (
+                            <>
+                                <ul style={{ margin: 0, paddingLeft: 16 }}>{abilities.slice(0, TOP).map(row)}</ul>
+                                {abilities.length > TOP && (
+                                    <details style={{ marginLeft: 16 }}>
+                                        <summary>{abilities.length - TOP} more abilities</summary>
+                                        <ul style={{ margin: 0, paddingLeft: 16 }}>{abilities.slice(TOP).map(row)}</ul>
+                                    </details>
+                                )}
+                                {basics.length > 0 && (
+                                    <details style={{ marginLeft: 16 }}>
+                                        <summary>School basics ({basics.length})</summary>
+                                        <ul style={{ margin: 0, paddingLeft: 16 }}>{basics.map(row)}</ul>
+                                    </details>
+                                )}
+                            </>
+                        );
+                    })() : (
                         <p><strong>Skills:</strong> —</p>
                     )}
                 </section>

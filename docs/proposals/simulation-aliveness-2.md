@@ -1,6 +1,6 @@
 # Simulation Aliveness 2 — the live-play truth audit
 
-**Status: v2 — the arc is IMPLEMENTED** (branch `task/simulation-aliveness-2`, one PR: LP-1…LP-14 landed as sequential commits; the flagged follow-ups — the exhaustive LP-7 texture catalogue, the LP-14 label-template data pass, the LP-9 generator decode audit + asset regeneration, and the LP-10 family-tree/skills-panel polish — remain open). Originally: findings + proposed arc, v1.** This document is the deliverable of a full re-run of the task-117
+**Status: v3 — the arc AND its follow-ups are implemented** (branch `task/simulation-aliveness-2`, one PR: LP-1…LP-14 as sequential commits, then the follow-up wave — the exhaustive LP-7 texture catalogue with the quirk budget, the LP-14 label-template pass, the LP-9 decode audit (Part 7) with serial monogamy and the hostility/ladder tunes, and the LP-10 generational family tree + grouped skills panel). The only remaining pre-merge step is the maintainer's asset regeneration (`npm run generate-history`). Originally: findings + proposed arc, v1.** This document is the deliverable of a full re-run of the task-117
 observation pass — this time **in the real game, in a real browser** (the Claude-in-Chrome session the 117
 notes said was still owed), plus a fresh static sweep of the manifests and the live glue. Where the
 aliveness/visibility arcs (080–118) were validated headless — through the generator and the Jest E2E suites —
