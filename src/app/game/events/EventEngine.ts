@@ -294,6 +294,12 @@ export default class EventEngine {
         return this.lifeLog.getTable();
     }
 
+    // The live-era log view (LP-1): what the save serializes — hydrated pre-game entries excluded (they
+    // re-install from the asset on load; serializing 100k-entry pasts overflowed JSON.stringify).
+    getLiveLog(): EventLogTable {
+        return this.lifeLog.getLiveTable();
+    }
+
     // A person's life log, oldest first. The inspector renders it newest-first (its concern, not the engine's).
     getPersonLog(personId: PersonId): PersonLogEntry[] {
         return this.lifeLog.getPersonLog(personId);

@@ -106,3 +106,56 @@ describe('event log (task 040)', () => {
         expect(third.getNextLogSeq()).toBe(3);
     });
 });
+
+// The live-era log view (LP-1 / proposal simulation-aliveness-2 P0-1): hydrated pre-game entries are a
+// hydration-time view — the save serializes ONLY entries at/above each person's live floor, and a load
+// re-installs the past from the asset. Serializing 100k-entry hydrated pasts overflowed JSON.stringify.
+describe('live-era log view (LP-1)', () => {
+    const preGame = (seq: number, tick: number) => ({
+        tick, kind: 'action' as const, defId: 'sleep', instanceId: null, lifecycle: 'performed' as const,
+        params: {}, parentInstanceId: null, triggerSource: 'brain' as const, causationId: null, seq,
+    });
+
+    test('getLiveLog excludes installed pre-game entries but keeps live commits', () => {
+        const engine = new EventEngine(CERTAIN_MANIFEST);
+        engine.installPersonLog('a', [preGame(5000, -300), preGame(5001, -299), preGame(5002, 0)]);
+        const pool = state(1000);
+        engine.simulateTick(pool, ['a', 'b'], 1000, TPY, {});
+
+        // The full log holds past + live; the live view holds only live (boundary tick-0 asset entries
+        // are excluded by SEQ, not tick — they re-install on load, so no duplication either way).
+        expect(engine.getPersonLog('a').length).toBe(4);
+        const live = engine.getLiveLog();
+        expect(live['a']!.length).toBe(1);
+        expect(live['a']![0]!.seq).toBeGreaterThan(5002);
+        // 'b' has no floor: serialized in full.
+        expect(live['b']!.length).toBe(1);
+    });
+
+    test('a second install for the same person is a no-op (re-hydration idempotence)', () => {
+        const engine = new EventEngine(CERTAIN_MANIFEST);
+        engine.installPersonLog('a', [preGame(5000, -300)]);
+        engine.installPersonLog('a', [preGame(5000, -300)]);
+        expect(engine.getPersonLog('a').length).toBe(1);
+    });
+
+    test('load resets the floors so post-load re-hydration restores the full log without duplication', () => {
+        const engine = new EventEngine(CERTAIN_MANIFEST);
+        engine.installPersonLog('a', [preGame(5000, -300), preGame(5001, -299)]);
+        const pool = state(1000);
+        engine.simulateTick(pool, ['a', 'b'], 1000, TPY, {});
+
+        // Save: live view only. Load into a fresh engine (what SaveManager does), then re-hydrate.
+        const saved = JSON.parse(JSON.stringify(engine.getLiveLog()));
+        const loaded = new EventEngine(CERTAIN_MANIFEST);
+        loaded.loadLog(saved, engine.getNextLogSeq());
+        expect(loaded.getPersonLog('a').length).toBe(1);
+        loaded.installPersonLog('a', [preGame(5000, -300), preGame(5001, -299)]);
+
+        const restored = loaded.getPersonLog('a');
+        expect(restored.length).toBe(3);
+        expect(restored.map(entry => entry.seq)).toEqual([5000, 5001, restored[2]!.seq]);
+        // And the restored engine's live view is unchanged — floors re-established by the install.
+        expect(loaded.getLiveLog()['a']!.length).toBe(1);
+    });
+});

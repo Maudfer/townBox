@@ -9,10 +9,18 @@ import { ActionLogEntry, EventLogEntry, EventLogTable, PersonLogEntry } from 'ty
 export default class LifeLog {
     private table: EventLogTable;
     private nextSeq: number;
+    // Per-person LIVE floor (LP-1 / proposal simulation-aliveness-2 P0-1): the first seq that belongs to
+    // live play, set when a person's PRE-GAME asset entries are installed (max installed seq + 1). The
+    // save serializes only entries at/above the floor — a 100k-entry hydrated past made JSON.stringify
+    // throw RangeError and would never fit localStorage; the pre-game past is a hydration-time view,
+    // re-installed from the asset on load, never save payload. Not serialized itself: load() resets the
+    // floors and the post-load re-hydration re-establishes them by installing again.
+    private liveFloors: Record<PersonId, number>;
 
     constructor() {
         this.table = {};
         this.nextSeq = 0;
+        this.liveFloors = {};
     }
 
     // Appends an entry (assigning the global seq) to the person's log and returns the seq.
@@ -79,10 +87,21 @@ export default class LifeLog {
         if (entries.length === 0) {
             return;
         }
+        // Idempotence guard (LP-1): a person's pre-game past installs at most once per log lifetime —
+        // hydration and the post-load log re-hydration may both reach a person, and a second install
+        // would duplicate tens of thousands of entries. load() resets the floors, so a freshly loaded
+        // (live-only) log accepts the re-install.
+        if (this.liveFloors[personId] !== undefined) {
+            return;
+        }
         const existing = this.table[personId] ?? [];
         const merged: PersonLogEntry[] = [];
+        let maxInstalled = -1;
         for (const entry of entries) {
             merged.push(entry);
+            if (entry.seq > maxInstalled) {
+                maxInstalled = entry.seq;
+            }
             if (entry.seq >= this.nextSeq) {
                 this.nextSeq = entry.seq + 1;
             }
@@ -91,6 +110,27 @@ export default class LifeLog {
             merged.push(entry);
         }
         this.table[personId] = merged;
+        this.liveFloors[personId] = maxInstalled + 1;
+    }
+
+    // The live-era view (LP-1): every person's entries at/above their live floor — exactly what the save
+    // serializes. People with no floor (cold-start, newborns, immigrants) serialize in full. The live
+    // entries are the array's tail (installs prepend), so the backwards scan costs O(live entries).
+    getLiveTable(): EventLogTable {
+        const live: EventLogTable = {};
+        for (const [personId, entries] of Object.entries(this.table)) {
+            const floor = this.liveFloors[personId];
+            if (floor === undefined) {
+                live[personId] = entries;
+                continue;
+            }
+            let firstLive = entries.length;
+            while (firstLive > 0 && entries[firstLive - 1]!.seq >= floor) {
+                firstLive -= 1;
+            }
+            live[personId] = entries.slice(firstLive);
+        }
+        return live;
     }
 
     // Hands back the accumulated entries and RESETS the table to empty, keeping `nextSeq` (task 077 streaming):
@@ -107,6 +147,7 @@ export default class LifeLog {
     // the highest stored seq so future commits never collide.
     load(table: EventLogTable, nextSeq?: number): void {
         this.table = table ?? {};
+        this.liveFloors = {}; // a loaded log is live-only; re-hydration re-installs the past + floors
         if (nextSeq !== undefined) {
             this.nextSeq = nextSeq;
         } else {

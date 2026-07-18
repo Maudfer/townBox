@@ -148,7 +148,10 @@ export default class SaveManager {
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
             eventHistory: this.game.eventEngine?.getHistory(),
-            eventLog: this.game.eventEngine?.getLog(),
+            // Live-era entries only (LP-1): hydrated pre-game pasts are a hydration-time view — they made
+            // JSON.stringify throw RangeError at ~32 residents and could never fit localStorage. Load
+            // re-installs them from the pinned asset (GameManager.rehydratePersonLogs).
+            eventLog: this.game.eventEngine?.getLiveLog(),
             eventLogSeq: this.game.eventEngine?.getNextLogSeq(),
             eventSchedule: this.game.eventEngine?.getScheduleState(),
             economy: this.game.economy?.getState(),

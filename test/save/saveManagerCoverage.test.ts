@@ -395,3 +395,27 @@ describe('SaveManager: skill re-initialization skips a person with no matching g
         expect(target.skillBook.proficiency(anyAdultId, 'math')).toBe(60);
     });
 });
+
+// LP-1 (proposal simulation-aliveness-2 P0-1): the snapshot carries ONLY live-era log entries — hydrated
+// pre-game pasts (100k+ entries/person) overflowed JSON.stringify and localStorage; they re-install from
+// the pinned asset at load (GameManager.rehydratePersonLogs).
+describe('SaveManager: live-era log serialization (LP-1)', () => {
+    test('serialized eventLog excludes hydrated pre-game entries and keeps live ones', () => {
+        const world = makeWorld(5, 5);
+        const manager = new SaveManager(world.game, new MemoryProvider());
+
+        world.eventEngine.installPersonLog('p1', [
+            { tick: -500, kind: 'action', defId: 'sleep', instanceId: null, lifecycle: 'performed', params: {}, parentInstanceId: null, triggerSource: 'brain', causationId: null, seq: 9000 },
+            { tick: -1, kind: 'action', defId: 'sleep', instanceId: null, lifecycle: 'performed', params: {}, parentInstanceId: null, triggerSource: 'brain', causationId: null, seq: 9001 },
+        ]);
+        // A live commit after hydration (what the running sim appends).
+        world.eventEngine.getLifeLog().append('p1', { tick: 10, kind: 'action', defId: 'wander', instanceId: null, lifecycle: 'performed', params: {}, parentInstanceId: null, triggerSource: 'brain', causationId: null } as never);
+
+        const snapshot = JSON.parse(decompress(manager.serialize())) as WorldSnapshot;
+        const entries = snapshot.eventLog?.['p1'] ?? [];
+        expect(entries).toHaveLength(1);
+        expect(entries[0]!.defId).toBe('wander');
+        // The seq counter still spans the full history so re-hydrated seqs never collide.
+        expect(snapshot.eventLogSeq).toBeGreaterThan(9001);
+    });
+});
