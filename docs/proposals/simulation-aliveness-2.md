@@ -612,6 +612,13 @@ Diagnoses and the fixes applied:
 
 The before-numbers above are the pinned baseline for the post-regeneration re-measure.
 
+**The re-measure (regenerated asset, 2026-07-18, 27,903 edges):** the fixes hold. Dating collapsed
+**1,172 → 37** (average 8 days since touch — genuinely active courtships), with **3,633 ex_partner**
+edges now carrying the settled history of a century of romance (the B4 "awkward encounters are free
+lore" texture). Rivals fell **3,412 → 1,377** at average strength 4.2 (weak grudges that fade), while
+friendships nearly tripled (**friend 70 → 203, close_friend 39 → 70**) — the rival:friend ratio moved
+from 49:1 to ~5:1. The acquaintance carpet is unchanged and healthy, as diagnosed.
+
 ---
 
 ## Appendix — repro notes
