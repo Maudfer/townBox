@@ -23,6 +23,7 @@
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
+import { jobSeekingHook } from 'game/actions/JobSeeking';
 import { plannerHook } from 'game/actions/Planner';
 import { detainedHook } from 'game/actions/Detained';
 import { evacuationHook, fireResponseHook } from 'game/actions/FireResponse';
@@ -187,6 +188,7 @@ export default class Brain {
             doctorRoundsHook, // on-duty doctors treat co-located patients-in-treatment (task 111)
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
+            jobSeekingHook, // located application trips at real openings (LP-13) — hired at the counter
             wokeUpHook,
             reactionsHook, // authored answers to committed events — thanks, hugs back, retorts (task 094)
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point

@@ -268,6 +268,10 @@ export interface JobMarket {
     canHire(personId: string): boolean;
     hire(personId: string): boolean;
     fire(personId: string): void;
+    // The workplace key of the person's best reachable opening (LP-13): the job-seeking hook's application
+    // target — apply where the market would actually place you. Optional: abstract markets (the off-map
+    // logical world) leave it undefined and the hook stays silent there.
+    bestOpeningKeyFor?(personId: string): string | null;
 }
 
 // The housing adapter the event runtime consults so the pure engine can reason about move-out eligibility (the

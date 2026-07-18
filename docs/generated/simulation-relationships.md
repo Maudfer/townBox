@@ -9,8 +9,8 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 313 | 95 continuous / 218 discrete |
-| `events.json` | 741 | 169 probabilistic, 370 probabilistic + manual, 199 manual, 3 manual + automated |
+| `actions.json` | 314 | 96 continuous / 218 discrete |
+| `events.json` | 741 | 168 probabilistic, 371 probabilistic + manual, 199 manual, 3 manual + automated |
 | `object-action-relationships.json` | 38 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -21,6 +21,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 |---|---|
 | `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film`, `balancing_the_till`, `prepping_ingredients`, `restocking_shelves`, `reviewing_charts`, `grading_papers`, `patrolling_the_floor`, `mixing_batter`, `servicing_a_vehicle`, `drawing_blueprints`, `leading_a_workout`, `checking_in_guests`, `projecting_the_matinee`, `sorting_deliveries`, `updating_ledgers`, `sterilizing_equipment`, `shelving_returns`, `wiping_down_tables`, `pruning_displays`, `counting_inventory`, `supervising_the_team`, `patrolling`, `chasing_a_suspect`, `collection_rounds`, `rushing_to_the_fire`, `responding_to_fire`, `responding_to_incident` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
 | `adopted_a_pet` | onComplete → `adopted_a_pet` |
+| `applied_for_a_job` | onComplete → `get_job` |
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
@@ -61,6 +62,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
 | `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
 | `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
+| `get_job` | probabilistic + manual | — | `applied_for_a_job`.onComplete (discrete) |
 | `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
 | `heard_gossip` | manual | — | `shared_gossip`.onCompleteTarget (discrete) |
 | `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
@@ -75,7 +77,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 572 manual-triggered events, 548 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 573 manual-triggered events, 548 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -89,9 +91,9 @@ Of the 572 manual-triggered events, 548 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 370 |
+| probabilistic + manual | 371 |
 | manual | 199 |
-| probabilistic | 169 |
+| probabilistic | 168 |
 | manual + automated | 3 |
 
 | Occurrence limit | Events |

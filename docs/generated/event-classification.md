@@ -239,7 +239,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **511 texture**, **156 reserv
 | gave_up_hobby | hobby | probabilistic | texture | — |
 | gave_up_sweets | food | probabilistic | texture | — |
 | gave_valedictorian_speech | education | manual | reserved | — |
-| get_job | career | probabilistic | vital | — |
+| get_job | career | probabilistic+manual | vital | applied_for_a_job.onComplete |
 | got_a_ride | social | manual | reserved | — |
 | got_away_with_it | crime | manual | reserved | — |
 | got_back_on_feet | housing | manual | wired | City.runRecovery (homeless recovery, task 076) |

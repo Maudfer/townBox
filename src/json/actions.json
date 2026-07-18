@@ -6284,6 +6284,9 @@
                     "value": false
                 }
             ]
+        },
+        "events": {
+            "onComplete": "get_job"
         }
     },
     "asked_about_openings": {
@@ -7097,6 +7100,38 @@
         "satisfies": {
             "food": 20,
             "purpose": 8
+        }
+    },
+    "applying_at_business": {
+        "label": "Applying for a job",
+        "type": "continuous",
+        "category": "maintenance",
+        "durationTicks": 2,
+        "parameters": {
+            "employer": {
+                "type": "string"
+            }
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "applied_for_a_job",
+                    "chancePerTick": 1,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "asked_about_openings",
+                    "chancePerTick": 0.4,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "purpose": 10
         }
     }
 }
