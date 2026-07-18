@@ -466,6 +466,23 @@ export default class EventEngine {
             case 'petCount':
                 // Pets (task 103): adoption caps and dog-walk gates read the registry; 0 without one.
                 return this.petsReader ? this.petsReader.countOf(id) : 0;
+            case 'hasMinorChild': {
+                // Kinship-derived (LP-7): a living child under 18 — gates the parenting texture
+                // (helped_with_homework and friends) that used to free-roll for the childless.
+                return childrenOf(state.people, id).some(childId => {
+                    const child = state.people[childId];
+                    return !!child && isAliveAt(child, tick) && ageAt(child, tick, ticksPerYear) < 18;
+                });
+            }
+            case 'hasGrandchildren': {
+                // Kinship-derived (LP-7): any living grandchild — the audit found grandparent texture
+                // gated on age 60 alone.
+                return childrenOf(state.people, id).some(childId =>
+                    childrenOf(state.people, childId).some(grandId => {
+                        const grand = state.people[grandId];
+                        return !!grand && isAliveAt(grand, tick);
+                    }));
+            }
             case 'squalor':
                 // Uncollected-garbage squalor 0..1 (LP-8 / P1-2): fell_ill's factor and the cleaning
                 // weights read it. Absent reader (pure tests, the off-map generator whose curb is

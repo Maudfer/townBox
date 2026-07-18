@@ -1332,9 +1332,25 @@
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "any": [
+                                {
+                                    "hasEvent": "fell_ill",
+                                    "withinTicks": 720
+                                },
+                                {
+                                    "hasEvent": "injury",
+                                    "withinTicks": 720
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         },
@@ -1433,7 +1449,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.8
+                "perYear": 0.12
             },
             "manual": {}
         },
@@ -1695,7 +1711,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.8
+                "perYear": 0.1
             },
             "manual": {}
         },
@@ -1719,7 +1735,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.8
+                "perYear": 0.15
             },
             "manual": {}
         },
@@ -3010,9 +3026,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.8
-            },
             "manual": {}
         },
         "limit": {
@@ -3586,6 +3599,11 @@
                         },
                         {
                             "hasEvent": "became_parent"
+                        },
+                        {
+                            "attr": "hasMinorChild",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -4407,9 +4425,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.4
-            },
             "manual": {}
         },
         "limit": {
@@ -4689,6 +4704,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -4873,6 +4893,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -4927,6 +4952,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -5160,6 +5190,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -5445,6 +5480,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 16
+                        },
+                        {
+                            "attr": "employed",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -8153,31 +8193,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 2,
-                "factors": [
-                    {
-                        "driver": "subject.hourOfDay",
-                        "curve": {
-                            "mode": "step",
-                            "points": [
-                                {
-                                    "at": 0,
-                                    "value": 0.05
-                                },
-                                {
-                                    "at": 7,
-                                    "value": 1
-                                },
-                                {
-                                    "at": 22,
-                                    "value": 0.3
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
             "manual": {}
         },
         "limit": {
@@ -13026,7 +13041,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.5
+                "perYear": 0.08
             },
             "manual": {}
         },
@@ -16892,6 +16907,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 60
+                        },
+                        {
+                            "attr": "hasGrandchildren",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -16924,6 +16944,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 60
+                        },
+                        {
+                            "attr": "hasGrandchildren",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -22727,6 +22752,11 @@
                             "attr": "age",
                             "op": "<=",
                             "value": 17
+                        },
+                        {
+                            "attr": "hasMinorChild",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -24008,7 +24038,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2.5,
+                "perYear": 0.05,
                 "factors": [
                     {
                         "driver": "subject.hourOfDay",
@@ -24304,7 +24334,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2
+                "perYear": 0.3
             },
             "manual": {}
         },
@@ -24481,7 +24511,7 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2
+                "perYear": 0.3
             },
             "manual": {}
         },
@@ -24856,7 +24886,29 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2
+                "perYear": 2,
+                "factors": [
+                    {
+                        "driver": "subject.hourOfDay",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 7,
+                                    "value": 0
+                                },
+                                {
+                                    "at": 22,
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
             },
             "manual": {}
         },
@@ -24879,7 +24931,29 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 2
+                "perYear": 2,
+                "factors": [
+                    {
+                        "driver": "subject.hourOfDay",
+                        "curve": {
+                            "mode": "step",
+                            "points": [
+                                {
+                                    "at": 0,
+                                    "value": 1
+                                },
+                                {
+                                    "at": 7,
+                                    "value": 0
+                                },
+                                {
+                                    "at": 22,
+                                    "value": 1
+                                }
+                            ]
+                        }
+                    }
+                ]
             },
             "manual": {}
         },

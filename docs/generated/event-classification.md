@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 741 events — **30 vital**, **44 wired**, **511 texture**, **156 reserved**.
+Totals: 741 events — **30 vital**, **44 wired**, **508 texture**, **159 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -13,7 +13,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **511 texture**, **156 reserv
 | action_failed | mishap | manual | reserved | — |
 | adopted_a_pet | pet | manual | vital | adopted_a_pet.onComplete |
 | adopted_cat | pet | manual | reserved | — |
-| adopted_child | family | probabilistic+manual | texture | — |
+| adopted_child | family | manual | reserved | — |
 | adopted_dog | pet | manual | reserved | — |
 | adopted_goldfish | pet | manual | reserved | — |
 | apologized_first | social | probabilistic+manual | texture | — |
@@ -261,7 +261,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **511 texture**, **156 reserv
 | got_hearing_aids | aging | probabilistic+manual | texture | — |
 | got_hip_replacement | aging | probabilistic+manual | texture | — |
 | got_homesick | childhood | probabilistic+manual | texture | — |
-| got_job | career | probabilistic+manual | texture | — |
+| got_job | career | manual | reserved | — |
 | got_lost_in_town | travel | probabilistic | texture | — |
 | got_married | romance | probabilistic+manual | texture | — |
 | got_migraine | health | probabilistic+manual | texture | — |
@@ -586,7 +586,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **511 texture**, **156 reserv
 | spotted_rare_bird | hobby | probabilistic+manual | texture | — |
 | sprained_ankle | health | probabilistic+manual | texture | — |
 | sprained_wrist | accident | probabilistic+manual | texture | — |
-| spread_rumor | social | probabilistic+manual | texture | — |
+| spread_rumor | social | manual | reserved | — |
 | started_balding | aging | probabilistic | texture | — |
 | started_dating | romance | probabilistic+manual | texture | — |
 | started_family_tradition | family | probabilistic | texture | — |

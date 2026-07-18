@@ -10,7 +10,7 @@
 | Manifest | Entries | Notes |
 |---|---|---|
 | `actions.json` | 314 | 96 continuous / 218 discrete |
-| `events.json` | 741 | 168 probabilistic, 371 probabilistic + manual, 199 manual, 3 manual + automated |
+| `events.json` | 741 | 168 probabilistic, 368 probabilistic + manual, 202 manual, 3 manual + automated |
 | `object-action-relationships.json` | 38 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -91,8 +91,8 @@ Of the 573 manual-triggered events, 548 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 371 |
-| manual | 199 |
+| probabilistic + manual | 368 |
+| manual | 202 |
 | probabilistic | 168 |
 | manual + automated | 3 |
 

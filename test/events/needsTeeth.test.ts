@@ -177,3 +177,33 @@ describe('squalor → illness (LP-8)', () => {
         expect(filthy).toBeGreaterThan(clean);
     });
 });
+
+// The texture-coherence slice (LP-7): the audit's concrete incoherences — work stories for the unemployed,
+// nightmares at 19:00, grandparent texture for the grandchildless — now gate on the state they narrate.
+describe('texture coherence (LP-7 slice)', () => {
+    test('worked_overtime never fires for the unemployed; fires for the employed', () => {
+        const engine = new EventEngine();
+        const pool = state(['a']);
+        const employedMarket = { isEmployed: () => true, canHire: () => false, hire: () => false, fire: () => {} };
+        const jobless = engine.invoke(pool, 'worked_overtime', 'a', 3000, TPY, { source: 'system', causationId: null });
+        expect(jobless.outcome.ok).toBe(false);
+        engine.bindMarkets({ markets: { jobMarket: employedMarket } } as never);
+        const employed = engine.invoke(pool, 'worked_overtime', 'a', 3001, TPY, { source: 'system', causationId: null });
+        engine.unbindMarkets();
+        expect(employed.outcome.ok).toBe(true);
+    });
+
+    test('grandparent texture requires living grandchildren (kinship-derived attribute)', () => {
+        const engine = new EventEngine();
+        const grandma = { ...gen('g'), birthTick: 5000 - 65 * TPY };
+        const parent = { ...gen('m'), motherId: 'g', birthTick: 5000 - 40 * TPY };
+        const grandkid = { ...gen('k'), motherId: 'm', birthTick: 5000 - 10 * TPY };
+        const withKid: PopulationState = { worldSeed: 5, people: { g: grandma, m: parent, k: grandkid }, drawSeed: 1, placedIds: [], nextSeq: 9, lastSimulatedYear: 0 };
+        const withoutKid: PopulationState = { worldSeed: 5, people: { g: { ...grandma }, m: { ...parent, motherId: 'g' } }, drawSeed: 1, placedIds: [], nextSeq: 9, lastSimulatedYear: 0 };
+        expect(engine.contextFor(withKid, 'g', 5000, TPY).getAttr('hasGrandchildren')).toBe(true);
+        expect(engine.contextFor(withoutKid, 'g', 5000, TPY).getAttr('hasGrandchildren')).toBe(false);
+        expect(engine.contextFor(withKid, 'm', 5000, TPY).getAttr('hasMinorChild')).toBe(true);
+        const spoiled = engine.invoke(withoutKid, 'spoiled_grandkids', 'g', 5000, TPY, { source: 'system', causationId: null });
+        expect(spoiled.outcome.ok).toBe(false);
+    });
+});
