@@ -354,7 +354,34 @@ describe('actions semantic validation', () => {
     });
 
     test('the real actions.json manifest passes semantic validation against its real peers', () => {
-        expect(messagesOf(semantics(validateActionsSemantics, actionsConfig, { events: eventsConfig, objects: objectsConfig }))).toBe('');
+        expect(messagesOf(semantics(validateActionsSemantics, actionsConfig, { events: eventsConfig, objects: objectsConfig, objectActionRelationships: oarConfig }))).toBe('');
+    });
+
+    test('purchase sustainability (W0 / P0-1b): a food purchase nothing restocks or seeds is rejected', () => {
+        const fixture = {
+            a: {
+                label: 'A', type: 'discrete', category: 'maintenance',
+                consequences: [{ op: 'purchaseObject', query: { archetype: 'phantom_snack' }, price: 3 }],
+            },
+        };
+        const peers = {
+            events: {},
+            objects: { phantom_snack: { category: 'food', generation: {} } },
+            objectActionRelationships: {},
+        };
+        expect(messagesOf(semantics(validateActionsSemantics, fixture, peers))).toMatch(/neither restocked .* nor placement-seeded/);
+        // Restocked via a location output → clean.
+        const restocked = {
+            ...peers,
+            objectActionRelationships: { restock: { action: 'x', outputs: [{ archetype: 'phantom_snack', container: 'location' }] } },
+        };
+        expect(messagesOf(semantics(validateActionsSemantics, fixture, restocked))).toBe('');
+        // Or seeded at placement → clean.
+        const seeded = {
+            ...peers,
+            objects: { phantom_snack: { category: 'food', generation: { minPerBuilding: 1 } } },
+        };
+        expect(messagesOf(semantics(validateActionsSemantics, fixture, seeded))).toBe('');
     });
 });
 

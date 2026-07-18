@@ -708,7 +708,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserv
 | went_camping | travel | probabilistic | texture | quirk | — |
 | went_fishing | hobby | probabilistic+manual | texture | quirk | — |
 | went_fully_gray | aging | probabilistic | texture | quirk | — |
-| went_grocery_shopping | food | manual | wired | — | shopping_trip.onComplete |
+| went_grocery_shopping | food | manual | wired | — | bought_groceries.onComplete |
 | went_hungry | health | probabilistic | texture | — | — |
 | went_on_first_date | romance | manual | wired | — | asked_person_out.onCompleteTarget |
 | went_on_vacation | travel | probabilistic | texture | quirk | — |

@@ -222,6 +222,37 @@ export default class ActionEngine {
     // The aggregate counts ATTEMPTS: consent-declined starts record here too (task 073), so anti-repetition
     // and selection cooldowns gate immediate re-tries after a decline. A requirement that needs "successfully
     // did X" (not "attempted X") should query the action's success event via hasEvent instead.
+    // Typed failure logging for unplannable consequence commits (W0 / proposal simulation-aliveness-3
+    // P0-1d): a pool child or direct discrete whose inputs can't be planned used to vanish without a trace —
+    // 19 shopping trips bought nothing and the log said nothing. One `failed: inputsUnavailable` entry per
+    // (person, action, 24 ticks) makes the inspector honest without flooding it; the attempt records into
+    // the action history so selection cooldowns gate re-tries exactly like consent declines (073).
+    private static readonly FAILURE_LOG_WINDOW_TICKS = 24;
+    private logInputsUnavailable(
+        personId: PersonId, actionId: string, params: Record<string, Value>,
+        parentInstanceId: string | null, cause: ActionCause, deps: ActionDeps
+    ): void {
+        const log = this.lifeLog.getPersonLog(personId);
+        const cutoff = deps.tick - ActionEngine.FAILURE_LOG_WINDOW_TICKS;
+        for (let i = log.length - 1; i >= 0; i--) {
+            const entry = log[i]!;
+            if (entry.tick < cutoff) {
+                break; // appended in tick order — nothing earlier can be in the window
+            }
+            if (entry.kind === 'action' && entry.defId === actionId && entry.lifecycle === 'failed'
+                && entry.failureReason === 'inputs_unavailable') {
+                this.recordAction(personId, actionId, deps.tick); // still counts toward recency (no thrash)
+                return;
+            }
+        }
+        this.lifeLog.append(personId, {
+            tick: deps.tick, kind: 'action', defId: actionId, instanceId: null, lifecycle: 'failed',
+            params: { ...params }, parentInstanceId, triggerSource: cause.source,
+            causationId: cause.causationId, failureReason: 'inputs_unavailable',
+        });
+        this.recordAction(personId, actionId, deps.tick);
+    }
+
     hasAction(personId: PersonId, actionId: string, tick: number, query?: HasEventQuery): boolean {
         const record = this.state.actionHistory[personId]?.[actionId];
         if (!record) {
@@ -549,6 +580,7 @@ export default class ActionEngine {
             const commitCtx: CommitContext = { personId, params, outputs: {}, causationId: cause.causationId, deps, result };
             const oarPlan = planOAR(this.oarByAction.get(actionId) ?? [], commitCtx);
             if (oarPlan === null) {
+                this.logInputsUnavailable(personId, actionId, params, parentInstanceId, cause, deps);
                 return { ok: false, reason: 'inputsUnavailable' };
             }
             const plannedOutputs = new Set<string>();
@@ -558,6 +590,7 @@ export default class ActionEngine {
             }
             const opsPlan = def.consequences ? planConsequences(def.consequences, commitCtx, plannedOutputs) : { steps: [] };
             if (!opsPlan) {
+                this.logInputsUnavailable(personId, actionId, params, parentInstanceId, cause, deps);
                 return { ok: false, reason: 'inputsUnavailable' };
             }
 

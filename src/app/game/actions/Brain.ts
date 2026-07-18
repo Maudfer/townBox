@@ -937,6 +937,29 @@ const needsHook: BrainHook = {
                 causationId: null,
             });
         }
+        // HUNGER SENDS YOU SHOPPING (W0 / proposal simulation-aliveness-3 P0-1e): critical hunger with no
+        // food in hand and none in the pantry proposes the shopping trip the D2 design always promised —
+        // the located venue trip walks them to a real shop where the (now per-item-optional) basket buys
+        // what the shelf has. Below the eat/fetch intents so food-at-hand always wins; cooldown-gated so a
+        // stocked-out or broke trip doesn't loop.
+        if (need === 'food' && world && inventory
+            && deps.ctx.world?.hasVenue?.('shop')
+            && !brain.getActionEngine().hasAction(personId, 'shopping_trip', deps.tick, { withinTicks: 12 })
+            && !inventory.carriedInstances(personId).some(instance => MEAL_CONSUMABLES.has(instance.archetypeId))
+            && !world.objectsAt(world.objectLocationOf(personId)).some(id => {
+                const instance = inventory.getInstance(id);
+                return !!instance && MEAL_CONSUMABLES.has(instance.archetypeId);
+            })) {
+            intents.push({
+                actionId: 'shopping_trip',
+                sourceHook: 'needs',
+                priority: 58,
+                necessity: 'required',
+                band: 'need',
+                mayInterrupt: true,
+                causationId: null,
+            });
+        }
         const pick = brain.selectActionForNeed(personId, need, deps);
         if (pick) {
             intents.push({

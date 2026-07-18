@@ -846,7 +846,7 @@
                 },
                 {
                     "action": "bought_groceries",
-                    "chancePerTick": 0.25,
+                    "chancePerTick": 0.45,
                     "maxTotal": 1
                 },
                 {
@@ -864,7 +864,7 @@
                 },
                 {
                     "action": "picked_up_fresh_ingredients",
-                    "chancePerTick": 0.2,
+                    "chancePerTick": 0.35,
                     "maxTotal": 1
                 },
                 {
@@ -888,9 +888,6 @@
                     "maxTotal": 1
                 }
             ]
-        },
-        "events": {
-            "onComplete": "went_grocery_shopping"
         },
         "satisfies": {
             "purpose": 10,
@@ -2554,7 +2551,8 @@
                     "archetype": "flour_bag"
                 },
                 "price": 18,
-                "fallback": "flour_bag"
+                "fallback": "flour_bag",
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -2563,7 +2561,27 @@
                 },
                 "price": 12,
                 "fallback": "tomato",
-                "fallbackQuantity": 2
+                "fallbackQuantity": 2,
+                "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "bread_loaf"
+                },
+                "price": 9,
+                "fallback": "bread_loaf",
+                "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "egg"
+                },
+                "price": 6,
+                "fallback": "egg",
+                "fallbackQuantity": 4,
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -2571,9 +2589,13 @@
                     "archetype": "cream_jar"
                 },
                 "price": 8,
-                "fallback": "cream_jar"
+                "fallback": "cream_jar",
+                "optional": true
             }
-        ]
+        ],
+        "events": {
+            "onComplete": "went_grocery_shopping"
+        }
     },
     "waited_in_line": {
         "label": "Waited in line",
@@ -4948,7 +4970,8 @@
                 },
                 "price": 5,
                 "fallback": "potato",
-                "fallbackQuantity": 2
+                "fallbackQuantity": 2,
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -4956,7 +4979,8 @@
                     "archetype": "onion"
                 },
                 "price": 3,
-                "fallback": "onion"
+                "fallback": "onion",
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -4964,7 +4988,8 @@
                     "archetype": "lettuce"
                 },
                 "price": 4,
-                "fallback": "lettuce"
+                "fallback": "lettuce",
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -4973,7 +4998,8 @@
                 },
                 "price": 6,
                 "fallback": "egg",
-                "fallbackQuantity": 4
+                "fallbackQuantity": 4,
+                "optional": true
             }
         ]
     },
@@ -4989,7 +5015,8 @@
                 },
                 "price": 8,
                 "fallback": "detergent_pod",
-                "fallbackQuantity": 3
+                "fallbackQuantity": 3,
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -4997,7 +5024,8 @@
                     "archetype": "sponge"
                 },
                 "price": 4,
-                "fallback": "sponge"
+                "fallback": "sponge",
+                "optional": true
             }
         ]
     },
@@ -5027,7 +5055,8 @@
                     "archetype": "wrapping_paper"
                 },
                 "price": 6,
-                "fallback": "wrapping_paper"
+                "fallback": "wrapping_paper",
+                "optional": true
             },
             {
                 "op": "purchaseObject",
@@ -5035,7 +5064,8 @@
                     "archetype": "gift_bow"
                 },
                 "price": 4,
-                "fallback": "gift_bow"
+                "fallback": "gift_bow",
+                "optional": true
             }
         ]
     },

@@ -150,9 +150,11 @@ describe('consequence ops', () => {
         inventory.createInstance({ archetypeId: 'book', owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' }, tick: 0 });
         // target is a required parameter — the start is rejected before planning.
         expect(actions.startAction('a', 'lent_an_object', {}, cause, deps, result())).toEqual({ ok: false, reason: 'missingParameter' });
-        // No coin carried → the moveObjectToPerson plan fails atomically and nothing is logged.
+        // No coin carried → the moveObjectToPerson plan fails atomically; the abort logs typed (P0-1d).
         expect(actions.startAction('a', 'lend_coin', { target: 'b' }, cause, deps, result())).toEqual({ ok: false, reason: 'inputsUnavailable' });
-        expect(engine.getPersonLog('a')).toHaveLength(0);
+        const entries = engine.getPersonLog('a');
+        expect(entries).toHaveLength(1);
+        expect(entries[0]).toMatchObject({ defId: 'lend_coin', lifecycle: 'failed', failureReason: 'inputs_unavailable' });
     });
 
     test('employer ownership resolves through employerKeyOf and fails typed without it', () => {
@@ -183,12 +185,20 @@ describe('consequence ops', () => {
         expect(engine.getScheduleState().queue[0]!.causationId).not.toBeNull();
     });
 
-    test('atomicity: one unresolvable op aborts the whole set with zero mutations', () => {
+    test('atomicity: one unresolvable op aborts the whole set with zero mutations — and logs the typed failure', () => {
         const { engine, actions, deps, inventory } = harness();
         expect(actions.startAction('a', 'impossible', {}, cause, deps, result())).toEqual({ ok: false, reason: 'inputsUnavailable' });
         expect(inventory.possessionsOf('a')).toHaveLength(0); // the createObject never applied
-        expect(engine.getPersonLog('a')).toHaveLength(0); // nothing was logged either
-        expect(actions.hasAction('a', 'impossible', 1000)).toBe(false);
+        // The silent-failure fix (W0 / proposal simulation-aliveness-3 P0-1d): the abort is now a typed,
+        // rate-limited log entry — the inspector can finally explain "why didn't it happen".
+        const failures = engine.getPersonLog('a').filter(entry => entry.kind === 'action' && entry.lifecycle === 'failed' && entry.failureReason === 'inputs_unavailable');
+        expect(failures).toHaveLength(1);
+        expect(failures[0]).toMatchObject({ defId: 'impossible', kind: 'action' });
+        // The attempt records into the action history (recency gates re-tries, the 073 pattern).
+        expect(actions.hasAction('a', 'impossible', 1000)).toBe(true);
+        // Rate limit: an immediate re-try does not spam a second entry.
+        actions.startAction('a', 'impossible', {}, cause, deps, result());
+        expect(engine.getPersonLog('a').filter(entry => entry.kind === 'action' && entry.lifecycle === 'failed')).toHaveLength(1);
     });
 });
 

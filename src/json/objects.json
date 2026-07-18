@@ -443,9 +443,9 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 4,
+            "maxPerBuilding": 8,
             "ownershipDefault": "building",
-            "minPerBuilding": 1
+            "minPerBuilding": 2
         },
         "expiresAfterTicks": 120
     },
@@ -1610,7 +1610,7 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 3,
+            "maxPerBuilding": 5,
             "ownershipDefault": "building",
             "minPerBuilding": 1
         }
@@ -1642,7 +1642,7 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 6,
+            "maxPerBuilding": 10,
             "ownershipDefault": "building",
             "minPerBuilding": 4
         },
@@ -1675,7 +1675,8 @@
             "kind": "consumable",
             "weight": 1,
             "maxPerBuilding": 3,
-            "ownershipDefault": "building"
+            "ownershipDefault": "building",
+            "minPerBuilding": 1
         }
     },
     "baked_dough": {
@@ -2026,9 +2027,9 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 4,
+            "maxPerBuilding": 6,
             "ownershipDefault": "building",
-            "minPerBuilding": 1
+            "minPerBuilding": 2
         }
     },
     "protein_shaker": {
@@ -3636,7 +3637,7 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building",
-            "minPerBuilding": 1
+            "minPerBuilding": 2
         },
         "expiresAfterTicks": 168
     },
@@ -3908,7 +3909,7 @@
             "weight": 1,
             "maxPerBuilding": 4,
             "ownershipDefault": "building",
-            "minPerBuilding": 1
+            "minPerBuilding": 2
         },
         "expiresAfterTicks": 720
     },
@@ -3970,7 +3971,7 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 4,
+            "maxPerBuilding": 6,
             "ownershipDefault": "building",
             "minPerBuilding": 1
         }
@@ -4187,7 +4188,7 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 4,
+            "maxPerBuilding": 6,
             "ownershipDefault": "building",
             "minPerBuilding": 2
         },
@@ -4582,9 +4583,9 @@
         "generation": {
             "kind": "consumable",
             "weight": 1,
-            "maxPerBuilding": 4,
+            "maxPerBuilding": 6,
             "ownershipDefault": "building",
-            "minPerBuilding": 2
+            "minPerBuilding": 3
         },
         "expiresAfterTicks": 240
     },

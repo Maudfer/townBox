@@ -23,6 +23,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `adopted_a_pet` | onComplete → `adopted_a_pet` |
 | `applied_for_a_job` | onComplete → `get_job` |
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
+| `bought_groceries` | onComplete → `went_grocery_shopping` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
 | `evacuating` | onComplete → `escaped_a_fire` |
@@ -36,7 +37,6 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `read_book` | onComplete → `finished_great_book` |
 | `resting_at_home_sick` | onStart → `called_in_sick` |
 | `shared_gossip` | onCompleteTarget → `heard_gossip` |
-| `shopping_trip` | onComplete → `went_grocery_shopping` |
 | `sleep` | onComplete → `woke_up` |
 | `treating_patient` | onComplete → `treated_a_patient`<br>onCompleteTarget → `was_treated_by_doctor` |
 | `visiting_relatives` | onComplete → `reconnected_with_relative` |
@@ -74,7 +74,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `treated_a_patient` | manual | — | `treating_patient`.onComplete (continuous) |
 | `tried_new_recipe` | manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
 | `was_treated_by_doctor` | manual | — | `treating_patient`.onCompleteTarget (continuous) |
-| `went_grocery_shopping` | manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
+| `went_grocery_shopping` | manual | cooldown 168 ticks | `bought_groceries`.onComplete (discrete) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
 Of the 574 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
@@ -137,7 +137,7 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `workshop_planks` | `milled_some_planks` | — | 4× `wood_plank`, owner: employer | — |
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
-| `supermarket_restock` | `stocked_the_shelves` | — | 4× `egg`, owner: employer<br>2× `bread_loaf`, owner: employer<br>2× `milk_carton`, owner: employer<br>2× `tomato`, owner: employer<br>1× `lettuce`, owner: employer<br>2× `potato`, owner: employer<br>1× `onion`, owner: employer<br>1× `flour_bag`, owner: employer<br>1× `butter_stick`, owner: employer<br>1× `cheese_wedge`, owner: employer | — |
+| `supermarket_restock` | `stocked_the_shelves` | — | 8× `egg`, owner: employer<br>6× `bread_loaf`, owner: employer<br>4× `milk_carton`, owner: employer<br>5× `tomato`, owner: employer<br>3× `lettuce`, owner: employer<br>5× `potato`, owner: employer<br>3× `onion`, owner: employer<br>3× `flour_bag`, owner: employer<br>2× `butter_stick`, owner: employer<br>2× `cheese_wedge`, owner: employer<br>2× `cream_jar`, owner: employer<br>3× `pasta_box`, owner: employer<br>4× `granola_bar`, owner: employer | — |
 | `ate_meal_from_loaf` | `ate_a_meal` | 1× `bread_loaf` (consumed) | — | — |
 | `ate_meal_from_eggs` | `ate_a_meal` | 2× `egg` (consumed) | — | — |
 | `ate_meal_from_salad` | `ate_a_meal` | 1× `tomato` (consumed)<br>1× `lettuce` (consumed) | — | — |

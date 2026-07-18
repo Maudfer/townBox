@@ -361,6 +361,12 @@ export default class City {
         this.applyCareerRetcon(house.getIdentifier(), selection.memberIds, currentTick, ticksPerYear);
 
         this.population += personByGenId.size;
+        // An empty draw is a real outcome (pool thin at this window), but it must never be a SILENT one
+        // (W0 / proposal simulation-aliveness-3 P0-4): the player placed a home and nobody came — say so.
+        if (personByGenId.size === 0) {
+            const tick = clock ? clock.getCurrentTick() : 0;
+            this.announce('vacancy', tick, 'No one moved into the new home — the town has no takers right now', null);
+        }
         console.log('Household spawned', household.arrangement, household.memberIds.length, 'members');
     }
 

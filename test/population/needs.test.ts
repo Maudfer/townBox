@@ -138,3 +138,48 @@ describe('engine crediting & selection', () => {
         expect(brain.getActionEngine().activeInstanceOf('a')?.id).toBe(first?.id);
     });
 });
+
+describe('hunger sends you shopping (W0 / proposal simulation-aliveness-3 P0-1e)', () => {
+    // A fixture with NO eat option: the only path a starving person has is the shop — the hook must
+    // propose the located shopping trip rather than leaving them to cook-graze forever.
+    // weight 0: free-time/idle selection can never pick the trip — only the needs hook's explicit
+    // proposal can start it, so the assertions below isolate the hook.
+    const SHOP_ACTIONS = {
+        shopping_trip: { label: 'Going on a shopping trip', type: 'continuous', category: 'maintenance', location: 'venue:shop', durationTicks: 3, selection: { weight: 0 } },
+        play: { label: 'Playing', type: 'continuous', category: 'leisure', durationTicks: 1, satisfies: { fun: 30 } },
+    } as unknown as ActionManifest;
+
+    function shopHarness() {
+        const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+        const world = new BootstrapWorld(inventory);
+        const engine = new EventEngine(FIXTURE_EVENTS);
+        const actions = new ActionEngine(SHOP_ACTIONS, engine.getLifeLog());
+        const brain = new Brain(actions);
+        const needs = new Needs();
+        const state: PopulationState = { worldSeed: 7, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 10, lastSimulatedYear: 0 };
+        world.register('a');
+        const deps: BrainDeps & ActionDeps = { state, tick: 100, ticksPerYear: TPY, ctx: { mode: 'bootstrap', world, markets: { needs } }, eventEngine: engine, inventory };
+        return { brain, needs, deps, inventory };
+    }
+
+    test('critical hunger with no food in hand or at the location proposes the shopping trip', () => {
+        const { brain, needs, deps } = shopHarness();
+        needs.satisfy('a', { food: -100 }, 100, 7);
+        brain.processTick(['a'], deps, [], result());
+        expect(brain.getActionEngine().activeInstanceOf('a')?.defId).toBe('shopping_trip');
+    });
+
+    test('food in hand suppresses the shopping proposal (eat first, shop later)', () => {
+        const { brain, needs, deps, inventory } = shopHarness();
+        inventory.createInstance({
+            archetypeId: 'bread_loaf', quantity: 1,
+            owner: { kind: 'person', personId: 'a' }, container: { kind: 'possessions', personId: 'a' },
+            tick: 100, provenance: null,
+        });
+        needs.satisfy('a', { food: -100 }, 100, 7);
+        brain.processTick(['a'], deps, [], result());
+        // With bread carried, the hook proposes ate_a_meal (not in this fixture manifest → no start) and
+        // must NOT propose the shop — the active instance stays empty rather than becoming a trip.
+        expect(brain.getActionEngine().activeInstanceOf('a')?.defId).not.toBe('shopping_trip');
+    });
+});
