@@ -372,6 +372,17 @@ export default class ActionEngine {
         return context;
     }
 
+    // Clears a person's recency record for one action (LP-12 wakes): a world change that invalidates a
+    // cooldown (a business opening vs job_hunting's 24-tick cooldown) clears it so the woken re-evaluation
+    // can actually pick the thing that changed. Count history is deliberately dropped with it — the
+    // aggregate stores only {count, lastTick} and a fresh record rebuilds on the next commit.
+    clearActionRecency(personId: PersonId, actionId: string): void {
+        const personHistory = this.state.actionHistory[personId];
+        if (personHistory) {
+            delete personHistory[actionId];
+        }
+    }
+
     private recordAction(personId: PersonId, actionId: string, tick: number): void {
         const personHistory = this.state.actionHistory[personId] ?? {};
         const existing = personHistory[actionId];

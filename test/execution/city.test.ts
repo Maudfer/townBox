@@ -1,6 +1,8 @@
 import City from 'game/City';
 import Clock from 'game/Clock';
 import GameManager from 'game/GameManager';
+import ActionEngine from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
 import Person from 'game/agents/Person';
 import Economy from 'game/economy/Economy';
 import EventEngine from 'game/events/EventEngine';
@@ -571,5 +573,54 @@ describe('City live commute (getWorld/handleCommute/startCommute)', () => {
         const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 0, null);
         expect(handle.status).toBe('pending'); // still requested — LiveWorld doesn't know startCommute no-op'd
         expect(field.getVehicles()).toHaveLength(0);
+    });
+});
+
+// Reactive Brain wakeups (LP-12 / proposal simulation-aliveness-2 M2): a business opening between flips
+// wakes the unemployed at the next minute — job-seeking cooldowns cleared — instead of waiting out the
+// hourly flip plus a multi-day routine cadence.
+describe('reactive wakes (LP-12)', () => {
+    const TPY = TICKS_PER_YEAR;
+    function timeAt(tick: number): { timestamp: never; tick: number } {
+        return { timestamp: {} as never, tick };
+    }
+    function wakeHarness() {
+        const harness = makeGame(30, 30);
+        const { game, field, population, clock, eventEngine } = harness;
+        const actionEngine = new ActionEngine(undefined, eventEngine.getLifeLog());
+        const brain = new Brain(actionEngine);
+        (game as unknown as { actionEngine: ActionEngine }).actionEngine = actionEngine;
+        (game as unknown as { brain: Brain }).brain = brain;
+        const tickNow = 1000;
+        const adult: GenPerson = { id: 'p1', firstName: 'A', familyName: 'B', gender: Genders.Male, birthTick: tickNow - 30 * TPY, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
+        loadState(population, clock, { p1: adult }, ['p1'], tickNow);
+        const house = field.loadStructure('house', 4, 4, 'h') as House;
+        const person = materialize(field, house, 'p1', 72, 72);
+        person.social.setAge(30);
+        return { ...harness, actionEngine, person, tickNow };
+    }
+
+    test('a business opening wakes the unemployed at the next minute with the seek cooldown cleared', () => {
+        const { city, field, actionEngine, tickNow } = wakeHarness();
+        // A stale seek this hour: the 24-tick cooldown would normally hold job seeking down for a day.
+        actionEngine.getState().actionHistory['p1'] = { job_hunting: { count: 1, lastTick: tickNow - 1 } };
+        expect(actionEngine.hasAction('p1', 'job_hunting', tickNow, { withinTicks: 24 })).toBe(true);
+
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        city.setupBusiness(workplace);
+
+        // The next minute boundary drains the wake: the seek cooldown is cleared for the woken person and
+        // the Brain genuinely runs for them (an active instance exists — the pass produced a decision;
+        // a started job_hunting legitimately re-records its own recency, so assert the CLEAR via spy).
+        const clearSpy = jest.spyOn(actionEngine, 'clearActionRecency');
+        city.handleCommute(timeAt(tickNow));
+        expect(clearSpy).toHaveBeenCalledWith('p1', 'job_hunting');
+        expect(actionEngine.activeInstanceOf('p1')).not.toBeNull();
+    });
+
+    test('a wake pass without pending wakes is a no-op (no Brain run, no cost)', () => {
+        const { city, actionEngine, tickNow } = wakeHarness();
+        city.handleCommute(timeAt(tickNow));
+        expect(actionEngine.activeInstanceOf('p1')).toBeNull();
     });
 });
