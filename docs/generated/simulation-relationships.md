@@ -10,7 +10,7 @@
 | Manifest | Entries | Notes |
 |---|---|---|
 | `actions.json` | 314 | 96 continuous / 218 discrete |
-| `events.json` | 741 | 167 probabilistic, 369 probabilistic + manual, 202 manual, 3 manual + automated |
+| `events.json` | 741 | 167 probabilistic, 357 probabilistic + manual, 214 manual, 3 manual + automated |
 | `object-action-relationships.json` | 41 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
@@ -57,24 +57,24 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `committed_pickpocketing` | manual | — | `pickpocketed_someone`.onComplete (discrete) |
 | `committed_shoplifting` | manual | — | `pocketed_merchandise`.onComplete (discrete) |
 | `completed_school_day` | manual + automated | once: perDay | `attend_school`.onComplete (continuous) |
-| `decluttered_house` | probabilistic + manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
+| `decluttered_house` | manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
 | `escaped_a_fire` | manual | — | `evacuating`.onComplete (continuous) |
-| `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
-| `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
+| `finished_great_book` | manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
+| `found_money_on_street` | manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
 | `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
 | `get_job` | probabilistic + manual | — | `applied_for_a_job`.onComplete (discrete) |
 | `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
 | `heard_gossip` | manual | — | `shared_gossip`.onCompleteTarget (discrete) |
-| `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
-| `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
-| `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
+| `hosted_dinner_party` | manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
+| `planted_garden` | manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
+| `reconnected_with_relative` | manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
 | `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
 | `started_working` | manual | once: perDay | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 39 more |
 | `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 81 more |
 | `treated_a_patient` | manual | — | `treating_patient`.onComplete (continuous) |
-| `tried_new_recipe` | probabilistic + manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
+| `tried_new_recipe` | manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
 | `was_treated_by_doctor` | manual | — | `treating_patient`.onCompleteTarget (continuous) |
-| `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
+| `went_grocery_shopping` | manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
 Of the 574 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
@@ -91,16 +91,16 @@ Of the 574 manual-triggered events, 549 have no action source yet — they are i
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 369 |
-| manual | 202 |
+| probabilistic + manual | 357 |
+| manual | 214 |
 | probabilistic | 167 |
 | manual + automated | 3 |
 
 | Occurrence limit | Events |
 |---|---|
-| cooldown window | 630 |
+| cooldown window | 629 |
 | — | 51 |
-| once: ever | 50 |
+| once: ever | 51 |
 | once: perDay | 10 |
 
 ## Object-action transformations

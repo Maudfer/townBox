@@ -84,7 +84,7 @@ export function classifyEvent(
 
 export function generateEventClassification(events: EventManifest, actions: ActionManifest): string {
     const invokers = actionInvokers(actions);
-    const rows: { id: string; category: string; triggers: string; disposition: EventDisposition; invokedBy: string }[] = [];
+    const rows: { id: string; category: string; triggers: string; disposition: EventDisposition; invokedBy: string; quirk: boolean }[] = [];
     for (const eventId of Object.keys(events).sort()) {
         const event = events[eventId]!;
         const kinds = [
@@ -99,6 +99,8 @@ export function generateEventClassification(events: EventManifest, actions: Acti
             triggers: kinds.join('+'),
             disposition,
             invokedBy: invokedBy.join(', ') || '—',
+            // The LP-7 decision record: explicitly-kept free-rolling whimsy (never a TODO, a choice).
+            quirk: (event as { quirk?: boolean }).quirk === true,
         });
     }
     const counts = rows.reduce<Record<string, number>>((acc, row) => {
@@ -116,10 +118,10 @@ export function generateEventClassification(events: EventManifest, actions: Acti
     lines.push(`Totals: ${rows.length} events — ` + (['vital', 'wired', 'texture', 'reserved'] as const)
         .map(kind => `**${counts[kind] ?? 0} ${kind}**`).join(', ') + '.');
     lines.push('');
-    lines.push('| Event | Category | Triggers | Disposition | Invoked by |');
-    lines.push('|---|---|---|---|---|');
+    lines.push('| Event | Category | Triggers | Disposition | Quirk | Invoked by |');
+    lines.push('|---|---|---|---|---|---|');
     for (const row of rows) {
-        lines.push(`| ${row.id} | ${row.category} | ${row.triggers} | ${row.disposition} | ${row.invokedBy} |`);
+        lines.push(`| ${row.id} | ${row.category} | ${row.triggers} | ${row.disposition} | ${row.quirk ? 'quirk' : '—'} | ${row.invokedBy} |`);
     }
     lines.push('');
     return lines.join('\n');

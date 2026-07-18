@@ -4,748 +4,748 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 741 events — **30 vital**, **44 wired**, **508 texture**, **159 reserved**.
+Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserved**.
 
-| Event | Category | Triggers | Disposition | Invoked by |
-|---|---|---|---|---|
-| aced_final | education | probabilistic+manual | texture | — |
-| action_declined | social | manual | wired | lent_an_object.onDecline, gave_object_to_person.onDecline |
-| action_failed | mishap | manual | reserved | — |
-| adopted_a_pet | pet | manual | vital | adopted_a_pet.onComplete |
-| adopted_cat | pet | manual | reserved | — |
-| adopted_child | family | manual | reserved | — |
-| adopted_dog | pet | manual | reserved | — |
-| adopted_goldfish | pet | manual | reserved | — |
-| apologized_first | social | probabilistic+manual | texture | — |
-| apologized_for_snapping | emotion-mood | probabilistic+manual | texture | — |
-| application_rejected | career | probabilistic+manual | texture | — |
-| argued_with_coworker | career | probabilistic+manual | texture | — |
-| argued_with_partner | romance | probabilistic+manual | texture | — |
-| argued_with_sibling | family | probabilistic+manual | texture | — |
-| argument | social | probabilistic+manual | vital | argued_with_person.onCompleteTarget |
-| arrested_suspect | crime | manual | reserved | — |
-| asked_someone_out | romance | manual | wired | asked_person_out.onComplete |
-| assembled_flatpack | possessions | probabilistic+manual | texture | — |
-| ate_at_restaurant | food | probabilistic+manual | texture | — |
-| ate_questionable_leftover | food | probabilistic+manual | texture | — |
-| attended_funeral | death | manual | reserved | — |
-| attended_party | social | probabilistic+manual | texture | — |
-| attended_town_fair | community | probabilistic+manual | texture | — |
-| attended_town_meeting | community | probabilistic+manual | texture | — |
-| bailed_out_friend | legal | manual | reserved | — |
-| baked_bread | food | probabilistic+manual | texture | — |
-| baked_cookies_for_neighbors | food | manual | reserved | — |
-| barely_renewed_license | aging | manual | reserved | — |
-| basked_in_perfect_day | weather-reaction | probabilistic | texture | — |
-| beat_heat_with_ice_cream | weather-reaction | probabilistic+manual | texture | — |
-| beat_high_score | achievement | probabilistic+manual | texture | — |
-| beat_long_illness | health | probabilistic | texture | — |
-| became_aunt_or_uncle | family | manual | reserved | — |
-| became_close_friends | social | manual | vital | — |
-| became_estranged | family | probabilistic | texture | — |
-| became_grandparent | milestone | manual | reserved | — |
-| became_great_grandparent | milestone | manual | reserved | — |
-| became_homeless | housing | manual | wired | City.displaceHousehold (eviction, task 076) |
-| became_local_legend | community | probabilistic | texture | — |
-| became_neighborhood_elder | aging | manual | reserved | — |
-| became_parent | family | manual | wired | City.handleTick (birth, task 076) |
-| became_pen_pals | social | probabilistic | texture | — |
-| became_pregnant | family | manual | reserved | — |
-| became_widowed | death | manual | wired | City.handleTick (death → surviving spouse, task 076) |
-| began_afternoon_naps | aging | probabilistic | texture | — |
-| believed_town_legend | childhood | probabilistic | texture | — |
-| bird_ruined_clean_car | possessions | probabilistic | texture | — |
-| bitten_by_dog | accident | probabilistic+manual | texture | — |
-| blanked_on_test | education | probabilistic | texture | — |
-| blew_savings | finance | probabilistic+manual | texture | — |
-| borrowed_cup_of_sugar | community | probabilistic+manual | texture | — |
-| botched_big_project | career | probabilistic+manual | texture | — |
-| bought_first_car | milestone | probabilistic+manual | texture | — |
-| bought_first_home | housing | probabilistic+manual | texture | — |
-| bought_new_car | possessions | manual | reserved | — |
-| bought_new_couch | possessions | probabilistic+manual | texture | — |
-| bought_new_shoes | possessions | probabilistic+manual | texture | — |
-| bought_new_tv | possessions | manual | reserved | — |
-| bought_umbrella | possessions | manual | reserved | — |
-| bowled_perfect_game | achievement | probabilistic+manual | texture | — |
-| broke_arm | accident | probabilistic+manual | texture | — |
-| broke_china | possessions | probabilistic | texture | — |
-| broke_fever | health | manual | reserved | — |
-| broke_leg | accident | probabilistic+manual | texture | — |
-| broke_resolution | emotion-mood | probabilistic | texture | — |
-| broke_sweets_fast | food | probabilistic | texture | — |
-| broke_town_record | achievement | probabilistic | texture | — |
-| broke_up | romance | probabilistic+manual | texture | — |
-| built_birdhouse | hobby | probabilistic+manual | texture | — |
-| built_blanket_fort | childhood | probabilistic+manual | texture | — |
-| built_doghouse | pet | manual | reserved | — |
-| built_snowman | weather-reaction | probabilistic+manual | texture | — |
-| buried_pet_in_yard | pet | manual | reserved | — |
-| buried_the_hatchet | social | probabilistic+manual | texture | — |
-| burned_dinner | food | probabilistic+manual | texture | — |
-| burned_hand_on_stove | accident | probabilistic+manual | texture | — |
-| burned_out | career | probabilistic+manual | texture | — |
-| business_turned_profit | achievement | manual | reserved | — |
-| business_went_under | achievement | manual | reserved | — |
-| called_as_witness | legal | manual | reserved | — |
-| called_exterminator | housing | probabilistic+manual | texture | — |
-| called_in_sick | career | manual | wired | resting_at_home_sick.onStart |
-| came_home_from_vacation | travel | manual | reserved | — |
-| came_out_of_retirement | career | probabilistic | texture | — |
-| canceled_trip | travel | probabilistic+manual | texture | — |
-| car_broke_down | possessions | probabilistic+manual | texture | — |
-| car_was_keyed | crime-mischief | probabilistic+manual | texture | — |
-| cast_first_vote | milestone | manual | reserved | — |
-| cat_brought_gift | pet | probabilistic | texture | — |
-| caught_cheating_on_test | education | probabilistic+manual | texture | — |
-| caught_cold | health | probabilistic+manual | texture | — |
-| caught_fireflies | childhood | probabilistic+manual | texture | — |
-| caught_flu | health | probabilistic+manual | texture | — |
-| caught_huge_fish | hobby | probabilistic+manual | texture | — |
-| caught_in_rain | weather-reaction | probabilistic+manual | texture | — |
-| caught_shoplifting | crime-mischief | probabilistic+manual | texture | — |
-| caught_sneaking_out | crime-mischief | probabilistic+manual | texture | — |
-| caught_up_over_coffee | social | probabilistic+manual | texture | — |
-| celebrated_90th | aging | manual | reserved | — |
-| celebrated_birthday | milestone | manual | reserved | — |
-| celebrated_childs_birthday | family | manual | reserved | — |
-| celebrated_golden_anniversary | milestone | manual | reserved | — |
-| celebrated_silver_anniversary | milestone | manual | reserved | — |
-| celebrated_work_anniversary | career | manual | reserved | — |
-| changed_legal_name | legal | probabilistic | texture | — |
-| changed_locks | housing | probabilistic+manual | texture | — |
-| chase_concluded | crime | manual | vital | fleeing_the_police.onComplete |
-| chased_runaway_hat | weather-reaction | probabilistic+manual | texture | — |
-| checked_bucket_list_item | milestone | probabilistic+manual | texture | — |
-| choked_on_food | accident | probabilistic+manual | texture | — |
-| citizen_of_the_year | achievement | manual | reserved | — |
-| cleaned_out_attic | housing | probabilistic+manual | texture | — |
-| cleaned_up_park | community | probabilistic+manual | texture | — |
-| cleared_arrears | finance | manual | reserved | — |
-| cleared_of_charges | legal | manual | reserved | — |
-| climbed_tree | childhood | probabilistic+manual | texture | — |
-| collected_souvenir | travel | probabilistic+manual | texture | — |
-| committed_pickpocketing | crime | manual | vital | pickpocketed_someone.onComplete |
-| committed_shoplifting | crime | manual | vital | pocketed_merchandise.onComplete |
-| complained_about_heat | weather-reaction | probabilistic+manual | texture | — |
-| complained_about_knees | aging | probabilistic | texture | — |
-| completed_puzzle | hobby | probabilistic+manual | texture | — |
-| completed_school_day | education | manual+automated | wired | attend_school.onComplete, automated schedule |
-| contested_ticket | legal | probabilistic+manual | texture | — |
-| cooked_meal | food | probabilistic+manual | texture | — |
-| counted_blessings | emotion-mood | probabilistic | texture | — |
-| cracked_phone_screen | possessions | probabilistic+manual | texture | — |
-| crashed_car | accident | probabilistic+manual | texture | — |
-| cried_at_sad_song | emotion-mood | probabilistic | texture | — |
-| cut_finger_cooking | accident | probabilistic+manual | texture | — |
-| danced_in_rain | weather-reaction | probabilistic | texture | — |
-| daydreamed_afternoon | emotion-mood | probabilistic | texture | — |
-| death | lifecycle | probabilistic | vital | — |
-| decluttered_house | possessions | probabilistic+manual | wired | cleaning_house.onComplete |
-| defaulted_on_loan | finance | manual | reserved | — |
-| delivered_eulogy | death | manual | reserved | — |
-| depressive_episode | health | probabilistic+manual | vital | — |
-| developed_crush | romance | probabilistic+manual | texture | — |
-| developed_hearing_loss | aging | probabilistic | texture | — |
-| developed_insomnia | health | probabilistic+manual | texture | — |
-| diagnosed_chronic_illness | health | probabilistic | texture | — |
-| did_community_service | crime-mischief | manual | reserved | — |
-| died_in_accident | death | manual | reserved | — |
-| died_in_sleep | death | probabilistic | texture | — |
-| discovered_favorite_cafe | food | probabilistic+manual | texture | — |
-| disputed_inheritance | legal | probabilistic | texture | — |
-| divorce | relationship | probabilistic | vital | — |
-| dog_ate_homework | pet | probabilistic+manual | texture | — |
-| dog_walked_them | pet | probabilistic | texture | — |
-| donated_blood | health | probabilistic+manual | texture | — |
-| donated_to_charity | community | probabilistic+manual | texture | — |
-| downshifted_part_time | aging | probabilistic+manual | texture | — |
-| downsized_home | housing | probabilistic | texture | — |
-| drifted_apart | social | probabilistic+manual | texture | — |
-| dropped_out | education | probabilistic+manual | texture | — |
-| dropped_phone_in_toilet | accident | probabilistic | texture | — |
-| earned_black_belt | achievement | probabilistic+manual | texture | — |
-| earned_certificate | education | probabilistic+manual | texture | — |
-| earned_first_paycheck | milestone | manual | reserved | — |
-| earned_later_bedtime | childhood | probabilistic | texture | — |
-| egged_house | crime-mischief | probabilistic+manual | texture | — |
-| eloped | romance | probabilistic+manual | texture | — |
-| embarrassed_at_party | social | probabilistic+manual | texture | — |
-| embraced_bald_look | aging | probabilistic | texture | — |
-| employee_of_the_month | career | manual | reserved | — |
-| ended_affair | romance | probabilistic+manual | texture | — |
-| enrolled_child_in_school | family | manual | reserved | — |
-| enrolled_in_trade_school | education | probabilistic+manual | texture | — |
-| entered_pet_show | pet | probabilistic+manual | texture | — |
-| escaped_a_fire | health | manual | wired | evacuating.onComplete |
-| evaded_the_police | crime | manual | reserved | — |
-| excluded_from_group | social | probabilistic | texture | — |
-| failed_driving_test | milestone | probabilistic+manual | texture | — |
-| failed_exam | education | probabilistic+manual | texture | — |
-| fainted | health | probabilistic+manual | texture | — |
-| favorite_teacher_retired | education | manual | reserved | — |
-| fed_neighborhood_cats | community | probabilistic+manual | texture | — |
-| fell_asleep_with_cat | pet | probabilistic+manual | texture | — |
-| fell_down_stairs | accident | probabilistic+manual | texture | — |
-| fell_for_prank | crime-mischief | probabilistic+manual | texture | — |
-| fell_ill | health | probabilistic+manual | vital | — |
-| fell_in_love | romance | probabilistic+manual | texture | — |
-| fell_into_arrears | finance | manual | reserved | — |
-| fell_off_bike | childhood | probabilistic+manual | texture | — |
-| fell_off_ladder | accident | probabilistic+manual | texture | — |
-| fell_out_of_love | romance | probabilistic | texture | — |
-| fell_seriously_ill | health | probabilistic+manual | vital | — |
-| felt_homesick | emotion-mood | probabilistic+manual | texture | — |
-| felt_jealous_of_friend | emotion-mood | probabilistic | texture | — |
-| felt_lonely | emotion-mood | probabilistic+manual | texture | — |
-| felt_on_top_of_world | emotion-mood | manual | reserved | — |
-| felt_overwhelmed | emotion-mood | probabilistic+manual | texture | — |
-| filed_noise_complaint | legal | probabilistic+manual | texture | — |
-| fined_by_city | legal | probabilistic+manual | texture | — |
-| finished_apprenticeship | education | probabilistic+manual | texture | — |
-| finished_first_5k | achievement | probabilistic+manual | texture | — |
-| finished_great_book | hobby | probabilistic+manual | wired | read_book.onComplete |
-| finished_painting | hobby | probabilistic+manual | texture | — |
-| finished_shift | career | manual | reserved | — |
-| finished_todo_list | achievement | probabilistic | texture | — |
-| finished_writing_novel | hobby | probabilistic+manual | texture | — |
-| first_day_of_school | education | manual | reserved | — |
-| fish_got_away | hobby | probabilistic+manual | texture | — |
-| fixed_leaky_faucet | housing | probabilistic+manual | texture | — |
-| fixed_the_unfixable | achievement | probabilistic | texture | — |
-| fixed_tv_with_whack | possessions | probabilistic | texture | — |
-| flatpack_defeated_them | possessions | probabilistic+manual | texture | — |
-| flew_kite | hobby | probabilistic+manual | texture | — |
-| folded_side_hustle | career | probabilistic+manual | texture | — |
-| forgot_shopping_list | food | probabilistic | texture | — |
-| forgot_to_pack_socks | travel | probabilistic | texture | — |
-| forgot_where_keys_were | aging | probabilistic | texture | — |
-| found_first_gray_hair | aging | probabilistic | texture | — |
-| found_hair_in_soup | food | probabilistic+manual | texture | — |
-| found_keys_in_fridge | possessions | probabilistic | texture | — |
-| found_lost_pet | pet | probabilistic | texture | — |
-| found_mold | housing | probabilistic+manual | texture | — |
-| found_money_on_street | finance | probabilistic+manual | wired | found_coin.onComplete |
-| found_shortcut | travel | probabilistic+manual | texture | — |
-| founded_business | career | manual | vital | — |
-| framed_first_dollar | achievement | manual | reserved | — |
-| fridge_went_empty | food | manual | reserved | — |
-| gained_weight | health | probabilistic+manual | texture | — |
-| gave_away_kittens | pet | manual | reserved | — |
-| gave_birth | lifecycle | manual+automated | vital | City.handleTick (birth, task 076) |
-| gave_directions | community | probabilistic+manual | texture | — |
-| gave_gift | social | manual | wired | gave_object_to_person.onComplete |
-| gave_up_driving | aging | probabilistic | texture | — |
-| gave_up_hobby | hobby | probabilistic | texture | — |
-| gave_up_sweets | food | probabilistic | texture | — |
-| gave_valedictorian_speech | education | manual | reserved | — |
-| get_job | career | probabilistic+manual | vital | applied_for_a_job.onComplete |
-| got_a_ride | social | manual | reserved | — |
-| got_away_with_it | crime | manual | reserved | — |
-| got_back_on_feet | housing | manual | wired | City.runRecovery (homeless recovery, task 076) |
-| got_back_together | romance | probabilistic+manual | texture | — |
-| got_blister_hiking | travel | probabilistic+manual | texture | — |
-| got_braces | childhood | probabilistic | texture | — |
-| got_braces_off | childhood | manual | reserved | — |
-| got_car_repaired | possessions | manual | reserved | — |
-| got_caught | crime | manual | vital | — |
-| got_clean_bill_of_health | health | manual | reserved | — |
-| got_concussion | accident | probabilistic+manual | texture | — |
-| got_demoted | career | probabilistic+manual | texture | — |
-| got_dental_filling | health | probabilistic+manual | texture | — |
-| got_detention | education | probabilistic+manual | texture | — |
-| got_divorced | romance | probabilistic+manual | texture | — |
-| got_drivers_license | milestone | probabilistic+manual | texture | — |
-| got_engaged | romance | manual | wired | proposed_marriage.onComplete, proposed_marriage.onCompleteTarget |
-| got_food_poisoning | health | probabilistic+manual | texture | — |
-| got_hearing_aids | aging | probabilistic+manual | texture | — |
-| got_hip_replacement | aging | probabilistic+manual | texture | — |
-| got_homesick | childhood | probabilistic+manual | texture | — |
-| got_job | career | manual | reserved | — |
-| got_lost_in_town | travel | probabilistic | texture | — |
-| got_married | romance | probabilistic+manual | texture | — |
-| got_migraine | health | probabilistic+manual | texture | — |
-| got_new_boss | career | manual | reserved | — |
-| got_new_neighbors | housing | manual | reserved | — |
-| got_nickname | social | probabilistic | texture | — |
-| got_paid | finance | manual | reserved | — |
-| got_paper_cut | accident | probabilistic+manual | texture | — |
-| got_parking_ticket | legal | probabilistic+manual | texture | — |
-| got_permit_approved | legal | manual | reserved | — |
-| got_pickpocketed | crime | manual | wired | pickpocketed_someone.onCompleteTarget |
-| got_promoted | career | manual | vital | SkillProgression promotion evaluation (task 065) |
-| got_raise | career | probabilistic+manual | texture | — |
-| got_scholarship | education | probabilistic+manual | texture | — |
-| got_something_in_eye | accident | probabilistic | texture | — |
-| got_speeding_ticket | legal | probabilistic+manual | texture | — |
-| got_stage_fright | emotion-mood | probabilistic+manual | texture | — |
-| got_standing_ovation | achievement | manual | reserved | — |
-| got_stood_up | social | probabilistic+manual | texture | — |
-| got_story_published | hobby | probabilistic+manual | texture | — |
-| got_stuck_in_tree | childhood | probabilistic+manual | texture | — |
-| got_sunburned | weather-reaction | probabilistic+manual | texture | — |
-| got_tax_refund | finance | manual | reserved | — |
-| got_vaccinated | health | probabilistic+manual | texture | — |
-| got_watch_repaired | possessions | manual | reserved | — |
-| graduated_nursing_school | education | probabilistic+manual | texture | — |
-| graduated_school | education | probabilistic+manual | wired | City.runSchoolSweeps (age-out, task 058) |
-| grew_own_vegetables | food | probabilistic+manual | texture | — |
-| grew_prize_tomato | hobby | probabilistic+manual | texture | — |
-| grounded_child | family | probabilistic+manual | texture | — |
-| had_affair | romance | probabilistic | texture | — |
-| had_allergic_reaction | health | probabilistic+manual | texture | — |
-| had_breakfast_for_dinner | food | probabilistic | texture | — |
-| had_candlelit_dinner | romance | probabilistic+manual | texture | — |
-| had_car_trouble_on_trip | travel | probabilistic+manual | texture | — |
-| had_date_night | romance | probabilistic+manual | texture | — |
-| had_falling_out | social | probabilistic+manual | texture | — |
-| had_family_game_night | family | probabilistic+manual | texture | — |
-| had_fender_bender | accident | probabilistic+manual | texture | — |
-| had_first_crush | childhood | probabilistic+manual | texture | — |
-| had_first_day_at_work | career | manual | reserved | — |
-| had_first_kiss | romance | probabilistic+manual | texture | — |
-| had_first_sleepover | childhood | probabilistic+manual | texture | — |
-| had_good_cry | emotion-mood | probabilistic | texture | — |
-| had_great_day | emotion-mood | probabilistic+manual | texture | — |
-| had_growth_spurt | childhood | probabilistic+manual | texture | — |
-| had_health_scare | death | probabilistic+manual | texture | — |
-| had_heart_to_heart | social | probabilistic+manual | texture | — |
-| had_housewarming | housing | probabilistic+manual | texture | — |
-| had_imaginary_friend | childhood | probabilistic | texture | — |
-| had_midlife_crisis | milestone | probabilistic+manual | texture | — |
-| had_miscarriage | family | probabilistic+manual | vital | — |
-| had_near_death_experience | death | probabilistic+manual | texture | — |
-| had_neighbor_dispute | community | probabilistic | texture | — |
-| had_nightmare | emotion-mood | probabilistic+manual | texture | — |
-| had_panic_attack | health | probabilistic+manual | texture | — |
-| had_pest_infestation | housing | probabilistic+manual | texture | — |
-| had_road_trip_singalong | travel | manual | reserved | — |
-| had_routine_checkup | health | probabilistic+manual | texture | — |
-| had_sex | relationship | probabilistic+manual | texture | — |
-| had_staycation | travel | probabilistic | texture | — |
-| had_surgery | health | probabilistic+manual | texture | — |
-| had_terrible_day | emotion-mood | probabilistic+manual | texture | — |
-| had_the_talk | family | probabilistic | texture | — |
-| had_toothache | health | probabilistic+manual | texture | — |
-| had_wedding_anniversary | romance | manual | reserved | — |
-| had_wonderful_dream | emotion-mood | probabilistic+manual | texture | — |
-| had_workplace_near_miss | accident | probabilistic+manual | texture | — |
-| haggled_great_deal | finance | probabilistic+manual | texture | — |
-| heard_gossip | social | manual | wired | shared_gossip.onCompleteTarget |
-| held_back_a_year | education | probabilistic | texture | — |
-| held_breath_longest | achievement | probabilistic+manual | texture | — |
-| held_yard_sale | possessions | probabilistic+manual | texture | — |
-| helped_by_stranger | community | probabilistic | texture | — |
-| helped_stranger | community | probabilistic | texture | — |
-| helped_with_homework | family | probabilistic+manual | texture | — |
-| hiked_ridge_trail | travel | probabilistic+manual | texture | — |
-| hired_first_employee | achievement | manual | reserved | — |
-| hit_by_cyclist | accident | probabilistic+manual | texture | — |
-| hoarded_everything | possessions | probabilistic | texture | — |
-| homesick_while_away | travel | probabilistic | texture | — |
-| hosted_barbecue | food | probabilistic+manual | texture | — |
-| hosted_dinner_party | social | probabilistic+manual | wired | hosting_gathering.onComplete |
-| hosted_family_reunion | family | probabilistic+manual | texture | — |
-| house_was_egged | crime-mischief | probabilistic+manual | texture | — |
-| inherited_china | possessions | manual | reserved | — |
-| inherited_estate | death | manual | reserved | — |
-| inherited_heirloom | family | manual | reserved | — |
-| injured_at_work | career | probabilistic+manual | texture | — |
-| injury | health | probabilistic+manual | vital | — |
-| investment_paid_off | finance | probabilistic+manual | texture | — |
-| investment_went_bust | finance | probabilistic+manual | texture | — |
-| jaywalked | crime-mischief | probabilistic+manual | texture | — |
-| joined_book_club | hobby | probabilistic+manual | texture | — |
-| joined_choir | community | probabilistic | texture | — |
-| joined_debate_club | education | probabilistic | texture | — |
-| joined_friend_group | social | probabilistic | texture | — |
-| joined_neighborhood_watch | community | probabilistic | texture | — |
-| joined_seniors_club | aging | probabilistic | texture | — |
-| judged_baking_contest | community | probabilistic+manual | texture | — |
-| jumped_in_leaf_pile | weather-reaction | probabilistic | texture | — |
-| jumped_in_puddles | weather-reaction | probabilistic+manual | texture | — |
-| kept_resolution | emotion-mood | manual | reserved | — |
-| kept_secret | social | probabilistic | texture | — |
-| keyed_car | crime-mischief | probabilistic+manual | texture | — |
-| knitted_sweater | hobby | probabilistic+manual | texture | — |
-| late_for_work | career | probabilistic+manual | texture | — |
-| laughed_until_it_hurt | emotion-mood | probabilistic+manual | texture | — |
-| lawnmower_never_returned | community | probabilistic | texture | — |
-| layoff | career | probabilistic | vital | — |
-| learned_chopsticks | food | probabilistic | texture | — |
-| learned_instrument | hobby | probabilistic+manual | texture | — |
-| learned_language | achievement | probabilistic | texture | — |
-| learned_magic_tricks | hobby | probabilistic | texture | — |
-| learned_new_skill | education | probabilistic+manual | wired | taught_person_something.onCompleteTarget |
-| learned_to_read | education | probabilistic+manual | texture | — |
-| learned_to_ride_bike | childhood | probabilistic+manual | texture | — |
-| learned_to_swim | milestone | probabilistic+manual | texture | — |
-| learned_to_tie_shoes | childhood | probabilistic | texture | — |
-| learned_to_whistle | childhood | probabilistic | texture | — |
-| learned_to_write | education | manual | reserved | — |
-| left_big_tip | food | probabilistic+manual | texture | — |
-| left_home_first_time | milestone | manual | wired | City.resolveMoveOut (move-out, task 076) |
-| left_umbrella_at_cafe | possessions | probabilistic | texture | — |
-| lent_lawnmower | community | probabilistic+manual | texture | — |
-| lent_money_to_friend | finance | probabilistic+manual | texture | — |
-| let_lawn_go_wild | housing | probabilistic | texture | — |
-| let_slip_secret | social | probabilistic | texture | — |
-| lifted_spirits | health | probabilistic+manual | vital | — |
-| lit_candles_in_outage | weather-reaction | manual | reserved | — |
-| locked_out_of_house | housing | probabilistic+manual | texture | — |
-| lost_argument | social | manual | reserved | — |
-| lost_balloon | childhood | probabilistic+manual | texture | — |
-| lost_chess_match | hobby | probabilistic+manual | texture | — |
-| lost_child | death | manual | wired | City.handleTick (death → parents, task 076) |
-| lost_close_friend | death | manual | reserved | — |
-| lost_election | community | manual | reserved | — |
-| lost_first_tooth | childhood | probabilistic+manual | texture | — |
-| lost_home_to_fire | housing | manual | reserved | — |
-| lost_home_to_foreclosure | housing | manual | reserved | — |
-| lost_house_keys | housing | probabilistic+manual | texture | — |
-| lost_keys | possessions | probabilistic | texture | — |
-| lost_lucky_charm | possessions | probabilistic | texture | — |
-| lost_parent | death | manual | wired | City.handleTick (death → children, task 076) |
-| lost_phone | possessions | probabilistic | texture | — |
-| lost_power_in_storm | weather-reaction | manual | reserved | — |
-| lost_small_claims | legal | probabilistic+manual | texture | — |
-| lost_spouse | death | manual | reserved | — |
-| lost_wallet | finance | probabilistic+manual | texture | — |
-| lost_weight | health | probabilistic+manual | texture | — |
-| made_frenemy | social | probabilistic | texture | — |
-| made_friend | social | manual | vital | — |
-| made_honor_roll | education | manual | reserved | — |
-| made_it_official | romance | probabilistic+manual | texture | — |
-| made_new_friend | social | probabilistic+manual | texture | — |
-| made_peace_with_rival | death | probabilistic | texture | — |
-| made_recess_best_friend | childhood | probabilistic+manual | texture | — |
-| made_resolution | emotion-mood | manual | reserved | — |
-| made_risky_investment | finance | probabilistic+manual | texture | — |
-| made_work_friend | career | probabilistic+manual | texture | — |
-| marriage | relationship | probabilistic+manual | vital | — |
-| mentored_young_neighbor | aging | probabilistic | texture | — |
-| met_charming_stranger | romance | probabilistic+manual | texture | — |
-| met_new_in_law | family | manual | reserved | — |
-| missed_paycheck | finance | manual | reserved | — |
-| missed_ride_home | travel | manual | reserved | — |
-| mourned_loss_anniversary | death | manual | reserved | — |
-| moved_in_with_partner | romance | manual | reserved | — |
-| moved_into_new_home | housing | manual | reserved | — |
-| moved_out_of_parents | housing | probabilistic+manual | vital | — |
-| mowed_lawn | housing | probabilistic+manual | texture | — |
-| nailed_presentation | career | probabilistic+manual | texture | — |
-| named_baby | family | manual | reserved | — |
-| named_in_will | death | manual | reserved | — |
-| named_pet | pet | manual | reserved | — |
-| near_miss_crossing | accident | probabilistic+manual | texture | — |
-| needed_reading_glasses | aging | probabilistic | texture | — |
-| never_paid_back | finance | probabilistic | texture | — |
-| notarized_document | legal | probabilistic+manual | texture | — |
-| nursing_school | education | probabilistic+manual | vital | — |
-| object_acquired | possessions | manual | wired | grab.onComplete |
-| object_consumed | possessions | manual | reserved | — |
-| object_given | possessions | manual | reserved | — |
-| object_lost | possessions | manual | wired | discard_object.onComplete |
-| object_received | possessions | manual | wired | lent_an_object.onCompleteTarget, returned_borrowed_object.onCompleteTarget, shared_food_with_person.onCompleteTarget |
-| offered_a_ride | social | manual | reserved | — |
-| opened_bank_account | finance | manual | reserved | — |
-| opened_own_business | achievement | probabilistic+manual | texture | — |
-| organized_food_drive | community | probabilistic | texture | — |
-| outgrew_imaginary_friend | childhood | probabilistic | texture | — |
-| outlived_prognosis | death | probabilistic | texture | — |
-| overcame_stage_fright | emotion-mood | manual | reserved | — |
-| overslept | emotion-mood | probabilistic+manual | texture | — |
-| packed_night_before | travel | probabilistic+manual | texture | — |
-| paid_bills | finance | manual | reserved | — |
-| paid_fine | crime-mischief | manual | reserved | — |
-| paid_off_loan | finance | manual | reserved | — |
-| paid_off_mortgage | achievement | manual | reserved | — |
-| parrot_embarrassed_them | pet | probabilistic | texture | — |
-| passed_away | death | probabilistic+manual | texture | — |
-| passed_down_recipe | aging | probabilistic+manual | texture | — |
-| passed_exam | education | probabilistic+manual | texture | — |
-| passed_note_in_class | childhood | probabilistic+manual | texture | — |
-| passed_over_for_promotion | career | manual | reserved | — |
-| perfect_attendance_award | achievement | manual | reserved | — |
-| perfected_grandmas_recipe | food | probabilistic | texture | — |
-| performed_open_mic | hobby | probabilistic+manual | texture | — |
-| permit_denied | legal | manual | reserved | — |
-| pet_came_back | pet | probabilistic | texture | — |
-| pet_destroyed_couch | pet | probabilistic | texture | — |
-| pet_failed_obedience | pet | probabilistic+manual | texture | — |
-| pet_got_sick | pet | probabilistic+manual | texture | — |
-| pet_had_litter | pet | probabilistic | texture | — |
-| pet_learned_trick | pet | probabilistic+manual | texture | — |
-| pet_passed_away | pet | manual | reserved | — |
-| pet_ran_away | pet | probabilistic+manual | texture | — |
-| pet_recovered | pet | manual | reserved | — |
-| pet_won_ribbon | pet | probabilistic+manual | texture | — |
-| photo_in_local_paper | community | manual | reserved | — |
-| picked_first_for_team | childhood | probabilistic+manual | texture | — |
-| picked_last_for_team | childhood | probabilistic+manual | texture | — |
-| pipe_burst | housing | probabilistic+manual | texture | — |
-| planned_dream_trip | travel | probabilistic | texture | — |
-| planned_own_funeral | death | probabilistic | texture | — |
-| planted_garden | housing | probabilistic+manual | wired | gardening.onComplete |
-| planted_town_tree | community | manual | reserved | — |
-| played_in_band | hobby | probabilistic+manual | texture | — |
-| power_came_back | weather-reaction | manual | reserved | — |
-| predicted_rain_with_knee | weather-reaction | probabilistic | texture | — |
-| pregnancy | lifecycle | probabilistic+manual | vital | — |
-| proposal_rejected | romance | manual | reserved | — |
-| pulled_all_nighter | education | probabilistic+manual | texture | — |
-| pulled_muscle | health | manual | reserved | — |
-| pulled_prank | crime-mischief | probabilistic+manual | texture | — |
-| put_up_lost_pet_posters | pet | manual | reserved | — |
-| questioned_by_police | crime-mischief | manual | reserved | — |
-| quit_job | career | probabilistic+manual | texture | — |
-| quit_smoking | health | probabilistic+manual | texture | — |
-| quoted_in_newspaper | achievement | probabilistic | texture | — |
-| rage_quit | career | probabilistic | texture | — |
-| rained_out_camping | travel | manual | reserved | — |
-| raked_leaves | weather-reaction | manual | reserved | — |
-| ran_for_council | community | probabilistic | texture | — |
-| ran_into_old_friend | social | probabilistic+manual | texture | — |
-| ran_lemonade_stand | childhood | probabilistic+manual | texture | — |
-| reached_retirement_age | milestone | manual | reserved | — |
-| read_bedtime_story | family | probabilistic+manual | texture | — |
-| received_a_hug | social | manual | wired | hugged_person.onCompleteTarget |
-| received_a_visitor | crime | manual | reserved | — |
-| received_gift | social | manual | wired | gave_object_to_person.onCompleteTarget |
-| received_inheritance | finance | manual | reserved | — |
-| received_love_letter | romance | probabilistic+manual | texture | — |
-| received_noise_complaint | legal | manual | reserved | — |
-| received_postcard | travel | manual | reserved | — |
-| received_surprise_visit | social | probabilistic+manual | texture | — |
-| received_terminal_diagnosis | death | probabilistic+manual | texture | — |
-| received_windfall | finance | probabilistic | texture | — |
-| recipe_became_favorite | food | manual | reserved | — |
-| recipe_disaster | food | manual | reserved | — |
-| reconciled_with_partner | romance | probabilistic+manual | texture | — |
-| reconciled_with_sibling | family | probabilistic+manual | texture | — |
-| reconnected_with_relative | family | probabilistic+manual | wired | visiting_relatives.onComplete |
-| recovered | health | probabilistic | vital | — |
-| recovered_from_burnout | career | probabilistic | texture | — |
-| recovered_from_illness | health | probabilistic+manual | texture | — |
-| recovered_from_injury | accident | probabilistic+manual | texture | — |
-| redecorated_living_room | housing | probabilistic+manual | texture | — |
-| reflected_on_life | aging | probabilistic | texture | — |
-| regifted_present | social | probabilistic | texture | — |
-| regretted_leftover | food | manual | reserved | — |
-| reinvented_themselves | milestone | probabilistic | texture | — |
-| relative_arrested | crime | manual | reserved | — |
-| released_from_jail | crime | manual | vital | — |
-| renewed_vows | romance | probabilistic | texture | — |
-| renovated_kitchen | housing | probabilistic+manual | texture | — |
-| reported_burglary | crime-mischief | manual | reserved | — |
-| reported_scam | legal | manual | reserved | — |
-| retired | career | probabilistic+manual | texture | — |
-| retirement | career | probabilistic | vital | — |
-| returned_garden_gnome | crime-mischief | probabilistic | texture | — |
-| roof_leaked | housing | probabilistic+manual | texture | — |
-| said_final_goodbyes | death | manual | reserved | — |
-| said_first_word | milestone | probabilistic+manual | texture | — |
-| saw_double_rainbow | weather-reaction | probabilistic | texture | — |
-| saw_first_snow | weather-reaction | manual | reserved | — |
-| saw_rainbow | weather-reaction | probabilistic+manual | texture | — |
-| scared_by_thunder | weather-reaction | probabilistic | texture | — |
-| scattered_ashes | death | manual | reserved | — |
-| school_day_started | education | manual | wired | attend_school.onStart |
-| scraped_knee | childhood | probabilistic+manual | texture | — |
-| sent_dish_back | food | probabilistic+manual | texture | — |
-| sent_postcard | travel | probabilistic+manual | texture | — |
-| served_jury_duty | legal | probabilistic+manual | texture | — |
-| set_off_smoke_alarm | accident | probabilistic+manual | texture | — |
-| set_personal_best | achievement | probabilistic+manual | texture | — |
-| settled_neighbor_dispute | community | probabilistic | texture | — |
-| settled_out_of_court | legal | probabilistic | texture | — |
-| shared_gossip | social | manual | wired | shared_gossip.onComplete |
-| shocked_by_outlet | accident | probabilistic+manual | texture | — |
-| shook_off_loneliness | emotion-mood | probabilistic | texture | — |
-| shoplifted_candy_bar | crime-mischief | probabilistic+manual | texture | — |
-| shoveled_driveway | weather-reaction | probabilistic+manual | texture | — |
-| shoveled_neighbors_walk | community | probabilistic+manual | texture | — |
-| sick_of_the_filth | texture-community | probabilistic | texture | — |
-| signed_contract | legal | manual | reserved | — |
-| skipped_breakfast | food | probabilistic+manual | texture | — |
-| skipped_class | education | probabilistic+manual | texture | — |
-| skipped_grade | education | probabilistic | texture | — |
-| skipped_town_weekend | travel | probabilistic | texture | — |
-| slept_in | emotion-mood | probabilistic+manual | texture | — |
-| slept_through_night_again | health | probabilistic | texture | — |
-| slipped_on_ice | accident | probabilistic+manual | texture | — |
-| smelled_spring_blossoms | weather-reaction | manual | reserved | — |
-| snapped_at_someone | emotion-mood | probabilistic+manual | texture | — |
-| snuck_out_at_night | crime-mischief | probabilistic+manual | texture | — |
-| sold_home | housing | manual | reserved | — |
-| solved_crossword_in_ink | achievement | probabilistic | texture | — |
-| spilled_coffee_on_shirt | food | probabilistic+manual | texture | — |
-| splurged_on_treat | finance | probabilistic+manual | texture | — |
-| spoiled_grandkids | aging | probabilistic+manual | texture | — |
-| spoke_at_town_meeting | community | probabilistic | texture | — |
-| spotted_rare_bird | hobby | probabilistic+manual | texture | — |
-| sprained_ankle | health | probabilistic+manual | texture | — |
-| sprained_wrist | accident | probabilistic+manual | texture | — |
-| spread_rumor | social | manual | reserved | — |
-| started_balding | aging | probabilistic | texture | — |
-| started_dating | romance | probabilistic+manual | texture | — |
-| started_family_tradition | family | probabilistic | texture | — |
-| started_fitness_routine | health | probabilistic+manual | texture | — |
-| started_food_fight | crime-mischief | probabilistic+manual | texture | — |
-| started_journaling | emotion-mood | probabilistic | texture | — |
-| started_kitchen_fire | accident | probabilistic+manual | texture | — |
-| started_new_job | career | manual | reserved | — |
-| started_repeating_stories | aging | probabilistic | texture | — |
-| started_savings_jar | finance | probabilistic | texture | — |
-| started_school | education | manual | wired | City.runSchoolSweeps (enrollment, task 058) |
-| started_scrapbook | hobby | probabilistic | texture | — |
-| started_side_hustle | career | probabilistic+manual | texture | — |
-| started_stamp_collection | hobby | probabilistic | texture | — |
-| started_using_cane | aging | probabilistic | texture | — |
-| started_wearing_glasses | health | probabilistic+manual | texture | — |
-| started_working | career | manual | wired | attending_customers.onStart, working_the_register.onStart, doing_paperwork.onStart, doing_rounds.onStart, working_the_kitchen.onStart, doing_manual_labor.onStart, teaching_class.onStart, fixing_equipment.onStart, keeping_watch.onStart, cleaning_premises.onStart, driving_route.onStart, treating_patients.onStart, styling_clients.onStart, coaching_session.onStart, drafting_designs.onStart, screening_film.onStart, balancing_the_till.onStart, prepping_ingredients.onStart, restocking_shelves.onStart, reviewing_charts.onStart, grading_papers.onStart, patrolling_the_floor.onStart, mixing_batter.onStart, servicing_a_vehicle.onStart, drawing_blueprints.onStart, leading_a_workout.onStart, checking_in_guests.onStart, projecting_the_matinee.onStart, sorting_deliveries.onStart, updating_ledgers.onStart, sterilizing_equipment.onStart, shelving_returns.onStart, wiping_down_tables.onStart, pruning_displays.onStart, counting_inventory.onStart, supervising_the_team.onStart, patrolling.onStart, chasing_a_suspect.onStart, collection_rounds.onStart, rushing_to_the_fire.onStart, responding_to_fire.onStart, responding_to_incident.onStart |
-| started_writing_novel | hobby | probabilistic | texture | — |
-| stole_garden_gnome | crime-mischief | probabilistic | texture | — |
-| stopped_working | career | manual+automated | wired | attending_customers.onComplete, attending_customers.onInterrupt, working_the_register.onComplete, working_the_register.onInterrupt, doing_paperwork.onComplete, doing_paperwork.onInterrupt, doing_rounds.onComplete, doing_rounds.onInterrupt, working_the_kitchen.onComplete, working_the_kitchen.onInterrupt, doing_manual_labor.onComplete, doing_manual_labor.onInterrupt, teaching_class.onComplete, teaching_class.onInterrupt, fixing_equipment.onComplete, fixing_equipment.onInterrupt, keeping_watch.onComplete, keeping_watch.onInterrupt, cleaning_premises.onComplete, cleaning_premises.onInterrupt, driving_route.onComplete, driving_route.onInterrupt, treating_patients.onComplete, treating_patients.onInterrupt, styling_clients.onComplete, styling_clients.onInterrupt, coaching_session.onComplete, coaching_session.onInterrupt, drafting_designs.onComplete, drafting_designs.onInterrupt, screening_film.onComplete, screening_film.onInterrupt, balancing_the_till.onComplete, balancing_the_till.onInterrupt, prepping_ingredients.onComplete, prepping_ingredients.onInterrupt, restocking_shelves.onComplete, restocking_shelves.onInterrupt, reviewing_charts.onComplete, reviewing_charts.onInterrupt, grading_papers.onComplete, grading_papers.onInterrupt, patrolling_the_floor.onComplete, patrolling_the_floor.onInterrupt, mixing_batter.onComplete, mixing_batter.onInterrupt, servicing_a_vehicle.onComplete, servicing_a_vehicle.onInterrupt, drawing_blueprints.onComplete, drawing_blueprints.onInterrupt, leading_a_workout.onComplete, leading_a_workout.onInterrupt, checking_in_guests.onComplete, checking_in_guests.onInterrupt, projecting_the_matinee.onComplete, projecting_the_matinee.onInterrupt, sorting_deliveries.onComplete, sorting_deliveries.onInterrupt, updating_ledgers.onComplete, updating_ledgers.onInterrupt, sterilizing_equipment.onComplete, sterilizing_equipment.onInterrupt, shelving_returns.onComplete, shelving_returns.onInterrupt, wiping_down_tables.onComplete, wiping_down_tables.onInterrupt, pruning_displays.onComplete, pruning_displays.onInterrupt, counting_inventory.onComplete, counting_inventory.onInterrupt, supervising_the_team.onComplete, supervising_the_team.onInterrupt, patrolling.onComplete, patrolling.onInterrupt, chasing_a_suspect.onComplete, chasing_a_suspect.onInterrupt, collection_rounds.onComplete, collection_rounds.onInterrupt, rushing_to_the_fire.onComplete, rushing_to_the_fire.onInterrupt, responding_to_fire.onComplete, responding_to_fire.onInterrupt, responding_to_incident.onComplete, responding_to_incident.onInterrupt, automated schedule |
-| stubbed_toe | accident | probabilistic+manual | texture | — |
-| stung_by_bee | accident | probabilistic+manual | texture | — |
-| sued_business | legal | probabilistic | texture | — |
-| sued_by_neighbor | legal | probabilistic+manual | texture | — |
-| survived_heart_attack | death | probabilistic+manual | texture | — |
-| swam_in_lake | travel | probabilistic+manual | texture | — |
-| switched_careers | career | probabilistic+manual | texture | — |
-| taken_in_by_relatives | family | manual | wired | City.displaceHousehold (eviction rehousing, task 076) |
-| taught_child_to_ride_bike | family | probabilistic+manual | texture | — |
-| taught_grandchild_to_fish | aging | probabilistic+manual | texture | — |
-| taught_parrot_word | pet | probabilistic+manual | texture | — |
-| ten_years_in_town | milestone | manual | reserved | — |
-| threw_out_back | health | probabilistic+manual | texture | — |
-| threw_party | social | probabilistic+manual | texture | — |
-| tightened_the_belt | finance | probabilistic+manual | texture | — |
-| took_day_trip | travel | probabilistic+manual | texture | — |
-| took_evening_course | education | probabilistic+manual | texture | — |
-| took_first_steps | milestone | probabilistic+manual | texture | — |
-| took_in_aging_parent | family | manual | reserved | — |
-| took_in_roommate | housing | probabilistic+manual | texture | — |
-| took_mental_health_day | emotion-mood | probabilistic | texture | — |
-| took_out_loan | finance | probabilistic+manual | texture | — |
-| took_pet_to_vet | pet | probabilistic+manual | texture | — |
-| took_pottery_class | hobby | probabilistic+manual | texture | — |
-| took_sabbatical | career | probabilistic | texture | — |
-| took_scenic_route | travel | manual | reserved | — |
-| took_up_early_dinners | aging | probabilistic | texture | — |
-| took_up_painting | hobby | probabilistic+manual | texture | — |
-| took_up_photography | hobby | probabilistic | texture | — |
-| took_up_smoking | health | probabilistic | texture | — |
-| took_up_woodworking | hobby | probabilistic | texture | — |
-| tped_neighbors_tree | crime-mischief | probabilistic+manual | texture | — |
-| trade_school | education | probabilistic+manual | vital | — |
-| trained_new_coworker | career | probabilistic+manual | texture | — |
-| treated_a_patient | health | manual | wired | treating_patient.onComplete |
-| trespassed_empty_lot | crime-mischief | probabilistic | texture | — |
-| tried_exotic_food | food | probabilistic+manual | texture | — |
-| tried_new_recipe | food | probabilistic+manual | wired | cooking_meal.onComplete |
-| tripped_over_pet | accident | probabilistic+manual | texture | — |
-| turned_100 | milestone | manual | reserved | — |
-| turned_18 | milestone | manual | reserved | — |
-| turned_30 | milestone | manual | reserved | — |
-| turned_50 | milestone | manual | reserved | — |
-| turned_down_job_offer | career | probabilistic+manual | texture | — |
-| turned_themselves_in | crime-mischief | probabilistic | texture | — |
-| tv_broke_down | possessions | probabilistic | texture | — |
-| twisted_knee | accident | probabilistic | texture | — |
-| umbrella_flipped | weather-reaction | probabilistic+manual | texture | — |
-| updated_insurance | legal | probabilistic+manual | texture | — |
-| updated_will | death | probabilistic+manual | texture | — |
-| upgraded_phone | possessions | probabilistic+manual | texture | — |
-| utterly_exhausted | health | probabilistic | texture | — |
-| vandalized_fence | crime-mischief | probabilistic | texture | — |
-| visited_by_tooth_fairy | childhood | manual | reserved | — |
-| visited_grave | death | probabilistic+manual | texture | — |
-| visited_next_town | travel | probabilistic | texture | — |
-| visited_person_in_jail | crime | manual | wired | visiting_the_detained.onComplete |
-| visited_sick_relative | health | manual | wired | visiting_the_sick.onComplete |
-| volunteered_at_shelter | community | probabilistic+manual | texture | — |
-| voted_in_election | community | manual | reserved | — |
-| vowed_to_travel_more | travel | probabilistic | texture | — |
-| walked_child_down_aisle | family | manual | reserved | — |
-| walked_dog | pet | probabilistic+manual | texture | — |
-| walked_into_glass_door | accident | probabilistic+manual | texture | — |
-| wallet_returned | finance | probabilistic | texture | — |
-| was_arrested | crime | manual | reserved | — |
-| was_audited | finance | probabilistic+manual | texture | — |
-| was_born | milestone | manual | wired | City.handleTick (birth, task 076) |
-| was_burgled | crime-mischief | probabilistic+manual | texture | — |
-| was_cheated_on | romance | manual | reserved | — |
-| was_detained | crime | manual | vital | — |
-| was_evicted | housing | manual | reserved | — |
-| was_fired | career | probabilistic+manual | texture | — |
-| was_gossiped_about | social | probabilistic+manual | texture | — |
-| was_grounded | family | manual | reserved | — |
-| was_headhunted | career | probabilistic | texture | — |
-| was_hospitalized | health | probabilistic+manual | texture | — |
-| was_laid_off | career | probabilistic+manual | texture | — |
-| was_life_of_party | social | manual | reserved | — |
-| was_not_invited | social | probabilistic | texture | — |
-| was_overcharged | finance | probabilistic+manual | texture | — |
-| was_pickpocketed | crime-mischief | probabilistic | texture | — |
-| was_scammed | legal | probabilistic+manual | texture | — |
-| was_scolded | family | probabilistic+manual | texture | — |
-| was_snowed_in | weather-reaction | manual | reserved | — |
-| was_treated_by_doctor | health | manual | wired | treating_patient.onCompleteTarget |
-| was_turned_down | romance | probabilistic+manual | texture | — |
-| was_visited_while_sick | health | manual | reserved | — |
-| was_wrongly_accused | legal | probabilistic | texture | — |
-| washed_car | possessions | probabilistic+manual | texture | — |
-| watched_child_graduate | family | manual | reserved | — |
-| watched_sunrise | travel | probabilistic+manual | texture | — |
-| watched_thunderstorm | weather-reaction | probabilistic | texture | — |
-| welcomed_neighbors_with_pie | housing | probabilistic+manual | texture | — |
-| welcomed_sibling | family | manual | reserved | — |
-| went_back_to_school | education | probabilistic | texture | — |
-| went_bankrupt | finance | manual | reserved | — |
-| went_birdwatching | hobby | probabilistic+manual | texture | — |
-| went_camping | travel | probabilistic | texture | — |
-| went_fishing | hobby | probabilistic+manual | texture | — |
-| went_fully_gray | aging | probabilistic | texture | — |
-| went_grocery_shopping | food | probabilistic+manual | wired | shopping_trip.onComplete |
-| went_hungry | health | probabilistic | texture | — |
-| went_on_first_date | romance | manual | wired | asked_person_out.onCompleteTarget |
-| went_on_vacation | travel | probabilistic | texture | — |
-| went_stargazing | travel | probabilistic+manual | texture | — |
-| went_straight | crime-mischief | probabilistic | texture | — |
-| went_through_rough_patch | romance | probabilistic | texture | — |
-| went_to_work | career | manual | reserved | — |
-| went_trick_or_treating | childhood | probabilistic+manual | texture | — |
-| whistled_all_day | emotion-mood | probabilistic | texture | — |
-| witnessed_a_scene | social | manual | reserved | — |
-| witnessed_crime | crime-mischief | probabilistic+manual | texture | — |
-| woke_up | daily | manual | wired | sleep.onComplete |
-| woke_up_grumpy | emotion-mood | probabilistic | texture | — |
-| won_argument | social | manual | reserved | — |
-| won_at_bingo | aging | probabilistic+manual | texture | — |
-| won_chess_match | hobby | probabilistic+manual | texture | — |
-| won_chili_cookoff | food | probabilistic+manual | texture | — |
-| won_council_seat | community | manual | reserved | — |
-| won_game_of_tag | childhood | probabilistic+manual | texture | — |
-| won_gardening_prize | achievement | probabilistic+manual | texture | — |
-| won_karaoke_contest | achievement | probabilistic+manual | texture | — |
-| won_lottery | finance | probabilistic+manual | texture | — |
-| won_marathon | achievement | probabilistic+manual | texture | — |
-| won_pie_eating_contest | community | probabilistic+manual | texture | — |
-| won_raffle | finance | probabilistic+manual | texture | — |
-| won_sandcastle_contest | childhood | probabilistic | texture | — |
-| won_science_fair | education | probabilistic+manual | texture | — |
-| won_small_claims | legal | probabilistic+manual | texture | — |
-| won_snowball_fight | weather-reaction | probabilistic+manual | texture | — |
-| won_spelling_bee | education | probabilistic+manual | texture | — |
-| won_trivia_night | achievement | probabilistic+manual | texture | — |
-| wore_hole_in_shoes | possessions | probabilistic | texture | — |
-| worked_overtime | career | probabilistic+manual | texture | — |
-| wrote_bucket_list | milestone | probabilistic | texture | — |
-| wrote_love_letter | romance | probabilistic+manual | texture | — |
-| wrote_memoirs | aging | probabilistic | texture | — |
-| wrote_song | hobby | probabilistic+manual | texture | — |
-| wrote_will | death | probabilistic+manual | texture | — |
-| yard_sale_treasure | possessions | probabilistic+manual | texture | — |
-| yelled_get_off_my_lawn | aging | probabilistic | texture | — |
+| Event | Category | Triggers | Disposition | Quirk | Invoked by |
+|---|---|---|---|---|---|
+| aced_final | education | probabilistic+manual | texture | quirk | — |
+| action_declined | social | manual | wired | — | lent_an_object.onDecline, gave_object_to_person.onDecline |
+| action_failed | mishap | manual | reserved | — | — |
+| adopted_a_pet | pet | manual | vital | — | adopted_a_pet.onComplete |
+| adopted_cat | pet | manual | reserved | — | — |
+| adopted_child | family | manual | reserved | — | — |
+| adopted_dog | pet | manual | reserved | — | — |
+| adopted_goldfish | pet | manual | reserved | — | — |
+| apologized_first | social | probabilistic+manual | texture | quirk | — |
+| apologized_for_snapping | emotion-mood | probabilistic+manual | texture | quirk | — |
+| application_rejected | career | probabilistic+manual | texture | — | — |
+| argued_with_coworker | career | probabilistic+manual | texture | — | — |
+| argued_with_partner | romance | probabilistic+manual | texture | — | — |
+| argued_with_sibling | family | probabilistic+manual | texture | quirk | — |
+| argument | social | probabilistic+manual | vital | — | argued_with_person.onCompleteTarget |
+| arrested_suspect | crime | manual | reserved | — | — |
+| asked_someone_out | romance | manual | wired | — | asked_person_out.onComplete |
+| assembled_flatpack | possessions | probabilistic+manual | texture | quirk | — |
+| ate_at_restaurant | food | probabilistic+manual | texture | quirk | — |
+| ate_questionable_leftover | food | probabilistic+manual | texture | quirk | — |
+| attended_funeral | death | manual | reserved | — | — |
+| attended_party | social | probabilistic+manual | texture | quirk | — |
+| attended_town_fair | community | probabilistic+manual | texture | quirk | — |
+| attended_town_meeting | community | probabilistic+manual | texture | quirk | — |
+| bailed_out_friend | legal | manual | reserved | — | — |
+| baked_bread | food | probabilistic+manual | texture | quirk | — |
+| baked_cookies_for_neighbors | food | manual | reserved | — | — |
+| barely_renewed_license | aging | manual | reserved | — | — |
+| basked_in_perfect_day | weather-reaction | probabilistic | texture | quirk | — |
+| beat_heat_with_ice_cream | weather-reaction | probabilistic+manual | texture | quirk | — |
+| beat_high_score | achievement | probabilistic+manual | texture | quirk | — |
+| beat_long_illness | health | probabilistic | texture | quirk | — |
+| became_aunt_or_uncle | family | manual | reserved | — | — |
+| became_close_friends | social | manual | vital | — | — |
+| became_estranged | family | probabilistic | texture | quirk | — |
+| became_grandparent | milestone | manual | reserved | — | — |
+| became_great_grandparent | milestone | manual | reserved | — | — |
+| became_homeless | housing | manual | wired | — | City.displaceHousehold (eviction, task 076) |
+| became_local_legend | community | probabilistic | texture | quirk | — |
+| became_neighborhood_elder | aging | manual | reserved | — | — |
+| became_parent | family | manual | wired | — | City.handleTick (birth, task 076) |
+| became_pen_pals | social | probabilistic | texture | quirk | — |
+| became_pregnant | family | manual | reserved | — | — |
+| became_widowed | death | manual | wired | — | City.handleTick (death → surviving spouse, task 076) |
+| began_afternoon_naps | aging | probabilistic | texture | quirk | — |
+| believed_town_legend | childhood | probabilistic | texture | quirk | — |
+| bird_ruined_clean_car | possessions | probabilistic | texture | quirk | — |
+| bitten_by_dog | accident | probabilistic+manual | texture | quirk | — |
+| blanked_on_test | education | probabilistic | texture | quirk | — |
+| blew_savings | finance | probabilistic+manual | texture | quirk | — |
+| borrowed_cup_of_sugar | community | probabilistic+manual | texture | quirk | — |
+| botched_big_project | career | probabilistic+manual | texture | — | — |
+| bought_first_car | milestone | probabilistic+manual | texture | quirk | — |
+| bought_first_home | housing | probabilistic+manual | texture | quirk | — |
+| bought_new_car | possessions | manual | reserved | — | — |
+| bought_new_couch | possessions | probabilistic+manual | texture | quirk | — |
+| bought_new_shoes | possessions | probabilistic+manual | texture | quirk | — |
+| bought_new_tv | possessions | manual | reserved | — | — |
+| bought_umbrella | possessions | manual | reserved | — | — |
+| bowled_perfect_game | achievement | probabilistic+manual | texture | quirk | — |
+| broke_arm | accident | probabilistic+manual | texture | quirk | — |
+| broke_china | possessions | probabilistic | texture | quirk | — |
+| broke_fever | health | manual | reserved | — | — |
+| broke_leg | accident | probabilistic+manual | texture | quirk | — |
+| broke_resolution | emotion-mood | probabilistic | texture | quirk | — |
+| broke_sweets_fast | food | probabilistic | texture | quirk | — |
+| broke_town_record | achievement | probabilistic | texture | quirk | — |
+| broke_up | romance | probabilistic+manual | texture | quirk | — |
+| built_birdhouse | hobby | probabilistic+manual | texture | quirk | — |
+| built_blanket_fort | childhood | probabilistic+manual | texture | quirk | — |
+| built_doghouse | pet | manual | reserved | — | — |
+| built_snowman | weather-reaction | probabilistic+manual | texture | quirk | — |
+| buried_pet_in_yard | pet | manual | reserved | — | — |
+| buried_the_hatchet | social | probabilistic+manual | texture | quirk | — |
+| burned_dinner | food | probabilistic+manual | texture | quirk | — |
+| burned_hand_on_stove | accident | probabilistic+manual | texture | quirk | — |
+| burned_out | career | probabilistic+manual | texture | quirk | — |
+| business_turned_profit | achievement | manual | reserved | — | — |
+| business_went_under | achievement | manual | reserved | — | — |
+| called_as_witness | legal | manual | reserved | — | — |
+| called_exterminator | housing | probabilistic+manual | texture | quirk | — |
+| called_in_sick | career | manual | wired | — | resting_at_home_sick.onStart |
+| came_home_from_vacation | travel | manual | reserved | — | — |
+| came_out_of_retirement | career | probabilistic | texture | — | — |
+| canceled_trip | travel | probabilistic+manual | texture | quirk | — |
+| car_broke_down | possessions | probabilistic+manual | texture | quirk | — |
+| car_was_keyed | crime-mischief | probabilistic+manual | texture | quirk | — |
+| cast_first_vote | milestone | manual | reserved | — | — |
+| cat_brought_gift | pet | probabilistic | texture | — | — |
+| caught_cheating_on_test | education | probabilistic+manual | texture | quirk | — |
+| caught_cold | health | probabilistic+manual | texture | quirk | — |
+| caught_fireflies | childhood | probabilistic+manual | texture | quirk | — |
+| caught_flu | health | probabilistic+manual | texture | quirk | — |
+| caught_huge_fish | hobby | probabilistic+manual | texture | quirk | — |
+| caught_in_rain | weather-reaction | probabilistic+manual | texture | quirk | — |
+| caught_shoplifting | crime-mischief | probabilistic+manual | texture | quirk | — |
+| caught_sneaking_out | crime-mischief | probabilistic+manual | texture | quirk | — |
+| caught_up_over_coffee | social | probabilistic+manual | texture | quirk | — |
+| celebrated_90th | aging | manual | reserved | — | — |
+| celebrated_birthday | milestone | manual | reserved | — | — |
+| celebrated_childs_birthday | family | manual | reserved | — | — |
+| celebrated_golden_anniversary | milestone | manual | reserved | — | — |
+| celebrated_silver_anniversary | milestone | manual | reserved | — | — |
+| celebrated_work_anniversary | career | manual | reserved | — | — |
+| changed_legal_name | legal | probabilistic | texture | quirk | — |
+| changed_locks | housing | probabilistic+manual | texture | quirk | — |
+| chase_concluded | crime | manual | vital | — | fleeing_the_police.onComplete |
+| chased_runaway_hat | weather-reaction | probabilistic+manual | texture | quirk | — |
+| checked_bucket_list_item | milestone | probabilistic+manual | texture | quirk | — |
+| choked_on_food | accident | probabilistic+manual | texture | quirk | — |
+| citizen_of_the_year | achievement | manual | reserved | — | — |
+| cleaned_out_attic | housing | probabilistic+manual | texture | quirk | — |
+| cleaned_up_park | community | probabilistic+manual | texture | quirk | — |
+| cleared_arrears | finance | manual | reserved | — | — |
+| cleared_of_charges | legal | manual | reserved | — | — |
+| climbed_tree | childhood | probabilistic+manual | texture | quirk | — |
+| collected_souvenir | travel | probabilistic+manual | texture | quirk | — |
+| committed_pickpocketing | crime | manual | vital | — | pickpocketed_someone.onComplete |
+| committed_shoplifting | crime | manual | vital | — | pocketed_merchandise.onComplete |
+| complained_about_heat | weather-reaction | probabilistic+manual | texture | quirk | — |
+| complained_about_knees | aging | probabilistic | texture | quirk | — |
+| completed_puzzle | hobby | probabilistic+manual | texture | quirk | — |
+| completed_school_day | education | manual+automated | wired | — | attend_school.onComplete, automated schedule |
+| contested_ticket | legal | probabilistic+manual | texture | quirk | — |
+| cooked_meal | food | probabilistic+manual | texture | quirk | — |
+| counted_blessings | emotion-mood | probabilistic | texture | quirk | — |
+| cracked_phone_screen | possessions | probabilistic+manual | texture | quirk | — |
+| crashed_car | accident | probabilistic+manual | texture | quirk | — |
+| cried_at_sad_song | emotion-mood | probabilistic | texture | quirk | — |
+| cut_finger_cooking | accident | probabilistic+manual | texture | quirk | — |
+| danced_in_rain | weather-reaction | probabilistic | texture | quirk | — |
+| daydreamed_afternoon | emotion-mood | probabilistic | texture | quirk | — |
+| death | lifecycle | probabilistic | vital | — | — |
+| decluttered_house | possessions | manual | wired | — | cleaning_house.onComplete |
+| defaulted_on_loan | finance | manual | reserved | — | — |
+| delivered_eulogy | death | manual | reserved | — | — |
+| depressive_episode | health | probabilistic+manual | vital | — | — |
+| developed_crush | romance | probabilistic+manual | texture | — | — |
+| developed_hearing_loss | aging | probabilistic | texture | quirk | — |
+| developed_insomnia | health | probabilistic+manual | texture | quirk | — |
+| diagnosed_chronic_illness | health | probabilistic | texture | quirk | — |
+| did_community_service | crime-mischief | manual | reserved | — | — |
+| died_in_accident | death | manual | reserved | — | — |
+| died_in_sleep | death | probabilistic | texture | quirk | — |
+| discovered_favorite_cafe | food | probabilistic+manual | texture | quirk | — |
+| disputed_inheritance | legal | probabilistic | texture | quirk | — |
+| divorce | relationship | probabilistic | vital | — | — |
+| dog_ate_homework | pet | probabilistic+manual | texture | — | — |
+| dog_walked_them | pet | probabilistic | texture | — | — |
+| donated_blood | health | probabilistic+manual | texture | quirk | — |
+| donated_to_charity | community | probabilistic+manual | texture | quirk | — |
+| downshifted_part_time | aging | probabilistic+manual | texture | — | — |
+| downsized_home | housing | probabilistic | texture | quirk | — |
+| drifted_apart | social | probabilistic+manual | texture | quirk | — |
+| dropped_out | education | probabilistic+manual | texture | quirk | — |
+| dropped_phone_in_toilet | accident | probabilistic | texture | quirk | — |
+| earned_black_belt | achievement | probabilistic+manual | texture | quirk | — |
+| earned_certificate | education | probabilistic+manual | texture | quirk | — |
+| earned_first_paycheck | milestone | manual | reserved | — | — |
+| earned_later_bedtime | childhood | probabilistic | texture | quirk | — |
+| egged_house | crime-mischief | probabilistic+manual | texture | quirk | — |
+| eloped | romance | probabilistic+manual | texture | quirk | — |
+| embarrassed_at_party | social | probabilistic+manual | texture | quirk | — |
+| embraced_bald_look | aging | probabilistic | texture | quirk | — |
+| employee_of_the_month | career | manual | reserved | — | — |
+| ended_affair | romance | probabilistic+manual | texture | quirk | — |
+| enrolled_child_in_school | family | manual | reserved | — | — |
+| enrolled_in_trade_school | education | probabilistic+manual | texture | quirk | — |
+| entered_pet_show | pet | probabilistic+manual | texture | — | — |
+| escaped_a_fire | health | manual | wired | — | evacuating.onComplete |
+| evaded_the_police | crime | manual | reserved | — | — |
+| excluded_from_group | social | probabilistic | texture | quirk | — |
+| failed_driving_test | milestone | probabilistic+manual | texture | quirk | — |
+| failed_exam | education | probabilistic+manual | texture | quirk | — |
+| fainted | health | probabilistic+manual | texture | quirk | — |
+| favorite_teacher_retired | education | manual | reserved | — | — |
+| fed_neighborhood_cats | community | probabilistic+manual | texture | quirk | — |
+| fell_asleep_with_cat | pet | probabilistic+manual | texture | — | — |
+| fell_down_stairs | accident | probabilistic+manual | texture | quirk | — |
+| fell_for_prank | crime-mischief | probabilistic+manual | texture | quirk | — |
+| fell_ill | health | probabilistic+manual | vital | — | — |
+| fell_in_love | romance | probabilistic+manual | texture | quirk | — |
+| fell_into_arrears | finance | manual | reserved | — | — |
+| fell_off_bike | childhood | probabilistic+manual | texture | quirk | — |
+| fell_off_ladder | accident | probabilistic+manual | texture | quirk | — |
+| fell_out_of_love | romance | probabilistic | texture | quirk | — |
+| fell_seriously_ill | health | probabilistic+manual | vital | — | — |
+| felt_homesick | emotion-mood | probabilistic+manual | texture | quirk | — |
+| felt_jealous_of_friend | emotion-mood | probabilistic | texture | quirk | — |
+| felt_lonely | emotion-mood | probabilistic+manual | texture | quirk | — |
+| felt_on_top_of_world | emotion-mood | manual | reserved | — | — |
+| felt_overwhelmed | emotion-mood | probabilistic+manual | texture | quirk | — |
+| filed_noise_complaint | legal | probabilistic+manual | texture | quirk | — |
+| fined_by_city | legal | probabilistic+manual | texture | quirk | — |
+| finished_apprenticeship | education | probabilistic+manual | texture | quirk | — |
+| finished_first_5k | achievement | probabilistic+manual | texture | quirk | — |
+| finished_great_book | hobby | manual | wired | — | read_book.onComplete |
+| finished_painting | hobby | probabilistic+manual | texture | quirk | — |
+| finished_shift | career | manual | reserved | — | — |
+| finished_todo_list | achievement | probabilistic | texture | quirk | — |
+| finished_writing_novel | hobby | probabilistic+manual | texture | quirk | — |
+| first_day_of_school | education | manual | reserved | — | — |
+| fish_got_away | hobby | probabilistic+manual | texture | quirk | — |
+| fixed_leaky_faucet | housing | probabilistic+manual | texture | quirk | — |
+| fixed_the_unfixable | achievement | probabilistic | texture | quirk | — |
+| fixed_tv_with_whack | possessions | probabilistic | texture | quirk | — |
+| flatpack_defeated_them | possessions | probabilistic+manual | texture | quirk | — |
+| flew_kite | hobby | probabilistic+manual | texture | quirk | — |
+| folded_side_hustle | career | probabilistic+manual | texture | quirk | — |
+| forgot_shopping_list | food | probabilistic | texture | quirk | — |
+| forgot_to_pack_socks | travel | probabilistic | texture | quirk | — |
+| forgot_where_keys_were | aging | probabilistic | texture | quirk | — |
+| found_first_gray_hair | aging | probabilistic | texture | quirk | — |
+| found_hair_in_soup | food | probabilistic+manual | texture | quirk | — |
+| found_keys_in_fridge | possessions | probabilistic | texture | quirk | — |
+| found_lost_pet | pet | probabilistic | texture | quirk | — |
+| found_mold | housing | probabilistic+manual | texture | quirk | — |
+| found_money_on_street | finance | manual | wired | — | found_coin.onComplete |
+| found_shortcut | travel | probabilistic+manual | texture | quirk | — |
+| founded_business | career | manual | vital | — | — |
+| framed_first_dollar | achievement | manual | reserved | — | — |
+| fridge_went_empty | food | manual | reserved | — | — |
+| gained_weight | health | probabilistic+manual | texture | quirk | — |
+| gave_away_kittens | pet | manual | reserved | — | — |
+| gave_birth | lifecycle | manual+automated | vital | — | City.handleTick (birth, task 076) |
+| gave_directions | community | probabilistic+manual | texture | quirk | — |
+| gave_gift | social | manual | wired | — | gave_object_to_person.onComplete |
+| gave_up_driving | aging | probabilistic | texture | quirk | — |
+| gave_up_hobby | hobby | probabilistic | texture | quirk | — |
+| gave_up_sweets | food | probabilistic | texture | quirk | — |
+| gave_valedictorian_speech | education | manual | reserved | — | — |
+| get_job | career | probabilistic+manual | vital | — | applied_for_a_job.onComplete |
+| got_a_ride | social | manual | reserved | — | — |
+| got_away_with_it | crime | manual | reserved | — | — |
+| got_back_on_feet | housing | manual | wired | — | City.runRecovery (homeless recovery, task 076) |
+| got_back_together | romance | probabilistic+manual | texture | quirk | — |
+| got_blister_hiking | travel | probabilistic+manual | texture | quirk | — |
+| got_braces | childhood | probabilistic | texture | quirk | — |
+| got_braces_off | childhood | manual | reserved | — | — |
+| got_car_repaired | possessions | manual | reserved | — | — |
+| got_caught | crime | manual | vital | — | — |
+| got_clean_bill_of_health | health | manual | reserved | — | — |
+| got_concussion | accident | probabilistic+manual | texture | quirk | — |
+| got_demoted | career | probabilistic+manual | texture | quirk | — |
+| got_dental_filling | health | probabilistic+manual | texture | quirk | — |
+| got_detention | education | probabilistic+manual | texture | quirk | — |
+| got_divorced | romance | probabilistic+manual | texture | quirk | — |
+| got_drivers_license | milestone | probabilistic+manual | texture | quirk | — |
+| got_engaged | romance | manual | wired | — | proposed_marriage.onComplete, proposed_marriage.onCompleteTarget |
+| got_food_poisoning | health | probabilistic+manual | texture | quirk | — |
+| got_hearing_aids | aging | probabilistic+manual | texture | quirk | — |
+| got_hip_replacement | aging | probabilistic+manual | texture | quirk | — |
+| got_homesick | childhood | probabilistic+manual | texture | quirk | — |
+| got_job | career | manual | reserved | — | — |
+| got_lost_in_town | travel | probabilistic | texture | quirk | — |
+| got_married | romance | manual | reserved | — | — |
+| got_migraine | health | probabilistic+manual | texture | quirk | — |
+| got_new_boss | career | manual | reserved | — | — |
+| got_new_neighbors | housing | manual | reserved | — | — |
+| got_nickname | social | probabilistic | texture | quirk | — |
+| got_paid | finance | manual | reserved | — | — |
+| got_paper_cut | accident | probabilistic+manual | texture | quirk | — |
+| got_parking_ticket | legal | probabilistic+manual | texture | quirk | — |
+| got_permit_approved | legal | manual | reserved | — | — |
+| got_pickpocketed | crime | manual | wired | — | pickpocketed_someone.onCompleteTarget |
+| got_promoted | career | manual | vital | — | SkillProgression promotion evaluation (task 065) |
+| got_raise | career | probabilistic+manual | texture | — | — |
+| got_scholarship | education | probabilistic+manual | texture | quirk | — |
+| got_something_in_eye | accident | probabilistic | texture | quirk | — |
+| got_speeding_ticket | legal | probabilistic+manual | texture | quirk | — |
+| got_stage_fright | emotion-mood | probabilistic+manual | texture | quirk | — |
+| got_standing_ovation | achievement | manual | reserved | — | — |
+| got_stood_up | social | probabilistic+manual | texture | quirk | — |
+| got_story_published | hobby | probabilistic+manual | texture | quirk | — |
+| got_stuck_in_tree | childhood | probabilistic+manual | texture | quirk | — |
+| got_sunburned | weather-reaction | probabilistic+manual | texture | quirk | — |
+| got_tax_refund | finance | manual | reserved | — | — |
+| got_vaccinated | health | probabilistic+manual | texture | quirk | — |
+| got_watch_repaired | possessions | manual | reserved | — | — |
+| graduated_nursing_school | education | probabilistic+manual | texture | — | — |
+| graduated_school | education | manual | wired | — | City.runSchoolSweeps (age-out, task 058) |
+| grew_own_vegetables | food | probabilistic+manual | texture | quirk | — |
+| grew_prize_tomato | hobby | probabilistic+manual | texture | quirk | — |
+| grounded_child | family | probabilistic+manual | texture | — | — |
+| had_affair | romance | probabilistic | texture | quirk | — |
+| had_allergic_reaction | health | probabilistic+manual | texture | quirk | — |
+| had_breakfast_for_dinner | food | probabilistic | texture | quirk | — |
+| had_candlelit_dinner | romance | probabilistic+manual | texture | quirk | — |
+| had_car_trouble_on_trip | travel | probabilistic+manual | texture | quirk | — |
+| had_date_night | romance | probabilistic+manual | texture | — | — |
+| had_falling_out | social | probabilistic+manual | texture | quirk | — |
+| had_family_game_night | family | probabilistic+manual | texture | quirk | — |
+| had_fender_bender | accident | probabilistic+manual | texture | quirk | — |
+| had_first_crush | childhood | probabilistic+manual | texture | quirk | — |
+| had_first_day_at_work | career | manual | reserved | — | — |
+| had_first_kiss | romance | probabilistic+manual | texture | quirk | — |
+| had_first_sleepover | childhood | probabilistic+manual | texture | quirk | — |
+| had_good_cry | emotion-mood | probabilistic | texture | quirk | — |
+| had_great_day | emotion-mood | probabilistic+manual | texture | quirk | — |
+| had_growth_spurt | childhood | probabilistic+manual | texture | quirk | — |
+| had_health_scare | death | probabilistic+manual | texture | quirk | — |
+| had_heart_to_heart | social | probabilistic+manual | texture | quirk | — |
+| had_housewarming | housing | probabilistic+manual | texture | quirk | — |
+| had_imaginary_friend | childhood | probabilistic | texture | quirk | — |
+| had_midlife_crisis | milestone | probabilistic+manual | texture | quirk | — |
+| had_miscarriage | family | probabilistic+manual | vital | — | — |
+| had_near_death_experience | death | probabilistic+manual | texture | quirk | — |
+| had_neighbor_dispute | community | probabilistic | texture | quirk | — |
+| had_nightmare | emotion-mood | probabilistic+manual | texture | quirk | — |
+| had_panic_attack | health | probabilistic+manual | texture | quirk | — |
+| had_pest_infestation | housing | probabilistic+manual | texture | quirk | — |
+| had_road_trip_singalong | travel | manual | reserved | — | — |
+| had_routine_checkup | health | probabilistic+manual | texture | quirk | — |
+| had_sex | relationship | probabilistic+manual | texture | — | — |
+| had_staycation | travel | probabilistic | texture | quirk | — |
+| had_surgery | health | probabilistic+manual | texture | — | — |
+| had_terrible_day | emotion-mood | probabilistic+manual | texture | quirk | — |
+| had_the_talk | family | probabilistic | texture | — | — |
+| had_toothache | health | probabilistic+manual | texture | quirk | — |
+| had_wedding_anniversary | romance | manual | reserved | — | — |
+| had_wonderful_dream | emotion-mood | probabilistic+manual | texture | quirk | — |
+| had_workplace_near_miss | accident | probabilistic+manual | texture | — | — |
+| haggled_great_deal | finance | probabilistic+manual | texture | quirk | — |
+| heard_gossip | social | manual | wired | — | shared_gossip.onCompleteTarget |
+| held_back_a_year | education | probabilistic | texture | quirk | — |
+| held_breath_longest | achievement | probabilistic+manual | texture | quirk | — |
+| held_yard_sale | possessions | probabilistic+manual | texture | quirk | — |
+| helped_by_stranger | community | probabilistic | texture | quirk | — |
+| helped_stranger | community | probabilistic | texture | quirk | — |
+| helped_with_homework | family | probabilistic+manual | texture | — | — |
+| hiked_ridge_trail | travel | probabilistic+manual | texture | quirk | — |
+| hired_first_employee | achievement | manual | reserved | — | — |
+| hit_by_cyclist | accident | probabilistic+manual | texture | quirk | — |
+| hoarded_everything | possessions | probabilistic | texture | quirk | — |
+| homesick_while_away | travel | probabilistic | texture | quirk | — |
+| hosted_barbecue | food | probabilistic+manual | texture | quirk | — |
+| hosted_dinner_party | social | manual | wired | — | hosting_gathering.onComplete |
+| hosted_family_reunion | family | probabilistic+manual | texture | quirk | — |
+| house_was_egged | crime-mischief | probabilistic+manual | texture | quirk | — |
+| inherited_china | possessions | manual | reserved | — | — |
+| inherited_estate | death | manual | reserved | — | — |
+| inherited_heirloom | family | manual | reserved | — | — |
+| injured_at_work | career | probabilistic+manual | texture | — | — |
+| injury | health | probabilistic+manual | vital | — | — |
+| investment_paid_off | finance | probabilistic+manual | texture | quirk | — |
+| investment_went_bust | finance | probabilistic+manual | texture | quirk | — |
+| jaywalked | crime-mischief | probabilistic+manual | texture | quirk | — |
+| joined_book_club | hobby | probabilistic+manual | texture | quirk | — |
+| joined_choir | community | probabilistic | texture | quirk | — |
+| joined_debate_club | education | probabilistic | texture | quirk | — |
+| joined_friend_group | social | probabilistic | texture | quirk | — |
+| joined_neighborhood_watch | community | probabilistic | texture | quirk | — |
+| joined_seniors_club | aging | probabilistic | texture | quirk | — |
+| judged_baking_contest | community | probabilistic+manual | texture | quirk | — |
+| jumped_in_leaf_pile | weather-reaction | probabilistic | texture | quirk | — |
+| jumped_in_puddles | weather-reaction | probabilistic+manual | texture | quirk | — |
+| kept_resolution | emotion-mood | manual | reserved | — | — |
+| kept_secret | social | probabilistic | texture | quirk | — |
+| keyed_car | crime-mischief | probabilistic+manual | texture | quirk | — |
+| knitted_sweater | hobby | probabilistic+manual | texture | quirk | — |
+| late_for_work | career | probabilistic+manual | texture | — | — |
+| laughed_until_it_hurt | emotion-mood | probabilistic+manual | texture | quirk | — |
+| lawnmower_never_returned | community | probabilistic | texture | quirk | — |
+| layoff | career | probabilistic | vital | — | — |
+| learned_chopsticks | food | probabilistic | texture | quirk | — |
+| learned_instrument | hobby | probabilistic+manual | texture | quirk | — |
+| learned_language | achievement | probabilistic | texture | quirk | — |
+| learned_magic_tricks | hobby | probabilistic | texture | quirk | — |
+| learned_new_skill | education | manual | wired | — | taught_person_something.onCompleteTarget |
+| learned_to_read | education | probabilistic+manual | texture | quirk | — |
+| learned_to_ride_bike | childhood | probabilistic+manual | texture | quirk | — |
+| learned_to_swim | milestone | probabilistic+manual | texture | quirk | — |
+| learned_to_tie_shoes | childhood | probabilistic | texture | quirk | — |
+| learned_to_whistle | childhood | probabilistic | texture | quirk | — |
+| learned_to_write | education | manual | reserved | — | — |
+| left_big_tip | food | probabilistic+manual | texture | quirk | — |
+| left_home_first_time | milestone | manual | wired | — | City.resolveMoveOut (move-out, task 076) |
+| left_umbrella_at_cafe | possessions | probabilistic | texture | quirk | — |
+| lent_lawnmower | community | probabilistic+manual | texture | quirk | — |
+| lent_money_to_friend | finance | probabilistic+manual | texture | quirk | — |
+| let_lawn_go_wild | housing | probabilistic | texture | quirk | — |
+| let_slip_secret | social | probabilistic | texture | quirk | — |
+| lifted_spirits | health | probabilistic+manual | vital | — | — |
+| lit_candles_in_outage | weather-reaction | manual | reserved | — | — |
+| locked_out_of_house | housing | probabilistic+manual | texture | quirk | — |
+| lost_argument | social | manual | reserved | — | — |
+| lost_balloon | childhood | probabilistic+manual | texture | quirk | — |
+| lost_chess_match | hobby | probabilistic+manual | texture | quirk | — |
+| lost_child | death | manual | wired | — | City.handleTick (death → parents, task 076) |
+| lost_close_friend | death | manual | reserved | — | — |
+| lost_election | community | manual | reserved | — | — |
+| lost_first_tooth | childhood | probabilistic+manual | texture | quirk | — |
+| lost_home_to_fire | housing | manual | reserved | — | — |
+| lost_home_to_foreclosure | housing | manual | reserved | — | — |
+| lost_house_keys | housing | probabilistic+manual | texture | quirk | — |
+| lost_keys | possessions | probabilistic | texture | quirk | — |
+| lost_lucky_charm | possessions | probabilistic | texture | quirk | — |
+| lost_parent | death | manual | wired | — | City.handleTick (death → children, task 076) |
+| lost_phone | possessions | probabilistic | texture | quirk | — |
+| lost_power_in_storm | weather-reaction | manual | reserved | — | — |
+| lost_small_claims | legal | probabilistic+manual | texture | quirk | — |
+| lost_spouse | death | manual | reserved | — | — |
+| lost_wallet | finance | probabilistic+manual | texture | quirk | — |
+| lost_weight | health | probabilistic+manual | texture | quirk | — |
+| made_frenemy | social | probabilistic | texture | quirk | — |
+| made_friend | social | manual | vital | — | — |
+| made_honor_roll | education | manual | reserved | — | — |
+| made_it_official | romance | probabilistic+manual | texture | quirk | — |
+| made_new_friend | social | probabilistic+manual | texture | quirk | — |
+| made_peace_with_rival | death | probabilistic | texture | quirk | — |
+| made_recess_best_friend | childhood | probabilistic+manual | texture | quirk | — |
+| made_resolution | emotion-mood | manual | reserved | — | — |
+| made_risky_investment | finance | probabilistic+manual | texture | quirk | — |
+| made_work_friend | career | probabilistic+manual | texture | — | — |
+| marriage | relationship | probabilistic+manual | vital | — | — |
+| mentored_young_neighbor | aging | probabilistic | texture | quirk | — |
+| met_charming_stranger | romance | probabilistic+manual | texture | quirk | — |
+| met_new_in_law | family | manual | reserved | — | — |
+| missed_paycheck | finance | manual | reserved | — | — |
+| missed_ride_home | travel | manual | reserved | — | — |
+| mourned_loss_anniversary | death | manual | reserved | — | — |
+| moved_in_with_partner | romance | manual | reserved | — | — |
+| moved_into_new_home | housing | manual | reserved | — | — |
+| moved_out_of_parents | housing | probabilistic+manual | vital | — | — |
+| mowed_lawn | housing | probabilistic+manual | texture | quirk | — |
+| nailed_presentation | career | probabilistic+manual | texture | quirk | — |
+| named_baby | family | manual | reserved | — | — |
+| named_in_will | death | manual | reserved | — | — |
+| named_pet | pet | manual | reserved | — | — |
+| near_miss_crossing | accident | probabilistic+manual | texture | quirk | — |
+| needed_reading_glasses | aging | probabilistic | texture | quirk | — |
+| never_paid_back | finance | probabilistic | texture | quirk | — |
+| notarized_document | legal | probabilistic+manual | texture | quirk | — |
+| nursing_school | education | probabilistic+manual | vital | — | — |
+| object_acquired | possessions | manual | wired | — | grab.onComplete |
+| object_consumed | possessions | manual | reserved | — | — |
+| object_given | possessions | manual | reserved | — | — |
+| object_lost | possessions | manual | wired | — | discard_object.onComplete |
+| object_received | possessions | manual | wired | — | lent_an_object.onCompleteTarget, returned_borrowed_object.onCompleteTarget, shared_food_with_person.onCompleteTarget |
+| offered_a_ride | social | manual | reserved | — | — |
+| opened_bank_account | finance | manual | reserved | — | — |
+| opened_own_business | achievement | probabilistic+manual | texture | quirk | — |
+| organized_food_drive | community | probabilistic | texture | quirk | — |
+| outgrew_imaginary_friend | childhood | probabilistic | texture | quirk | — |
+| outlived_prognosis | death | probabilistic | texture | quirk | — |
+| overcame_stage_fright | emotion-mood | manual | reserved | — | — |
+| overslept | emotion-mood | probabilistic+manual | texture | quirk | — |
+| packed_night_before | travel | probabilistic+manual | texture | quirk | — |
+| paid_bills | finance | manual | reserved | — | — |
+| paid_fine | crime-mischief | manual | reserved | — | — |
+| paid_off_loan | finance | manual | reserved | — | — |
+| paid_off_mortgage | achievement | manual | reserved | — | — |
+| parrot_embarrassed_them | pet | probabilistic | texture | quirk | — |
+| passed_away | death | probabilistic+manual | texture | quirk | — |
+| passed_down_recipe | aging | probabilistic+manual | texture | quirk | — |
+| passed_exam | education | probabilistic+manual | texture | quirk | — |
+| passed_note_in_class | childhood | probabilistic+manual | texture | quirk | — |
+| passed_over_for_promotion | career | manual | reserved | — | — |
+| perfect_attendance_award | achievement | manual | reserved | — | — |
+| perfected_grandmas_recipe | food | probabilistic | texture | quirk | — |
+| performed_open_mic | hobby | probabilistic+manual | texture | quirk | — |
+| permit_denied | legal | manual | reserved | — | — |
+| pet_came_back | pet | probabilistic | texture | — | — |
+| pet_destroyed_couch | pet | probabilistic | texture | — | — |
+| pet_failed_obedience | pet | probabilistic+manual | texture | — | — |
+| pet_got_sick | pet | probabilistic+manual | texture | — | — |
+| pet_had_litter | pet | probabilistic | texture | — | — |
+| pet_learned_trick | pet | probabilistic+manual | texture | — | — |
+| pet_passed_away | pet | manual | reserved | — | — |
+| pet_ran_away | pet | probabilistic+manual | texture | — | — |
+| pet_recovered | pet | manual | reserved | — | — |
+| pet_won_ribbon | pet | probabilistic+manual | texture | — | — |
+| photo_in_local_paper | community | manual | reserved | — | — |
+| picked_first_for_team | childhood | probabilistic+manual | texture | quirk | — |
+| picked_last_for_team | childhood | probabilistic+manual | texture | quirk | — |
+| pipe_burst | housing | probabilistic+manual | texture | quirk | — |
+| planned_dream_trip | travel | probabilistic | texture | quirk | — |
+| planned_own_funeral | death | probabilistic | texture | quirk | — |
+| planted_garden | housing | manual | wired | — | gardening.onComplete |
+| planted_town_tree | community | manual | reserved | — | — |
+| played_in_band | hobby | probabilistic+manual | texture | quirk | — |
+| power_came_back | weather-reaction | manual | reserved | — | — |
+| predicted_rain_with_knee | weather-reaction | probabilistic | texture | quirk | — |
+| pregnancy | lifecycle | probabilistic+manual | vital | — | — |
+| proposal_rejected | romance | manual | reserved | — | — |
+| pulled_all_nighter | education | probabilistic+manual | texture | quirk | — |
+| pulled_muscle | health | manual | reserved | — | — |
+| pulled_prank | crime-mischief | probabilistic+manual | texture | quirk | — |
+| put_up_lost_pet_posters | pet | manual | reserved | — | — |
+| questioned_by_police | crime-mischief | manual | reserved | — | — |
+| quit_job | career | probabilistic+manual | texture | — | — |
+| quit_smoking | health | probabilistic+manual | texture | quirk | — |
+| quoted_in_newspaper | achievement | probabilistic | texture | quirk | — |
+| rage_quit | career | probabilistic | texture | quirk | — |
+| rained_out_camping | travel | manual | reserved | — | — |
+| raked_leaves | weather-reaction | manual | reserved | — | — |
+| ran_for_council | community | probabilistic | texture | quirk | — |
+| ran_into_old_friend | social | probabilistic+manual | texture | quirk | — |
+| ran_lemonade_stand | childhood | probabilistic+manual | texture | quirk | — |
+| reached_retirement_age | milestone | manual | reserved | — | — |
+| read_bedtime_story | family | probabilistic+manual | texture | quirk | — |
+| received_a_hug | social | manual | wired | — | hugged_person.onCompleteTarget |
+| received_a_visitor | crime | manual | reserved | — | — |
+| received_gift | social | manual | wired | — | gave_object_to_person.onCompleteTarget |
+| received_inheritance | finance | manual | reserved | — | — |
+| received_love_letter | romance | probabilistic+manual | texture | quirk | — |
+| received_noise_complaint | legal | manual | reserved | — | — |
+| received_postcard | travel | manual | reserved | — | — |
+| received_surprise_visit | social | probabilistic+manual | texture | quirk | — |
+| received_terminal_diagnosis | death | probabilistic+manual | texture | quirk | — |
+| received_windfall | finance | probabilistic | texture | quirk | — |
+| recipe_became_favorite | food | manual | reserved | — | — |
+| recipe_disaster | food | manual | reserved | — | — |
+| reconciled_with_partner | romance | probabilistic+manual | texture | — | — |
+| reconciled_with_sibling | family | probabilistic+manual | texture | quirk | — |
+| reconnected_with_relative | family | manual | wired | — | visiting_relatives.onComplete |
+| recovered | health | probabilistic | vital | — | — |
+| recovered_from_burnout | career | probabilistic | texture | quirk | — |
+| recovered_from_illness | health | probabilistic+manual | texture | quirk | — |
+| recovered_from_injury | accident | probabilistic+manual | texture | quirk | — |
+| redecorated_living_room | housing | probabilistic+manual | texture | quirk | — |
+| reflected_on_life | aging | probabilistic | texture | quirk | — |
+| regifted_present | social | probabilistic | texture | quirk | — |
+| regretted_leftover | food | manual | reserved | — | — |
+| reinvented_themselves | milestone | probabilistic | texture | quirk | — |
+| relative_arrested | crime | manual | reserved | — | — |
+| released_from_jail | crime | manual | vital | — | — |
+| renewed_vows | romance | probabilistic | texture | quirk | — |
+| renovated_kitchen | housing | probabilistic+manual | texture | quirk | — |
+| reported_burglary | crime-mischief | manual | reserved | — | — |
+| reported_scam | legal | manual | reserved | — | — |
+| retired | career | manual | reserved | — | — |
+| retirement | career | probabilistic | vital | — | — |
+| returned_garden_gnome | crime-mischief | probabilistic | texture | quirk | — |
+| roof_leaked | housing | probabilistic+manual | texture | quirk | — |
+| said_final_goodbyes | death | manual | reserved | — | — |
+| said_first_word | milestone | probabilistic+manual | texture | quirk | — |
+| saw_double_rainbow | weather-reaction | probabilistic | texture | quirk | — |
+| saw_first_snow | weather-reaction | manual | reserved | — | — |
+| saw_rainbow | weather-reaction | probabilistic+manual | texture | quirk | — |
+| scared_by_thunder | weather-reaction | probabilistic | texture | quirk | — |
+| scattered_ashes | death | manual | reserved | — | — |
+| school_day_started | education | manual | wired | — | attend_school.onStart |
+| scraped_knee | childhood | probabilistic+manual | texture | quirk | — |
+| sent_dish_back | food | probabilistic+manual | texture | quirk | — |
+| sent_postcard | travel | probabilistic+manual | texture | quirk | — |
+| served_jury_duty | legal | probabilistic+manual | texture | quirk | — |
+| set_off_smoke_alarm | accident | probabilistic+manual | texture | quirk | — |
+| set_personal_best | achievement | probabilistic+manual | texture | quirk | — |
+| settled_neighbor_dispute | community | probabilistic | texture | quirk | — |
+| settled_out_of_court | legal | probabilistic | texture | quirk | — |
+| shared_gossip | social | manual | wired | — | shared_gossip.onComplete |
+| shocked_by_outlet | accident | probabilistic+manual | texture | quirk | — |
+| shook_off_loneliness | emotion-mood | probabilistic | texture | quirk | — |
+| shoplifted_candy_bar | crime-mischief | probabilistic+manual | texture | quirk | — |
+| shoveled_driveway | weather-reaction | probabilistic+manual | texture | quirk | — |
+| shoveled_neighbors_walk | community | probabilistic+manual | texture | quirk | — |
+| sick_of_the_filth | texture-community | probabilistic | texture | — | — |
+| signed_contract | legal | manual | reserved | — | — |
+| skipped_breakfast | food | probabilistic+manual | texture | quirk | — |
+| skipped_class | education | probabilistic+manual | texture | quirk | — |
+| skipped_grade | education | probabilistic | texture | quirk | — |
+| skipped_town_weekend | travel | probabilistic | texture | quirk | — |
+| slept_in | emotion-mood | probabilistic+manual | texture | quirk | — |
+| slept_through_night_again | health | probabilistic | texture | quirk | — |
+| slipped_on_ice | accident | probabilistic+manual | texture | quirk | — |
+| smelled_spring_blossoms | weather-reaction | manual | reserved | — | — |
+| snapped_at_someone | emotion-mood | probabilistic+manual | texture | quirk | — |
+| snuck_out_at_night | crime-mischief | probabilistic+manual | texture | quirk | — |
+| sold_home | housing | manual | reserved | — | — |
+| solved_crossword_in_ink | achievement | probabilistic | texture | quirk | — |
+| spilled_coffee_on_shirt | food | probabilistic+manual | texture | quirk | — |
+| splurged_on_treat | finance | probabilistic+manual | texture | quirk | — |
+| spoiled_grandkids | aging | probabilistic+manual | texture | — | — |
+| spoke_at_town_meeting | community | probabilistic | texture | quirk | — |
+| spotted_rare_bird | hobby | probabilistic+manual | texture | quirk | — |
+| sprained_ankle | health | probabilistic+manual | texture | quirk | — |
+| sprained_wrist | accident | probabilistic+manual | texture | quirk | — |
+| spread_rumor | social | manual | reserved | — | — |
+| started_balding | aging | probabilistic | texture | quirk | — |
+| started_dating | romance | probabilistic+manual | texture | quirk | — |
+| started_family_tradition | family | probabilistic | texture | quirk | — |
+| started_fitness_routine | health | probabilistic+manual | texture | quirk | — |
+| started_food_fight | crime-mischief | probabilistic+manual | texture | quirk | — |
+| started_journaling | emotion-mood | probabilistic | texture | quirk | — |
+| started_kitchen_fire | accident | probabilistic+manual | texture | quirk | — |
+| started_new_job | career | manual | reserved | — | — |
+| started_repeating_stories | aging | probabilistic | texture | quirk | — |
+| started_savings_jar | finance | probabilistic | texture | quirk | — |
+| started_school | education | manual | wired | — | City.runSchoolSweeps (enrollment, task 058) |
+| started_scrapbook | hobby | probabilistic | texture | quirk | — |
+| started_side_hustle | career | probabilistic+manual | texture | quirk | — |
+| started_stamp_collection | hobby | probabilistic | texture | quirk | — |
+| started_using_cane | aging | probabilistic | texture | quirk | — |
+| started_wearing_glasses | health | probabilistic+manual | texture | quirk | — |
+| started_working | career | manual | wired | — | attending_customers.onStart, working_the_register.onStart, doing_paperwork.onStart, doing_rounds.onStart, working_the_kitchen.onStart, doing_manual_labor.onStart, teaching_class.onStart, fixing_equipment.onStart, keeping_watch.onStart, cleaning_premises.onStart, driving_route.onStart, treating_patients.onStart, styling_clients.onStart, coaching_session.onStart, drafting_designs.onStart, screening_film.onStart, balancing_the_till.onStart, prepping_ingredients.onStart, restocking_shelves.onStart, reviewing_charts.onStart, grading_papers.onStart, patrolling_the_floor.onStart, mixing_batter.onStart, servicing_a_vehicle.onStart, drawing_blueprints.onStart, leading_a_workout.onStart, checking_in_guests.onStart, projecting_the_matinee.onStart, sorting_deliveries.onStart, updating_ledgers.onStart, sterilizing_equipment.onStart, shelving_returns.onStart, wiping_down_tables.onStart, pruning_displays.onStart, counting_inventory.onStart, supervising_the_team.onStart, patrolling.onStart, chasing_a_suspect.onStart, collection_rounds.onStart, rushing_to_the_fire.onStart, responding_to_fire.onStart, responding_to_incident.onStart |
+| started_writing_novel | hobby | probabilistic | texture | quirk | — |
+| stole_garden_gnome | crime-mischief | probabilistic | texture | quirk | — |
+| stopped_working | career | manual+automated | wired | — | attending_customers.onComplete, attending_customers.onInterrupt, working_the_register.onComplete, working_the_register.onInterrupt, doing_paperwork.onComplete, doing_paperwork.onInterrupt, doing_rounds.onComplete, doing_rounds.onInterrupt, working_the_kitchen.onComplete, working_the_kitchen.onInterrupt, doing_manual_labor.onComplete, doing_manual_labor.onInterrupt, teaching_class.onComplete, teaching_class.onInterrupt, fixing_equipment.onComplete, fixing_equipment.onInterrupt, keeping_watch.onComplete, keeping_watch.onInterrupt, cleaning_premises.onComplete, cleaning_premises.onInterrupt, driving_route.onComplete, driving_route.onInterrupt, treating_patients.onComplete, treating_patients.onInterrupt, styling_clients.onComplete, styling_clients.onInterrupt, coaching_session.onComplete, coaching_session.onInterrupt, drafting_designs.onComplete, drafting_designs.onInterrupt, screening_film.onComplete, screening_film.onInterrupt, balancing_the_till.onComplete, balancing_the_till.onInterrupt, prepping_ingredients.onComplete, prepping_ingredients.onInterrupt, restocking_shelves.onComplete, restocking_shelves.onInterrupt, reviewing_charts.onComplete, reviewing_charts.onInterrupt, grading_papers.onComplete, grading_papers.onInterrupt, patrolling_the_floor.onComplete, patrolling_the_floor.onInterrupt, mixing_batter.onComplete, mixing_batter.onInterrupt, servicing_a_vehicle.onComplete, servicing_a_vehicle.onInterrupt, drawing_blueprints.onComplete, drawing_blueprints.onInterrupt, leading_a_workout.onComplete, leading_a_workout.onInterrupt, checking_in_guests.onComplete, checking_in_guests.onInterrupt, projecting_the_matinee.onComplete, projecting_the_matinee.onInterrupt, sorting_deliveries.onComplete, sorting_deliveries.onInterrupt, updating_ledgers.onComplete, updating_ledgers.onInterrupt, sterilizing_equipment.onComplete, sterilizing_equipment.onInterrupt, shelving_returns.onComplete, shelving_returns.onInterrupt, wiping_down_tables.onComplete, wiping_down_tables.onInterrupt, pruning_displays.onComplete, pruning_displays.onInterrupt, counting_inventory.onComplete, counting_inventory.onInterrupt, supervising_the_team.onComplete, supervising_the_team.onInterrupt, patrolling.onComplete, patrolling.onInterrupt, chasing_a_suspect.onComplete, chasing_a_suspect.onInterrupt, collection_rounds.onComplete, collection_rounds.onInterrupt, rushing_to_the_fire.onComplete, rushing_to_the_fire.onInterrupt, responding_to_fire.onComplete, responding_to_fire.onInterrupt, responding_to_incident.onComplete, responding_to_incident.onInterrupt, automated schedule |
+| stubbed_toe | accident | probabilistic+manual | texture | quirk | — |
+| stung_by_bee | accident | probabilistic+manual | texture | quirk | — |
+| sued_business | legal | probabilistic | texture | quirk | — |
+| sued_by_neighbor | legal | probabilistic+manual | texture | quirk | — |
+| survived_heart_attack | death | probabilistic+manual | texture | quirk | — |
+| swam_in_lake | travel | probabilistic+manual | texture | quirk | — |
+| switched_careers | career | probabilistic+manual | texture | — | — |
+| taken_in_by_relatives | family | manual | wired | — | City.displaceHousehold (eviction rehousing, task 076) |
+| taught_child_to_ride_bike | family | probabilistic+manual | texture | — | — |
+| taught_grandchild_to_fish | aging | probabilistic+manual | texture | — | — |
+| taught_parrot_word | pet | probabilistic+manual | texture | quirk | — |
+| ten_years_in_town | milestone | manual | reserved | — | — |
+| threw_out_back | health | probabilistic+manual | texture | quirk | — |
+| threw_party | social | probabilistic+manual | texture | quirk | — |
+| tightened_the_belt | finance | probabilistic+manual | texture | quirk | — |
+| took_day_trip | travel | probabilistic+manual | texture | quirk | — |
+| took_evening_course | education | probabilistic+manual | texture | quirk | — |
+| took_first_steps | milestone | probabilistic+manual | texture | quirk | — |
+| took_in_aging_parent | family | manual | reserved | — | — |
+| took_in_roommate | housing | probabilistic+manual | texture | quirk | — |
+| took_mental_health_day | emotion-mood | probabilistic | texture | quirk | — |
+| took_out_loan | finance | probabilistic+manual | texture | quirk | — |
+| took_pet_to_vet | pet | probabilistic+manual | texture | — | — |
+| took_pottery_class | hobby | probabilistic+manual | texture | quirk | — |
+| took_sabbatical | career | probabilistic | texture | quirk | — |
+| took_scenic_route | travel | manual | reserved | — | — |
+| took_up_early_dinners | aging | probabilistic | texture | quirk | — |
+| took_up_painting | hobby | probabilistic+manual | texture | quirk | — |
+| took_up_photography | hobby | probabilistic | texture | quirk | — |
+| took_up_smoking | health | probabilistic | texture | quirk | — |
+| took_up_woodworking | hobby | probabilistic | texture | quirk | — |
+| tped_neighbors_tree | crime-mischief | probabilistic+manual | texture | quirk | — |
+| trade_school | education | probabilistic+manual | vital | — | — |
+| trained_new_coworker | career | probabilistic+manual | texture | — | — |
+| treated_a_patient | health | manual | wired | — | treating_patient.onComplete |
+| trespassed_empty_lot | crime-mischief | probabilistic | texture | quirk | — |
+| tried_exotic_food | food | probabilistic+manual | texture | quirk | — |
+| tried_new_recipe | food | manual | wired | — | cooking_meal.onComplete |
+| tripped_over_pet | accident | probabilistic+manual | texture | — | — |
+| turned_100 | milestone | manual | reserved | — | — |
+| turned_18 | milestone | manual | reserved | — | — |
+| turned_30 | milestone | manual | reserved | — | — |
+| turned_50 | milestone | manual | reserved | — | — |
+| turned_down_job_offer | career | probabilistic+manual | texture | quirk | — |
+| turned_themselves_in | crime-mischief | probabilistic | texture | quirk | — |
+| tv_broke_down | possessions | probabilistic | texture | quirk | — |
+| twisted_knee | accident | probabilistic | texture | quirk | — |
+| umbrella_flipped | weather-reaction | probabilistic+manual | texture | quirk | — |
+| updated_insurance | legal | probabilistic+manual | texture | quirk | — |
+| updated_will | death | probabilistic+manual | texture | quirk | — |
+| upgraded_phone | possessions | probabilistic+manual | texture | quirk | — |
+| utterly_exhausted | health | probabilistic | texture | — | — |
+| vandalized_fence | crime-mischief | probabilistic | texture | quirk | — |
+| visited_by_tooth_fairy | childhood | manual | reserved | — | — |
+| visited_grave | death | probabilistic+manual | texture | quirk | — |
+| visited_next_town | travel | probabilistic | texture | quirk | — |
+| visited_person_in_jail | crime | manual | wired | — | visiting_the_detained.onComplete |
+| visited_sick_relative | health | manual | wired | — | visiting_the_sick.onComplete |
+| volunteered_at_shelter | community | probabilistic+manual | texture | quirk | — |
+| voted_in_election | community | manual | reserved | — | — |
+| vowed_to_travel_more | travel | probabilistic | texture | quirk | — |
+| walked_child_down_aisle | family | manual | reserved | — | — |
+| walked_dog | pet | probabilistic+manual | texture | — | — |
+| walked_into_glass_door | accident | probabilistic+manual | texture | quirk | — |
+| wallet_returned | finance | probabilistic | texture | quirk | — |
+| was_arrested | crime | manual | reserved | — | — |
+| was_audited | finance | probabilistic+manual | texture | quirk | — |
+| was_born | milestone | manual | wired | — | City.handleTick (birth, task 076) |
+| was_burgled | crime-mischief | probabilistic+manual | texture | quirk | — |
+| was_cheated_on | romance | manual | reserved | — | — |
+| was_detained | crime | manual | vital | — | — |
+| was_evicted | housing | manual | reserved | — | — |
+| was_fired | career | probabilistic+manual | texture | quirk | — |
+| was_gossiped_about | social | probabilistic+manual | texture | quirk | — |
+| was_grounded | family | manual | reserved | — | — |
+| was_headhunted | career | probabilistic | texture | quirk | — |
+| was_hospitalized | health | probabilistic+manual | texture | quirk | — |
+| was_laid_off | career | probabilistic+manual | texture | quirk | — |
+| was_life_of_party | social | manual | reserved | — | — |
+| was_not_invited | social | probabilistic | texture | quirk | — |
+| was_overcharged | finance | probabilistic+manual | texture | quirk | — |
+| was_pickpocketed | crime-mischief | probabilistic | texture | quirk | — |
+| was_scammed | legal | probabilistic+manual | texture | quirk | — |
+| was_scolded | family | probabilistic+manual | texture | quirk | — |
+| was_snowed_in | weather-reaction | manual | reserved | — | — |
+| was_treated_by_doctor | health | manual | wired | — | treating_patient.onCompleteTarget |
+| was_turned_down | romance | probabilistic+manual | texture | quirk | — |
+| was_visited_while_sick | health | manual | reserved | — | — |
+| was_wrongly_accused | legal | probabilistic | texture | quirk | — |
+| washed_car | possessions | probabilistic+manual | texture | quirk | — |
+| watched_child_graduate | family | manual | reserved | — | — |
+| watched_sunrise | travel | probabilistic+manual | texture | quirk | — |
+| watched_thunderstorm | weather-reaction | probabilistic | texture | quirk | — |
+| welcomed_neighbors_with_pie | housing | probabilistic+manual | texture | quirk | — |
+| welcomed_sibling | family | manual | reserved | — | — |
+| went_back_to_school | education | probabilistic | texture | quirk | — |
+| went_bankrupt | finance | manual | reserved | — | — |
+| went_birdwatching | hobby | probabilistic+manual | texture | quirk | — |
+| went_camping | travel | probabilistic | texture | quirk | — |
+| went_fishing | hobby | probabilistic+manual | texture | quirk | — |
+| went_fully_gray | aging | probabilistic | texture | quirk | — |
+| went_grocery_shopping | food | manual | wired | — | shopping_trip.onComplete |
+| went_hungry | health | probabilistic | texture | — | — |
+| went_on_first_date | romance | manual | wired | — | asked_person_out.onCompleteTarget |
+| went_on_vacation | travel | probabilistic | texture | quirk | — |
+| went_stargazing | travel | probabilistic+manual | texture | quirk | — |
+| went_straight | crime-mischief | probabilistic | texture | quirk | — |
+| went_through_rough_patch | romance | probabilistic | texture | quirk | — |
+| went_to_work | career | manual | reserved | — | — |
+| went_trick_or_treating | childhood | probabilistic+manual | texture | quirk | — |
+| whistled_all_day | emotion-mood | probabilistic | texture | quirk | — |
+| witnessed_a_scene | social | manual | reserved | — | — |
+| witnessed_crime | crime-mischief | probabilistic+manual | texture | quirk | — |
+| woke_up | daily | manual | wired | — | sleep.onComplete |
+| woke_up_grumpy | emotion-mood | probabilistic | texture | quirk | — |
+| won_argument | social | manual | reserved | — | — |
+| won_at_bingo | aging | probabilistic+manual | texture | quirk | — |
+| won_chess_match | hobby | probabilistic+manual | texture | quirk | — |
+| won_chili_cookoff | food | probabilistic+manual | texture | quirk | — |
+| won_council_seat | community | manual | reserved | — | — |
+| won_game_of_tag | childhood | probabilistic+manual | texture | quirk | — |
+| won_gardening_prize | achievement | probabilistic+manual | texture | quirk | — |
+| won_karaoke_contest | achievement | probabilistic+manual | texture | quirk | — |
+| won_lottery | finance | probabilistic+manual | texture | quirk | — |
+| won_marathon | achievement | probabilistic+manual | texture | quirk | — |
+| won_pie_eating_contest | community | probabilistic+manual | texture | quirk | — |
+| won_raffle | finance | probabilistic+manual | texture | quirk | — |
+| won_sandcastle_contest | childhood | probabilistic | texture | quirk | — |
+| won_science_fair | education | probabilistic+manual | texture | quirk | — |
+| won_small_claims | legal | probabilistic+manual | texture | quirk | — |
+| won_snowball_fight | weather-reaction | probabilistic+manual | texture | quirk | — |
+| won_spelling_bee | education | probabilistic+manual | texture | quirk | — |
+| won_trivia_night | achievement | probabilistic+manual | texture | quirk | — |
+| wore_hole_in_shoes | possessions | probabilistic | texture | quirk | — |
+| worked_overtime | career | probabilistic+manual | texture | — | — |
+| wrote_bucket_list | milestone | probabilistic | texture | quirk | — |
+| wrote_love_letter | romance | probabilistic+manual | texture | quirk | — |
+| wrote_memoirs | aging | probabilistic | texture | quirk | — |
+| wrote_song | hobby | probabilistic+manual | texture | quirk | — |
+| wrote_will | death | probabilistic+manual | texture | quirk | — |
+| yard_sale_treasure | possessions | probabilistic+manual | texture | quirk | — |
+| yelled_get_off_my_lawn | aging | probabilistic | texture | quirk | — |

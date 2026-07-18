@@ -11,7 +11,7 @@ import { compileEvents, DEFAULT_BASE_ATTRIBUTES } from 'game/events/EventCompile
 import { EventManifest } from 'types/LifeEvent';
 import { KNOWN_SIGNALS } from 'util/notifications';
 
-const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category', 'valence', 'reactions', 'witnessable'];
+const EVENT_KEYS = ['roles', 'triggers', 'effects', 'parameters', 'limit', 'label', 'category', 'valence', 'reactions', 'witnessable', 'quirk'];
 const ROLE_KEYS = ['where', 'bind'];
 const BIND_RELATIONS = ['partnerOf', 'partnerOrDatingOf', 'engagedOf']; // EventEngine.resolveBind's vocabulary
 
@@ -76,6 +76,10 @@ export function validateEventsStructure(data: unknown, issues: IssueCollector): 
         }
         if ('witnessable' in event && typeof event['witnessable'] !== 'boolean') {
             issues.add(id + '.witnessable', 'expected a boolean');
+        }
+        // The LP-7 quirk marker: a decision record that a free-roller is KEPT whimsical on purpose.
+        if ('quirk' in event && event['quirk'] !== true) {
+            issues.add(id + '.quirk', 'quirk is a decision marker — true or absent, never false');
         }
         if ('reactions' in event) {
             // Task 094: authored answers to this commit. Structural here; the action/param cross-checks are
