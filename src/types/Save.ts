@@ -149,6 +149,9 @@ export interface WorldSnapshot {
     eventLogSeq?: number;
     // Pending automated event triggers (v8, task 042). Optional so older saves load with an empty queue.
     eventSchedule?: ScheduleState;
+    // The setAttr attribute overlay (LP-6): health/retired/depressed/pregnant survive a save now. Optional
+    // and additive — absent (older saves) loads empty, the pre-LP-6 behavior.
+    eventOverlay?: Record<string, Record<string, string | number | boolean>>;
     // Money balances (v6+). Optional so older saves load with empty balances.
     economy?: EconomyState;
     // Object instances & Possessions (v8, task 041). Optional so older saves load with none.

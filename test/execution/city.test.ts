@@ -675,3 +675,65 @@ describe('live work reliability (LP-3 keystone)', () => {
         expect(started).toBe(true);
     });
 });
+
+// Task 122 (LP-6): live move-out through the EVENT path. The 052 regeneration orphaned the movedOut signal
+// — moved_out_of_parents now gates on canMoveOut and emits it, City.handleTick routes it to resolveMoveOut,
+// and the signal-coverage guard (test/events/signalCoverage.test.ts) keeps the producer from vanishing
+// again. This drives the real manifest event (hot-rated fixture manifest) through handleTick, not the
+// handler directly.
+describe('live move-out via the event path (task 122)', () => {
+    const MOVE_OUT_MANIFEST: EventManifest = {
+        moved_out_of_parents: {
+            label: 'Moved out of the parents\' house',
+            category: 'housing',
+            roles: { subject: { where: { all: [
+                { attr: 'alive', op: '==', value: true },
+                { attr: 'age', op: '>=', value: 18 },
+                { attr: 'canMoveOut', op: '==', value: true },
+            ] } } },
+            triggers: { probabilistic: { perYear: 200000 } }, // certainty per tick — the fixture hot-rate
+            effects: [{ type: 'emit', signal: 'movedOut', target: 'subject' }],
+        },
+    } as unknown as EventManifest;
+
+    test('an eligible adult non-head moves into the vacant house; the ineligible never fire', async () => {
+        const harness = makeGame(30, 30, MOVE_OUT_MANIFEST);
+        const { field, population, clock, city } = harness;
+        const tickNow = 5000;
+        const parent = gen('p', Genders.Female, 55, tickNow);
+        const adult = gen('ch', Genders.Male, 28, tickNow, { motherId: 'p' });
+        loadState(population, clock, { p: parent, ch: adult }, ['p', 'ch'], tickNow);
+
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const vacant = field.loadStructure('house', 10, 10, 'h') as House;
+        home.setHousehold({ id: 'hh-1', houseKey: home.getIdentifier(), headId: 'p', memberIds: ['p', 'ch'], arrangement: HouseholdArrangements.Nuclear });
+        materialize(field, home, 'p', 72, 72);
+        const child = materialize(field, home, 'ch', 72, 72);
+
+        await city.handleTick({ timestamp: {} as never, tick: tickNow });
+
+        // The event fired, the signal routed, the relocation happened: a new single household in the
+        // formerly vacant house, the parents' household shrunk.
+        expect(child.social.getHome()).toBe(vacant);
+        expect(vacant.getHousehold()?.memberIds).toEqual(['ch']);
+        expect(home.getHousehold()?.memberIds).toEqual(['p']);
+    });
+
+    test('with no vacant house, canMoveOut gates the event silent (nobody relocates)', async () => {
+        const harness = makeGame(30, 30, MOVE_OUT_MANIFEST);
+        const { field, population, clock, city } = harness;
+        const tickNow = 5000;
+        const parent = gen('p', Genders.Female, 55, tickNow);
+        const adult = gen('ch', Genders.Male, 28, tickNow, { motherId: 'p' });
+        loadState(population, clock, { p: parent, ch: adult }, ['p', 'ch'], tickNow);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        home.setHousehold({ id: 'hh-1', houseKey: home.getIdentifier(), headId: 'p', memberIds: ['p', 'ch'], arrangement: HouseholdArrangements.Nuclear });
+        materialize(field, home, 'p', 72, 72);
+        const child = materialize(field, home, 'ch', 72, 72);
+
+        await city.handleTick({ timestamp: {} as never, tick: tickNow });
+
+        expect(child.social.getHome()).toBe(home);
+        expect(home.getHousehold()?.memberIds).toEqual(['p', 'ch']);
+    });
+});

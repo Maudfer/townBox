@@ -116,7 +116,8 @@
         "triggers": {
             "probabilistic": {
                 "perYear": 12
-            }
+            },
+            "manual": {}
         },
         "effects": [],
         "valence": 1
@@ -151,6 +152,13 @@
                             "attr": "wantsMoreChildren",
                             "op": "==",
                             "value": true
+                        },
+                        {
+                            "not": {
+                                "attr": "pregnant",
+                                "op": "==",
+                                "value": true
+                            }
                         }
                     ]
                 }
@@ -188,23 +196,20 @@
                         }
                     }
                 ]
-            }
+            },
+            "manual": {}
         },
         "effects": [
             {
-                "type": "birth",
-                "mother": "subject",
-                "father": "father"
-            },
-            {
-                "type": "emit",
-                "signal": "rehousingNeeded",
-                "target": "subject"
+                "type": "setAttr",
+                "attr": "pregnant",
+                "value": true
             }
         ],
         "limit": {
             "withinTicks": 7200
-        }
+        },
+        "valence": 2
     },
     "marriage": {
         "label": "Got married",
@@ -2829,9 +2834,6 @@
             }
         },
         "triggers": {
-            "probabilistic": {
-                "perYear": 0.8
-            },
             "manual": {}
         },
         "limit": {
@@ -2842,24 +2844,58 @@
     },
     "gave_birth": {
         "label": "Gave birth",
-        "category": "family",
+        "category": "lifecycle",
         "roles": {
             "subject": {
                 "where": {
-                    "attr": "alive",
-                    "op": "==",
-                    "value": true
+                    "all": [
+                        {
+                            "attr": "alive",
+                            "op": "==",
+                            "value": true
+                        },
+                        {
+                            "attr": "pregnant",
+                            "op": "==",
+                            "value": true
+                        }
+                    ]
                 }
+            },
+            "father": {
+                "bind": "partnerOf:subject"
             }
         },
         "triggers": {
-            "manual": {}
+            "manual": {},
+            "automated": {
+                "rules": [
+                    {
+                        "afterEvent": "pregnancy",
+                        "delayTicks": 6480
+                    }
+                ]
+            }
         },
-        "limit": {
-            "withinTicks": 720
-        },
-        "effects": [],
-        "valence": 3
+        "effects": [
+            {
+                "type": "birth",
+                "mother": "subject",
+                "father": "father"
+            },
+            {
+                "type": "setAttr",
+                "attr": "pregnant",
+                "value": false
+            },
+            {
+                "type": "emit",
+                "signal": "rehousingNeeded",
+                "target": "subject"
+            }
+        ],
+        "valence": 3,
+        "witnessable": true
     },
     "became_parent": {
         "label": "Became a parent",
@@ -2900,8 +2936,9 @@
                             "value": "female"
                         },
                         {
-                            "hasEvent": "became_pregnant",
-                            "withinTicks": 2160
+                            "attr": "pregnant",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -2909,13 +2946,20 @@
         },
         "triggers": {
             "probabilistic": {
-                "perYear": 0.8
-            }
+                "perYear": 0.2
+            },
+            "manual": {}
         },
         "limit": {
             "withinTicks": 720
         },
-        "effects": [],
+        "effects": [
+            {
+                "type": "setAttr",
+                "attr": "pregnant",
+                "value": false
+            }
+        ],
         "valence": -3
     },
     "adopted_child": {
@@ -8661,6 +8705,11 @@
                             "attr": "age",
                             "op": ">=",
                             "value": 18
+                        },
+                        {
+                            "attr": "canMoveOut",
+                            "op": "==",
+                            "value": true
                         }
                     ]
                 }
@@ -8675,7 +8724,13 @@
         "limit": {
             "withinTicks": 1440
         },
-        "effects": []
+        "effects": [
+            {
+                "type": "emit",
+                "signal": "movedOut",
+                "target": "subject"
+            }
+        ]
     },
     "was_evicted": {
         "label": "Was evicted",

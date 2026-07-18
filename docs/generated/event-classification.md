@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserved**.
+Totals: 740 events — **30 vital**, **44 wired**, **510 texture**, **156 reserved**.
 
 | Event | Category | Triggers | Disposition | Invoked by |
 |---|---|---|---|---|
@@ -50,7 +50,7 @@ Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserv
 | became_neighborhood_elder | aging | manual | reserved | — |
 | became_parent | family | manual | wired | City.handleTick (birth, task 076) |
 | became_pen_pals | social | probabilistic | texture | — |
-| became_pregnant | family | probabilistic+manual | texture | — |
+| became_pregnant | family | manual | reserved | — |
 | became_widowed | death | manual | wired | City.handleTick (death → surviving spouse, task 076) |
 | began_afternoon_naps | aging | probabilistic | texture | — |
 | believed_town_legend | childhood | probabilistic | texture | — |
@@ -232,7 +232,7 @@ Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserv
 | fridge_went_empty | food | manual | reserved | — |
 | gained_weight | health | probabilistic+manual | texture | — |
 | gave_away_kittens | pet | manual | reserved | — |
-| gave_birth | family | manual | wired | City.handleTick (birth, task 076) |
+| gave_birth | lifecycle | manual+automated | vital | City.handleTick (birth, task 076) |
 | gave_directions | community | probabilistic+manual | texture | — |
 | gave_gift | social | manual | wired | gave_object_to_person.onComplete |
 | gave_up_driving | aging | probabilistic | texture | — |
@@ -313,7 +313,7 @@ Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserv
 | had_housewarming | housing | probabilistic+manual | texture | — |
 | had_imaginary_friend | childhood | probabilistic | texture | — |
 | had_midlife_crisis | milestone | probabilistic+manual | texture | — |
-| had_miscarriage | family | probabilistic | texture | — |
+| had_miscarriage | family | probabilistic+manual | vital | — |
 | had_near_death_experience | death | probabilistic+manual | texture | — |
 | had_neighbor_dispute | community | probabilistic | texture | — |
 | had_nightmare | emotion-mood | probabilistic+manual | texture | — |
@@ -321,7 +321,7 @@ Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserv
 | had_pest_infestation | housing | probabilistic+manual | texture | — |
 | had_road_trip_singalong | travel | manual | reserved | — |
 | had_routine_checkup | health | probabilistic+manual | texture | — |
-| had_sex | relationship | probabilistic | texture | — |
+| had_sex | relationship | probabilistic+manual | texture | — |
 | had_staycation | travel | probabilistic | texture | — |
 | had_surgery | health | probabilistic+manual | texture | — |
 | had_terrible_day | emotion-mood | probabilistic+manual | texture | — |
@@ -431,7 +431,7 @@ Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserv
 | mourned_loss_anniversary | death | manual | reserved | — |
 | moved_in_with_partner | romance | manual | reserved | — |
 | moved_into_new_home | housing | manual | reserved | — |
-| moved_out_of_parents | housing | probabilistic+manual | texture | — |
+| moved_out_of_parents | housing | probabilistic+manual | vital | — |
 | mowed_lawn | housing | probabilistic+manual | texture | — |
 | nailed_presentation | career | probabilistic+manual | texture | — |
 | named_baby | family | manual | reserved | — |
@@ -491,7 +491,7 @@ Totals: 740 events — **27 vital**, **45 wired**, **513 texture**, **155 reserv
 | played_in_band | hobby | probabilistic+manual | texture | — |
 | power_came_back | weather-reaction | manual | reserved | — |
 | predicted_rain_with_knee | weather-reaction | probabilistic | texture | — |
-| pregnancy | lifecycle | probabilistic | vital | — |
+| pregnancy | lifecycle | probabilistic+manual | vital | — |
 | proposal_rejected | romance | manual | reserved | — |
 | pulled_all_nighter | education | probabilistic+manual | texture | — |
 | pulled_muscle | health | manual | reserved | — |

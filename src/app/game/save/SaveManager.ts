@@ -154,6 +154,7 @@ export default class SaveManager {
             eventLog: this.game.eventEngine?.getLiveLog(),
             eventLogSeq: this.game.eventEngine?.getNextLogSeq(),
             eventSchedule: this.game.eventEngine?.getScheduleState(),
+            eventOverlay: this.game.eventEngine?.getOverlayState(),
             economy: this.game.economy?.getState(),
             objects: this.game.inventory?.getState(),
             actions: this.game.actionEngine?.getState(),
@@ -328,6 +329,11 @@ export default class SaveManager {
         // Pending automated triggers (v8+, task 042). Older saves carry none; the queue starts empty.
         if (snapshot.eventSchedule) {
             this.game.eventEngine?.loadScheduleState(snapshot.eventSchedule);
+        }
+
+        // The attribute overlay (LP-6): sick stays sick, retired stays retired, pregnant stays pregnant.
+        if (snapshot.eventOverlay) {
+            this.game.eventEngine?.loadOverlayState(snapshot.eventOverlay as never);
         }
 
         // Economy (v6+). Older saves carry none; balances stay empty.

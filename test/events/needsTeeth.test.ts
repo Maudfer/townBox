@@ -98,3 +98,57 @@ describe('the family table (LP-5 / P1-7)', () => {
         expect(needs.levelOf('cook', 'food', 500, pool.worldSeed)).toBe(cookBefore);
     });
 });
+
+// Gestation (LP-6 / proposal simulation-aliveness-2 P1-3): pregnancy is conception — it sets the pregnant
+// state; the birth is a SCHEDULED event nine in-game months later, and a miscarriage clears the state so
+// the scheduled delivery rejects on its own eligibility (cancellation by gate, no queue surgery).
+describe('gestation (LP-6)', () => {
+    const T0 = 10_000;
+
+    function pregnantWorld() {
+        const engine = new EventEngine();
+        const pool = state(['mom', 'dad']);
+        pool.people['dad'] = { ...gen('dad'), gender: Genders.Male };
+        pool.people['mom']!.maxChildren = 4; // wantsMoreChildren gate
+        pool.people['dad']!.maxChildren = 4;
+        pool.people['mom']!.partnerships.push({ partnerId: 'dad', startTick: 0, endTick: null });
+        pool.people['dad']!.partnerships.push({ partnerId: 'mom', startTick: 0, endTick: null });
+        // Conception context: recent intimacy + wants children (the real event's gates).
+        engine.invoke(pool, 'had_sex', 'mom', T0 - 10, TPY, { source: 'system', causationId: null });
+        return { engine, pool };
+    }
+
+    test('pregnancy sets the pregnant state without an instant baby; delivery births nine months later', () => {
+        const { engine, pool } = pregnantWorld();
+        const conceive = engine.invoke(pool, 'pregnancy', 'mom', T0, TPY, { source: 'system', causationId: null });
+        expect(conceive.outcome.ok).toBe(true);
+        expect(Object.keys(pool.people)).toHaveLength(2); // no baby yet — the audit's same-hour birth is gone
+        expect(engine.contextFor(pool, 'mom', T0 + 1, TPY).getAttr('pregnant')).toBe(true);
+
+        // The scheduled gave_birth drains when its due tick is covered.
+        const result = engine.simulateTick(pool, ['mom', 'dad'], T0 + 6480, TPY, {});
+        expect(result.born).toHaveLength(1);
+        expect(Object.keys(pool.people)).toHaveLength(3);
+        expect(engine.contextFor(pool, 'mom', T0 + 6481, TPY).getAttr('pregnant')).toBe(false);
+        expect(engine.getPersonLog('mom').some(entry => entry.kind === 'event' && entry.defId === 'gave_birth')).toBe(true);
+    });
+
+    test('a miscarriage clears the state and the scheduled delivery rejects (no ghost baby)', () => {
+        const { engine, pool } = pregnantWorld();
+        engine.invoke(pool, 'pregnancy', 'mom', T0, TPY, { source: 'system', causationId: null });
+        expect(engine.invoke(pool, 'had_miscarriage', 'mom', T0 + 100, TPY, { source: 'system', causationId: null }).outcome.ok).toBe(true);
+        expect(engine.contextFor(pool, 'mom', T0 + 101, TPY).getAttr('pregnant')).toBe(false);
+
+        const result = engine.simulateTick(pool, ['mom', 'dad'], T0 + 6480, TPY, {});
+        expect(result.born).toHaveLength(0);
+        expect(Object.keys(pool.people)).toHaveLength(2);
+    });
+
+    test('a second conception cannot land while pregnant', () => {
+        const { engine, pool } = pregnantWorld();
+        engine.invoke(pool, 'pregnancy', 'mom', T0, TPY, { source: 'system', causationId: null });
+        engine.invoke(pool, 'had_sex', 'mom', T0 + 200, TPY, { source: 'system', causationId: null });
+        const again = engine.invoke(pool, 'pregnancy', 'mom', T0 + 300, TPY, { source: 'system', causationId: null });
+        expect(again.outcome.ok).toBe(false);
+    });
+});

@@ -170,7 +170,9 @@ describe('the untreated-mortality chain (emergent arithmetic)', () => {
     test('a severely ill cohort loses strictly more people over a seeded year WITHOUT treatment', () => {
         const deathsOver = (treatWeekly: boolean): number => {
             const engine = new EventEngine();
-            const ids = Array.from({ length: 40 }, (_, index) => `p${String(index).padStart(2, '0')}`);
+            // 80-strong cohort (was 40): the LP-5/6 manifest growth legitimately moved the RNG streams and
+            // the old size left the pinned direction one death from noise — double the statistical power.
+            const ids = Array.from({ length: 80 }, (_, index) => `p${String(index).padStart(2, '0')}`);
             const people: Record<string, GenPerson> = {};
             for (const id of ids) {
                 people[id] = gen(id, { birthTick: TICK_NOW - 85 * TPY });

@@ -277,6 +277,17 @@ export default class EventEngine {
         this.history = history ?? {};
     }
 
+    // The per-person attribute overlay (setAttr state: health, retired, depressed, pregnant…). Save/load
+    // surface (LP-6): this was never serialized — a sick person loaded healthy, a retiree loaded
+    // employable, and gestation (a 9-month pregnant state) made the loss untenable. Additive save field.
+    getOverlayState(): Record<PersonId, Record<string, Value>> {
+        return this.overlay;
+    }
+
+    loadOverlayState(overlay: Record<PersonId, Record<string, Value>> | undefined): void {
+        this.overlay = overlay ?? {};
+    }
+
     // Lazy hydration (task 012 follow-up): installs ONE person's pre-game aggregate history + log entries from
     // the history asset at materialization time, instead of loading everyone's up-front at boot.
     installPersonHistory(personId: PersonId, record: EventHistoryTable[PersonId]): void {
