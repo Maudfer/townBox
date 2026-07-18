@@ -20,6 +20,7 @@ function rankLabel(job: { title: string; rankId?: string }): string | null {
 }
 import { DetailsWindowProps } from 'types/HUD';
 import { formatTickAtMinute } from 'util/time';
+import { resolveLogParams } from 'hud/logEntities';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;
@@ -267,12 +268,20 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                                 const label = entry.kind === 'action'
                                     ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle}${failureSuffix})` : ''}`
                                     : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
-                                // Event payloads (task 067): show the invocation params inline.
-                                const paramEntries = entry.kind === 'event' && entry.params ? Object.entries(entry.params) : [];
-                                const paramSuffix = paramEntries.length ? ` [${paramEntries.map(([key, value]) => `${key}: ${String(value)}`).join(', ')}]` : '';
+                                // Entity-linked params (LP-14 / M5): "Hugged a person [Ana Souza]" — names, not ids,
+                                // for BOTH entry kinds (action targets carried ids the HUD never rendered), with a
+                                // clickable chip when the referent is materialized.
+                                const chips = entry.params ? resolveLogParams(game, entry.params) : [];
                                 return (
                                     <li key={entry.seq}>
-                                        {label}{paramSuffix} — <small>{formatTickAtMinute(entry.tick, entry.minute)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
+                                        {label}
+                                        {chips.map(chip => chip.person
+                                            ? <button key={chip.key} type="button" onClick={() => game.emit('PersonSelected', chip.person!)}
+                                                style={{ marginLeft: 4, cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: '#7fd0ff', textDecoration: 'underline', font: 'inherit' }}>
+                                                {chip.text}
+                                            </button>
+                                            : <span key={chip.key} style={{ marginLeft: 4, opacity: 0.85 }}>[{chip.text}]</span>)}
+                                        {' — '}<small>{formatTickAtMinute(entry.tick, entry.minute)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
                                     </li>
                                 );
                             })}
