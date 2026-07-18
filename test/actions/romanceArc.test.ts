@@ -110,3 +110,19 @@ describe('the pipeline', () => {
         expect(spouseAt(state.people, 'ana', 100 + TPY)).toBeNull();
     });
 });
+
+// Dating is exclusive here (LP-9): the asset decode found 1,172 standing dating edges (~9 per living
+// person) because a consented ask seeded a new romance and nothing ever closed the others.
+describe('serial monogamy (LP-9)', () => {
+    test('starting to date someone demotes both parties\' other romances to ex_partner', () => {
+        const { actions, social, state, deps } = harness();
+        state.people['carla'] = person('carla', Genders.Female);
+        (deps.ctx.world as BootstrapWorld).register('carla');
+        social.setKind('ana', 'carla', 'dating', 90, 35); // the old flame
+
+        const askedAt = untilAccepted(actions, deps, 'ana', 'asked_person_out', { target: 'bruno' }, 100);
+        expect(askedAt).not.toBeNull();
+        expect(social.edgeBetween('ana', 'bruno', askedAt!)!.kind).toBe('dating');
+        expect(social.edgeBetween('ana', 'carla', askedAt!)!.kind).toBe('ex_partner');
+    });
+});

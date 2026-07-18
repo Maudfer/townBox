@@ -19,7 +19,7 @@ export function buildGenealogyTree(
     const index = new Map<PersonId, number>();
     const nodes: Node[] = [];
 
-    const addNode = (id: PersonId): void => {
+    const addNode = (id: PersonId, generation: number): void => {
         if (index.has(id)) {
             return;
         }
@@ -30,13 +30,19 @@ export function buildGenealogyTree(
             alive: person ? isAliveAt(person, currentTick) : false,
             placed: placedIds.has(id),
             isSubject: subjects.has(id),
+            generation,
         });
     };
 
-    // BFS over kinship neighbours, bounded by depth.
+    // BFS over kinship neighbours, bounded by depth, carrying the GENERATION level (LP-10): parents one
+    // row up, children one row down, spouses/siblings on their anchor's row — the renderer pins rows.
     const visited = new Set<PersonId>();
+    const levelOf = new Map<PersonId, number>();
     let frontier: PersonId[] = seedIds.filter(id => pool[id]);
-    frontier.forEach(addNode);
+    frontier.forEach(id => {
+        levelOf.set(id, 0);
+        addNode(id, 0);
+    });
 
     for (let hop = 0; hop < depth && frontier.length; hop++) {
         const next: PersonId[] = [];
@@ -45,19 +51,21 @@ export function buildGenealogyTree(
                 continue;
             }
             visited.add(id);
+            const level = levelOf.get(id) ?? 0;
 
-            const neighbours = [
-                ...parentsOf(pool, id),
-                ...childrenOf(pool, id),
-                ...siblingsOf(pool, id),
-                ...spousePartnerIds(pool, id),
+            const neighbours: [PersonId, number][] = [
+                ...parentsOf(pool, id).map((parentId): [PersonId, number] => [parentId, level - 1]),
+                ...childrenOf(pool, id).map((childId): [PersonId, number] => [childId, level + 1]),
+                ...siblingsOf(pool, id).map((siblingId): [PersonId, number] => [siblingId, level]),
+                ...spousePartnerIds(pool, id).map((partnerId): [PersonId, number] => [partnerId, level]),
             ];
-            for (const neighbour of neighbours) {
+            for (const [neighbour, neighbourLevel] of neighbours) {
                 if (!pool[neighbour]) {
                     continue;
                 }
                 if (!index.has(neighbour)) {
-                    addNode(neighbour);
+                    levelOf.set(neighbour, neighbourLevel);
+                    addNode(neighbour, neighbourLevel);
                     next.push(neighbour);
                 }
             }

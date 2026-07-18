@@ -83,6 +83,7 @@ describe('resolution', () => {
 
         const handle = world.requestTransition('a', { kind: 'venue', venue: 'supermarket' }, 10, null);
         expect(handle.status).toBe('pending');
+        world.pump(10); // flush the deferred departure (LP-11 spreading)
         expect(commutes).toHaveLength(1);
         expect(commutes[0]!.destination).toBe(near);
 

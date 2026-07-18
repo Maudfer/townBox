@@ -9,9 +9,9 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 311 | 95 continuous / 216 discrete |
-| `events.json` | 738 | 169 probabilistic, 368 probabilistic + manual, 199 manual, 2 manual + automated |
-| `object-action-relationships.json` | 28 | first-satisfiable entry per action commit |
+| `actions.json` | 314 | 96 continuous / 218 discrete |
+| `events.json` | 741 | 167 probabilistic, 357 probabilistic + manual, 214 manual, 3 manual + automated |
+| `object-action-relationships.json` | 41 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
 
@@ -19,8 +19,9 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 
 | Actions | Lifecycle → Event |
 |---|---|
-| `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
+| `attending_customers`, `working_the_register`, `doing_paperwork`, `doing_rounds`, `working_the_kitchen`, `doing_manual_labor`, `teaching_class`, `fixing_equipment`, `keeping_watch`, `cleaning_premises`, `driving_route`, `treating_patients`, `styling_clients`, `coaching_session`, `drafting_designs`, `screening_film`, `balancing_the_till`, `prepping_ingredients`, `restocking_shelves`, `reviewing_charts`, `grading_papers`, `patrolling_the_floor`, `mixing_batter`, `servicing_a_vehicle`, `drawing_blueprints`, `leading_a_workout`, `checking_in_guests`, `projecting_the_matinee`, `sorting_deliveries`, `updating_ledgers`, `sterilizing_equipment`, `shelving_returns`, `wiping_down_tables`, `pruning_displays`, `counting_inventory`, `supervising_the_team`, `patrolling`, `chasing_a_suspect`, `collection_rounds`, `rushing_to_the_fire`, `responding_to_fire`, `responding_to_incident` | onStart → `started_working`<br>onComplete → `stopped_working`<br>onInterrupt → `stopped_working` |
 | `adopted_a_pet` | onComplete → `adopted_a_pet` |
+| `applied_for_a_job` | onComplete → `get_job` |
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
@@ -56,49 +57,51 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `committed_pickpocketing` | manual | — | `pickpocketed_someone`.onComplete (discrete) |
 | `committed_shoplifting` | manual | — | `pocketed_merchandise`.onComplete (discrete) |
 | `completed_school_day` | manual + automated | once: perDay | `attend_school`.onComplete (continuous) |
-| `decluttered_house` | probabilistic + manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
+| `decluttered_house` | manual | cooldown 360 ticks | `cleaning_house`.onComplete (continuous) |
 | `escaped_a_fire` | manual | — | `evacuating`.onComplete (continuous) |
-| `finished_great_book` | probabilistic + manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
-| `found_money_on_street` | probabilistic + manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
+| `finished_great_book` | manual | cooldown 360 ticks | `read_book`.onComplete (continuous) |
+| `found_money_on_street` | manual | cooldown 720 ticks | `found_coin`.onComplete (discrete) |
 | `gave_gift` | manual | cooldown 240 ticks | `gave_object_to_person`.onComplete (discrete) |
+| `get_job` | probabilistic + manual | — | `applied_for_a_job`.onComplete (discrete) |
 | `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
 | `heard_gossip` | manual | — | `shared_gossip`.onCompleteTarget (discrete) |
-| `hosted_dinner_party` | probabilistic + manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
-| `planted_garden` | probabilistic + manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
-| `reconnected_with_relative` | probabilistic + manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
+| `hosted_dinner_party` | manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
+| `planted_garden` | manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
+| `reconnected_with_relative` | manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
 | `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
-| `started_working` | manual | — | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 13 more |
-| `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 29 more |
+| `started_working` | manual | once: perDay | `attending_customers`.onStart (continuous)<br>`working_the_register`.onStart (continuous)<br>`doing_paperwork`.onStart (continuous)<br>… 39 more |
+| `stopped_working` | manual + automated | once: perDay | `attending_customers`.onComplete (continuous)<br>`attending_customers`.onInterrupt (continuous)<br>`working_the_register`.onComplete (continuous)<br>… 81 more |
 | `treated_a_patient` | manual | — | `treating_patient`.onComplete (continuous) |
-| `tried_new_recipe` | probabilistic + manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
+| `tried_new_recipe` | manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
 | `was_treated_by_doctor` | manual | — | `treating_patient`.onCompleteTarget (continuous) |
-| `went_grocery_shopping` | probabilistic + manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
+| `went_grocery_shopping` | manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 569 manual-triggered events, 545 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 574 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
 | Event | Rules | Limit |
 |---|---|---|
 | `stopped_working` | afterEvent `started_working` +12 ticks | once: perDay |
+| `gave_birth` | afterEvent `pregnancy` +6480 ticks | — |
 | `completed_school_day` | afterEvent `school_day_started` +8 ticks | once: perDay |
 
 ## Trigger & limit breakdown
 
 | Trigger mix | Events |
 |---|---|
-| probabilistic + manual | 368 |
-| manual | 199 |
-| probabilistic | 169 |
-| manual + automated | 2 |
+| probabilistic + manual | 357 |
+| manual | 214 |
+| probabilistic | 167 |
+| manual + automated | 3 |
 
 | Occurrence limit | Events |
 |---|---|
-| cooldown window | 631 |
+| cooldown window | 629 |
 | — | 51 |
-| once: ever | 50 |
-| once: perDay | 6 |
+| once: ever | 51 |
+| once: perDay | 10 |
 
 ## Object-action transformations
 
@@ -134,6 +137,19 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `workshop_planks` | `milled_some_planks` | — | 4× `wood_plank`, owner: employer | — |
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
+| `supermarket_restock` | `stocked_the_shelves` | — | 4× `egg`, owner: employer<br>2× `bread_loaf`, owner: employer<br>2× `milk_carton`, owner: employer<br>2× `tomato`, owner: employer<br>1× `lettuce`, owner: employer<br>2× `potato`, owner: employer<br>1× `onion`, owner: employer<br>1× `flour_bag`, owner: employer<br>1× `butter_stick`, owner: employer<br>1× `cheese_wedge`, owner: employer | — |
+| `ate_meal_from_loaf` | `ate_a_meal` | 1× `bread_loaf` (consumed) | — | — |
+| `ate_meal_from_eggs` | `ate_a_meal` | 2× `egg` (consumed) | — | — |
+| `ate_meal_from_salad` | `ate_a_meal` | 1× `tomato` (consumed)<br>1× `lettuce` (consumed) | — | — |
+| `ate_meal_from_potatoes` | `ate_a_meal` | 2× `potato` (consumed) | — | — |
+| `ate_meal_from_pasta` | `ate_a_meal` | 1× `pasta_box` (consumed) | — | — |
+| `ate_meal_from_fruit` | `ate_a_meal` | 1× `apple` (consumed) | — | — |
+| `served_family_from_staples` | `served_the_family` | 2× `egg` (consumed)<br>1× `tomato` (consumed) | — | — |
+| `served_family_from_loaf` | `served_the_family` | 1× `bread_loaf` (consumed) | — | — |
+| `served_family_from_potatoes` | `served_the_family` | 2× `potato` (consumed)<br>1× `onion` (consumed) | — | — |
+| `ate_meal_from_banana` | `ate_a_meal` | 1× `banana` (consumed) | — | — |
+| `ate_meal_from_granola` | `ate_a_meal` | 1× `granola_bar` (consumed) | — | — |
+| `ate_meal_from_cheese` | `ate_a_meal` | 1× `cheese_wedge` (consumed) | — | — |
 
 ## Interaction contracts (person-targeted actions)
 
@@ -273,7 +289,7 @@ The controlled vocabulary (069): tags mean "this environmental context exists he
 | `hardware-store` | building | 32 | 1 |
 | `hospital` | building | 30 | 2 |
 | `hotel-room` | building | 27 | 1 |
-| `kitchen` | building | 39 | 4 |
+| `kitchen` | building | 50 | 4 |
 | `laundromat` | building | 26 | 1 |
 | `library` | building | 28 | 1 |
 | `living-room` | building | 34 | 1 |

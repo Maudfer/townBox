@@ -186,6 +186,13 @@ export function validatePredicate(issues: IssueCollector, path: string, value: u
             // Ordered comparisons are numbers-only at runtime (compareOrdered), so anything else is authoring error.
             issues.add(`${path}.value`, `op "${op}" requires a number`);
         }
+        // Unit-scale guard (LP-5 quick fix / proposal simulation-aliveness-2 P1-8): `health` is 0–1.
+        // An audit found EIGHT manifest comparisons authored on a 0–100 scale — always-true gates
+        // (health < 40) silently inflating weights and always-false ones (health >= 70) silently dead.
+        // The whole class is now an authoring error.
+        if (value['attr'] === 'health' && typeof operand === 'number' && Math.abs(operand) > 1) {
+            issues.add(`${path}.value`, `"health" is a 0–1 attribute — a comparison against ${operand} is always-${operand > 0 ? (op === '<' || op === '<=' ? 'true' : 'false') : 'degenerate'} (did you mean ${operand / 100}?)`);
+        }
         return;
     }
     issues.add(path, `unrecognized predicate shape (keys: ${Object.keys(value).join(', ') || 'none'})`);

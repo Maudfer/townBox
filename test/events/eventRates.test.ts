@@ -71,9 +71,14 @@ describe('per-year incidence bands (task 048)', () => {
         expect(counts['marriage'] ?? 0).toBeLessThanOrEqual(5);
     });
 
-    test('fertile couples produce children (and not absurdly many)', () => {
-        expect(births).toBeGreaterThanOrEqual(3); // 0.6/yr × ~0.4–1 age factor × 20+ couples
-        expect(births).toBeLessThanOrEqual(30);
+    test('fertile couples conceive (and not absurdly often); gestation delays the births (LP-6)', () => {
+        // The authored rate governs CONCEPTION (the pregnancy event); deliveries land ~9 months later via
+        // the scheduled gave_birth, so a 1-year window sees conceptions in full but births only from the
+        // first quarter's conceptions.
+        const conceptions = counts['pregnancy'] ?? 0;
+        expect(conceptions).toBeGreaterThanOrEqual(3); // 0.6/yr × ~0.4–1 age factor × 20+ couples
+        expect(conceptions).toBeLessThanOrEqual(30);
+        expect(births).toBeLessThanOrEqual(conceptions); // no birth without a conception on record
     });
 
     test('illness/recovery churn stays sane', () => {

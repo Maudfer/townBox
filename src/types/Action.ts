@@ -170,6 +170,9 @@ export interface ActionInstance {
     startLogSeq: number | null; // seq of the 'started' log entry (causation for children/lifecycle events)
     ticksRun: number;
     transitionHandleId: number | null; // pending world transition, when waiting_for_materialization
+    // Whether the 'departed' log entry was written for this instance (LP-2) — once per instance, even
+    // when a moved person:<id> target re-routes the transition. Optional: absent in older saves.
+    departureLogged?: boolean;
     sequenceIndex: number; // next step to run (sequence children)
     // Output variables bound by the most recent step's consequences ("$previous.output", 038 §7.3/7.4).
     previousOutputs: Record<string, string>;
@@ -255,7 +258,11 @@ export type ConsequenceOp =
     | { op: 'planJointActivity'; activityParam: string; afterTicks: number; windowTicks: number }
     // Fire a manual Event now / schedule an automated one — both through the Event engine, with causation.
     | { op: 'triggerEvent'; event: string }
-    | { op: 'scheduleEvent'; event: string; afterTicks: number };
+    | { op: 'scheduleEvent'; event: string; afterTicks: number }
+    // Household care (LP-5 / proposal simulation-aliveness-2 P1-7): credit a need for people CO-LOCATED with
+    // the actor (the actor's own credit stays in `satisfies`). The served-family-meal mechanism — children
+    // and non-cooks get fed by whoever cooks. 'coLocated' excludes the actor; capped for sanity.
+    | { op: 'satisfyNeed'; need: string; amount: number; scope: 'coLocated' };
 
 // --- Object-action relationships (task 044; docs/tasks/038 §7.6) -------------------------------------------
 //

@@ -244,6 +244,14 @@ export default class GameManager {
         const debugTools = new DebugTools();
 
         const postSceneInit = async (_: Phaser.Scene) => {
+            // Idempotence guard (LP-2 / proposal simulation-aliveness-2 P2-5): MainScene.create was observed
+            // firing twice in one boot (a Phaser scene re-create), and this handler used to rebuild EVERY
+            // engine — double asset selection, double world, perturbed RNG. A world is built once per
+            // GameManager lifetime; a duplicate init is logged and ignored.
+            if (this.field) {
+                console.warn('[GameManager] Duplicate sceneInitialized ignored (scene re-created?).');
+                return;
+            }
             if (config.debug.masterSwitch) {
                 this.on("tileSpawned", { callback: debugTools.drawTileDebugInfo, context: this }) // Huge performance hit, disabled by default
                 this.on("roadBuilt", { callback: debugTools.drawRoadCurbs, context: this });
@@ -441,6 +449,39 @@ export default class GameManager {
                 this.skillBook?.installPerson(bundle.personId, bundle.skills);
             }
             this.eventEngine?.installPersonHistory(bundle.personId, bundle.history);
+            this.eventEngine?.installPersonLog(bundle.personId, bundle.log);
+        }
+    }
+
+    // Post-load log re-hydration (LP-1): a loaded save carries only LIVE log entries — the pre-game pasts
+    // of already-hydrated people re-install from the pinned asset here. Fire-and-forget from the load path:
+    // the sim never reads pre-game entries (recency windows are shallow, and the aggregate history — which
+    // eligibility reads — IS serialized), so the inspector's deep past simply streams back in. A missing or
+    // regenerated asset degrades exactly like v14 always did: no pre-game logs, sim unaffected.
+    async rehydratePersonLogs(): Promise<void> {
+        const hydration = this.historyHydration;
+        if (!hydration || hydration.hydrated.size === 0) {
+            return;
+        }
+        if (!hydration.source && !hydration.reopenAttempted) {
+            hydration.reopenAttempted = true;
+            hydration.source = await reopenHydrationSource(hydration.ref);
+            if (!hydration.source) {
+                console.info('[GameManager] History asset unavailable for this save; pre-game histories disabled.');
+            }
+        }
+        const source = hydration.source;
+        if (!source) {
+            return;
+        }
+        const present = [...hydration.hydrated].filter(id => source.has(id));
+        if (present.length === 0) {
+            return;
+        }
+        const bundles = await source.fetchPeople(present);
+        for (const bundle of bundles) {
+            // Logs only: skills and the aggregate history are serialized in the save already. The LifeLog's
+            // per-person install guard makes a second reach (e.g. a later hydratePeople) a no-op.
             this.eventEngine?.installPersonLog(bundle.personId, bundle.log);
         }
     }
@@ -673,6 +714,9 @@ export default class GameManager {
                 // The TimeChangedEvent contract carries the current HOUR tick (task 040), not the day index.
                 this.emit("timeChanged", { timestamp, tick: this.clock.getCurrentTick() });
             }
+            // Stream the pre-game pasts back in (LP-1) — non-blocking; failure degrades to no pre-game logs.
+            void this.rehydratePersonLogs().catch(error =>
+                console.warn('[GameManager] Pre-game log re-hydration failed:', error));
         } catch (error) {
             console.error("[GameManager] Load failed:", error);
             this.emit("loadFailed", error instanceof Error ? error.message : "Unknown error");

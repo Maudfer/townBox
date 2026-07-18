@@ -70,6 +70,28 @@ describe('the treatment trip', () => {
         brain.processTick(['fine'], deps(TICK_NOW + 10), [], result());
         expect(actions.activeInstanceOf('fine')?.defId).not.toBe('receiving_treatment');
     });
+
+    // The re-seek guard (LP-5 quick fix; the 117 notes' #1 flag): a finished session must NOT re-fire the
+    // moment it ends — one session per SEEK_COOLDOWN_TICKS; between them the 092 rest behavior stands.
+    test('a treated patient does not re-enter treatment until the seek cooldown lapses', () => {
+        const { engine, actions, brain, state, deps } = harness({ sick: gen('sick') });
+        engine.invoke(state, 'fell_ill', 'sick', TICK_NOW - 5, TPY, { source: 'system', causationId: null });
+        brain.processTick(['sick'], deps(TICK_NOW + 10), [], result());
+        expect(actions.activeInstanceOf('sick')?.defId).toBe('receiving_treatment');
+        // Run the session to completion (bootstrap world: it just ticks down its duration).
+        for (let tick = TICK_NOW + 11; tick <= TICK_NOW + 15; tick++) {
+            actions.advance(deps(tick));
+        }
+        expect(actions.activeInstanceOf('sick')?.defId).not.toBe('receiving_treatment');
+
+        // Still sick, one tick later: the hook stays quiet (the old behavior re-proposed instantly).
+        brain.processTick(['sick'], deps(TICK_NOW + 16), [], result());
+        expect(actions.activeInstanceOf('sick')?.defId).not.toBe('receiving_treatment');
+
+        // Past the cooldown: the daily session is welcome again.
+        brain.processTick(['sick'], deps(TICK_NOW + 10 + 25), [], result());
+        expect(actions.activeInstanceOf('sick')?.defId).toBe('receiving_treatment');
+    });
 });
 
 describe('the doctor\'s rounds', () => {
@@ -148,7 +170,9 @@ describe('the untreated-mortality chain (emergent arithmetic)', () => {
     test('a severely ill cohort loses strictly more people over a seeded year WITHOUT treatment', () => {
         const deathsOver = (treatWeekly: boolean): number => {
             const engine = new EventEngine();
-            const ids = Array.from({ length: 40 }, (_, index) => `p${String(index).padStart(2, '0')}`);
+            // 80-strong cohort (was 40): the LP-5/6 manifest growth legitimately moved the RNG streams and
+            // the old size left the pinned direction one death from noise — double the statistical power.
+            const ids = Array.from({ length: 80 }, (_, index) => `p${String(index).padStart(2, '0')}`);
             const people: Record<string, GenPerson> = {};
             for (const id of ids) {
                 people[id] = gen(id, { birthTick: TICK_NOW - 85 * TPY });

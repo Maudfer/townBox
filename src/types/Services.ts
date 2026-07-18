@@ -43,9 +43,17 @@ export interface ServiceInputs {
     facilitiesByService: Record<string, number>;
     schoolSeats: number; // education numerator (capacity curve over school sizes)
     schoolAgeChildren: number; // education denominator (enrollable band)
+    // Uncollected curb garbage bags (LP-8 / proposal simulation-aliveness-2 P1-2): the squalor OUTCOME
+    // reading — coverage says who is staffed; this says whether the trash actually left. Optional so
+    // pre-LP-8 callers/tests read a clean town.
+    curbBags?: number;
 }
 
 // The surface the engines consult through SimulationMarkets.services.
 export interface ServiceCoverageReader {
     coverageOf(service: string): number;
+    // Town squalor 0..1 (LP-8): derived from uncollected curb bags per resident. Optional — absent
+    // (minimal doubles, the off-map generator whose curb is collected daily) reads 0 (clean), at which
+    // every published factor curve passes through 1.
+    squalorOf?(): number;
 }

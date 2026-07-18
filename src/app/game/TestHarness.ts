@@ -112,6 +112,19 @@ export interface TownboxTestApi {
     // --- Event history --------------------------------------------------
     // The number of committed life-event/action log entries for a pool person (for asserting the sim ran).
     historyLength(personId: string): number;
+
+    // --- Debug escape hatch (observation sessions) -----------------------
+    // The live GameManager, for read-only console inspection of every engine/store (needs, mood, the
+    // social graph, the per-person log, incidents, …) during manual observation passes. Test mode only —
+    // the harness itself never installs outside test mode, so this leaks nothing into normal play.
+    debug(): unknown;
+
+    // Advances `ticks` in-game hours, interleaving `framesPerTick` update frames after each tick so on-map
+    // movement (commutes, venue walks, chases) actually progresses between ticks. stepTicks alone starves
+    // LiveWorld transitions — nobody arrives anywhere, so location-gated actions (sleep at home, work at
+    // the workplace) silently stall. This is the honest way to fast-forward live play in an observation
+    // or scenario session.
+    stepGame(ticks: number, framesPerTick?: number, deltaMs?: number): Promise<void>;
 }
 
 // Builds the read/control API object over a live GameManager.
@@ -288,6 +301,19 @@ export function createTestApi(game: GameManager): TownboxTestApi {
         historyLength(personId: string): number {
             const log = game.eventEngine?.getPersonLog(personId);
             return log ? log.length : 0;
+        },
+
+        debug(): unknown {
+            return game;
+        },
+
+        async stepGame(ticks: number, framesPerTick = 60, deltaMs = 32): Promise<void> {
+            for (let t = 0; t < ticks; t++) {
+                await game.advanceTicks(1);
+                for (let i = 0; i < framesPerTick; i++) {
+                    await game.emit('update', { time: i * deltaMs, timeDelta: deltaMs });
+                }
+            }
         },
     };
 }

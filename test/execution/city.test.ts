@@ -1,6 +1,8 @@
 import City from 'game/City';
 import Clock from 'game/Clock';
 import GameManager from 'game/GameManager';
+import ActionEngine from 'game/actions/ActionEngine';
+import Brain from 'game/actions/Brain';
 import Person from 'game/agents/Person';
 import Economy from 'game/economy/Economy';
 import EventEngine from 'game/events/EventEngine';
@@ -554,6 +556,7 @@ describe('City live commute (getWorld/handleCommute/startCommute)', () => {
 
         const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 0, null);
         expect(handle.status).toBe('pending');
+        city.getWorld().pump(0); // flush the deferred departure (LP-11 spreading)
         expect(field.getVehicles()).toHaveLength(1);
 
         person.setCurrentBuilding(workplace);
@@ -570,5 +573,167 @@ describe('City live commute (getWorld/handleCommute/startCommute)', () => {
         const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 0, null);
         expect(handle.status).toBe('pending'); // still requested — LiveWorld doesn't know startCommute no-op'd
         expect(field.getVehicles()).toHaveLength(0);
+    });
+});
+
+// Reactive Brain wakeups (LP-12 / proposal simulation-aliveness-2 M2): a business opening between flips
+// wakes the unemployed at the next minute — job-seeking cooldowns cleared — instead of waiting out the
+// hourly flip plus a multi-day routine cadence.
+describe('reactive wakes (LP-12)', () => {
+    const TPY = TICKS_PER_YEAR;
+    function timeAt(tick: number): { timestamp: never; tick: number } {
+        return { timestamp: {} as never, tick };
+    }
+    function wakeHarness() {
+        const harness = makeGame(30, 30);
+        const { game, field, population, clock, eventEngine } = harness;
+        const actionEngine = new ActionEngine(undefined, eventEngine.getLifeLog());
+        const brain = new Brain(actionEngine);
+        (game as unknown as { actionEngine: ActionEngine }).actionEngine = actionEngine;
+        (game as unknown as { brain: Brain }).brain = brain;
+        const tickNow = 1000;
+        const adult: GenPerson = { id: 'p1', firstName: 'A', familyName: 'B', gender: Genders.Male, birthTick: tickNow - 30 * TPY, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
+        loadState(population, clock, { p1: adult }, ['p1'], tickNow);
+        const house = field.loadStructure('house', 4, 4, 'h') as House;
+        const person = materialize(field, house, 'p1', 72, 72);
+        person.social.setAge(30);
+        return { ...harness, actionEngine, person, tickNow };
+    }
+
+    test('a business opening wakes the unemployed at the next minute with the seek cooldown cleared', () => {
+        const { city, field, actionEngine, tickNow } = wakeHarness();
+        // A stale seek this hour: the 24-tick cooldown would normally hold job seeking down for a day.
+        actionEngine.getState().actionHistory['p1'] = { job_hunting: { count: 1, lastTick: tickNow - 1 } };
+        expect(actionEngine.hasAction('p1', 'job_hunting', tickNow, { withinTicks: 24 })).toBe(true);
+
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        city.setupBusiness(workplace);
+
+        // The next minute boundary drains the wake: the seek cooldown is cleared for the woken person and
+        // the Brain genuinely runs for them (an active instance exists — the pass produced a decision;
+        // a started job_hunting legitimately re-records its own recency, so assert the CLEAR via spy).
+        const clearSpy = jest.spyOn(actionEngine, 'clearActionRecency');
+        city.handleCommute(timeAt(tickNow));
+        expect(clearSpy).toHaveBeenCalledWith('p1', 'job_hunting');
+        expect(actionEngine.activeInstanceOf('p1')).not.toBeNull();
+    });
+
+    test('a wake pass without pending wakes is a no-op (no Brain run, no cost)', () => {
+        const { city, actionEngine, tickNow } = wakeHarness();
+        city.handleCommute(timeAt(tickNow));
+        expect(actionEngine.activeInstanceOf('p1')).toBeNull();
+    });
+});
+
+// LP-3 (proposal simulation-aliveness-2 P0-3): the live work keystone. An on-shift employee's obligation
+// intent must produce a real work instance — departing (logged), commuting, and firing started_working on
+// physical arrival. The audit found a doctor who never attempted work in 16 days; this pins the whole
+// live path at the City level so any break in the chain (orchestrator facts, arbitration, transition,
+// arrival resolution) fails a test instead of a playtest.
+describe('live work reliability (LP-3 keystone)', () => {
+    function employedHarness() {
+        const harness = makeGame(30, 30);
+        const { game, field, population, clock, eventEngine } = harness;
+        const actionEngine = new ActionEngine(undefined, eventEngine.getLifeLog());
+        const brain = new Brain(actionEngine);
+        (game as unknown as { actionEngine: ActionEngine }).actionEngine = actionEngine;
+        (game as unknown as { brain: Brain }).brain = brain;
+        // Tuesday 09:00 (day 1 of the week cycle): inside the doctor's 08:00–18:00 all-days shift.
+        const tickNow = (7 * 24) + 9 + 24 * 30; // an arbitrary mid-run Tuesday 09:00
+        const adult: GenPerson = { id: 'doc', firstName: 'Vi', familyName: 'Ba', gender: Genders.Male, birthTick: tickNow - 35 * TICKS_PER_YEAR, deathTick: null, fatherId: null, motherId: null, partnerships: [] };
+        loadState(population, clock, { doc: adult }, ['doc'], tickNow);
+        const house = field.loadStructure('house', 4, 4, 'h') as House;
+        // A road ring so the commute can spawn a car on the street.
+        field.loadStructure('road', 1, 4, 'r');
+        const workplace = field.loadStructure('work', 10, 10, 'w') as Workplace;
+        const person = materialize(field, house, 'doc', 72, 72);
+        person.social.setAge(35);
+        person.work.setJob({ title: 'Doctor', salary: 5000, requirements: [], shiftStart: 480, shiftEnd: 1080, daysOfWeek: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as never, rankId: 'entry', workDaysInRank: 0, totalWorkDays: 0 });
+        person.work.setWorkplace(workplace);
+        return { ...harness, actionEngine, brain, person, workplace, tickNow };
+    }
+
+    test('an on-shift employee attempts work: instance created, departure logged, started_working on arrival', async () => {
+        const { city, eventEngine, actionEngine, person, workplace, tickNow } = employedHarness();
+        await city.handleTick({ timestamp: {} as never, tick: tickNow });
+
+        // The obligation intent produced a WORK instance (running or en route) — the doctor case regression.
+        const active = actionEngine.activeInstanceOf('doc');
+        expect(active).not.toBeNull();
+        expect(actionEngine.getDefinition(active!.defId)?.category).toBe('work');
+
+        // If the commute is pending, the departure is in the log (LP-2) and arrival starts the shift.
+        if (active!.status !== 'running') {
+            const log = eventEngine.getPersonLog('doc');
+            expect(log.some(entry => entry.kind === 'action' && entry.lifecycle === 'departed')).toBe(true);
+            city.getWorld().pump(tickNow); // flush the deferred departure
+            person.setCurrentBuilding(workplace);
+            city.getWorld().pump(tickNow + 1);
+            await city.handleTick({ timestamp: {} as never, tick: tickNow + 1 });
+        }
+        const started = eventEngine.getPersonLog('doc').some(entry => entry.kind === 'event' && entry.defId === 'started_working');
+        expect(started).toBe(true);
+    });
+});
+
+// Task 122 (LP-6): live move-out through the EVENT path. The 052 regeneration orphaned the movedOut signal
+// — moved_out_of_parents now gates on canMoveOut and emits it, City.handleTick routes it to resolveMoveOut,
+// and the signal-coverage guard (test/events/signalCoverage.test.ts) keeps the producer from vanishing
+// again. This drives the real manifest event (hot-rated fixture manifest) through handleTick, not the
+// handler directly.
+describe('live move-out via the event path (task 122)', () => {
+    const MOVE_OUT_MANIFEST: EventManifest = {
+        moved_out_of_parents: {
+            label: 'Moved out of the parents\' house',
+            category: 'housing',
+            roles: { subject: { where: { all: [
+                { attr: 'alive', op: '==', value: true },
+                { attr: 'age', op: '>=', value: 18 },
+                { attr: 'canMoveOut', op: '==', value: true },
+            ] } } },
+            triggers: { probabilistic: { perYear: 200000 } }, // certainty per tick — the fixture hot-rate
+            effects: [{ type: 'emit', signal: 'movedOut', target: 'subject' }],
+        },
+    } as unknown as EventManifest;
+
+    test('an eligible adult non-head moves into the vacant house; the ineligible never fire', async () => {
+        const harness = makeGame(30, 30, MOVE_OUT_MANIFEST);
+        const { field, population, clock, city } = harness;
+        const tickNow = 5000;
+        const parent = gen('p', Genders.Female, 55, tickNow);
+        const adult = gen('ch', Genders.Male, 28, tickNow, { motherId: 'p' });
+        loadState(population, clock, { p: parent, ch: adult }, ['p', 'ch'], tickNow);
+
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const vacant = field.loadStructure('house', 10, 10, 'h') as House;
+        home.setHousehold({ id: 'hh-1', houseKey: home.getIdentifier(), headId: 'p', memberIds: ['p', 'ch'], arrangement: HouseholdArrangements.Nuclear });
+        materialize(field, home, 'p', 72, 72);
+        const child = materialize(field, home, 'ch', 72, 72);
+
+        await city.handleTick({ timestamp: {} as never, tick: tickNow });
+
+        // The event fired, the signal routed, the relocation happened: a new single household in the
+        // formerly vacant house, the parents' household shrunk.
+        expect(child.social.getHome()).toBe(vacant);
+        expect(vacant.getHousehold()?.memberIds).toEqual(['ch']);
+        expect(home.getHousehold()?.memberIds).toEqual(['p']);
+    });
+
+    test('with no vacant house, canMoveOut gates the event silent (nobody relocates)', async () => {
+        const harness = makeGame(30, 30, MOVE_OUT_MANIFEST);
+        const { field, population, clock, city } = harness;
+        const tickNow = 5000;
+        const parent = gen('p', Genders.Female, 55, tickNow);
+        const adult = gen('ch', Genders.Male, 28, tickNow, { motherId: 'p' });
+        loadState(population, clock, { p: parent, ch: adult }, ['p', 'ch'], tickNow);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        home.setHousehold({ id: 'hh-1', houseKey: home.getIdentifier(), headId: 'p', memberIds: ['p', 'ch'], arrangement: HouseholdArrangements.Nuclear });
+        materialize(field, home, 'p', 72, 72);
+        const child = materialize(field, home, 'ch', 72, 72);
+
+        await city.handleTick({ timestamp: {} as never, tick: tickNow });
+
+        expect(child.social.getHome()).toBe(home);
+        expect(home.getHousehold()?.memberIds).toEqual(['p', 'ch']);
     });
 });

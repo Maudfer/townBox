@@ -391,6 +391,20 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     if (!graph || otherId === ctx.personId) {
                         return;
                     }
+                    // Dating is exclusive here (LP-9): the decode audit found 1,172 STANDING dating edges
+                    // (~9 per living person) because a consented ask seeded a new edge and nothing ever
+                    // closed the others. Starting to date someone demotes both parties' other romances to
+                    // ex_partner — the 090 arc is a ladder (dating → engaged → married), not a web.
+                    if (op.kind === 'dating') {
+                        for (const person of [ctx.personId, otherId]) {
+                            for (const edge of graph.edgesOf(person, ctx.deps.tick)) {
+                                const kind = edge.view?.kind;
+                                if ((kind === 'dating' || kind === 'engaged') && edge.otherId !== (person === ctx.personId ? otherId : ctx.personId)) {
+                                    graph.setKind(person, edge.otherId, 'ex_partner', ctx.deps.tick, edge.view.strength);
+                                }
+                            }
+                        }
+                    }
                     const adjusted = graph.adjust(ctx.personId, otherId, op.delta, ctx.deps.tick,
                         { ...(op.kind ? { kind: op.kind as EdgeKind } : {}), provenance: ctx.causationId });
                     // A ladder promotion fires its authored event for BOTH sides, chained to this commit.
@@ -449,6 +463,16 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 if (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback))) {
                     return null;
                 }
+                // The solvency floor (LP-4 / proposal simulation-aliveness-2 P1-5): retail micro-purchases
+                // used to overdraft freely — balances drifted negative within days. Being too broke to buy
+                // IS story: an unaffordable purchase is a typed plan failure (inputsUnavailable upstream),
+                // and the money-urgency selection modifiers get a truthful signal to steer around.
+                {
+                    const ledger = ctx.deps.ctx.markets?.ledger ?? null;
+                    if (ledger?.getPersonBalance && op.price > 0 && ledger.getPersonBalance(ctx.personId) < op.price) {
+                        return null;
+                    }
+                }
                 steps.push(() => {
                     const ledger = ctx.deps.ctx.markets?.ledger ?? null;
                     const id = stockId(); // re-resolve at apply time (earlier steps may have moved stock)
@@ -469,6 +493,23 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                             provenance: ctx.causationId,
                         });
                         ledger?.recordFallbackPurchase?.(ctx.personId, op.price);
+                    }
+                });
+                break;
+            }
+            case 'satisfyNeed': {
+                // Household care (LP-5 / P1-7): feed the co-located — the cook's serving credits everyone
+                // sharing the room. Needs-less contexts (pure tests) and empty rooms are benign no-ops.
+                steps.push(() => {
+                    const needs = ctx.deps.ctx.markets?.needs ?? null;
+                    const world = ctx.deps.ctx.world ?? null;
+                    if (!needs || !world) {
+                        return;
+                    }
+                    const here = world.locationOf(ctx.personId);
+                    const served = world.peopleAt(here).filter(id => id !== ctx.personId).slice(0, 8);
+                    for (const id of served) {
+                        needs.satisfy(id, { [op.need]: op.amount }, ctx.deps.tick, ctx.deps.state.worldSeed);
                     }
                 });
                 break;

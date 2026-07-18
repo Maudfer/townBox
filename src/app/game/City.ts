@@ -1,6 +1,8 @@
 import { fakerPT_BR } from '@faker-js/faker';
 
 import GameManager from 'game/GameManager';
+import { JobFacts } from 'game/actions/Brain';
+import BrainWakeQueue, { WAKE_CLEARS } from 'game/actions/Wakes';
 import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
 import { generateBusiness } from 'game/economy/BusinessGen';
@@ -88,6 +90,8 @@ export default class City {
     // The live-mode WorldAdapter (task 040): the map-backed side of the execution boundary. Location
     // transitions requested through it drive the real commute machinery and resolve on physical arrival.
     private world: LiveWorld;
+    // Reactive Brain wakeups (LP-12): world mutations enqueue; the minute cadence drains. Transient.
+    private wakes = new BrainWakeQueue();
     // The services coverage ledger (task 096): derived daily, serialized nowhere. Hazards read it through
     // markets.services; the dashboard reads latest(). A fresh session is unmeasured (neutral) until day 1.
     private services: CityServices;
@@ -479,6 +483,10 @@ export default class City {
         const business = this.openBusiness(workplace, undefined, pinned ? { blueprintKey: pinned } : {});
         if (business) {
             console.log('Business spawned:', business.name, `(${business.lineOfWork}, size ${business.size}, ${business.positions.length} positions)`);
+            // Reactive wake (LP-12): a new employer wakes the unemployed at the next minute — resolved at
+            // drain time, with job-seeking cooldowns cleared, so the town answers the placement NOW rather
+            // than after the routine's multi-day cadence.
+            this.wakes.enqueue('businessOpened');
         }
     }
 
@@ -679,7 +687,12 @@ export default class City {
             }
         }
         const schoolSeats = this.listSchools().reduce((sum, school) => sum + school.seats, 0);
-        const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren };
+        // The squalor outcome reading (LP-8): garbage that actually sits at the curb. The shared curb is
+        // the 'outside' location (task 112); the count is what collection rounds failed to consume.
+        const curbBags = (Game.inventory?.instancesAtLocation('outside') ?? [])
+            .filter(instance => instance.archetypeId === 'bag_of_garbage')
+            .reduce((total, instance) => total + instance.quantity, 0);
+        const inputs: ServiceInputs = { population: people.length, providersByService, facilitiesByService, schoolSeats, schoolAgeChildren, curbBags };
         const coverages = this.services.update(inputs);
         // The live surface (task 114): the nagbar derives its warnings from exactly what the ledger holds.
         Game.emit('servicesChanged', this.services.latest());
@@ -792,6 +805,108 @@ export default class City {
     // fresh — the school building still hosts a school business, and the person is inside the enrollment
     // age band. The daily sweep repairs/releases stale assignments; between sweeps this returns null for
     // them, so nobody attends a demolished school.
+    // The reactive wake pass (LP-12 / proposal simulation-aliveness-2 M2). Drains the queue, resolves each
+    // wake's people (explicit ids, or scope-resolved at drain time — businessOpened wakes the currently
+    // unemployed adults), clears the wake kind's cooldown class so the re-evaluation can pick the thing
+    // that changed, and runs a bounded Brain pass for the woken people only. Deterministic given the
+    // mutation; hooks fork their usual per-(tick, person) streams. Runs between flips, so nothing here
+    // re-rolls events — intents flow through the same engine the flip uses.
+    private runWakePass(tick: number): void {
+        if (!this.wakes.hasPending()) {
+            return;
+        }
+        const population = Game.population;
+        const clock = Game.clock;
+        const field = Game.field;
+        const engine = Game.eventEngine;
+        const brain = Game.brain;
+        const actionEngine = Game.actionEngine;
+        if (!population || !clock || !field || !engine || !brain || !actionEngine) {
+            this.wakes.drain(); // world not ready — drop rather than replay stale wakes forever
+            return;
+        }
+        const records = this.wakes.drain();
+        const ticksPerYear = clock.getTicksPerYear();
+        const personByGenId = this.indexMaterialized();
+
+        const woken = new Set<PersonId>();
+        for (const record of records) {
+            const ids = record.personIds ?? [...personByGenId.keys()].filter(id => {
+                // Scope 'unemployed adults' (the businessOpened wake).
+                const person = personByGenId.get(id)!;
+                return !person.work.getJob() && person.social.getAge() >= 18;
+            });
+            for (const id of ids) {
+                if (!personByGenId.has(id)) {
+                    continue;
+                }
+                woken.add(id);
+                for (const actionId of WAKE_CLEARS[record.kind]) {
+                    actionEngine.clearActionRecency(id, actionId);
+                }
+            }
+        }
+        if (woken.size === 0) {
+            return;
+        }
+
+        const hasRecord = (id: PersonId): boolean => engine
+            .contextFor(population.getState(), id, tick, ticksPerYear).hasEvent('got_caught', { withinTicks: CRIMINAL_RECORD_WINDOW_TICKS });
+        const jobMarket = Game.skillBook ? new JobMarket(personByGenId, field, Game.skillBook, tick, hasRecord) : null;
+        const housing = new HousingMarket(personByGenId, field);
+        const skills = Game.skillBook ? new SkillRegistry(Game.skillBook, tick) : null;
+        const ctx = { mode: 'live' as const, world: this.world, markets: { jobMarket, ledger: Game.economy ?? null, housing, skills, social: Game.socialGraph ?? null, needs: Game.needs ?? null, agenda: Game.agenda ?? null, traits: Game.traits ?? null, habits: Game.habits ?? null, incidents: Game.incidents ?? null, pets: Game.pets ?? null, knownFacts: Game.knownFacts ?? null, mood: Game.mood ?? null, services: this.services } };
+        const result = { died: [], born: [], signals: [], committed: [] };
+        engine.bindMarkets(ctx);
+        brain.processTick([...woken].sort(), {
+            state: population.getState(),
+            tick,
+            ticksPerYear,
+            ctx,
+            eventEngine: engine,
+            inventory: Game.inventory ?? null,
+            employerKeyOf: id => {
+                const workplace = personByGenId.get(id)?.work.getWorkplace();
+                return workplace instanceof Workplace ? workplace.getIdentifier() : null;
+            },
+            jobOf: id => this.jobFactsOf(id, personByGenId),
+            schoolOf: id => this.schoolFactsOf(id, personByGenId, tick, ticksPerYear),
+            detentionOf: id => (Game.detention && Game.detention.isDetained(id, tick) ? Game.detention.detentionOf(id) : null),
+        }, [], result);
+        engine.unbindMarkets();
+        // Stamp any log appends the pass produced (starts, declines) — same pass the flip runs (LP-11).
+        engine.getLifeLog().stampMinutes(tick, population.getState().worldSeed);
+    }
+
+    // Job facts (task 046, extracted for LP-12): shift + workplace + the rank-resolved work repertoire,
+    // joined from the jobs table by title. Consumed by handleTick's plan AND the wake pass.
+    private jobFactsOf(id: PersonId, personByGenId: Map<PersonId, Person>): JobFacts | null {
+        const person = personByGenId.get(id);
+        const job = person?.work.getJob();
+        const workplace = person?.work.getWorkplace();
+        if (!person || !job || !(workplace instanceof Workplace)) {
+            return null;
+        }
+        const entry = Object.entries(JOBS).find(([, candidate]) => candidate.title === job.title);
+        const jobKey = entry?.[0];
+        const definition = entry?.[1];
+        // The person's current rank on the ladder (task 064): rank-specific work-action overrides
+        // and progression/promotion facts ride along for the orchestrator + SkillProgression (065).
+        const rank = definition?.ranks.find(candidate => candidate.rankId === job.rankId)
+            ?? definition?.ranks.find(candidate => candidate.entry)
+            ?? null;
+        return {
+            ...(jobKey ? { jobKey } : {}),
+            shiftStart: job.shiftStart,
+            shiftEnd: job.shiftEnd,
+            ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
+            workplaceKey: workplace.getIdentifier(),
+            continuousActions: rank?.workActions?.continuous ?? definition?.workActions.continuous ?? [],
+            discreteActions: rank?.workActions?.discrete ?? definition?.workActions.discrete ?? [],
+            ...(rank ? { rank } : {}),
+        };
+    }
+
     private schoolFactsOf(personId: PersonId, personByGenId: Map<PersonId, Person>, tick: number, ticksPerYear: number): SchoolFacts | null {
         const registry = Game.schools;
         const population = Game.population;
@@ -868,33 +983,9 @@ export default class City {
                 return workplace instanceof Workplace ? workplace.getIdentifier() : null;
             },
             // Job facts for the Brain's obligation hook (task 046): the person's shift + workplace + the
-            // job's continuous work repertoire (mapped from the jobs table by title).
-            jobOf: id => {
-                const person = personByGenId.get(id);
-                const job = person?.work.getJob();
-                const workplace = person?.work.getWorkplace();
-                if (!person || !job || !(workplace instanceof Workplace)) {
-                    return null;
-                }
-                const entry = Object.entries(JOBS).find(([, candidate]) => candidate.title === job.title);
-                const jobKey = entry?.[0];
-                const definition = entry?.[1];
-                // The person's current rank on the ladder (task 064): rank-specific work-action overrides
-                // and progression/promotion facts ride along for the orchestrator + SkillProgression (065).
-                const rank = definition?.ranks.find(candidate => candidate.rankId === job.rankId)
-                    ?? definition?.ranks.find(candidate => candidate.entry)
-                    ?? null;
-                return {
-                    ...(jobKey ? { jobKey } : {}),
-                    shiftStart: job.shiftStart,
-                    shiftEnd: job.shiftEnd,
-                    ...(job.daysOfWeek ? { daysOfWeek: job.daysOfWeek } : {}),
-                    workplaceKey: workplace.getIdentifier(),
-                    continuousActions: rank?.workActions?.continuous ?? definition?.workActions.continuous ?? [],
-                    discreteActions: rank?.workActions?.discrete ?? definition?.workActions.discrete ?? [],
-                    ...(rank ? { rank } : {}),
-                };
-            },
+            // job's continuous work repertoire (mapped from the jobs table by title). Shared with the
+            // wake pass (LP-12), so both evaluate identical facts.
+            jobOf: id => this.jobFactsOf(id, personByGenId),
             // Detention facts (task 100): the detained hook keeps sentenced people at the facility.
             detentionOf: id => (Game.detention && Game.detention.isDetained(id, event.tick) ? Game.detention.detentionOf(id) : null),
             // School facts for the Brain's school-obligation hook (task 058): a valid assignment or null.
@@ -1198,6 +1289,11 @@ export default class City {
         const laidOff = workplace.closeBusiness();
         for (const person of laidOff) {
             person.work.clearJob();
+        }
+        // Reactive wake (LP-12): the laid-off re-plan their day at the next minute (job seeking cooldowns
+        // cleared) instead of discovering their unemployment at the next flip.
+        if (laidOff.length > 0) {
+            this.wakes.enqueue('businessClosed', laidOff.map(person => person.social.getPersonId()).filter((id): id is PersonId => !!id));
         }
         // Write off the (usually negative) balance to zero, routed through the external sector (task 076/H3) so
         // the write-off is accounted rather than silently minting/burning money.
@@ -2047,10 +2143,15 @@ export default class City {
     // business-closure (021) paths; the clock supplies the tick.
     public demolishHouse(house: House): void {
         const tick = Game.clock?.getCurrentTick() ?? 0;
+        // Reactive wake (LP-12): the displaced re-plan their day at the next minute.
+        const displacedIds = house.getResidents().map(person => person.social.getPersonId()).filter((id): id is PersonId => !!id);
         // Teardown symmetry (task 070): the house's objects go down with it; residents keep what they carry.
         Game.inventory?.clearLocation(`building:${house.getIdentifier()}`);
         Game.inventory?.reassignOwnedBy({ kind: 'building', key: house.getIdentifier() }, { kind: 'world' });
         const { householdName, homeless } = this.displaceHousehold(house, tick);
+        if (displacedIds.length > 0) {
+            this.wakes.enqueue('homeLost', displacedIds);
+        }
         if (homeless > 0) {
             this.announce('becameHomeless', tick, `The ${householdName} household is now homeless`, null);
         }
@@ -2560,7 +2661,12 @@ export default class City {
     // LiveWorld drives the same commute machinery. This handler only pumps pending transitions at the finer
     // minute cadence so arrivals resolve promptly between hourly ticks.
     public handleCommute(event: TimeChangedEvent): void {
-        this.world.pump(event.tick);
+        // The minute rides along (LP-11): deferred departures leave at their scheduled minute of the hour.
+        this.world.pump(event.tick, event.timestamp.minute);
+
+        // Reactive wakes drain on the same minute cadence (LP-12): world mutations between flips re-evaluate
+        // the affected people NOW, not at the next hour.
+        this.runWakePass(event.tick);
 
         // Ambulatory sweep (task 093 / E1): each in-game minute, flag residents whose ACTIVE action is
         // authored `ambulatory` so the field's wander machinery visibly walks them — joggers jog, strollers

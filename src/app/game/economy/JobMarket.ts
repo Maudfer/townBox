@@ -70,6 +70,12 @@ export default class JobMarket implements IJobMarket {
         return this.bestMatch(personId) !== null;
     }
 
+    // The application target (LP-13): where the market would place this person today — the job-seeking
+    // hook sends them to apply THERE, and the application's counter-hire lands through the same scoring.
+    bestOpeningKeyFor(personId: PersonId): string | null {
+        return this.bestMatch(personId)?.workplace.getIdentifier() ?? null;
+    }
+
     hire(personId: PersonId): boolean {
         const match = this.bestMatch(personId);
         if (!match) {

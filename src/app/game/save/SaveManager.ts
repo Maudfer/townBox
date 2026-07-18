@@ -148,9 +148,13 @@ export default class SaveManager {
             population: this.game.population?.getState(),
             clock: { elapsedMs: this.game.clock?.getElapsedMs() ?? 0 },
             eventHistory: this.game.eventEngine?.getHistory(),
-            eventLog: this.game.eventEngine?.getLog(),
+            // Live-era entries only (LP-1): hydrated pre-game pasts are a hydration-time view — they made
+            // JSON.stringify throw RangeError at ~32 residents and could never fit localStorage. Load
+            // re-installs them from the pinned asset (GameManager.rehydratePersonLogs).
+            eventLog: this.game.eventEngine?.getLiveLog(),
             eventLogSeq: this.game.eventEngine?.getNextLogSeq(),
             eventSchedule: this.game.eventEngine?.getScheduleState(),
+            eventOverlay: this.game.eventEngine?.getOverlayState(),
             economy: this.game.economy?.getState(),
             objects: this.game.inventory?.getState(),
             actions: this.game.actionEngine?.getState(),
@@ -325,6 +329,11 @@ export default class SaveManager {
         // Pending automated triggers (v8+, task 042). Older saves carry none; the queue starts empty.
         if (snapshot.eventSchedule) {
             this.game.eventEngine?.loadScheduleState(snapshot.eventSchedule);
+        }
+
+        // The attribute overlay (LP-6): sick stays sick, retired stays retired, pregnant stays pregnant.
+        if (snapshot.eventOverlay) {
+            this.game.eventEngine?.loadOverlayState(snapshot.eventOverlay as never);
         }
 
         // Economy (v6+). Older saves carry none; balances stay empty.

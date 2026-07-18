@@ -65,6 +65,8 @@ describe('the live commute machinery behind the execution boundary', () => {
 
         const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
         expect(handle.status).toBe('pending');
+        expect(field.getVehicles()).toHaveLength(0); // not yet departed (LP-11 departure spreading)
+        city.getWorld().pump(10); // minute-less pump: departures flush immediately
         expect(field.getVehicles()).toHaveLength(1);
         expect(field.getVehicles()[0]!.isControlled()).toBe(true);
         expect(person.getVehicle()).not.toBeNull();
@@ -88,6 +90,7 @@ describe('the live commute machinery behind the execution boundary', () => {
         field.loadStructure('road', 1, 4, 'r');
 
         city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10); // flush the deferred departure (LP-11)
 
         const vehicle = field.getVehicles()[0]!;
         const spot = { x: vehicle.getPosition()!.x, y: vehicle.getPosition()!.y };
@@ -106,6 +109,7 @@ describe('the live commute machinery behind the execution boundary', () => {
         person.social.setAge(10); // children don't drive
 
         const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10); // flush the deferred departure (LP-11)
         expect(handle.status).toBe('pending');
         expect(field.getVehicles()).toHaveLength(0); // walking — no commute car
         expect(person.getVehicle()).toBeNull();

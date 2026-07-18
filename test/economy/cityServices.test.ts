@@ -1,6 +1,6 @@
 import City from 'game/City';
 import Clock from 'game/Clock';
-import CityServices, { SERVICES_CONFIG, computeCoverage } from 'game/economy/CityServices';
+import CityServices, { SERVICES_CONFIG, computeCoverage, computeSqualor } from 'game/economy/CityServices';
 import Economy from 'game/economy/Economy';
 import GameManager from 'game/GameManager';
 import Population from 'game/population/Population';
@@ -116,5 +116,26 @@ describe('the nagbar plumbing (task 114)', () => {
         // The nagbar derives from EXACTLY what the ledger holds — the same lines the city dashboard shows.
         expect(payload.length).toBe(Object.keys(SERVICES_CONFIG.services).length);
         expect(payload).toEqual(city.getCityStats().services);
+    });
+});
+
+// Squalor (LP-8 / proposal simulation-aliveness-2 P1-2): the outcome reading beside the staffing ratios —
+// garbage that actually sits uncollected, scaled per resident, feeding the fell_ill factor and the
+// cleaning weights. The audit's founding example: 95 curb bags with zero consequence.
+describe('squalor (LP-8)', () => {
+    test('computeSqualor scales with uncollected bags per resident and clamps to [0, 1]', () => {
+        expect(computeSqualor(0, 30)).toBe(0);
+        expect(computeSqualor(45, 30)).toBeCloseTo(0.5); // 1.5 bags/resident at saturation 3
+        expect(computeSqualor(900, 30)).toBe(1);
+        expect(computeSqualor(10, 0)).toBe(0); // empty town: no reading
+    });
+
+    test('the reader publishes the sweep measurement; unmeasured reads clean', () => {
+        const services = new CityServices();
+        expect(services.squalorOf()).toBe(0);
+        services.update({ population: 30, providersByService: {}, facilitiesByService: {}, schoolSeats: 0, schoolAgeChildren: 0, curbBags: 90 });
+        expect(services.squalorOf()).toBeCloseTo(1);
+        services.update({ population: 30, providersByService: {}, facilitiesByService: {}, schoolSeats: 0, schoolAgeChildren: 0, curbBags: 0 });
+        expect(services.squalorOf()).toBe(0);
     });
 });

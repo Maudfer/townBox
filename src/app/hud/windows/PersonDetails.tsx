@@ -6,6 +6,7 @@ import Workplace from 'game/world/Workplace';
 import Window from 'hud/Window';
 import { isFollowed, toggleFollow, subscribeFollow } from 'hud/followStore';
 import jobsConfig from 'json/jobs.json';
+import SKILLS from 'json/skills.json';
 import { JobTable } from 'types/Business';
 
 const JOBS = jobsConfig as unknown as JobTable;
@@ -19,7 +20,8 @@ function rankLabel(job: { title: string; rankId?: string }): string | null {
     return definition?.ranks.find(rank => rank.rankId === job.rankId)?.label ?? job.rankId;
 }
 import { DetailsWindowProps } from 'types/HUD';
-import { formatTick } from 'util/time';
+import { formatTickAtMinute } from 'util/time';
+import { resolveLogParams, renderLabelSegments } from 'hud/logEntities';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;
@@ -211,15 +213,35 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                     ) : (
                         <p><em>Unemployed</em></p>
                     )}
-                    {skillEntries.length ? (
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {skillEntries.map(([skillId, record]) => (
-                                <li key={skillId} title={`since ${record.firstAcquiredTick}; ${record.provenance.join(', ')}`}>
-                                    {skillLabel(skillId)} — {record.proficiency.toFixed(1)}
-                                </li>
-                            ))}
-                        </ul>
-                    ) : (
+                    {skillEntries.length ? (() => {
+                        // Grouped skills (LP-10): the flat list was a wall of ~70 rows. Top abilities stay
+                        // visible; the long tail and the (mostly-60.0) school basics collapse.
+                        const basics = skillEntries.filter(([skillId]) => (SKILLS as Record<string, { basic?: boolean }>)[skillId]?.basic === true);
+                        const abilities = skillEntries.filter(([skillId]) => (SKILLS as Record<string, { basic?: boolean }>)[skillId]?.basic !== true);
+                        const TOP = 8;
+                        const row = ([skillId, record]: typeof skillEntries[number]): JSX.Element => (
+                            <li key={skillId} title={`since ${record.firstAcquiredTick}; ${record.provenance.join(', ')}`}>
+                                {skillLabel(skillId)} — {record.proficiency.toFixed(1)}
+                            </li>
+                        );
+                        return (
+                            <>
+                                <ul style={{ margin: 0, paddingLeft: 16 }}>{abilities.slice(0, TOP).map(row)}</ul>
+                                {abilities.length > TOP && (
+                                    <details style={{ marginLeft: 16 }}>
+                                        <summary>{abilities.length - TOP} more abilities</summary>
+                                        <ul style={{ margin: 0, paddingLeft: 16 }}>{abilities.slice(TOP).map(row)}</ul>
+                                    </details>
+                                )}
+                                {basics.length > 0 && (
+                                    <details style={{ marginLeft: 16 }}>
+                                        <summary>School basics ({basics.length})</summary>
+                                        <ul style={{ margin: 0, paddingLeft: 16 }}>{basics.map(row)}</ul>
+                                    </details>
+                                )}
+                            </>
+                        );
+                    })() : (
                         <p><strong>Skills:</strong> —</p>
                     )}
                 </section>
@@ -267,12 +289,25 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                                 const label = entry.kind === 'action'
                                     ? `${game.actionEngine?.getActionLabel(entry.defId) ?? prettifyEventId(entry.defId)}${entry.lifecycle !== 'performed' ? ` (${entry.lifecycle}${failureSuffix})` : ''}`
                                     : game.eventEngine?.getEventLabel(entry.defId) ?? prettifyEventId(entry.defId);
-                                // Event payloads (task 067): show the invocation params inline.
-                                const paramEntries = entry.kind === 'event' && entry.params ? Object.entries(entry.params) : [];
-                                const paramSuffix = paramEntries.length ? ` [${paramEntries.map(([key, value]) => `${key}: ${String(value)}`).join(', ')}]` : '';
+                                // Entity-linked, templated labels (LP-14 / M5): "Hugged Ana Souza" rendered inline
+                                // from the label's {placeholders}; unreferenced params still append as chips, and
+                                // person references stay clickable either way.
+                                const resolved = entry.params ? resolveLogParams(game, entry.params) : [];
+                                const { segments, leftovers } = renderLabelSegments(label, resolved);
+                                const chip = (key: string, param: NonNullable<ReturnType<typeof resolveLogParams>[number]>, inline: boolean): JSX.Element =>
+                                    param.person
+                                        ? <button key={key} type="button" onClick={() => game.emit('PersonSelected', param.person!)}
+                                            style={{ marginLeft: inline ? 0 : 4, cursor: 'pointer', background: 'none', border: 'none', padding: 0, color: '#7fd0ff', textDecoration: 'underline', font: 'inherit' }}>
+                                            {param.text}
+                                        </button>
+                                        : <span key={key} style={{ marginLeft: inline ? 0 : 4, opacity: inline ? 1 : 0.85 }}>{inline ? param.text : `[${param.text}]`}</span>;
                                 return (
                                     <li key={entry.seq}>
-                                        {label}{paramSuffix} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
+                                        {segments.map((segment, index) => segment.param
+                                            ? chip(`s${index}`, segment.param, true)
+                                            : <span key={`s${index}`}>{segment.text}</span>)}
+                                        {leftovers.map(param => chip(param.key, param, false))}
+                                        {' — '}<small>{formatTickAtMinute(entry.tick, entry.minute)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
                                     </li>
                                 );
                             })}

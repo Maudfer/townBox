@@ -51,8 +51,9 @@ describe('interaction deltas grow edges (the consequence path)', () => {
 
     test('repeated interaction promotes to friend and fires made_friend at BOTH sides', () => {
         const { actions, social, engine, deps } = harness();
-        // consoled_person is askFirst — use talked_to_person (+1) driven repeatedly; seed close to threshold.
-        social.adjust('a', 'b', 29, 100);
+        // consoled_person is askFirst — use talked_to_person (+1) driven repeatedly; seed close to the
+        // promoteAt-22 threshold (LP-9 tune) but below it, so the promotion lands through the ACTION path.
+        social.adjust('a', 'b', 20, 100);
         let tick = 100;
         // talked_to_person has a cooldown; drive with distinct ticks until the promotion lands.
         for (let i = 0; i < 200 && social.edgeBetween('a', 'b', tick)?.kind !== 'friend'; i++) {

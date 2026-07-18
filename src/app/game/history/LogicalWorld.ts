@@ -92,9 +92,16 @@ interface LogicalBusiness {
 // TickRunner only needs the world + markets (jobMarket for get_job/layoff, skills for education) + inventory —
 // no jobOf/schoolOf/skillProgression facts.
 export interface LogicalTickFacts {
-    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda; traits: Traits | null; habits: Habits; mood: Mood; ledger: Economy; incidents: CityIncidents; pets: PetRegistry; knownFacts: KnownFacts } };
+    ctx: { mode: SimulationMode; world: WorldAdapter; markets: { jobMarket: LogicalJobMarket | null; housing: HousingMarketLike; skills: SkillRegistry | null; social: SocialGraph; needs: Needs; agenda: Agenda; traits: Traits | null; habits: Habits; mood: Mood; ledger: Economy; incidents: CityIncidents; pets: PetRegistry; knownFacts: KnownFacts } };
     inventory: Inventory;
 }
+
+// The logical housing market (LP-6 / task 122): moved_out_of_parents now gates on canMoveOut, which reads
+// the housing market and defaults to FALSE when absent. The off-map world's housing is elastic (121:
+// cohabitation/move-out are logical relocations without vacancy constraints), so the logical answer is a
+// standing yes — the deliberate resolution of the coupling the 122 ticket flagged.
+interface HousingMarketLike { canMoveOut(personId: PersonId): boolean }
+const LOGICAL_HOUSING: HousingMarketLike = { canMoveOut: () => true };
 
 export default class LogicalWorld implements WorldAdapter {
     readonly mode: SimulationMode = 'bootstrap';
@@ -922,7 +929,7 @@ export default class LogicalWorld implements WorldAdapter {
     tickFacts(skillBook: SkillBook, tick: number): LogicalTickFacts {
         const skillRegistry = new SkillRegistry(skillBook, tick);
         return {
-            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda, traits: this.traits, habits: this.habits, mood: this.mood, ledger: this.economy, incidents: this.incidents, pets: this.pets, knownFacts: this.knownFacts } },
+            ctx: { mode: 'bootstrap', world: this, markets: { jobMarket: this.config.jobs ? this.jobMarket : null, housing: LOGICAL_HOUSING, skills: skillRegistry, social: this.socialGraph, needs: this.needs, agenda: this.agenda, traits: this.traits, habits: this.habits, mood: this.mood, ledger: this.economy, incidents: this.incidents, pets: this.pets, knownFacts: this.knownFacts } },
             inventory: this.inventory,
         };
     }

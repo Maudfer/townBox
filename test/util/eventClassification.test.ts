@@ -121,8 +121,8 @@ describe('generateEventClassification', () => {
         expect(markdown).toContain('Totals: 2 events');
         expect(markdown).toContain('**1 vital**');
         expect(markdown).toContain('**1 texture**');
-        expect(markdown).toContain('| alpha_event | social | probabilistic | texture | — |');
-        expect(markdown).toContain('| zeta_event | misc | manual | vital | — |');
+        expect(markdown).toContain('| alpha_event | social | probabilistic | texture | — | — |');
+        expect(markdown).toContain('| zeta_event | misc | manual | vital | — | — |');
         // Sorted alphabetically: alpha_event's row precedes zeta_event's.
         expect(markdown.indexOf('alpha_event')).toBeLessThan(markdown.indexOf('zeta_event'));
     });
@@ -131,6 +131,6 @@ describe('generateEventClassification', () => {
         const events: EventManifest = { woke_up: event({ triggers: { manual: {} } }) };
         const actions: ActionManifest = { sleep: action({ events: { onComplete: 'woke_up' } }) };
         const markdown = generateEventClassification(events, actions);
-        expect(markdown).toContain('| woke_up | — | manual | wired | sleep.onComplete |');
+        expect(markdown).toContain('| woke_up | — | manual | wired | — | sleep.onComplete |');
     });
 });

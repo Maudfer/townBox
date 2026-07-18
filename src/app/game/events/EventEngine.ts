@@ -8,6 +8,7 @@ import { SERVICES_CONFIG } from 'game/economy/CityServices';
 import { MOOD_CONFIG } from 'game/population/Mood';
 import { resolveStanding } from 'game/population/SocialGraph';
 import { MoodReader } from 'types/Mood';
+import { NeedsReader } from 'types/Needs';
 import { ServiceCoverageReader } from 'types/Services';
 import { PetsReader } from 'types/Pets';
 import { EdgeKind, RelationshipGraph } from 'types/Relationship';
@@ -172,6 +173,7 @@ export default class EventEngine {
     private moodLedger: MoodReader | null; // mood impulses from event valence (task 091)
     private servicesReader: ServiceCoverageReader | null; // coverage ratios for hazard factors (task 096)
     private petsReader: PetsReader | null; // petCount attribute (task 103)
+    private needsLedger: NeedsReader | null = null; // foodLevel/restLevel attributes (LP-5)
     // Optional global per-event probability multiplier (task 055): the offline history generator uses this to
     // throttle fertility toward a carrying capacity by scaling the `pregnancy` hazard as the living count
     // approaches the target band. Applied to the effective probability BEFORE the (unconditional) roll, so the
@@ -250,6 +252,7 @@ export default class EventEngine {
         this.moodLedger = null;
         this.servicesReader = null;
         this.petsReader = null;
+        this.needsLedger = null;
     }
 
     // A human label for an event id (task 032): the manifest's authored label, else a prettified id. Used by the
@@ -274,6 +277,17 @@ export default class EventEngine {
         this.history = history ?? {};
     }
 
+    // The per-person attribute overlay (setAttr state: health, retired, depressed, pregnant…). Save/load
+    // surface (LP-6): this was never serialized — a sick person loaded healthy, a retiree loaded
+    // employable, and gestation (a 9-month pregnant state) made the loss untenable. Additive save field.
+    getOverlayState(): Record<PersonId, Record<string, Value>> {
+        return this.overlay;
+    }
+
+    loadOverlayState(overlay: Record<PersonId, Record<string, Value>> | undefined): void {
+        this.overlay = overlay ?? {};
+    }
+
     // Lazy hydration (task 012 follow-up): installs ONE person's pre-game aggregate history + log entries from
     // the history asset at materialization time, instead of loading everyone's up-front at boot.
     installPersonHistory(personId: PersonId, record: EventHistoryTable[PersonId]): void {
@@ -292,6 +306,12 @@ export default class EventEngine {
 
     getLog(): EventLogTable {
         return this.lifeLog.getTable();
+    }
+
+    // The live-era log view (LP-1): what the save serializes — hydrated pre-game entries excluded (they
+    // re-install from the asset on load; serializing 100k-entry pasts overflowed JSON.stringify).
+    getLiveLog(): EventLogTable {
+        return this.lifeLog.getLiveTable();
     }
 
     // A person's life log, oldest first. The inspector renders it newest-first (its concern, not the engine's).
@@ -431,6 +451,14 @@ export default class EventEngine {
             case 'mood':
                 // Morale 0–100 (task 091): baseline without a bound ledger. Vice/withdrawal data gates on it.
                 return this.moodLedger ? this.moodLedger.moodOf(id, tick) : MOOD_CONFIG.baseline;
+            case 'foodLevel':
+                // The food need meter 0–100 (LP-5 / proposal simulation-aliveness-2 P1-1): starvation
+                // consequences (went_hungry, the fell_ill starvation factor) read it. Well-fed (100)
+                // without a bound needs ledger, so the gates are inert in pure/test runs.
+                return this.needsLedger ? this.needsLedger.levelOf(id, 'food', tick, state.worldSeed) : 100;
+            case 'restLevel':
+                // The rest meter 0–100 (LP-5): exhaustion consequences read it. Rested without a ledger.
+                return this.needsLedger ? this.needsLedger.levelOf(id, 'rest', tick, state.worldSeed) : 100;
             case 'healthcareCoverage':
                 // The services ledger (task 096): recovery hazards read it as a factor. Unmeasured contexts
                 // read the neutral level, at which the published curves pass through 1 (no ledger, no effect).
@@ -438,6 +466,28 @@ export default class EventEngine {
             case 'petCount':
                 // Pets (task 103): adoption caps and dog-walk gates read the registry; 0 without one.
                 return this.petsReader ? this.petsReader.countOf(id) : 0;
+            case 'hasMinorChild': {
+                // Kinship-derived (LP-7): a living child under 18 — gates the parenting texture
+                // (helped_with_homework and friends) that used to free-roll for the childless.
+                return childrenOf(state.people, id).some(childId => {
+                    const child = state.people[childId];
+                    return !!child && isAliveAt(child, tick) && ageAt(child, tick, ticksPerYear) < 18;
+                });
+            }
+            case 'hasGrandchildren': {
+                // Kinship-derived (LP-7): any living grandchild — the audit found grandparent texture
+                // gated on age 60 alone.
+                return childrenOf(state.people, id).some(childId =>
+                    childrenOf(state.people, childId).some(grandId => {
+                        const grand = state.people[grandId];
+                        return !!grand && isAliveAt(grand, tick);
+                    }));
+            }
+            case 'squalor':
+                // Uncollected-garbage squalor 0..1 (LP-8 / P1-2): fell_ill's factor and the cleaning
+                // weights read it. Absent reader (pure tests, the off-map generator whose curb is
+                // collected daily) reads 0 — clean, every factor curve at 1.
+                return this.servicesReader?.squalorOf?.() ?? 0;
             case 'policeCoverage':
                 // The services ledger (task 099): crime selection gates read it — a patrolled town tempts
                 // less. Unmeasured contexts read neutral, where the authored modifiers are inert.
@@ -662,6 +712,17 @@ export default class EventEngine {
                     // The wedding consumes the engagement edge (task 090): spouse standing derives from the
                     // genealogy from here on — without this, engagedOf could re-marry a divorced pair forever.
                     this.social?.removeEdgeBetween?.(subjectId, partnerId);
+                    // And settles the couple's OTHER romances (LP-9): dangling dating/engaged edges demote
+                    // to ex_partner — the audit's asset carried ~4.7 dating edges per drawn person because
+                    // off-map marriages never closed them.
+                    for (const spouse of [subjectId, partnerId]) {
+                        for (const edge of this.social?.edgesOf?.(spouse, tick) ?? []) {
+                            const kind = edge.view?.kind;
+                            if (kind === 'dating' || kind === 'engaged') {
+                                this.social?.setKind?.(spouse, edge.otherId, 'ex_partner', tick, edge.view.strength);
+                            }
+                        }
+                    }
                 }
                 return true;
             }
@@ -948,6 +1009,7 @@ export default class EventEngine {
         this.moodLedger = markets.mood ?? null;
         this.servicesReader = markets.services ?? null;
         this.petsReader = markets.pets ?? null;
+        this.needsLedger = markets.needs ?? null;
     }
 
     // Sets (or clears with null) the global per-event probability multiplier (task 055). Only the offline
@@ -965,6 +1027,7 @@ export default class EventEngine {
         this.moodLedger = null;
         this.servicesReader = null;
         this.petsReader = null;
+        this.needsLedger = null;
     }
 
     // A subject-only SimulationContext for external requirement checks (the Action engine, task 043; Brain,

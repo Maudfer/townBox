@@ -51,6 +51,13 @@
             "tool": "work",
             "blueprint": "supermarket",
             "color": "#4bb05f"
+        },
+        {
+            "id": "school",
+            "label": "School",
+            "tool": "work",
+            "blueprint": "school",
+            "color": "#d1a24b"
         }
     ]
 }

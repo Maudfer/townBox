@@ -117,6 +117,36 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
                 issues.add(`${id}.affinity`, 'expected an array of trait-affinity tag strings');
             }
         }
+        // Label templates (LP-14 layer 3): every {placeholder} in a label must name a declared parameter —
+        // a typo'd placeholder would render as a bare word forever.
+        if (typeof action['label'] === 'string') {
+            const declared = new Set(Object.keys((action['parameters'] as Record<string, unknown> | undefined) ?? {}));
+            for (const match of (action['label'] as string).matchAll(/\{(\w+)\}/g)) {
+                if (!declared.has(match[1]!)) {
+                    issues.add(`${id}.label`, `template placeholder {${match[1]}} does not name a declared parameter`);
+                }
+            }
+        }
+        // The workday lifecycle contract (LP-3 / proposal simulation-aliveness-2 P0-3): every continuous
+        // work action must announce the shift — onStart started_working and stopped_working on BOTH exits.
+        // The audit found 27 of 43 unwired, so shifts started invisibly and the day-progression seam
+        // (SkillProgression reads stopped_working) fired only when the rotation happened to pick a wired
+        // action. A new work action cannot regress this again.
+        // Person-targeted work interactions (treating_patient) are care delivered DURING a shift, not the
+        // shift wrapper itself — they keep their own counterpart lifecycles and are exempt.
+        if (action['category'] === 'work' && action['type'] === 'continuous' && !('interaction' in action)) {
+            const events = (action['events'] ?? {}) as Record<string, unknown>;
+            const names = (hook: string): string | undefined => {
+                const link = events[hook];
+                return typeof link === 'string' ? link : (link as { event?: string } | undefined)?.event;
+            };
+            if (names('onStart') !== 'started_working') {
+                issues.add(`${id}.events.onStart`, 'a continuous work action must fire started_working on start (LP-3 workday contract)');
+            }
+            if (names('onComplete') !== 'stopped_working' || names('onInterrupt') !== 'stopped_working') {
+                issues.add(`${id}.events`, 'a continuous work action must fire stopped_working on completion AND interruption (LP-3 workday contract)');
+            }
+        }
         if ('satisfies' in action && checkRecord(issues, `${id}.satisfies`, action['satisfies'])) {
             // Needs satisfaction (task 084): keys from the closed need set, values finite numbers.
             const satisfies = action['satisfies'] as Record<string, unknown>;

@@ -91,3 +91,20 @@ describe('buildGenealogyTree', () => {
         expect(names).not.toContain('gma');
     });
 });
+
+// Generational levels (LP-10): the renderer pins each level to a horizontal row — subjects 0, parents −1,
+// grandparents −2, children +1; spouses and siblings share their anchor's level.
+describe('generation levels (LP-10)', () => {
+    const pool = buildPool();
+    const placed = new Set(['dad', 'mom', 'kidA', 'kidB']);
+
+    test('levels ascend through ancestry and stay flat across spouses/siblings', () => {
+        const tree = buildGenealogyTree(pool, ['kidA', 'kidB'], NOW, placed, 2);
+        expect(byName(tree.nodes, 'kidA')!.generation).toBe(0);
+        expect(byName(tree.nodes, 'kidB')!.generation).toBe(0); // sibling: same row
+        expect(byName(tree.nodes, 'dad')!.generation).toBe(-1);
+        expect(byName(tree.nodes, 'mom')!.generation).toBe(-1); // spouse: dad's row
+        expect(byName(tree.nodes, 'gpa')!.generation).toBe(-2);
+        expect(byName(tree.nodes, 'gma')!.generation).toBe(-2);
+    });
+});

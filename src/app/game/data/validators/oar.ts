@@ -11,7 +11,7 @@ import { EventManifest } from 'types/LifeEvent';
 const DISPOSITIONS = ['consumed', 'retained', 'transformed', 'required'];
 const OWNERSHIP_TARGETS = ['person', 'targetPerson', 'employer', 'world', 'none'];
 const CONTAINERS = ['possessions', 'location'];
-const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'planJointActivity', 'purchaseObject', 'triggerEvent', 'scheduleEvent'];
+const OP_KINDS = ['createObject', 'consumeObject', 'removeObject', 'moveObject', 'moveObjectToPerson', 'transferObject', 'setObjectState', 'adjustMoney', 'adjustRelationship', 'planJointActivity', 'purchaseObject', 'triggerEvent', 'scheduleEvent', 'satisfyNeed'];
 
 function validateObjectQuery(issues: IssueCollector, path: string, query: unknown): void {
     if (!checkRecord(issues, path, query)) {
@@ -156,6 +156,13 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                 }
                 break;
             }
+            case 'satisfyNeed':
+                // LP-5/P1-7: household care — the co-located fan-out (need names cross-checked in semantics).
+                checkUnknownKeys(issues, opPath, op, ['op', 'need', 'amount', 'scope']);
+                checkString(issues, `${opPath}.need`, op['need']);
+                checkNumber(issues, `${opPath}.amount`, op['amount'], { min: 1 });
+                checkEnum(issues, `${opPath}.scope`, op['scope'], ['coLocated']);
+                break;
             case 'triggerEvent':
                 checkUnknownKeys(issues, opPath, op, ['op', 'event']);
                 checkString(issues, `${opPath}.event`, op['event']);

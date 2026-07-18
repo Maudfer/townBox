@@ -183,6 +183,11 @@ export type TriggerSource = 'probability' | 'action' | 'brain' | 'schedule' | 's
 export interface EventLogEntry {
     seq: number;
     tick: number;
+    // The intra-hour materialization minute (LP-11 / proposal simulation-aliveness-2 M1): decisions and
+    // state resolve at the tick flip, but each commit is presented (and, live, physically departed) at a
+    // deterministic minute of the hour — evenly spread with ±20% jitter, causation chains sharing their
+    // root's minute. Additive and optional: pre-LP-11 entries simply lack it (rendered as :00).
+    minute?: number;
     kind: 'event';
     defId: string; // event id in the manifest
     roles: Record<string, string>; // role name -> PersonId as bound at commit time
@@ -198,7 +203,10 @@ export interface EventLogEntry {
 // consequence plan was unsatisfiable — the pre-073 silent downgrade, now labeled). 'target_not_present' and
 // 'requirements_unmet' are reserved for runtime paths that don't yet log (start-time rejections stay typed
 // ActionStartOutcome reasons with zero mutations and no entry).
-export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet';
+export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'inputs_unavailable' | 'requirements_unmet'
+    // LP-2 (proposal simulation-aliveness-2 P0-3a): a blocked instance says WHY — the world found no route
+    // to the required location (missing venue, unroutable building).
+    | 'no_route';
 
 // An action lifecycle transition in the same append-only log (task 043). One entry per transition
 // ('performed' for discrete actions; started/completed/interrupted/blocked/failed for continuous ones,
@@ -207,10 +215,14 @@ export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'i
 export interface ActionLogEntry {
     seq: number;
     tick: number;
+    minute?: number; // intra-hour materialization minute (LP-11) — see EventLogEntry.minute
     kind: 'action';
     defId: string; // action id in the manifest
     instanceId: string | null; // null for discrete actions (no instance materializes)
-    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused' | 'resumed';
+    // 'departed' (LP-2): logged ONCE when the instance's location transition first goes pending — travel
+    // toward an action used to be invisible in the log, making stuck/cancelled commutes undiagnosable
+    // (the audit's 40-stops-vs-7-starts asymmetry).
+    lifecycle: 'performed' | 'started' | 'completed' | 'interrupted' | 'blocked' | 'failed' | 'paused' | 'resumed' | 'departed';
     params: Record<string, string | number | boolean>;
     parentInstanceId: string | null;
     // Why a runtime failure/decline happened (task 073) — a closed vocabulary, additive on the log.
@@ -256,6 +268,10 @@ export interface JobMarket {
     canHire(personId: string): boolean;
     hire(personId: string): boolean;
     fire(personId: string): void;
+    // The workplace key of the person's best reachable opening (LP-13): the job-seeking hook's application
+    // target — apply where the market would actually place you. Optional: abstract markets (the off-map
+    // logical world) leave it undefined and the hook stays silent there.
+    bestOpeningKeyFor?(personId: string): string | null;
 }
 
 // The housing adapter the event runtime consults so the pure engine can reason about move-out eligibility (the

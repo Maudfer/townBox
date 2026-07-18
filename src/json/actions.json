@@ -188,7 +188,6 @@
             }
         },
         "satisfies": {
-            "food": 10,
             "purpose": 12
         },
         "affinity": [
@@ -532,7 +531,7 @@
                     "when": {
                         "attr": "health",
                         "op": "<",
-                        "value": 25
+                        "value": 0.25
                     },
                     "multiply": 0.5
                 },
@@ -622,7 +621,7 @@
                     "when": {
                         "attr": "health",
                         "op": "<",
-                        "value": 25
+                        "value": 0.25
                     },
                     "multiply": 0.4
                 },
@@ -997,7 +996,7 @@
                     "when": {
                         "attr": "health",
                         "op": ">=",
-                        "value": 70
+                        "value": 0.7
                     },
                     "multiply": 1.3
                 },
@@ -1005,7 +1004,7 @@
                     "when": {
                         "attr": "health",
                         "op": "<",
-                        "value": 30
+                        "value": 0.3
                     },
                     "multiply": 0.3
                 },
@@ -1220,7 +1219,7 @@
                     "when": {
                         "attr": "health",
                         "op": "<",
-                        "value": 25
+                        "value": 0.25
                     },
                     "multiply": 0.5
                 }
@@ -1424,6 +1423,11 @@
                     "action": "filled_the_trash_bag",
                     "chancePerTick": 0.15,
                     "maxTotal": 1
+                },
+                {
+                    "action": "served_the_family",
+                    "chancePerTick": 0.3,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -1431,8 +1435,8 @@
             "onComplete": "tried_new_recipe"
         },
         "satisfies": {
-            "food": 15,
-            "purpose": 5
+            "purpose": 5,
+            "food": 10
         },
         "affinity": [
             "craft"
@@ -1883,7 +1887,7 @@
                     "requirements": {
                         "attr": "health",
                         "op": "<",
-                        "value": 60
+                        "value": 0.6
                     }
                 },
                 {
@@ -2049,7 +2053,7 @@
                     "when": {
                         "attr": "health",
                         "op": "<",
-                        "value": 40
+                        "value": 0.4
                     },
                     "multiply": 1.5
                 },
@@ -2136,8 +2140,7 @@
         },
         "satisfies": {
             "rest": 10,
-            "fun": 5,
-            "food": 6
+            "fun": 5
         }
     },
     "taking_a_walk": {
@@ -2196,7 +2199,7 @@
                     "when": {
                         "attr": "health",
                         "op": ">=",
-                        "value": 60
+                        "value": 0.6
                     },
                     "multiply": 1.2
                 }
@@ -2734,6 +2737,18 @@
         ],
         "satisfies": {
             "hygiene": 8
+        },
+        "selection": {
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "squalor",
+                        "op": ">=",
+                        "value": 0.5
+                    },
+                    "multiply": 2.5
+                }
+            ]
         }
     },
     "filled_the_trash_bag": {
@@ -3742,7 +3757,7 @@
         }
     },
     "lent_an_object": {
-        "label": "Lent an object",
+        "label": "Lent an object to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -3814,7 +3829,7 @@
         ]
     },
     "returned_borrowed_object": {
-        "label": "Returned a borrowed object",
+        "label": "Returned {object} to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -3937,7 +3952,7 @@
         "category": "social"
     },
     "greeted_person": {
-        "label": "Greeted someone",
+        "label": "Greeted {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -3969,7 +3984,7 @@
         ]
     },
     "talked_to_person": {
-        "label": "Talked to someone",
+        "label": "Talked to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4001,7 +4016,7 @@
         ]
     },
     "asked_for_help": {
-        "label": "Asked for help",
+        "label": "Asked {target} for help",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4021,7 +4036,7 @@
         }
     },
     "complimented_person": {
-        "label": "Complimented someone",
+        "label": "Complimented {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4047,7 +4062,7 @@
         ]
     },
     "apologized_to_person": {
-        "label": "Apologized to someone",
+        "label": "Apologized to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4073,7 +4088,7 @@
         ]
     },
     "argued_with_person": {
-        "label": "Argued with someone",
+        "label": "Argued with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4110,7 +4125,7 @@
         ]
     },
     "invited_person_over": {
-        "label": "Invited someone over",
+        "label": "Invited {target} over",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4137,7 +4152,7 @@
         ]
     },
     "told_a_joke": {
-        "label": "Told a joke",
+        "label": "Told {target} a joke",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4170,7 +4185,7 @@
         ]
     },
     "asked_for_advice": {
-        "label": "Asked for advice",
+        "label": "Asked {target} for advice",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4196,7 +4211,7 @@
         ]
     },
     "offered_job_lead": {
-        "label": "Offered a job lead",
+        "label": "Offered {target} a job lead",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4216,7 +4231,7 @@
         }
     },
     "celebrated_with_person": {
-        "label": "Celebrated with someone",
+        "label": "Celebrated with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4246,7 +4261,7 @@
         }
     },
     "consoled_person": {
-        "label": "Consoled someone",
+        "label": "Consoled {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4275,7 +4290,7 @@
         }
     },
     "played_with_person": {
-        "label": "Played with someone",
+        "label": "Played with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4305,7 +4320,7 @@
         }
     },
     "taught_person_something": {
-        "label": "Taught someone something",
+        "label": "Taught {target} something",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4344,7 +4359,7 @@
         }
     },
     "gave_object_to_person": {
-        "label": "Gave an object to someone",
+        "label": "Gave an object to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4401,7 +4416,7 @@
         }
     },
     "shared_food_with_person": {
-        "label": "Shared food with someone",
+        "label": "Shared food with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -4452,102 +4467,211 @@
     "balancing_the_till": {
         "label": "Balancing the till",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "prepping_ingredients": {
         "label": "Prepping ingredients",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "restocking_shelves": {
         "label": "Restocking shelves",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "stocked_the_shelves",
+                    "chancePerTick": 0.6
+                }
+            ]
+        }
     },
     "reviewing_charts": {
         "label": "Reviewing charts",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "grading_papers": {
         "label": "Grading papers",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "patrolling_the_floor": {
         "label": "Patrolling the floor",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "mixing_batter": {
         "label": "Mixing batter",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "servicing_a_vehicle": {
         "label": "Servicing a vehicle",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "drawing_blueprints": {
         "label": "Drawing blueprints",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "leading_a_workout": {
         "label": "Leading a workout",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "checking_in_guests": {
         "label": "Checking in guests",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "projecting_the_matinee": {
         "label": "Projecting the matinee",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "sorting_deliveries": {
         "label": "Sorting deliveries",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "updating_ledgers": {
         "label": "Updating ledgers",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "sterilizing_equipment": {
         "label": "Sterilizing equipment",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "shelving_returns": {
         "label": "Shelving returns",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "wiping_down_tables": {
         "label": "Wiping down tables",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "pruning_displays": {
         "label": "Pruning displays",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "counting_inventory": {
         "label": "Counting inventory",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "supervising_the_team": {
         "label": "Supervising the team",
         "type": "continuous",
-        "category": "work"
+        "category": "work",
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
+        }
     },
     "sharpened_a_pencil": {
         "label": "Sharpened a pencil",
@@ -4710,6 +4834,25 @@
         "category": "maintenance",
         "satisfies": {
             "food": 45
+        },
+        "requirements": {
+            "any": [
+                {
+                    "carries": {
+                        "tag": "meal"
+                    }
+                },
+                {
+                    "carries": {
+                        "tag": "ingredient"
+                    }
+                },
+                {
+                    "carries": {
+                        "tag": "snack"
+                    }
+                }
+            ]
         }
     },
     "packed_a_lunch": {
@@ -4758,7 +4901,6 @@
             ]
         },
         "satisfies": {
-            "food": 8,
             "purpose": 10
         },
         "affinity": [
@@ -4964,7 +5106,7 @@
         }
     },
     "grab": {
-        "label": "Grabbed an object",
+        "label": "Picked up {object}",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5018,7 +5160,7 @@
         }
     },
     "put_down": {
-        "label": "Put an object down",
+        "label": "Put {object} down",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5045,7 +5187,7 @@
         ]
     },
     "discard_object": {
-        "label": "Threw an object away",
+        "label": "Threw {object} away",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5089,7 +5231,7 @@
         }
     },
     "use_object": {
-        "label": "Used an object",
+        "label": "Used {object}",
         "type": "discrete",
         "category": "maintenance",
         "parameters": {
@@ -5105,7 +5247,7 @@
         }
     },
     "hugged_person": {
-        "label": "Hugged someone",
+        "label": "Hugged {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5143,7 +5285,7 @@
         }
     },
     "kissed_partner": {
-        "label": "Kissed their partner",
+        "label": "Kissed {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5182,7 +5324,7 @@
         }
     },
     "invite_to_activity": {
-        "label": "Invited someone to spend time together",
+        "label": "Invited {target} to spend time together",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5243,7 +5385,7 @@
         }
     },
     "asked_person_out": {
-        "label": "Asked someone out",
+        "label": "Asked {target} out",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5335,7 +5477,7 @@
         ]
     },
     "proposed_marriage": {
-        "label": "Proposed marriage",
+        "label": "Proposed marriage to {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -5619,6 +5761,14 @@
                         }
                     },
                     "multiply": 3
+                },
+                {
+                    "when": {
+                        "attr": "squalor",
+                        "op": ">=",
+                        "value": 0.5
+                    },
+                    "multiply": 2.5
                 }
             ]
         },
@@ -5920,7 +6070,7 @@
         }
     },
     "thanked_person": {
-        "label": "Thanked someone",
+        "label": "Thanked {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -6135,6 +6285,9 @@
                     "value": false
                 }
             ]
+        },
+        "events": {
+            "onComplete": "get_job"
         }
     },
     "asked_about_openings": {
@@ -6169,6 +6322,11 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "kept_an_eye_on_the_street": {
@@ -6278,7 +6436,7 @@
         }
     },
     "pickpocketed_someone": {
-        "label": "Pickpocketed someone",
+        "label": "Pickpocketed {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -6372,6 +6530,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "serving_time": {
@@ -6473,6 +6636,11 @@
                     "chancePerTick": 0.1
                 }
             ]
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "picked_up_litter": {
@@ -6494,7 +6662,19 @@
                 },
                 "quantity": 1
             }
-        ]
+        ],
+        "selection": {
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "squalor",
+                        "op": ">=",
+                        "value": 0.5
+                    },
+                    "multiply": 2.5
+                }
+            ]
+        }
     },
     "swept_up_butts": {
         "label": "Swept up cigarette butts",
@@ -6540,6 +6720,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "responding_to_fire": {
@@ -6549,6 +6734,11 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "receiving_treatment": {
@@ -6565,7 +6755,7 @@
         }
     },
     "treating_patient": {
-        "label": "Treating a patient",
+        "label": "Treating {target}",
         "type": "continuous",
         "category": "work",
         "durationTicks": 2,
@@ -6589,7 +6779,7 @@
         }
     },
     "visiting_the_sick": {
-        "label": "Visiting a sick relative",
+        "label": "Visiting {target}",
         "type": "continuous",
         "category": "social",
         "durationTicks": 2,
@@ -6788,7 +6978,7 @@
         ]
     },
     "shared_gossip": {
-        "label": "Shared a bit of gossip",
+        "label": "Shared a bit of gossip with {target}",
         "type": "discrete",
         "category": "social",
         "parameters": {
@@ -6844,10 +7034,15 @@
         "durationTicks": 2,
         "selection": {
             "weight": 0
+        },
+        "events": {
+            "onStart": "started_working",
+            "onComplete": "stopped_working",
+            "onInterrupt": "stopped_working"
         }
     },
     "visiting_the_detained": {
-        "label": "Visiting a loved one in custody",
+        "label": "Visiting {target} in custody",
         "type": "continuous",
         "category": "social",
         "durationTicks": 2,
@@ -6870,6 +7065,74 @@
                 "type": "string",
                 "required": true
             }
+        }
+    },
+    "stocked_the_shelves": {
+        "label": "Stocked the shelves",
+        "type": "discrete",
+        "category": "work"
+    },
+    "served_the_family": {
+        "label": "Served the family a meal",
+        "type": "discrete",
+        "category": "maintenance",
+        "requirements": {
+            "any": [
+                {
+                    "carries": {
+                        "tag": "meal"
+                    }
+                },
+                {
+                    "carries": {
+                        "tag": "ingredient"
+                    }
+                }
+            ]
+        },
+        "consequences": [
+            {
+                "op": "satisfyNeed",
+                "need": "food",
+                "amount": 35,
+                "scope": "coLocated"
+            }
+        ],
+        "satisfies": {
+            "food": 20,
+            "purpose": 8
+        }
+    },
+    "applying_at_business": {
+        "label": "Applying for a job at {employer}",
+        "type": "continuous",
+        "category": "maintenance",
+        "durationTicks": 2,
+        "parameters": {
+            "employer": {
+                "type": "string"
+            }
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "applied_for_a_job",
+                    "chancePerTick": 1,
+                    "maxTotal": 1
+                },
+                {
+                    "action": "asked_about_openings",
+                    "chancePerTick": 0.4,
+                    "maxTotal": 1
+                }
+            ]
+        },
+        "selection": {
+            "weight": 0
+        },
+        "satisfies": {
+            "purpose": 10
         }
     }
 }

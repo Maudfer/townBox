@@ -23,6 +23,7 @@
 import ActionEngine, { ActionDeps } from 'game/actions/ActionEngine';
 import { evaluateConsent, ConsentRequest } from 'game/actions/Consent';
 import { jobOrchestratorHook } from 'game/actions/JobOrchestrator';
+import { jobSeekingHook } from 'game/actions/JobSeeking';
 import { plannerHook } from 'game/actions/Planner';
 import { detainedHook } from 'game/actions/Detained';
 import { evacuationHook, fireResponseHook } from 'game/actions/FireResponse';
@@ -187,6 +188,7 @@ export default class Brain {
             doctorRoundsHook, // on-duty doctors treat co-located patients-in-treatment (task 111)
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
+            jobSeekingHook, // located application trips at real openings (LP-13) — hired at the counter
             wokeUpHook,
             reactionsHook, // authored answers to committed events — thanks, hugs back, retorts (task 094)
             actionFailedHook, // observes consent declines (task 073) — the reaction registration point
@@ -880,16 +882,31 @@ const needsHook: BrainHook = {
         // pull objects OUT of storage for a purpose.
         const world = deps.ctx.world ?? null;
         const inventory = deps.inventory ?? null;
+        // The archetypes an ate_a_meal OAR alternative can actually consume (LP-5): the eat-in-hand
+        // intent, the pantry-fetch skip, and the fetch preference all key off THIS set, so a person never
+        // "carries food" the meal machinery cannot eat (the granola-bar deadlock the fed-week arc caught).
+        const MEAL_CONSUMABLES = new Set(['sandwich', 'bread_loaf', 'egg', 'tomato', 'lettuce', 'potato', 'pasta_box', 'apple', 'banana', 'granola_bar', 'cheese_wedge']);
+        // Grab what a MEAL can be made of (LP-5 fix): the fetch used to take ingredient-tagged items only
+        // (bread is 'meal'-tagged — never fetchable) alphabetically (butter first) — matching none of
+        // ate_a_meal's consumption alternatives, so the hungry fetched once and starved holding butter.
+        const MEAL_STAPLE_PRIORITY = ['bread_loaf', 'egg', 'potato', 'pasta_box', 'apple', 'tomato', 'lettuce', 'banana', 'cheese_wedge'];
         if (need === 'food' && world && inventory
             && ledger.levelOf(personId, 'food', deps.tick, deps.state.worldSeed) < INVENTORY_CONFIG.pantryFetchBelowFood
             && locationKey(world.locationOf(personId)) === 'home'
-            && !inventory.carriedInstances(personId).some(instance => (inventory.getArchetype(instance.archetypeId)?.tags ?? []).includes('ingredient'))) {
+            && !inventory.carriedInstances(personId).some(instance => MEAL_CONSUMABLES.has(instance.archetypeId)
+                || (inventory.getArchetype(instance.archetypeId)?.tags ?? []).includes('ingredient'))) {
             const pantry = world.objectsAt(world.objectLocationOf(personId))
                 .map(id => inventory.getInstance(id))
-                .filter((instance): instance is NonNullable<typeof instance> => !!instance
-                    && (inventory.getArchetype(instance.archetypeId)?.tags ?? []).includes('ingredient'))
+                .filter((instance): instance is NonNullable<typeof instance> => !!instance && (MEAL_CONSUMABLES.has(instance.archetypeId)
+                    || (inventory.getArchetype(instance.archetypeId)?.tags ?? []).includes('ingredient')))
                 .map(instance => instance.archetypeId)
-                .sort();
+                .sort((a, b) => {
+                    const rank = (id: string): number => {
+                        const index = MEAL_STAPLE_PRIORITY.indexOf(id);
+                        return index === -1 ? MEAL_STAPLE_PRIORITY.length : index;
+                    };
+                    return rank(a) - rank(b) || a.localeCompare(b);
+                });
             if (pantry.length > 0) {
                 intents.push({
                     actionId: 'grab',
@@ -902,6 +919,23 @@ const needsHook: BrainHook = {
                     causationId: null,
                 });
             }
+        }
+        // EAT WHAT YOU HOLD (LP-5 fix): the free-time candidate set is continuous-only by design, and with
+        // food satisfaction moved onto the honest eat DISCRETES, a starving person holding bread had no
+        // proposable way to eat it. Critical hunger with food in hand proposes the meal directly — the
+        // discrete commits (consuming through its OAR alternatives) and the loop falls through to the
+        // continuous pick as usual.
+        if (need === 'food' && inventory
+            && inventory.carriedInstances(personId).some(instance => MEAL_CONSUMABLES.has(instance.archetypeId))) {
+            intents.push({
+                actionId: 'ate_a_meal',
+                sourceHook: 'needs',
+                priority: 65,
+                necessity: 'required',
+                band: 'survival',
+                mayInterrupt: true,
+                causationId: null,
+            });
         }
         const pick = brain.selectActionForNeed(personId, need, deps);
         if (pick) {

@@ -187,6 +187,9 @@ describe('predicate validation', () => {
         ['unrecognized shape', { has_event: 'death' }, /unrecognized predicate shape/],
         ['typo key on hasEvent', { hasEvent: 'death', withinDay: 3 }, /unknown key/],
         ['bad withinTicks', { hasEvent: 'death', withinTicks: 0 }, /expected >= 1/],
+        // The unit-scale guard (LP-5 quick fix): health is 0–1; a 0–100-scale comparison is the bug class
+        // the aliveness-2 audit found eight of (always-true weight inflations / always-false dead gates).
+        ['health compared on the 0–100 scale', { attr: 'health', op: '<', value: 40 }, /0–1 attribute/],
     ])('rejects %s', (_label, fixture, pattern) => {
         expect(run(fixture)).toMatch(pattern);
     });
@@ -423,6 +426,8 @@ describe('actions validation (task 043)', () => {
         ['an out-of-range pool chance', { a: { ...continuous, children: { mode: 'pool', entries: [{ action: 'b', chancePerTick: 2 }] } } }, /expected <= 1/],
         ['an unknown binding', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$sibling.output' } }] } } }, /unknown binding/],
         ['a binding to an undeclared parent parameter', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$parent.ghost' } }] } } }, /undeclared parent parameter "ghost"/],
+        // Label templates (LP-14 layer 3): placeholders must name declared parameters.
+        ['a label placeholder naming no declared parameter', { a: { ...discrete, label: 'Hugged {target}' } }, /placeholder \{target\}/],
     ])('structure rejects %s', (_label, fixture, pattern) => {
         expect(messagesOf(structure(validateActionsStructure, fixture))).toMatch(pattern);
     });

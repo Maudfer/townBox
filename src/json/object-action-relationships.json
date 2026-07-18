@@ -458,5 +458,218 @@
                 "container": "location"
             }
         ]
+    },
+    "supermarket_restock": {
+        "action": "stocked_the_shelves",
+        "inputs": [],
+        "outputs": [
+            {
+                "archetype": "egg",
+                "quantity": 4,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "bread_loaf",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "milk_carton",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "tomato",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "lettuce",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "potato",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "onion",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "flour_bag",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "butter_stick",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "cheese_wedge",
+                "quantity": 1,
+                "owner": "employer",
+                "container": "location"
+            }
+        ]
+    },
+    "ate_meal_from_loaf": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_eggs": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "egg",
+                "quantity": 2,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_salad": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "tomato",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "lettuce",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_potatoes": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "potato",
+                "quantity": 2,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_pasta": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "pasta_box",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_fruit": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "apple",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "served_family_from_staples": {
+        "action": "served_the_family",
+        "inputs": [
+            {
+                "archetype": "egg",
+                "quantity": 2,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "tomato",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "served_family_from_loaf": {
+        "action": "served_the_family",
+        "inputs": [
+            {
+                "archetype": "bread_loaf",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "served_family_from_potatoes": {
+        "action": "served_the_family",
+        "inputs": [
+            {
+                "archetype": "potato",
+                "quantity": 2,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "onion",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_banana": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "banana",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_granola": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "granola_bar",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_cheese": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "cheese_wedge",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
     }
 }

@@ -1,9 +1,9 @@
 {
     "halfLifeDays": {
-        "acquaintance": 120,
+        "acquaintance": 150,
         "friend": 300,
         "close_friend": 600,
-        "rival": 200,
+        "rival": 60,
         "dating": 400,
         "ex_partner": 1200,
         "engaged": 600
@@ -11,13 +11,13 @@
     "ladder": [
         {
             "kind": "acquaintance",
-            "promoteAt": 30,
+            "promoteAt": 22,
             "next": "friend",
             "onPromote": "made_friend"
         },
         {
             "kind": "friend",
-            "promoteAt": 65,
+            "promoteAt": 55,
             "next": "close_friend",
             "onPromote": "became_close_friends",
             "demoteBelow": 10,
@@ -31,7 +31,7 @@
     ],
     "hostility": {
         "to": "rival",
-        "strength": 15
+        "strength": 6
     },
     "reconciliation": {
         "to": "acquaintance",
