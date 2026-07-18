@@ -2,7 +2,7 @@
 
 - **Type:** Bug fix / Simulation
 - **Labels:** `simulation`, `events`, `live-play`
-- **Status:** ⬜ Open
+- **Status:** ✅ Done — landed in the simulation-aliveness-2 arc (LP-6): the gate + emit live on `moved_out_of_parents` (option b), LogicalWorld supplies a standing-yes logical housing market, and the signal-coverage CI guard + a City-level event-path regression protect it.
 - **Depends on:** — (found by the task-121 headless-gap sweep; independent of the generator work)
 
 ## The problem
