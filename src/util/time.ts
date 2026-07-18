@@ -113,6 +113,15 @@ export function formatTick(tick: number): string {
     return `${formatDay(dayOfTick(clamped))} ${pad(hourOfTick(clamped))}:00`;
 }
 
+// Tick + intra-hour materialization minute (LP-11): log entries carry an optional `minute`; absent
+// (pre-LP-11 entries, out-of-spine appends) renders as :00 exactly like formatTick.
+export function formatTickAtMinute(tick: number, minute?: number): string {
+    const clamped = Math.max(0, Math.floor(tick));
+    const pad = (value: number): string => value.toString().padStart(2, '0');
+    const clampedMinute = Math.min(59, Math.max(0, Math.floor(minute ?? 0)));
+    return `${formatDay(dayOfTick(clamped))} ${pad(hourOfTick(clamped))}:${pad(clampedMinute)}`;
+}
+
 // The debug time-throttle cycle (task 117): 1× → 4× → 16× → back to 1×. Any out-of-band value (a bad
 // save, a manual poke) resets to 1× rather than compounding.
 export const TIME_SCALES: readonly number[] = [1, 4, 16];

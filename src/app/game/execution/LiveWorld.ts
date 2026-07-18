@@ -11,9 +11,11 @@ import Person from 'game/agents/Person';
 import Inventory from 'game/objects/Inventory';
 import Building from 'game/world/Building';
 import House from 'game/world/House';
+import { CADENCE_SALT } from 'game/events/LifeLog';
 import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
 import { locationKey } from 'types/Objects';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 import Workplace from 'game/world/Workplace';
 import venuesConfig from 'json/venues.json';
 
@@ -30,6 +32,11 @@ export interface LiveWorldDeps {
     getInventory?(): Inventory | null;
 }
 
+// Departure spreading (LP-11 / proposal simulation-aliveness-2 M1): commutes leave within the first
+// DEPART_JITTER_MINUTES of the hour instead of all at :00 — the whole-town synchronized pulse dissolves,
+// while the bound keeps obligation arrivals from slipping a full hour.
+export const DEPART_JITTER_MINUTES = 15;
+
 export default class LiveWorld implements WorldAdapter {
     readonly mode: SimulationMode = 'live';
 
@@ -39,6 +46,8 @@ export default class LiveWorld implements WorldAdapter {
     // Venue targets resolve ONCE at request time (task 107) — the person walks to THAT building even if a
     // nearer host opens mid-trip. Keyed by handle id; dropped when the handle leaves pending.
     private resolvedVenues: Map<number, string> = new Map();
+    // Commutes waiting for their departure minute (LP-11), keyed by handle id.
+    private departures: Map<number, { person: Person; destination: Building; departMinute: number }> = new Map();
 
     constructor(deps: LiveWorldDeps) {
         this.deps = deps;
@@ -215,24 +224,43 @@ export default class LiveWorld implements WorldAdapter {
             return handle;
         }
 
-        this.deps.startCommute(person, destination);
+        // Departure spreading (LP-11): the commute physically starts at a deterministic minute within the
+        // jitter window — pumped by the minute cadence below — instead of the whole town stepping out at
+        // :00. Deterministic per (person, tick); a stream of its own, perturbing no decision stream.
+        const departMinute = new SeededRandom(hashStringToSeed(personId)).fork(tick).fork(CADENCE_SALT).nextInt(0, DEPART_JITTER_MINUTES - 1);
+        this.departures.set(handle.id, { person, destination, departMinute });
         this.pending.push(handle);
         return handle;
     }
 
-    // Flips pending handles whose person has physically arrived. Called on the minute cadence.
-    pump(tick: number): void {
+    // Flips pending handles whose person has physically arrived, and starts deferred commutes whose
+    // departure minute has come. Called on the minute cadence (minuteOfHour from the clock; callers
+    // without minute context — tests, catch-up paths — omit it and everything departs immediately).
+    pump(tick: number, minuteOfHour?: number): void {
         if (this.pending.length === 0) {
             return;
         }
         const unresolved: TransitionHandle[] = [];
         for (const handle of this.pending) {
+            // Deferred departure first: past the minute (or any later tick — the catch-up), start the walk.
+            const departure = this.departures.get(handle.id);
+            if (departure) {
+                const due = minuteOfHour === undefined || tick > handle.requestedAtTick || minuteOfHour >= departure.departMinute;
+                if (due) {
+                    this.departures.delete(handle.id);
+                    this.deps.startCommute(departure.person, departure.destination);
+                } else {
+                    unresolved.push(handle); // not yet left home — nothing to resolve or cancel
+                    continue;
+                }
+            }
             const person = this.findPerson(handle.personId);
             const destination = person ? this.targetBuilding(person, handle.target, this.resolvedVenues.get(handle.id)) : null;
             if (!person || !destination) {
                 handle.status = 'cancelled';
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);
+                this.departures.delete(handle.id);
                 continue;
             }
             if (person.getCurrentBuilding() === destination) {

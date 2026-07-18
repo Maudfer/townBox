@@ -19,7 +19,7 @@ function rankLabel(job: { title: string; rankId?: string }): string | null {
     return definition?.ranks.find(rank => rank.rankId === job.rankId)?.label ?? job.rankId;
 }
 import { DetailsWindowProps } from 'types/HUD';
-import { formatTick } from 'util/time';
+import { formatTickAtMinute } from 'util/time';
 
 const INITIAL_SIZE = { width: 360, height: 460 };
 const REFRESH_MS = 1500;
@@ -272,7 +272,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
                                 const paramSuffix = paramEntries.length ? ` [${paramEntries.map(([key, value]) => `${key}: ${String(value)}`).join(', ')}]` : '';
                                 return (
                                     <li key={entry.seq}>
-                                        {label}{paramSuffix} — <small>{formatTick(entry.tick)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
+                                        {label}{paramSuffix} — <small>{formatTickAtMinute(entry.tick, entry.minute)}{entry.triggerSource !== 'probability' ? ` · ${entry.triggerSource}` : ''}</small>
                                     </li>
                                 );
                             })}

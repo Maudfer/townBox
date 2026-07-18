@@ -513,6 +513,17 @@ export async function generateHistoryAsset(
                 logical?.cohabit(state, wifeId, tick, tpy);
             }
         }
+        // Streaming flush BEFORE the day-cadence invokes (LP-11): runDaily appends entries carrying the
+        // NEXT tick's timestamp; a drain between them and that tick's stamp pass would split a (person,
+        // tick) minute-stamp group across batches and diverge the streamed asset from an in-memory run.
+        // Here the pending-stamp queue is empty (runTick's phase 10 just ran), so the drain is stamp-safe.
+        if (sink) {
+            const flushBucket = Math.floor(tick / flushIntervalTicks);
+            if (flushBucket !== lastFlushBucket) {
+                lastFlushBucket = flushBucket;
+                flushToSink();
+            }
+        }
         // Direct per-step progression accrual (school + work days + promotion) — stepping-tolerant, so it
         // works at the generator's coarse cadence where the intra-day shift obligation would not (task 077 §3).
         if (logical && skillBook) {
@@ -551,16 +562,6 @@ export async function generateHistoryAsset(
             profile.steps++;
             profile.agentSteps += agentIds.length;
             profile.total += now() - stepStart;
-        }
-
-        // Streaming flush: drain the log + skill timeline to disk shards at the flush cadence, keeping RAM
-        // bounded regardless of run length (task 077). No-op for in-memory generation (no sink).
-        if (sink) {
-            const flushBucket = Math.floor(tick / flushIntervalTicks);
-            if (flushBucket !== lastFlushBucket) {
-                lastFlushBucket = flushBucket;
-                flushToSink();
-            }
         }
 
         // Per-decade trajectory sample + per-STEP progress. The progress fire is O(1) (living-set size only);
@@ -630,6 +631,10 @@ export async function generateHistoryAsset(
             livingAtEnd++;
         }
     }
+
+    // Stamp the tail (LP-11): the final iteration's runDaily appends never see another runTick phase 10 —
+    // stamp them here, IDENTICALLY in the streamed and in-memory paths, before either reads the log.
+    engine.getLifeLog().stampMinutes(endTick, state.worldSeed);
 
     // Build the log + skill sections: streamed to disk shards, or held inline for in-memory generation.
     let eventLog: EventLogTable = {};

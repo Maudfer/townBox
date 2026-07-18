@@ -183,6 +183,11 @@ export type TriggerSource = 'probability' | 'action' | 'brain' | 'schedule' | 's
 export interface EventLogEntry {
     seq: number;
     tick: number;
+    // The intra-hour materialization minute (LP-11 / proposal simulation-aliveness-2 M1): decisions and
+    // state resolve at the tick flip, but each commit is presented (and, live, physically departed) at a
+    // deterministic minute of the hour — evenly spread with ±20% jitter, causation chains sharing their
+    // root's minute. Additive and optional: pre-LP-11 entries simply lack it (rendered as :00).
+    minute?: number;
     kind: 'event';
     defId: string; // event id in the manifest
     roles: Record<string, string>; // role name -> PersonId as bound at commit time
@@ -210,6 +215,7 @@ export type ActionFailureReason = 'consent_declined' | 'target_not_present' | 'i
 export interface ActionLogEntry {
     seq: number;
     tick: number;
+    minute?: number; // intra-hour materialization minute (LP-11) — see EventLogEntry.minute
     kind: 'action';
     defId: string; // action id in the manifest
     instanceId: string | null; // null for discrete actions (no instance materializes)

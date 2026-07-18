@@ -149,5 +149,12 @@ export async function runTick(plan: TickPlan): Promise<TickResult> {
             profiler.brain += clock() - t0;
         }
     }
+
+    // Phase 10 (LP-11 / proposal simulation-aliveness-2 M1): stamp this tick's log appends with their
+    // intra-hour minutes — decisions and state stay flip-resolved (nothing reads state between flips, so
+    // equivalence at tick boundaries is untouched); the minute is when the commit MATERIALIZES for
+    // presentation and, live, for physical departures. Runs in the shared spine, so generator logs carry
+    // the same sub-hour texture the live HUD renders.
+    plan.engine.getLifeLog().stampMinutes(plan.tick, plan.state.worldSeed);
     return result;
 }

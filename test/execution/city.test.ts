@@ -554,6 +554,7 @@ describe('City live commute (getWorld/handleCommute/startCommute)', () => {
 
         const handle = city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 0, null);
         expect(handle.status).toBe('pending');
+        city.getWorld().pump(0); // flush the deferred departure (LP-11 spreading)
         expect(field.getVehicles()).toHaveLength(1);
 
         person.setCurrentBuilding(workplace);

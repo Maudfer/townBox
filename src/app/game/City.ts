@@ -2560,7 +2560,8 @@ export default class City {
     // LiveWorld drives the same commute machinery. This handler only pumps pending transitions at the finer
     // minute cadence so arrivals resolve promptly between hourly ticks.
     public handleCommute(event: TimeChangedEvent): void {
-        this.world.pump(event.tick);
+        // The minute rides along (LP-11): deferred departures leave at their scheduled minute of the hour.
+        this.world.pump(event.tick, event.timestamp.minute);
 
         // Ambulatory sweep (task 093 / E1): each in-game minute, flag residents whose ACTIVE action is
         // authored `ambulatory` so the field's wander machinery visibly walks them — joggers jog, strollers

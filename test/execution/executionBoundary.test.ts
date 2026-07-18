@@ -1,11 +1,13 @@
 import Person from 'game/agents/Person';
+import { CADENCE_SALT } from 'game/events/LifeLog';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
-import LiveWorld from 'game/execution/LiveWorld';
+import LiveWorld, { DEPART_JITTER_MINUTES } from 'game/execution/LiveWorld';
 import Building from 'game/world/Building';
 import { PopulationState, GenPerson } from 'types/Genealogy';
 import { EventManifest } from 'types/LifeEvent';
 import { Genders, Gender } from 'types/Social';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 
 // The simulation execution boundary (task 040): live and bootstrap run the same engine and data; the world
 // adapter is the only difference — bootstrap transitions resolve immediately, live ones wait for physical
@@ -72,9 +74,10 @@ describe('LiveWorld (map-backed adapter)', () => {
         const handle = world.requestTransition('p1', { kind: 'building', key: '9-9' }, 100, 3);
         expect(handle.status).toBe('pending');
         expect(handle.resolvedAtTick).toBeNull();
-        expect(commutes).toEqual(['9-9']); // the real commute machinery was engaged
+        expect(commutes).toEqual([]); // departure is deferred to its minute (LP-11 spreading)
 
         world.pump(101);
+        expect(commutes).toEqual(['9-9']); // the real commute machinery engaged on the departure pump
         expect(handle.status).toBe('pending'); // not there yet
 
         current.value = work; // the visual layer lands the person
@@ -198,5 +201,46 @@ describe('off-map co-location seam (task 076/H2)', () => {
 
     test('separated people never trigger a social proposal (co-location is the discriminator)', () => {
         expect(socialProposalsOver(200, false)).toBe(0);
+    });
+});
+
+// Departure spreading (LP-11): commutes physically start at a deterministic minute within the jitter
+// window — the :00 whole-town pulse dissolves — with a catch-up on any later tick so tick-stepped
+// harnesses never strand a traveler.
+describe('departure spreading (LP-11)', () => {
+    function departureWorld() {
+        const home = { getIdentifier: () => '1-1' } as unknown as Building;
+        const work = { getIdentifier: () => '9-9' } as unknown as Building;
+        const person = {
+            social: { getPersonId: () => 'p1', getHome: () => home },
+            getCurrentBuilding: () => home,
+        } as unknown as Person;
+        const commutes: string[] = [];
+        const world = new LiveWorld({
+            getPeople: () => [person],
+            buildingByKey: key => (key === '9-9' ? work : key === '1-1' ? home : null),
+            startCommute: (_who, destination) => commutes.push(destination.getIdentifier()),
+        });
+        return { world, commutes };
+    }
+
+    test('the commute starts only when the departure minute arrives; earlier minutes hold', () => {
+        const { world, commutes } = departureWorld();
+        world.requestTransition('p1', { kind: 'building', key: '9-9' }, 100, null);
+        const expected = new SeededRandom(hashStringToSeed('p1')).fork(100).fork(CADENCE_SALT).nextInt(0, DEPART_JITTER_MINUTES - 1);
+        if (expected > 0) {
+            world.pump(100, expected - 1);
+            expect(commutes).toEqual([]); // not their minute yet
+        }
+        world.pump(100, expected);
+        expect(commutes).toEqual(['9-9']);
+    });
+
+    test('a later tick departs regardless of minute (the catch-up), so stepped time never strands anyone', () => {
+        const { world, commutes } = departureWorld();
+        world.requestTransition('p1', { kind: 'building', key: '9-9' }, 100, null);
+        world.pump(100, 0);
+        world.pump(101, 0); // next tick, minute 0: catch-up departs
+        expect(commutes).toEqual(['9-9']);
     });
 });

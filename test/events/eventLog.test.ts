@@ -159,3 +159,57 @@ describe('live-era log view (LP-1)', () => {
         expect(loaded.getLiveLog()['a']!.length).toBe(1);
     });
 });
+
+// The intra-tick cadence (LP-11 / proposal simulation-aliveness-2 M1): commits resolve at the flip but
+// materialize across the hour — minute-stamped deterministically, spread evenly with ±20% jitter,
+// causation chains sharing their root's minute, per-person monotonic.
+describe('minute stamping (LP-11)', () => {
+    const entryBase = { kind: 'action' as const, defId: 'stretch', instanceId: null, lifecycle: 'performed' as const, params: {}, parentInstanceId: null, triggerSource: 'brain' as const };
+
+    test('a burst of same-tick entries spreads across the hour, deterministically and monotonically', () => {
+        const run = () => {
+            const engine = new EventEngine(CERTAIN_MANIFEST);
+            const log = engine.getLifeLog();
+            for (let i = 0; i < 4; i++) {
+                log.append('a', { ...entryBase, tick: 100, causationId: null });
+            }
+            log.stampMinutes(100, 42);
+            return engine.getPersonLog('a').map(entry => entry.minute!);
+        };
+        const minutes = run();
+        expect(minutes).toHaveLength(4);
+        for (const minute of minutes) {
+            expect(minute).toBeGreaterThanOrEqual(0);
+            expect(minute).toBeLessThan(60);
+        }
+        // Monotonic per person, and genuinely SPREAD (4 slots of 15min each, ±3min jitter -> a range
+        // far wider than the all-at-:00 world).
+        for (let i = 1; i < minutes.length; i++) {
+            expect(minutes[i]!).toBeGreaterThanOrEqual(minutes[i - 1]!);
+        }
+        expect(minutes[3]! - minutes[0]!).toBeGreaterThanOrEqual(30);
+        expect(run()).toEqual(minutes); // deterministic
+    });
+
+    test('a causation chain shares its root minute (the gift and its counterpart land together)', () => {
+        const engine = new EventEngine(CERTAIN_MANIFEST);
+        const log = engine.getLifeLog();
+        const rootSeq = log.append('a', { ...entryBase, tick: 100, causationId: null });
+        log.append('b', { ...entryBase, tick: 100, causationId: rootSeq });
+        log.stampMinutes(100, 42);
+        const giver = engine.getPersonLog('a')[0]!;
+        const receiver = engine.getPersonLog('b')[0]!;
+        expect(giver.minute).toBeDefined();
+        expect(receiver.minute).toBe(giver.minute);
+    });
+
+    test('the shared tick spine stamps every commit (runTick integration)', () => {
+        const engine = new EventEngine(CERTAIN_MANIFEST);
+        const pool = state(1000);
+        engine.simulateTick(pool, ['a', 'b'], 1000, TPY, {});
+        engine.getLifeLog().stampMinutes(1000, pool.worldSeed);
+        for (const entry of [...engine.getPersonLog('a'), ...engine.getPersonLog('b')]) {
+            expect(entry.minute).toBeDefined();
+        }
+    });
+});
