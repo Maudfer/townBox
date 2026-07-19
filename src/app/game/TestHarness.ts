@@ -8,6 +8,7 @@ import Soil from 'game/world/Soil';
 import Workplace from 'game/world/Workplace';
 import { CityStats } from 'types/City';
 import { Tool } from 'types/Cursor';
+import constructionConfig from 'json/construction.json';
 import { formatTimestamp } from 'util/time';
 
 // The integration-test determinism hook (task 008). Installed on `window.__townbox` ONLY in test mode
@@ -226,11 +227,17 @@ export function createTestApi(game: GameManager): TownboxTestApi {
             if (!placement.valid || !placement.position) {
                 return null;
             }
+            // A pinned blueprint rides exactly like a construction-menu pick (task 108) — including the
+            // civic placeholder texture the menu would arm. The textures are generated per menu ENTRY id
+            // (civic_landfill), not per blueprint key (sanitation_depot) — resolve through the menu config
+            // so harness placements render like real ones (the black-square foot-gun, closed for good).
+            const menuEntry = blueprintKey !== undefined
+                ? (constructionConfig as { entries: { id: string; blueprint?: string; color?: string }[] }).entries
+                    .find(entry => entry.blueprint === blueprintKey)
+                : undefined;
             await game.emit('tileClicked', {
                 position: placement.position, tool: toolEnum,
-                // A pinned blueprint rides exactly like a construction-menu pick (task 108) — including the
-                // civic placeholder texture the menu would arm (W7: no more hand-built asset keys).
-                ...(blueprintKey !== undefined ? { blueprintKey, asset: `civic_${blueprintKey}` } : {}),
+                ...(blueprintKey !== undefined ? { blueprintKey, asset: `civic_${menuEntry?.id ?? blueprintKey}` } : {}),
             });
             // Field.build fires houseBuilt/workplaceBuilt fire-and-forget; its household/business setup runs on
             // microtasks. Yield a macrotask so those complete before we return (materialized residents present).
