@@ -63,6 +63,10 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
+// Walk-vs-drive threshold (V1 / aliveness-4 trip planner): a trip whose Manhattan distance from the body to
+// the destination is at or under this many tiles is WALKED — the car is reserved for real commutes. The
+// audit found people driving zero-to-a-few tiles constantly (magic pop-in/pop-out cars everywhere).
+const WALK_COMMUTE_MAX_TILES = 12;
 // Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
 // than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
 const MIGRATION_MIN_OPEN_POSITIONS = 3;
@@ -2992,14 +2996,18 @@ export default class City {
         }
     }
 
+    // The trip planner (V1 / aliveness-4): decides walk vs. drive and where the car (if any) starts. The
+    // audit found every trip was a car trip that spawned at the person's HOME regardless of where they
+    // actually stood — a woman out walking would "walk home, board a car parked at her own door, drive zero
+    // metres, and get out." This fixes three things: (a) origin truth — the car starts from the road nearest
+    // the BODY, never a building the person isn't at; (b) short trips are WALKED; (c) no zero-length drive.
     private startCommute(person: Person, destination: Building): void {
         const field = Game.field;
         if (!field) {
             return;
         }
-        const origin = person.getCurrentBuilding() ?? person.social.getHome();
-        const entrance = origin ? origin.getEntrance() : null;
-        if (!entrance) {
+        const destEntrance = destination.getEntrance();
+        if (!destEntrance) {
             return;
         }
 
@@ -3010,12 +3018,41 @@ export default class City {
             return;
         }
 
-        // The car materializes ON THE STREET in front of the origin building (task 008 commute spec), never
-        // inside a footprint — the person walks out to it and boards. Entrance fallback for legacy/test
-        // worlds with no adjacent road.
-        const streetTile = origin ? field.getAdjacentRoadTile(origin) : null;
-        const streetSpot = streetTile ? Game.tileToPixelPosition(streetTile) : null;
-        const vehicle = field.spawnVehicle(streetSpot ?? entrance);
+        // Walk vs. drive by distance from the BODY's current position (V1): a short hop is walked, the car
+        // is for a real commute. Manhattan distance matches the grid movement; the threshold is authored.
+        const bodyPosition = person.getPosition();
+        const walkDistancePx = WALK_COMMUTE_MAX_TILES * Game.gridParams.cells.width;
+        const distanceToDestination = bodyPosition
+            ? Math.abs(bodyPosition.x - destEntrance.x) + Math.abs(bodyPosition.y - destEntrance.y)
+            : Number.POSITIVE_INFINITY;
+        if (distanceToDestination <= walkDistancePx) {
+            person.setDestination(destination);
+            return;
+        }
+
+        // Origin truth (V1): the car spawns on the road nearest WHERE THE BODY IS. If the person is at a
+        // building, that building's adjacent road; if outdoors, the nearest road to their pixel position —
+        // never their home when they are standing somewhere else.
+        const currentBuilding = person.getCurrentBuilding();
+        const originRoadTile = currentBuilding
+            ? field.getAdjacentRoadTile(currentBuilding)
+            : (bodyPosition ? field.nearestRoadTile(bodyPosition) : null);
+        const destRoadTile = field.getAdjacentRoadTile(destination);
+
+        // No zero-length drive (V1): if the origin and destination resolve to the SAME road tile, the car
+        // would spawn exactly where it would immediately park — walk instead.
+        const sameRoad = originRoadTile !== null && destRoadTile !== null
+            && originRoadTile.row === destRoadTile.row && originRoadTile.col === destRoadTile.col;
+        if (sameRoad) {
+            person.setDestination(destination);
+            return;
+        }
+
+        // Drive: the car materializes ON THE STREET at the origin road tile (task 008 commute spec), never
+        // inside a footprint. Body-position fallback (origin truth) for road-less test/edge worlds — the car
+        // still starts from WHERE THE PERSON IS, never their distant home.
+        const streetSpot = originRoadTile ? Game.tileToPixelPosition(originRoadTile) : bodyPosition;
+        const vehicle = field.spawnVehicle(streetSpot ?? destEntrance);
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);

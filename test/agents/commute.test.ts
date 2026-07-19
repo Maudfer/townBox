@@ -153,6 +153,9 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(field.getVehicles()).toHaveLength(1);
         const firstCar = field.getVehicles()[0]!;
         firstCar.board(); // simulate the commuter mid-drive (occupant flag set)
+        // Mid-drive, genuinely far from home — the situation the 148-car leak actually arose in. (The V1 trip
+        // planner walks SHORT trips, so the re-plan must be a real driving distance to spawn a second car.)
+        person.setPosition(560, 560);
 
         // The re-plan: a second commute begins while the first is in flight.
         city.getWorld().requestTransition('p1', { kind: 'home' }, 11, null);
@@ -216,6 +219,55 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         // A home transition requested mid-street must NOT resolve as already-arrived.
         const homeward = city.getWorld().requestTransition('p1', { kind: 'home' }, 11, null);
         expect(homeward.status).toBe('pending');
+    });
+});
+
+// V1 (aliveness-4): the trip planner. The audit found every trip was a car trip that spawned at the
+// person's HOME regardless of where they stood — walk-home-to-board-a-parked-car-and-drive-zero-metres.
+describe('V1: the trip planner — walk vs drive, origin truth', () => {
+    function adult(field: Field, home: House, workplace: Workplace, x: number, y: number): Person {
+        const person = field.loadPerson(x, y);
+        person.social.setHome(home);
+        person.social.setAge(30); // adults may drive
+        person.social.setPersonId('p1');
+        person.work.setJob({ title: 'Clerk', salary: 1000, requirements: ['assist_customers'], shiftStart: 540, shiftEnd: 1020 });
+        person.work.setWorkplace(workplace);
+        return person;
+    }
+
+    test('a short trip is WALKED — no commute car spawns', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const nearShop = field.loadStructure('work', 7, 4, 'w') as Workplace; // ~3 tiles below the home
+        const person = adult(field, home, nearShop, 72, 72); // standing at the home tile
+
+        city.getWorld().requestTransition('p1', { kind: 'building', key: nearShop.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+
+        expect(field.getVehicles()).toHaveLength(0); // walked — the car ritual is gone for short hops
+        expect(person.getVehicle()).toBeNull();
+        expect(person.isIdle()).toBe(false); // travelling on foot
+    });
+
+    test('origin truth: an OUTDOORS person drives from the road nearest their BODY, not from home', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const farWork = field.loadStructure('work', 30, 30, 'w') as Workplace;
+        field.loadStructure('road', 20, 20, 'r'); // a road out where the body actually is
+        // The person is outdoors across town (currentBuilding null), NOT at home — pixel center of tile 20,20.
+        const bodyPixel = { x: 20 * 16 + 8, y: 20 * 16 + 8 };
+        const person = adult(field, home, farWork, bodyPixel.x, bodyPixel.y);
+        expect(person.getCurrentBuilding()).toBeNull();
+
+        city.getWorld().requestTransition('p1', { kind: 'building', key: farWork.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+
+        expect(field.getVehicles()).toHaveLength(1);
+        const carPosition = field.getVehicles()[0]!.getPosition()!;
+        const homeEntrance = home.getEntrance()!;
+        const distToBody = Math.hypot(carPosition.x - bodyPixel.x, carPosition.y - bodyPixel.y);
+        const distToHome = Math.hypot(carPosition.x - homeEntrance.x, carPosition.y - homeEntrance.y);
+        expect(distToBody).toBeLessThan(distToHome); // spawned by the body, not at the distant home
     });
 });
 

@@ -540,6 +540,16 @@ export default class Person {
     private ambulatory = false;
 
     setAmbulatory(ambulatory: boolean): void {
+        // Stop the leftover stroll leg the instant an ambulatory action ends (V1 / aliveness-4 trip planner):
+        // the body used to keep walking its stale wander path for up to an hour after the action was over —
+        // the tracer's "sleepwalk" (a woman finished a walk leg for 7 minutes while her sleep intent waited,
+        // then walked all the way home to board a car). Only the outdoor wander state is cleared; a commute
+        // (destinationBuilding) is untouched.
+        if (this.ambulatory && !ambulatory && !this.destinationBuilding) {
+            this.path = [];
+            this.currentDestination = null;
+            this.currentTarget = null;
+        }
         this.ambulatory = ambulatory;
     }
 

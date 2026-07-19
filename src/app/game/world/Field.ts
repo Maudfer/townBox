@@ -626,6 +626,48 @@ export default class Field {
     // closest to the building's entrance. This is where a commute car materializes (task 008 spec: cars live
     // on the street, never inside a footprint) and where it parks at the destination. Null when the building
     // somehow has no adjacent road (legacy/test worlds) — callers fall back to the entrance.
+    // The nearest road tile to a pixel position (V1 / aliveness-4 trip planner): a commute car for an
+    // OUTDOORS person must spawn on the road near their BODY, not at their home (origin truth). The person's
+    // own tile is usually already a curb; otherwise a small ring search outward finds the closest road.
+    nearestRoadTile(pixel: PixelPosition, maxRadius = 3): TilePosition {
+        if (!pixel) {
+            return null;
+        }
+        const origin = Game.pixelToTilePosition(pixel);
+        if (!origin) {
+            return null;
+        }
+        if (this.getTile(origin.row, origin.col) instanceof Road) {
+            return origin;
+        }
+        for (let radius = 1; radius <= maxRadius; radius++) {
+            let best: TilePosition = null;
+            let bestDistance = Infinity;
+            for (let dr = -radius; dr <= radius; dr++) {
+                for (let dc = -radius; dc <= radius; dc++) {
+                    if (Math.max(Math.abs(dr), Math.abs(dc)) !== radius) {
+                        continue; // ring boundary only — inner rings were checked at smaller radii
+                    }
+                    const row = origin.row + dr;
+                    const col = origin.col + dc;
+                    if (!this.isValidPosition(row, col) || !(this.getTile(row, col) instanceof Road)) {
+                        continue;
+                    }
+                    const center = Game.tileToPixelPosition({ row, col });
+                    const distance = center ? Math.hypot(center.x - pixel.x, center.y - pixel.y) : 0;
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        best = { row, col };
+                    }
+                }
+            }
+            if (best) {
+                return best;
+            }
+        }
+        return null;
+    }
+
     getAdjacentRoadTile(building: Building): TilePosition {
         const footprintTiles = Game.gridParams.footprint.tiles;
         const half = Math.floor(footprintTiles / 2);
