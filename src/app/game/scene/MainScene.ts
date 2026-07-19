@@ -593,7 +593,7 @@ export default class MainScene extends Phaser.Scene {
             if (!text) {
                 text = this.add.text(0, 0, '', {
                     fontSize: '9px', color: '#ffffff', backgroundColor: 'rgba(0, 0, 0, 0.55)',
-                    padding: { x: 3, y: 1 },
+                    padding: { x: 3, y: 1 }, align: 'center',
                 }).setOrigin(0.5, 1).setVisible(false);
                 this.activityLabels.set(person, text);
             }
@@ -605,13 +605,19 @@ export default class MainScene extends Phaser.Scene {
             const traveling = !!active && active.status === 'waiting_for_materialization';
             const show = (running || traveling) && !person.isIndoors();
             if (show) {
-                const label = engine.getActionLabel(active!.defId);
-                // Destination-first travel labels (aliveness-3 follow-up, maintainer read): "→ Sleeping"
-                // over a street walker read as street-sleeping — "→ home: Sleeping" says where they are
-                // going AND why. The destination resolves from the instance's own location requirement.
-                const display = traveling
-                    ? `→ ${this.travelDestinationName(active!.locationOverride ?? engine.getDefinition(active!.defId)?.location)}: ${label}`
-                    : label;
+                // Bubble labels strip unresolved {param} template segments (the LP-14 resolver lives in the
+                // inspector; the street bubble has the destination line instead — "Going to Moraes S.A. /
+                // Plan: Applying for a job", never "…at {employer}").
+                const label = engine.getActionLabel(active!.defId)
+                    .replace(/\s*(?:at|to|with|for|from)?\s*\{[a-zA-Z_]+\}/g, '').trim();
+                // Two-line travel labels (maintainer spec): where they are going, then what they plan to
+                // do there — "Going home / Plan: Spending time at home". The destination resolves from the
+                // instance's own location requirement.
+                const destination = this.travelDestinationName(active!.locationOverride ?? engine.getDefinition(active!.defId)?.location);
+                const going = destination === 'home' || destination === 'out' || destination === 'outside'
+                    ? `Going ${destination === 'outside' ? 'out' : destination}`
+                    : `Going to ${destination}`;
+                const display = traveling ? `${going}\nPlan: ${label}` : label;
                 text.setText(display);
                 text.setData('baseText', display); // the merge pass suffixes ×N onto this, never compounds
             }
