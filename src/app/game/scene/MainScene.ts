@@ -52,6 +52,8 @@ export default class MainScene extends Phaser.Scene {
         // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
         Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
         Game.on("gameLoaded", { callback: this.clearFireEmitters, context: this });
+        // Particles follow the time scale (W10): flames speed up, slow down, and freeze with the world.
+        Game.on("timeScaleChanged", { callback: this.syncEmitterTimeScales, context: this });
 
         Game.on("windowDragStart", { callback: () => {
             this.cursorActive = false;
@@ -532,7 +534,16 @@ export default class MainScene extends Phaser.Scene {
             gravityY: -25,
         });
         flames.setDepth(structure.calculateDepth() + 5);
+        // Particles ride the sim clock (W10): flames burn faster at 4×/8× and freeze on pause, like
+        // everything else — the one-authority contract extended to Phaser's own emitter clock.
+        flames.timeScale = Math.max(Game.getTimeScale(), 0.0001); // 0 stalls Phaser oddly; near-zero freezes
         this.fireEmitters.set(change.buildingKey, flames);
+    }
+
+    private syncEmitterTimeScales(scale: number): void {
+        for (const emitter of this.fireEmitters.values()) {
+            emitter.timeScale = Math.max(scale, 0.0001);
+        }
     }
 
     // A load rebuilds the world wholesale — stale emitters would float over the wrong lots.

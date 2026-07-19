@@ -3,6 +3,7 @@ import Person from 'game/agents/Person';
 import Vehicle from 'game/agents/Vehicle';
 import Field from 'game/world/Field';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { effectiveFrameDelta } from 'util/time';
 
 // Field.update() drives every tracked person/vehicle each frame. The happy path is already exercised
 // indirectly by other suites (spawning.test.ts drives Person.update directly); these tests focus on
@@ -14,7 +15,7 @@ function makeGame(rows: number, cols: number, timeScale?: number) {
     const game = {
         // The debug time-throttle (LP-2): present only when a test opts in, so the default-1x fallback
         // path (harness games without the method) stays covered too.
-        ...(timeScale !== undefined ? { getTimeScale: () => timeScale } : {}),
+        ...(timeScale !== undefined ? { getTimeScale: () => timeScale, effectiveTimeDelta: (raw: number) => effectiveFrameDelta(raw, timeScale) } : {}),
         gridParams: {
             rows, cols,
             cells: { width: 16, height: 16 },

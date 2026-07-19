@@ -98,7 +98,12 @@ export default class Field {
         // starts, school runs, dispatch, collection rounds) silently degrades. Larger per-frame deltas are
         // safe for the axis-clamped walkers; vehicles may corner slightly rougher at 16× — a debug-view
         // trade accepted over a desynced sim.
-        const timeDelta = event.timeDelta * (Game.getTimeScale?.() ?? 1);
+        // First-class time (W10): the SAME capped-and-scaled delta the clock consumes — movement and time
+        // can never diverge, and a hitch (or pause) stalls both together.
+        const timeDelta = Game.effectiveTimeDelta?.(event.timeDelta) ?? event.timeDelta;
+        if (timeDelta <= 0) {
+            return; // paused — the world holds still coherently
+        }
         this.people.forEach((person: Person) => {
             const currentPixelPosition = person.getPosition();
             if (currentPixelPosition === null) {

@@ -370,3 +370,34 @@ canvas {
     padding: 8px 12px;
     opacity: 0.55;
 }
+/* The time toolbar (W10 / proposal simulation-aliveness-3): pause/1x/4x/8x, floating top-right. */
+.time-controls {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+    z-index: 1000;
+    pointer-events: auto;
+}
+
+.time-controls-button {
+    background: #10312b;
+    color: #d4efe9;
+    border: 1px solid #1d4a41;
+    border-radius: 6px;
+    min-width: 40px;
+    padding: 6px 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.time-controls-button:hover {
+    background: #17453c;
+}
+
+.time-controls-button.active {
+    background: #2a6e5f;
+    border-color: #3f9c87;
+    color: #ffffff;
+}

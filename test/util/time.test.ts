@@ -24,6 +24,8 @@ import {
     formatTick,
     formatDuration,
     nextTimeScale,
+    effectiveFrameDelta,
+    MAX_FRAME_DELTA_MS,
 } from 'util/time';
 
 const HOUR_MS = 3_600_000;
@@ -240,12 +242,39 @@ describe('formatDuration — human runtime readout', () => {
     });
 });
 
-describe('the debug time throttle (task 117)', () => {
-    test('cycles 1× → 4× → 16× → 1×, and any out-of-band value resets to 1×', () => {
+describe('first-class time control (W10 / proposal simulation-aliveness-3; formerly the 117 throttle)', () => {
+    test('the shipped ladder cycles 1× → 4× → 8× → 1×; out-of-band values (incl. pause) reset to 1×', () => {
         expect(nextTimeScale(1)).toBe(4);
-        expect(nextTimeScale(4)).toBe(16);
-        expect(nextTimeScale(16)).toBe(1);
+        expect(nextTimeScale(4)).toBe(8);
+        expect(nextTimeScale(8)).toBe(1);
         expect(nextTimeScale(0)).toBe(1);
         expect(nextTimeScale(7)).toBe(1);
+    });
+
+    test('effectiveFrameDelta: the one authoritative transform — scaled, hitch-capped, pause-zeroed', () => {
+        expect(effectiveFrameDelta(16, 1)).toBe(16);
+        expect(effectiveFrameDelta(16, 4)).toBe(64);
+        expect(effectiveFrameDelta(16, 8)).toBe(128);
+        // A 5-second hang becomes lost wall time, never a sim leap: the cap applies BEFORE the scale.
+        expect(effectiveFrameDelta(5000, 1)).toBe(MAX_FRAME_DELTA_MS);
+        expect(effectiveFrameDelta(5000, 8)).toBe(MAX_FRAME_DELTA_MS * 8);
+        // Pause and degenerate frames read as no time passed — for EVERY consumer, coherently.
+        expect(effectiveFrameDelta(16, 0)).toBe(0);
+        expect(effectiveFrameDelta(-5, 1)).toBe(0);
+        expect(effectiveFrameDelta(Number.NaN, 1)).toBe(0);
+    });
+
+    test('speed invariance: equal SIM time through different frame schedules yields identical elapsed time', () => {
+        // 64 frames of 16ms at 1× ≡ 16 frames of 16ms at 4× ≡ 8 frames of 16ms at 8×.
+        const total = (frames: number, deltaMs: number, scale: number): number => {
+            let elapsed = 0;
+            for (let frame = 0; frame < frames; frame++) {
+                elapsed += effectiveFrameDelta(deltaMs, scale);
+            }
+            return elapsed;
+        };
+        const at1 = total(64, 16, 1);
+        expect(total(16, 16, 4)).toBe(at1);
+        expect(total(8, 16, 8)).toBe(at1);
     });
 });

@@ -10,6 +10,7 @@ import Feed from 'hud/Feed';
 import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
 import Toolbar from 'hud/Toolbar';
 import Nagbar from 'hud/Nagbar';
+import TimeControls from 'hud/TimeControls';
 import WindowErrorBoundary from 'hud/WindowErrorBoundary';
 import CityDetails from 'hud/windows/CityDetails';
 import ConstructionMenu from 'hud/windows/ConstructionMenu';
@@ -162,6 +163,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
             */}
 
             <Clock game={game} />
+            <TimeControls game={game} />
             <Feed game={game} />
             <Toolbar game={game} />
             <Nagbar game={game} />
