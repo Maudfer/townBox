@@ -513,6 +513,37 @@ re-run in the browser on the finished arc:
   (bakery cake, restaurant steak) must be purchasable — both now validator-enforced (the inverse
   sustainability rule).
 
+### Appendix B.1 — the post-arc fresh-game follow-up (W8 addendum)
+
+A maintainer fresh-game session surfaced two sightings — a man at home popping visible "on top of his
+house" when his activity changed (watching TV at 4 AM), and sprites stuck at houses during outdoor
+actions ("Looking for a job") — root-caused live (harness probes on a scripted repro town) to four
+physical-layer defects, all fixed in one commit with revert-danced regressions:
+
+1. **Placement never set `currentBuilding`** — materialization, newborns, recovery movers and loads
+   left everyone *indoors with a null link*: the first located action **ghost-commuted to the house
+   the person was already inside** (the pop-visible sighting), and LiveWorld's identity-only arrival
+   check could deadlock located actions forever (caught live: a pending `home` handle 12 sim-hours
+   old on a man standing in his own living room, his sleep `waiting_for_materialization` all night).
+   Fixed at every placement site + a physical-containment fallback in LiveWorld that heals the link
+   + re-derivation on load.
+2. **Unclamped walk steps** — `speed × timeDelta` overshoots the <1px arrival window at large frame
+   deltas (4×/8× throttle, harness stepping, the hitch cap) and the walker ping-pongs across the
+   target forever (caught live: frozen 1px from the commute car for 21 sim-hours). Steps now clamp.
+3. **The wander commit-before-path-check stall** — one unreachable (or own-building) pick froze an
+   ambulatory walker for the rest of the session. Picks only commit with a real path now.
+4. **Doorstep parking** — outside transitions placed the body at the entrance pixel inside the
+   footprint ("standing on the house sprite"); `stepOutside()` now lands on the curb of the
+   connected street.
+
+Post-fix probe (same repro town): max pending handle age 22 → 4 ticks, frozen walkers 269 → 0,
+stuck sleeps 4 → 0, sprite invariants all zero. **Known residual (deferred, generator-touching):**
+location-less actions (267 of the corpus) run wherever the body happens to be — a person stranded
+outdoors by a prior outside action will "Rest" or watch TV at the curb until their next located
+action pulls them home. The honest fix is a data pass (explicit `home` locations on the domestic
+repertoire) or a Brain go-home default, both of which perturb generator streams — schedule after the
+W6 regeneration lands.
+
 ## Appendix — session numbers (the re-measure baseline)
 
 World 1 (seed 20260718, 13 houses / 30 residents / 11 businesses incl. full civic set, 32 in-game
