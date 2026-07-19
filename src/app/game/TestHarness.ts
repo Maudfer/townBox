@@ -95,7 +95,23 @@ export interface TownboxTestApi {
     // the supertile grid, buildings soft-snap to a road side), AWAITING the async household/business setup.
     // Returns the resolved anchor "row-col", or null when the placement is invalid. `tool` is one of
     // 'road' | 'soil' | 'house' | 'work'. (Real canvas clicks are still exercised by the canvas suite.)
-    build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number): Promise<string | null>;
+    // `blueprintKey` (W7): pins the business exactly like a construction-menu pick — scenario scripts can
+    // place a hospital/police station without hand-emitting tileClicked (the aliveness-3 session's #1 gap).
+    build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number, blueprintKey?: string): Promise<string | null>;
+
+    // Scenario staffing (W7): a REAL hire into a specific workplace and job title — WorkLife set, rank
+    // recorded, the position consumed — so forced scenarios (a doctor on duty, an officer on shift) don't
+    // monkey-patch Workplace internals. Returns true when the hire landed.
+    hireAs(personId: string, workplaceKey: string, title: string): boolean;
+
+    // Scenario event forcing (W7): EventEngine.invoke with the live state/clock plumbed — one call to make
+    // someone fall seriously ill, get arrested, or adopt a dog. Returns the invoke outcome's ok.
+    forceEvent(eventId: string, personId: string, params?: Record<string, string | number | boolean>): boolean;
+
+    // Payload-safe person selection (W7): opens the person inspector through the same bus event a real
+    // click dispatches — the PersonSelected payload is the Person INSTANCE, and hand-built payloads have
+    // crashed the HUD before (the W0 error boundary now contains it; this makes it unnecessary).
+    selectPerson(personId: string): boolean;
     // Bulldozes whatever occupies the tile (coherent teardown), awaiting eviction/closure side effects.
     bulldoze(row: number, col: number): Promise<void>;
 
@@ -200,7 +216,7 @@ export function createTestApi(game: GameManager): TownboxTestApi {
             return game.saveManager.serialize();
         },
 
-        async build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number): Promise<string | null> {
+        async build(tool: 'road' | 'soil' | 'house' | 'work', row: number, col: number, blueprintKey?: string): Promise<string | null> {
             const field = game.field;
             if (!field) {
                 return null;
@@ -210,11 +226,60 @@ export function createTestApi(game: GameManager): TownboxTestApi {
             if (!placement.valid || !placement.position) {
                 return null;
             }
-            await game.emit('tileClicked', { position: placement.position, tool: toolEnum });
+            await game.emit('tileClicked', {
+                position: placement.position, tool: toolEnum,
+                // A pinned blueprint rides exactly like a construction-menu pick (task 108) — including the
+                // civic placeholder texture the menu would arm (W7: no more hand-built asset keys).
+                ...(blueprintKey !== undefined ? { blueprintKey, asset: `civic_${blueprintKey}` } : {}),
+            });
             // Field.build fires houseBuilt/workplaceBuilt fire-and-forget; its household/business setup runs on
             // microtasks. Yield a macrotask so those complete before we return (materialized residents present).
             await new Promise<void>(resolve => setTimeout(resolve, 0));
             return `${placement.position.row}-${placement.position.col}`;
+        },
+
+        hireAs(personId: string, workplaceKey: string, title: string): boolean {
+            const field = game.field;
+            const person = (field ? field.getPeople() : []).find(candidate => candidate.social.getPersonId() === personId);
+            const workplace = field?.getStructures().find(structure =>
+                structure instanceof Workplace && structure.getIdentifier() === workplaceKey) as Workplace | undefined;
+            if (!person || !workplace || person.work.getJob() !== null) {
+                return false;
+            }
+            const preferred = workplace.getOpenPositions().find(position => position.title === title);
+            if (!preferred) {
+                return false;
+            }
+            const job = workplace.hire(person, () => true, preferred);
+            if (!job) {
+                return false;
+            }
+            person.work.setJob(job);
+            person.work.setWorkplace(workplace);
+            return true;
+        },
+
+        forceEvent(eventId: string, personId: string, params?: Record<string, string | number | boolean>): boolean {
+            const engine = game.eventEngine;
+            const population = game.population;
+            const clock = game.clock;
+            if (!engine || !population || !clock) {
+                return false;
+            }
+            const { outcome } = engine.invoke(
+                population.getState(), eventId, personId, clock.getCurrentTick(), clock.getTicksPerYear(),
+                { source: 'system', causationId: null }, {}, {}, params
+            );
+            return outcome.ok;
+        },
+
+        selectPerson(personId: string): boolean {
+            const person = (game.field ? game.field.getPeople() : []).find(candidate => candidate.social.getPersonId() === personId);
+            if (!person) {
+                return false;
+            }
+            void game.emit('PersonSelected', person);
+            return true;
         },
 
         async bulldoze(row: number, col: number): Promise<void> {
