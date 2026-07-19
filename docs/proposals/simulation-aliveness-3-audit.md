@@ -489,6 +489,30 @@ must produce the same town.
 
 ---
 
+## Appendix B — the post-implementation live re-measure (same civic town, arc engines)
+
+The audit's exact town shape (13 houses / ~34 residents / 11 businesses incl. the full civic set),
+re-run in the browser on the finished arc:
+
+- **Sprite invariants: all-zero for the whole run** — orphan controlled vehicles 0 (baseline ~4.6
+  leaked/day, 148 total), occupied-driverless 0, visible-indoors 0; cars on the road = people actually
+  in flight.
+- **The town staffed itself**: 1 Manager (baseline **14 of 24**), 9 nurses, 5 checkout clerks, 2 police
+  officers, 1 firefighter, 2 garbage collectors, 1 corrections officer, 4 teachers — the W1 keystone
+  met with no player micromanagement.
+- **Groceries flow**: purchases every day (baseline: zero for 28 straight days); people eat both at
+  home and out; curb bags get **collected** (baseline: 0 → 212 monotonic).
+- **Blocked venue trips: 0** (baseline-equivalent run showed a 166-blocked wall at 16:00–19:00 before
+  the choke guard); shops honestly closed at night, and nobody proposes trips into them.
+- **Sleep completes** (17 completions in 3 days; baseline 0 — every night ended 'interrupted').
+- The time toolbar's full loop verified by real clicks (▶▶ → scale 4 → highlight follows); the ×2
+  label merge and midnight-empty streets confirmed on screenshot; an off-anchor bulldoze cleared all
+  9 footprint cells (no ghost).
+- Two shelf-economy gaps were found only in THIS pass and fixed in the same commit chain: the basket
+  must span the restock set (milk/pasta/cheese/butter/cereal silted), and restocked production
+  (bakery cake, restaurant steak) must be purchasable — both now validator-enforced (the inverse
+  sustainability rule).
+
 ## Appendix — session numbers (the re-measure baseline)
 
 World 1 (seed 20260718, 13 houses / 30 residents / 11 businesses incl. full civic set, 32 in-game
