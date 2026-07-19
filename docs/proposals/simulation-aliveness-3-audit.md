@@ -525,8 +525,8 @@ physical-layer defects, all fixed in one commit with revert-danced regressions:
    the person was already inside** (the pop-visible sighting), and LiveWorld's identity-only arrival
    check could deadlock located actions forever (caught live: a pending `home` handle 12 sim-hours
    old on a man standing in his own living room, his sleep `waiting_for_materialization` all night).
-   Fixed at every placement site + a physical-containment fallback in LiveWorld that heals the link
-   + re-derivation on load.
+   Fixed at every placement site, plus a physical-containment fallback in LiveWorld that heals the
+   link, plus re-derivation on load.
 2. **Unclamped walk steps** — `speed × timeDelta` overshoots the <1px arrival window at large frame
    deltas (4×/8× throttle, harness stepping, the hitch cap) and the walker ping-pongs across the
    target forever (caught live: frozen 1px from the commute car for 21 sim-hours). Steps now clamp.

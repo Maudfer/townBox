@@ -63,4 +63,19 @@ describe('W4: conception from intimacy', () => {
     test('the chance constant is the documented one (a rate change is a conscious decision)', () => {
         expect(CONCEPTION_CHANCE).toBe(0.10);
     });
+
+    // W6 follow-up: the generator's population thermostat scales the pregnancy hazard, but conception's
+    // commit-driven channel is the DOMINANT path — bypassing the scale let the pool compound past target
+    // (335 → 490 living observed mid-regeneration). The channel must obey the same brake; live play never
+    // installs a scale, so live behavior is untouched.
+    test('the conception channel respects the installed pregnancy probability scale (the thermostat brake)', () => {
+        const state = married();
+        const engine = new EventEngine(EVENTS);
+        engine.setProbabilityScale(id => (id === 'pregnancy' ? 0 : 1)); // full suppression
+        for (let tick = 0; tick < 600; tick++) {
+            engine.invoke(state, 'had_sex', 'wife', tick, TPY, { source: 'system', causationId: null });
+            maybeConceive(state, engine, 'wife', tick, TPY, null);
+        }
+        expect(engine.getPersonLog('wife').some(entry => entry.kind === 'event' && entry.defId === 'pregnancy')).toBe(false);
+    });
 });

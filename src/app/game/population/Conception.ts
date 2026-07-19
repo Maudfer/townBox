@@ -30,7 +30,12 @@ export function maybeConceive(
         return;
     }
     const rng = new SeededRandom((state.worldSeed ^ hashStringToSeed(CONCEPTION_SALT + tick + '#' + motherId)) >>> 0);
-    if (rng.next() >= CONCEPTION_CHANCE) {
+    // The thermostat brake applies HERE too (W6 follow-up): the generator's population control scales the
+    // pregnancy hazard, but this commit-driven channel is the dominant conception path — bypassing the
+    // scale let the pool compound past target (335 → 490 living observed mid-run). Live play never
+    // installs a scale, so the multiplier is 1 and live behavior is untouched.
+    const chance = CONCEPTION_CHANCE * engine.getProbabilityScaleFor('pregnancy');
+    if (rng.next() >= chance) {
         return;
     }
     engine.invoke(state, 'pregnancy', motherId, tick, ticksPerYear, { source: 'system', causationId });

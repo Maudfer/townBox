@@ -64,7 +64,7 @@ export const HISTORY_ASSET_FORMAT_VERSION = 2;
 //        assets differ byte-wise from 077.4 (same content in kind); still deterministic per seed.
 // 136.0 — the aliveness-3 arc (W0–W10): conception rides had_sex, the abstract-encounter chase discount,
 // askFirst social pricing, the venue repertoire + stream shifts. Deterministic per seed as ever.
-export const HISTORY_GENERATOR_VERSION = '136.0';
+export const HISTORY_GENERATOR_VERSION = '137.0';
 
 // The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';

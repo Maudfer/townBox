@@ -1018,6 +1018,14 @@ export default class EventEngine {
         this.probabilityScale = scale;
     }
 
+    // The current multiplier for one event (1 when no scale is installed — live play always). Lets
+    // manual-channel producers that stand in for a hazard (the W4 conception roll) respect the same
+    // thermostat brake the hazard obeys — the generator's population control was bypassed by the
+    // commit-driven channel and the pool compounded past target (335 → 490 living observed mid-run).
+    getProbabilityScaleFor(eventId: string): number {
+        return this.probabilityScale?.(eventId) ?? 1;
+    }
+
     unbindMarkets(): void {
         this.jobMarket = null;
         this.ledger = null;
