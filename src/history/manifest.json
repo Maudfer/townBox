@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-07-19T06:22:19.143Z",
+  "serial": "20260719032219",
+  "hash": "bd98",
+  "name": "history-20260719032219-bd98",
+  "generator": {
+    "script": "scripts/generateHistoryAsset.ts"
+  },
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32/x64",
+    "host": "MAURICIO-PC"
+  },
+  "invocation": {
+    "argv": [],
+    "flags": {}
+  },
+  "runtime": "2 h 21 min 48 s",
+  "people": {
+    "files": 704,
+    "prunedWarmupFiles": 27
+  },
+  "sizes": {
+    "personBytes": 1663074008,
+    "sectionBytes": 2143112
+  }
+}
