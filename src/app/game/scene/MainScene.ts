@@ -823,12 +823,25 @@ export default class MainScene extends Phaser.Scene {
             }
 
             const isIndoors = person.isIndoors();
-            if (isIndoors && personAsset.visible) {
-                personAsset.setVisible(false);
+            if (isIndoors) {
+                // Entering a building hides EVERYTHING frame-accurately (aliveness-3 follow-up, maintainer
+                // read): the old early-return hid the sprite but left the activity bubble (and the pet dot)
+                // standing at the door until the next per-minute refresh — ghost labels over entrances.
+                if (personAsset.visible) {
+                    personAsset.setVisible(false);
+                }
+                const staleBubble = this.activityLabels.get(person);
+                if (staleBubble?.visible) {
+                    staleBubble.setVisible(false);
+                }
+                const stalePet = this.petDots.get(person);
+                if (stalePet?.visible) {
+                    stalePet.setVisible(false);
+                }
                 return;
             }
 
-            if (!isIndoors && !personAsset.visible) {
+            if (!personAsset.visible) {
                 personAsset.setVisible(true);
             }
 
