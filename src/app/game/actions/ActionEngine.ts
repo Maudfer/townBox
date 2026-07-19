@@ -791,6 +791,27 @@ export default class ActionEngine {
             const def = this.manifest[instance.defId]!;
             addSub('spine', tSpine);
 
+            // The location hard gate (aliveness-3 follow-up): the JSON `location` field is a STANDING
+            // restriction, not just a start condition. A running location-gated instance whose person was
+            // physically displaced (ejection on demolition, any future drift) goes back to PENDING — the
+            // next materialize pass re-requests the transition (walk back and continue) or the Brain
+            // replaces it at the flip. Structurally, "Sleeping" can never run on the street again.
+            {
+                const world = deps.ctx.world;
+                let requiredLocation = instance.locationOverride ?? def.location;
+                if (requiredLocation?.startsWith('person:') && world) {
+                    requiredLocation = locationKey(world.locationOf(requiredLocation.slice('person:'.length)));
+                }
+                // venue:* resolved to a concrete host at materialization (the handle is gone by now), so
+                // the standing check applies to the CONCRETE location kinds: home / building:<key> /
+                // person-resolved. 'outside' and venue-abstract stay ungated here.
+                const concrete = requiredLocation === 'home' || requiredLocation?.startsWith('building:');
+                if (concrete && world && locationKey(world.locationOf(instance.personId)) !== requiredLocation) {
+                    instance.status = 'pending';
+                    continue; // displaced — re-materialize next pass rather than acting in the wrong place
+                }
+            }
+
             if (def.children?.mode === 'pool') {
                 const tPool = clock ? clock() : 0;
                 this.runPool(instance, def.children.entries, rng, deps, result);

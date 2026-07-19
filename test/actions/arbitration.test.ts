@@ -273,3 +273,33 @@ describe('W3: the aftershock — lying low after a shock', () => {
         expect(shaken).toBeLessThan(calm); // the 0.25 dampener bites (same seed, same ticks)
     });
 });
+
+describe('the standing location gate (aliveness-3 follow-up)', () => {
+    test('a running home-located instance whose person is displaced reverts to pending — Sleeping can never run on the street', () => {
+        const GATE_ACTIONS = {
+            napping_at_home: { label: 'Napping', type: 'continuous', category: 'recovery', location: 'home', durationTicks: 8, selection: { weight: 0 } },
+        } as unknown as ActionManifest;
+        const inventory = new Inventory(DEFAULT_OBJECT_ARCHETYPES);
+        const world = new BootstrapWorld(inventory);
+        const engine = new EventEngine({} as never);
+        const actions = new ActionEngine(GATE_ACTIONS, engine.getLifeLog());
+        const state: PopulationState = { worldSeed: 3, people: { a: person('a') }, drawSeed: 1, placedIds: [], nextSeq: 10, lastSimulatedYear: 0 };
+        world.register('a');
+        const deps: ActionDeps = { state, tick: 100, ticksPerYear: TPY, ctx: { mode: 'bootstrap', world }, eventEngine: engine, inventory };
+
+        const started = actions.startAction('a', 'napping_at_home', {}, { source: 'brain', causationId: null }, deps, result());
+        expect(started.ok).toBe(true);
+        actions.advance({ ...deps, tick: 101 });
+        expect(actions.activeInstanceOf('a')?.status).toBe('running');
+
+        // Displacement (the ejection class): the person is physically moved elsewhere mid-nap.
+        world.requestTransition('a', { kind: 'building', key: '9-9' }, 102, null);
+        actions.advance({ ...deps, tick: 102 });
+        // The standing gate bounced the instance out of running — it re-materializes (transition home)
+        // instead of napping in the street.
+        expect(actions.activeInstanceOf('a')?.status).not.toBe('running');
+        actions.advance({ ...deps, tick: 103 });
+        // Bootstrap transitions resolve immediately: back home, running resumes honestly.
+        expect(actions.activeInstanceOf('a')?.status).toBe('running');
+    });
+});
