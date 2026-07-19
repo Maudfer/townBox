@@ -9,9 +9,9 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 336 | 104 continuous / 232 discrete |
+| `actions.json` | 337 | 104 continuous / 233 discrete |
 | `events.json` | 743 | 167 probabilistic, 357 probabilistic + manual, 216 manual, 3 manual + automated |
-| `object-action-relationships.json` | 41 | first-satisfiable entry per action commit |
+| `object-action-relationships.json` | 43 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
 
@@ -139,7 +139,7 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `workshop_planks` | `milled_some_planks` | — | 4× `wood_plank`, owner: employer | — |
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
-| `supermarket_restock` | `stocked_the_shelves` | — | 8× `egg`, owner: employer<br>6× `bread_loaf`, owner: employer<br>4× `milk_carton`, owner: employer<br>5× `tomato`, owner: employer<br>3× `lettuce`, owner: employer<br>5× `potato`, owner: employer<br>3× `onion`, owner: employer<br>3× `flour_bag`, owner: employer<br>2× `butter_stick`, owner: employer<br>2× `cheese_wedge`, owner: employer<br>2× `cream_jar`, owner: employer<br>3× `pasta_box`, owner: employer<br>4× `granola_bar`, owner: employer | — |
+| `supermarket_restock` | `stocked_the_shelves` | — | 8× `egg`, owner: employer<br>6× `bread_loaf`, owner: employer<br>4× `milk_carton`, owner: employer<br>5× `tomato`, owner: employer<br>3× `lettuce`, owner: employer<br>5× `potato`, owner: employer<br>3× `onion`, owner: employer<br>3× `flour_bag`, owner: employer<br>2× `butter_stick`, owner: employer<br>2× `cheese_wedge`, owner: employer<br>2× `cream_jar`, owner: employer<br>3× `pasta_box`, owner: employer<br>4× `granola_bar`, owner: employer<br>2× `cereal_box`, owner: employer | — |
 | `ate_meal_from_loaf` | `ate_a_meal` | 1× `bread_loaf` (consumed) | — | — |
 | `ate_meal_from_eggs` | `ate_a_meal` | 2× `egg` (consumed) | — | — |
 | `ate_meal_from_salad` | `ate_a_meal` | 1× `tomato` (consumed)<br>1× `lettuce` (consumed) | — | — |
@@ -151,6 +151,8 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `served_family_from_potatoes` | `served_the_family` | 2× `potato` (consumed)<br>1× `onion` (consumed) | — | — |
 | `ate_meal_from_banana` | `ate_a_meal` | 1× `banana` (consumed) | — | — |
 | `ate_meal_from_granola` | `ate_a_meal` | 1× `granola_bar` (consumed) | — | — |
+| `ate_breakfast_from_cereal` | `ate_a_meal` | 1× `cereal_box` (consumed)<br>1× `milk_carton` (consumed) | — | — |
+| `ate_meal_from_milk` | `ate_a_meal` | 1× `milk_carton` (consumed) | — | — |
 | `ate_meal_from_cheese` | `ate_a_meal` | 1× `cheese_wedge` (consumed) | — | — |
 
 ## Interaction contracts (person-targeted actions)

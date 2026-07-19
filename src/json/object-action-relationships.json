@@ -540,6 +540,12 @@
                 "quantity": 4,
                 "owner": "employer",
                 "container": "location"
+            },
+            {
+                "archetype": "cereal_box",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
             }
         ]
     },
@@ -673,6 +679,33 @@
         "inputs": [
             {
                 "archetype": "granola_bar",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_breakfast_from_cereal": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "cereal_box",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "milk_carton",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_milk": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "milk_carton",
                 "quantity": 1,
                 "disposition": "consumed"
             }

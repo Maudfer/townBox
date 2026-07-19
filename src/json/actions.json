@@ -2615,6 +2615,51 @@
                 "price": 8,
                 "fallback": "cream_jar",
                 "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "milk_carton"
+                },
+                "price": 7,
+                "fallback": "milk_carton",
+                "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "pasta_box"
+                },
+                "price": 8,
+                "fallback": "pasta_box",
+                "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "cheese_wedge"
+                },
+                "price": 10,
+                "fallback": "cheese_wedge",
+                "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "butter_stick"
+                },
+                "price": 5,
+                "fallback": "butter_stick",
+                "optional": true
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "cereal_box"
+                },
+                "price": 9,
+                "fallback": "cereal_box",
+                "optional": true
             }
         ],
         "events": {
@@ -6461,6 +6506,15 @@
             {
                 "op": "adjustMoney",
                 "amount": -22
+            },
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "grilled_steak"
+                },
+                "price": 0,
+                "fallback": "grilled_steak",
+                "optional": true
             }
         ],
         "satisfies": {
@@ -6917,6 +6971,11 @@
                     "action": "bought_fresh_bread",
                     "chancePerTick": 0.8,
                     "maxTotal": 1
+                },
+                {
+                    "action": "bought_a_cake",
+                    "chancePerTick": 0.15,
+                    "maxTotal": 1
                 }
             ]
         },
@@ -6924,6 +6983,21 @@
             "purpose": 5,
             "food": 5
         }
+    },
+    "bought_a_cake": {
+        "label": "Bought a cake",
+        "type": "discrete",
+        "category": "maintenance",
+        "consequences": [
+            {
+                "op": "purchaseObject",
+                "query": {
+                    "archetype": "cake"
+                },
+                "price": 24,
+                "fallback": "cake"
+            }
+        ]
     },
     "applied_for_a_job": {
         "label": "Applied for a job",

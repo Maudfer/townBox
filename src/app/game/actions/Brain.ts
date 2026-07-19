@@ -334,6 +334,14 @@ export default class Brain {
             if (!def) {
                 continue;
             }
+            // The closed-venue guard at the CHOKE POINT (W2 follow-up, found live): the free-time and needs
+            // paths already skip unhosted/closed venues, but planner routines (weekly shopping, dinner out)
+            // proposed straight into shops that had just closed — a 166-blocked-trip wall at 16:00-19:00,
+            // right after the clerk clocks off. One guard here covers every intent source.
+            if (typeof def.location === 'string' && def.location.startsWith('venue:')
+                && deps.ctx.world && !deps.ctx.world.hasVenue(def.location.slice('venue:'.length))) {
+                continue; // closed or unhosted — try the next intent rather than a doomed trip
+            }
             const active = this.actionEngine.activeInstanceOf(personId);
             if (def.type === 'continuous' && active) {
                 if (active.defId === intent.actionId) {
@@ -911,11 +919,11 @@ const needsHook: BrainHook = {
         // The archetypes an ate_a_meal OAR alternative can actually consume (LP-5): the eat-in-hand
         // intent, the pantry-fetch skip, and the fetch preference all key off THIS set, so a person never
         // "carries food" the meal machinery cannot eat (the granola-bar deadlock the fed-week arc caught).
-        const MEAL_CONSUMABLES = new Set(['sandwich', 'bread_loaf', 'egg', 'tomato', 'lettuce', 'potato', 'pasta_box', 'apple', 'banana', 'granola_bar', 'cheese_wedge']);
+        const MEAL_CONSUMABLES = new Set(['sandwich', 'bread_loaf', 'egg', 'tomato', 'lettuce', 'potato', 'pasta_box', 'apple', 'banana', 'granola_bar', 'cheese_wedge', 'milk_carton', 'cereal_box']);
         // Grab what a MEAL can be made of (LP-5 fix): the fetch used to take ingredient-tagged items only
         // (bread is 'meal'-tagged — never fetchable) alphabetically (butter first) — matching none of
         // ate_a_meal's consumption alternatives, so the hungry fetched once and starved holding butter.
-        const MEAL_STAPLE_PRIORITY = ['bread_loaf', 'egg', 'potato', 'pasta_box', 'apple', 'tomato', 'lettuce', 'banana', 'cheese_wedge'];
+        const MEAL_STAPLE_PRIORITY = ['bread_loaf', 'egg', 'potato', 'pasta_box', 'apple', 'tomato', 'lettuce', 'banana', 'cheese_wedge', 'cereal_box', 'milk_carton'];
         if (need === 'food' && world && inventory
             && ledger.levelOf(personId, 'food', deps.tick, deps.state.worldSeed) < INVENTORY_CONFIG.pantryFetchBelowFood
             && locationKey(world.locationOf(personId)) === 'home'

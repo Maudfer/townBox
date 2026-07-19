@@ -342,6 +342,26 @@ export function validateActionsSemantics(data: unknown, peers: Record<string, un
     const sustainableFood = (archetypeId: string): boolean =>
         restockable.has(archetypeId) || (objects[archetypeId]?.generation?.minPerBuilding ?? 0) >= 1;
 
+    // The INVERSE rule (W6 follow-up, found live): every RESTOCKED food must be purchasable by some
+    // purchase query, or the shelf silts up with exactly the unsellable items while the sellable ones
+    // drain — the live run watched a supermarket reduced to 13 butter sticks and 14 cereal boxes nobody
+    // could buy. Supply and demand sets must span each other.
+    const purchasedArchetypes = new Set<string>();
+    for (const action of Object.values(manifest)) {
+        for (const op of action.consequences ?? []) {
+            const purchase = op as { op: string; query?: { archetype?: string } };
+            if (purchase.op === 'purchaseObject' && purchase.query?.archetype !== undefined) {
+                purchasedArchetypes.add(purchase.query.archetype);
+            }
+        }
+    }
+    for (const archetypeId of restockable) {
+        if (objects[archetypeId]?.category === 'food' && !purchasedArchetypes.has(archetypeId)) {
+            issues.add('objectActionRelationships',
+                `restocked food "${archetypeId}" is not purchasable by any purchase query — it will silt the shelf`);
+        }
+    }
+
     for (const [id, action] of Object.entries(manifest)) {
         for (const [index, op] of (action.consequences ?? []).entries()) {
             const purchase = op as { op: string; query?: { archetype?: string } };
