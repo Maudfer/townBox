@@ -360,6 +360,26 @@ describe('walk(): real per-frame movement', () => {
         expect((p as any).y).toBe(0); // Y axis untouched until X is reached
         expect(p.getDirection()).toBe(Direction.East);
     });
+
+    // W8 follow-up: an unclamped `speed × timeDelta` step overshoots the <1px arrival window whenever the
+    // frame delta is large (4×/8× throttled play, harness stepping, a hitch at the cap) and the walker
+    // ping-pongs across the target forever — observed live as a person frozen 1px from their commute car
+    // for 21 sim-hours. The step must clamp to the remaining distance so arrival always lands.
+    test('a large frame delta clamps to the target instead of overshoot-oscillating forever', () => {
+        const road = new Road(0, 0, 'road');
+        const p = new Person(0, 0);
+        p.setAsset({} as any);
+        (p as any).currentTarget = { x: 0, y: 1 }; // 1px away — smaller than one 150ms step (3px)
+        (p as any).currentDestination = { row: 0, col: 0 };
+        (p as any).path = [];
+
+        let arrived = false;
+        for (let frame = 0; frame < 10 && !arrived; frame++) {
+            arrived = p.walk(road, 150);
+        }
+        expect(arrived).toBe(true);
+        expect((p as any).y).toBe(1); // landed exactly, no oscillation
+    });
 });
 
 describe('setNextTarget()', () => {
@@ -493,6 +513,29 @@ describe('updateDestination() — debug wander destination pick', () => {
 
         p.updateDestination(road, new Set(['5-5']), pathFinder);
 
+        expect((p as any).currentDestination).toEqual({ row: 5, col: 5 });
+        expect((p as any).currentTarget).not.toBeNull();
+    });
+
+    // W8 follow-up: committing the destination before the reachability check froze the walker forever —
+    // currentDestination set with no path and no target, walk() a permanent no-op, and every later
+    // updateDestination an early return. Live symptom: an ambulatory person ("Out looking for work",
+    // "Patrolling the streets") standing motionless at their doorstep for the rest of the session.
+    test('an unreachable pick is NOT committed — the walker retries and recovers instead of freezing', () => {
+        const road = new Road(0, 0, 'r');
+        road.calculateCurb({ width: 48, height: 48 }, { x: 24, y: 24 });
+        const p = new Person(0, 0);
+        let reachable = false;
+        const pathFinder = { findPath: () => (reachable ? [road] : []) } as unknown as PathFinder;
+
+        p.updateDestination(road, new Set(['5-5']), pathFinder);
+        expect((p as any).currentDestination).toBeNull(); // the failed pick left no frozen state behind
+
+        // The route opens up (or a different pick lands): within the retry window the walker moves again.
+        reachable = true;
+        for (let frame = 0; frame < 40 && !(p as any).currentDestination; frame++) {
+            p.updateDestination(road, new Set(['5-5']), pathFinder);
+        }
         expect((p as any).currentDestination).toEqual({ row: 5, col: 5 });
         expect((p as any).currentTarget).not.toBeNull();
     });

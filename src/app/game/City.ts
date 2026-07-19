@@ -314,6 +314,10 @@ export default class City {
             }
 
             person.setIndoors(true);
+            // The physical link, not just the flag (W8 follow-up): a null currentBuilding made the person's
+            // first located action commute to the house they were already inside — the sprite popped visible
+            // "on the house", walked to a car, and drove home.
+            person.setCurrentBuilding(house);
             person.social.setHome(house);
             const age = ageAt(genPerson, currentTick, ticksPerYear);
             person.setupCitizenship(genPerson.firstName, genPerson.familyName, age, genPerson.gender);
@@ -2449,6 +2453,13 @@ export default class City {
             const person = byGenId.get(id)!;
             person.social.setHome(target);
             person.setIndoors(true);
+            // Body coherence (W8 follow-up): the recovered mover is placed INSIDE the new home — position
+            // and building link included, so located actions resolve instead of ghost-commuting.
+            person.setCurrentBuilding(target);
+            const entrance = target.getEntrance();
+            if (entrance) {
+                person.setPosition(entrance.x, entrance.y);
+            }
             target.addResident(person);
             target.addOccupant(person);
             this.fireMilestone('got_back_on_feet', id, tick); // task 076/M4
@@ -2566,6 +2577,7 @@ export default class City {
             }
 
             person.setIndoors(true);
+            person.setCurrentBuilding(home); // the physical link (W8 follow-up), like setupHousehold
             person.social.setHome(home);
             person.setupCitizenship(genChild.firstName, genChild.familyName, 0, genChild.gender);
             person.social.setBirthTick(genChild.birthTick);

@@ -218,3 +218,68 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(homeward.status).toBe('pending');
     });
 });
+
+// W8 follow-up (live-found): materialization, loads and logical relocations set `indoors` but never
+// `currentBuilding`, and LiveWorld's identity-only arrival check could then never pass — the first located
+// action ghost-commuted to the house the person was already inside (the sprite popping visible "on the
+// house"), and a person parked inside a building with a null link deadlocked every located action (a
+// pending 'home' handle 12 sim-hours old on a man standing in his own living room, sleep waiting all night).
+describe('W8 follow-up: placement truth & arrival healing', () => {
+    test('a located request from a person indoors inside the destination resolves immediately — no ghost commute', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const person = field.loadPerson(72, 72); // pixel inside the 3x3 footprint
+        person.social.setHome(home);
+        person.social.setPersonId('p1');
+        person.setIndoors(true); // the materialization/load state: indoors, currentBuilding never set
+        expect(person.getCurrentBuilding()).toBeNull();
+
+        const handle = city.getWorld().requestTransition('p1', { kind: 'home' }, 10, null);
+        expect(handle.status).toBe('arrived');
+        city.getWorld().pump(10);
+        expect(field.getVehicles()).toHaveLength(0); // nobody drives to the house they are already inside
+        expect(person.getCurrentBuilding()).toBe(home); // the link is healed on resolution
+    });
+
+    test('the pump resolves a pending handle for a person parked indoors at the target with a null link', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const person = field.loadPerson(300, 300); // outdoors, far from home
+        person.social.setHome(home);
+        person.social.setAge(30);
+        person.social.setPersonId('p1');
+
+        const handle = city.getWorld().requestTransition('p1', { kind: 'home' }, 10, null);
+        expect(handle.status).toBe('pending');
+        city.getWorld().pump(10); // departs (commute starts)
+
+        // A logical relocation parks them INSIDE the house without the link — the pre-fix deadlock state.
+        person.abortTravel();
+        person.setPosition(72, 72);
+        person.setIndoors(true);
+        expect(person.getCurrentBuilding()).toBeNull();
+
+        city.getWorld().pump(11);
+        expect(handle.status).toBe('arrived');
+        expect(person.getCurrentBuilding()).toBe(home);
+    });
+
+    test('stepping outside lands on the curb of the connected street, not the entrance pixel', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 4, 7, 'r');
+        const person = field.loadPerson(72, 72);
+        person.social.setHome(home);
+        person.social.setPersonId('p1');
+        person.setIndoors(true);
+        person.setCurrentBuilding(home);
+
+        const handle = city.getWorld().requestTransition('p1', { kind: 'outside' }, 10, null);
+        expect(handle.status).toBe('arrived');
+        expect(person.isIndoors()).toBe(false);
+        expect(person.getCurrentBuilding()).toBeNull();
+        // The body stands on the street footprint (the curb), not inside the house sprite.
+        const position = person.getPosition()!;
+        expect(field.getTile(Math.floor(position.y / 16), Math.floor(position.x / 16))).toBeInstanceOf(Road);
+    });
+});

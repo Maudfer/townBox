@@ -32,8 +32,8 @@ export default class Person {
 
     private vehicle: Vehicle | null;
     private destinationBuilding: Building | null;
-    // The building the person is currently in/at (home or workplace). Null is treated as "at home". Set on
-    // arrival; drives the commute scheduler's home<->work decisions (task 006).
+    // The building the person is currently in/at (home or workplace). Set on arrival (and at logical
+    // placement — materialization, load, rehousing); null means outdoors/in transit (W8).
     private currentBuilding: Building | null;
     private travelStep: TravelStep;
 
@@ -158,6 +158,39 @@ export default class Person {
         this.currentBuilding = building;
     }
 
+    // Physical ground truth for "is this body inside that building" (W8 follow-up): the tile under the
+    // person's pixel references the structure (all 9 footprint cells share the instance). LiveWorld uses
+    // it to resolve arrivals for people whose currentBuilding link was never set — materialization, loads
+    // and logical relocations left the link null, and the pure identity check deadlocked every located
+    // action of such a person (a pending 'home' handle for someone standing in their own living room).
+    isPhysicallyInside(building: Building): boolean {
+        const tilePosition = Game?.pixelToTilePosition(this.getPosition());
+        if (!tilePosition) {
+            return false;
+        }
+        return Game.field?.getTile(tilePosition.row, tilePosition.col) === building;
+    }
+
+    // Steps out the front door (the task-093 outside transition, W8 follow-up): the body lands on the CURB
+    // of the connected street — entrance fallback in road-less worlds — instead of the entrance pixel,
+    // which sits inside the footprint and drew the person "standing on the house sprite" for the whole of
+    // an outdoor activity. Also the spot ambulatory walks depart from, so wanderers start road-adjacent.
+    stepOutside(): void {
+        const building = this.currentBuilding;
+        if (building) {
+            const entrance = building.getEntrance();
+            const roadPosition = Game?.field?.getAdjacentRoadTile(building);
+            const roadTile = roadPosition ? Game.field?.getTile(roadPosition.row, roadPosition.col) : null;
+            const curb = roadTile instanceof Road && entrance ? roadTile.getClosestCurbPoint(entrance) : null;
+            const spot = curb ?? entrance;
+            if (spot) {
+                this.setPosition(spot.x, spot.y);
+            }
+        }
+        this.setIndoors(false);
+        this.currentBuilding = null;
+    }
+
     // Not currently on a commute (available to be dispatched home/to work).
     isIdle(): boolean {
         return this.travelStep === TravelStep.Idle && this.destinationBuilding === null;
@@ -180,8 +213,15 @@ export default class Person {
             return false;
         }
 
-        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
-        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
+        // Steps CLAMP to the remaining distance (W8 follow-up): an unclamped `speed × timeDelta` step
+        // overshoots the <1px arrival window whenever the frame delta is large (throttled play at 4×/8×,
+        // harness stepping, a hitch at the cap) and the walker ping-pongs across the target forever —
+        // observed live as a person frozen mid-step 1px from their commute car for 21 sim-hours.
+        const maxStep = this.speed * timeDelta;
+        const deltaX = this.currentTarget.x - this.x;
+        const deltaY = this.currentTarget.y - this.y;
+        const speedX = Math.sign(deltaX) * Math.min(Math.abs(deltaX), maxStep);
+        const speedY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), maxStep);
 
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
@@ -255,12 +295,21 @@ export default class Person {
         this.currentTarget = nextTile.getClosestCurbPoint(currentPixelPosition);
     }
 
+    // Frames left before the next wander pick after an unreachable one (W8 follow-up) — retrying every
+    // frame would hammer A* from a spot that may simply have no route this instant.
+    private wanderRetryFrames = 0;
+
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
         if (this.currentDestination) {
             return;
         }
 
         if (!destinations.size) {
+            return;
+        }
+
+        if (this.wanderRetryFrames > 0) {
+            this.wanderRetryFrames -= 1;
             return;
         }
 
@@ -271,17 +320,25 @@ export default class Person {
             return;
         }
 
-        this.currentDestination = { row: destinationRow, col: destinationCol };
-
         const currentTilePosition = {
             row: currentTile.getRow(),
             col: currentTile.getCol()
         };
 
-        this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
-        if (this.path?.length) {
-            this.setNextTarget(currentTile);
+        // Commit the destination ONLY with a real path (W8 follow-up): committing before the reachability
+        // check froze the walker forever on an unreachable (or own-building) pick — currentDestination set,
+        // no target, walk() a permanent no-op, and every later updateDestination an early return. The
+        // live symptom: an ambulatory person ("Out looking for work", "Patrolling the streets") standing
+        // motionless at their doorstep for the rest of the session.
+        const path = pathFinder.findPath(currentTilePosition, { row: destinationRow, col: destinationCol });
+        if (!path?.length) {
+            this.wanderRetryFrames = 30;
+            return;
         }
+
+        this.currentDestination = { row: destinationRow, col: destinationCol };
+        this.path = path;
+        this.setNextTarget(currentTile);
     }
 
     setDestinationTile(currentTile: Tile, destination: TilePosition, pathFinder: PathFinder): void {

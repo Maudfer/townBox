@@ -8,6 +8,7 @@ import LocalStorageProvider from 'game/save/LocalStorageProvider';
 import { SaveProvider } from 'game/save/SaveProvider';
 import { applyLegacySkills } from 'game/save/legacySkills';
 import { migrateSnapshot } from 'game/save/migrations';
+import Building from 'game/world/Building';
 import House from 'game/world/House';
 import Road from 'game/world/Road';
 import Tile from 'game/world/Tile';
@@ -479,6 +480,18 @@ export default class SaveManager {
                 const home = structureByKey.get(personSnapshot.homeId);
                 if (home instanceof House) {
                     person.social.setHome(home);
+                }
+            }
+
+            // Re-derive the physical building link from the restored position (W8 follow-up): the snapshot
+            // carries `indoors` but not currentBuilding, and a null link deadlocked located actions after
+            // every load (the pump's arrival identity check could never pass). The tile under the person's
+            // pixel is the ground truth — footprint cells all reference the structure.
+            if (personSnapshot.indoors) {
+                const tilePosition = this.game.pixelToTilePosition(person.getPosition());
+                const tile = tilePosition ? field.getTile(tilePosition.row, tilePosition.col) : null;
+                if (tile instanceof Building) {
+                    person.setCurrentBuilding(tile);
                 }
             }
 

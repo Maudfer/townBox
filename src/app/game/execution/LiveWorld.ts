@@ -213,18 +213,23 @@ export default class LiveWorld implements WorldAdapter {
 
         const person = this.findPerson(personId);
         // Stepping OUTSIDE (task 093 / E1): pre-093 this cancelled and outdoor actions blocked in live mode.
-        // Now the person steps out the door — visible at the entrance, no longer in the building — and the
+        // Now the person steps out the door — onto the curb of the connected street (W8 follow-up; the
+        // entrance pixel sits inside the footprint and read as "standing on the house sprite") — and the
         // handle resolves immediately (the walk itself is the ambulatory action's business, not a commute).
         if (person && target.kind === 'outside') {
             const building = person.getCurrentBuilding();
             if (building) {
-                // Optional calls: the scene-facing bits are absent on minimal test doubles (arcScenarios).
-                const entrance = building.getEntrance?.();
-                if (entrance) {
-                    person.setPosition?.(entrance.x, entrance.y);
+                if (person.stepOutside) {
+                    person.stepOutside();
+                } else {
+                    // Optional calls: the scene-facing bits are absent on minimal test doubles (arcScenarios).
+                    const entrance = building.getEntrance?.();
+                    if (entrance) {
+                        person.setPosition?.(entrance.x, entrance.y);
+                    }
+                    person.setIndoors?.(false);
+                    person.setCurrentBuilding?.(null);
                 }
-                person.setIndoors?.(false);
-                person.setCurrentBuilding?.(null);
             }
             handle.status = 'arrived';
             handle.resolvedAtTick = tick;
@@ -239,7 +244,7 @@ export default class LiveWorld implements WorldAdapter {
         if (target.kind === 'venue') {
             this.resolvedVenues.set(handle.id, destination.getIdentifier());
         }
-        if (person.getCurrentBuilding() === destination) {
+        if (this.personInside(person, destination)) {
             handle.status = 'arrived'; // already there — resolves immediately, like bootstrap
             handle.resolvedAtTick = tick;
             return handle;
@@ -289,7 +294,7 @@ export default class LiveWorld implements WorldAdapter {
                 person?.abortTravel?.();
                 continue;
             }
-            if (person.getCurrentBuilding() === destination) {
+            if (this.personInside(person, destination)) {
                 handle.status = 'arrived';
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);
@@ -298,6 +303,22 @@ export default class LiveWorld implements WorldAdapter {
             unresolved.push(handle);
         }
         this.pending = unresolved;
+    }
+
+    // Arrival ground truth (W8 follow-up): the identity link when it exists, else the body physically
+    // inside the destination while flagged indoors. Materialized, loaded and logically-relocated people
+    // used to carry a null currentBuilding, and the pure identity check deadlocked their located actions —
+    // the live audit caught a pending 'home' handle 12 sim-hours old on a man standing in his own living
+    // room, his sleep waiting_for_materialization all night. The fallback heals the link on resolution.
+    private personInside(person: Person, destination: Building): boolean {
+        if (person.getCurrentBuilding() === destination) {
+            return true;
+        }
+        if (person.getCurrentBuilding() === null && person.isIndoors?.() && person.isPhysicallyInside?.(destination)) {
+            person.setCurrentBuilding?.(destination);
+            return true;
+        }
+        return false;
     }
 
     getPending(): TransitionHandle[] {
