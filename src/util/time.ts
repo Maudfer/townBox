@@ -122,12 +122,16 @@ export function formatTickAtMinute(tick: number, minute?: number): string {
     return `${formatDay(dayOfTick(clamped))} ${pad(hourOfTick(clamped))}:${pad(clampedMinute)}`;
 }
 
-// The debug time-throttle cycle (task 117): 1× → 4× → 16× → back to 1×. Any out-of-band value (a bad
-// save, a manual poke) resets to 1× rather than compounding.
-// First-class time control (W10 / proposal simulation-aliveness-3): the shipped ladder is 1×/4×/8×, with
-// pause (scale 0) reachable only through the HUD's explicit button — the T key cycles the running speeds.
-export const TIME_SCALES: readonly number[] = [1, 4, 8];
+// First-class time control (W10 / proposal simulation-aliveness-3; ladder revised by V11 / aliveness-4 M8):
+// the shipped ladder is 1×/10×/50×, with pause (scale 0) reachable only through the HUD's explicit button
+// — the T key cycles the running speeds. 50× is the fast-forward speed; the V11 movement-budget and
+// crossed-minute-pump work keeps it distortion-free (feet keep up with the clock, no skipped arrivals).
+export const TIME_SCALES: readonly number[] = [1, 10, 50];
 export const PAUSE_TIME_SCALE = 0;
+
+// New games open mid-morning (V11 / aliveness-4 M7): tick 9 = 09:00, so the first thing a player sees is a
+// town already awake and commuting instead of a dead 3-real-minute midnight. Loads restore the saved time.
+export const NEW_GAME_START_TICK = 9;
 
 export function nextTimeScale(current: number): number {
     const index = TIME_SCALES.indexOf(current);

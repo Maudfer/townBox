@@ -49,7 +49,7 @@ import { EventPayloads, UpdateEvent } from 'types/Events';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { DEFAULT_SAVE_SLOT, HistoryHydrationSave } from 'types/Save';
-import { MS_PER_TICK, nextTimeScale, effectiveFrameDelta, TIME_SCALES, PAUSE_TIME_SCALE } from 'util/time';
+import { MS_PER_TICK, nextTimeScale, effectiveFrameDelta, TIME_SCALES, PAUSE_TIME_SCALE, NEW_GAME_START_TICK } from 'util/time';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -371,6 +371,11 @@ export default class GameManager {
         if (!population) {
             return;
         }
+        // New games open at 09:00 (V11 / aliveness-4 M7): a town already awake and commuting, not a dead
+        // midnight. New-game-only path (a load restores the saved elapsed during deserialize), so saves are
+        // untouched; the 9-tick offset is immaterial to the asset-window rebasing and ages.
+        this.clock?.setElapsedMs(NEW_GAME_START_TICK * MS_PER_TICK);
+        this.resyncTimeTracking();
         // `?seed=N` pins the world seed (and therefore the asset window) — test mode only.
         const worldSeed = (this.testMode ? GameManager.testSeed() : null) ?? ((Math.random() * 0x100000000) >>> 0);
 

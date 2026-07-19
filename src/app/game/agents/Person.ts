@@ -15,6 +15,12 @@ import { TravelStep } from 'types/Travel';
 
 let Game: GameManager;
 
+// Budget-consuming walk tunables (V11 / aliveness-4 M8). MOVE_EPSILON: sub-pixel remainder below which a
+// frame's travel is done. WALK_ITERATION_LIMIT: a hard cap so a pathological path can never spin the loop
+// (a full commute is far fewer waypoints than this even at 50× on a huge map).
+const MOVE_EPSILON = 1e-6;
+const WALK_ITERATION_LIMIT = 10000;
+
 export default class Person {
     public social: SocialLife;
     public work: WorkLife;
@@ -219,44 +225,62 @@ export default class Person {
             return false;
         }
 
-        // Steps CLAMP to the remaining distance (W8 follow-up): an unclamped `speed × timeDelta` step
-        // overshoots the <1px arrival window whenever the frame delta is large (throttled play at 4×/8×,
-        // harness stepping, a hitch at the cap) and the walker ping-pongs across the target forever —
-        // observed live as a person frozen mid-step 1px from their commute car for 21 sim-hours.
-        const maxStep = this.speed * timeDelta;
-        const deltaX = this.currentTarget.x - this.x;
-        const deltaY = this.currentTarget.y - this.y;
-        const speedX = Math.sign(deltaX) * Math.min(Math.abs(deltaX), maxStep);
-        const speedY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), maxStep);
+        // Budget-consuming walk (V11 / aliveness-4 M8): spend the whole frame's travel across as many curb
+        // segments as it covers, clamped per axis so nothing overshoots. At 1×/10× the budget is sub-pixel,
+        // so this runs one iteration and is identical to the old single-step; only large 50×/hitch deltas
+        // iterate, keeping feet in lockstep with the clock instead of stranding the remainder of the budget
+        // at every waypoint (the old code moved one axis, hit the target, and RETURNED — wasting the rest,
+        // so at 50× walkers fell behind sim time and commutes ate extra in-game hours).
+        // Steps still CLAMP to the remaining distance (W8): the <1px arrival window is never overshot.
+        let budget = this.speed * timeDelta;
+        let guard = 0;
+        while (budget > MOVE_EPSILON && this.currentTarget && guard++ < WALK_ITERATION_LIMIT) {
+            const axisBefore = this.movingAxis;
+            let stepMagnitude = 0;
 
-        const potentialX = this.x + speedX;
-        const potentialY = this.y + speedY;
-
-        if (this.movingAxis === Axis.X) {
-            this.x = potentialX;
-            this.direction = speedX > 0 ? Direction.East : Direction.West;
-            if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
-                this.movingAxis = Axis.Y;
+            if (this.movingAxis === Axis.X) {
+                const deltaX = this.currentTarget.x - this.x;
+                const stepX = Math.sign(deltaX) * Math.min(Math.abs(deltaX), budget);
+                this.x += stepX;
+                stepMagnitude = Math.abs(stepX);
+                if (stepX !== 0) {
+                    this.direction = stepX > 0 ? Direction.East : Direction.West;
+                }
+                if (this.isCurrentTargetXReached() && !this.isCurrentTargetYReached()) {
+                    this.movingAxis = Axis.Y;
+                }
+            } else {
+                const deltaY = this.currentTarget.y - this.y;
+                const stepY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), budget);
+                this.y += stepY;
+                stepMagnitude = Math.abs(stepY);
+                if (stepY !== 0) {
+                    this.direction = stepY > 0 ? Direction.South : Direction.North;
+                }
+                if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
+                    this.movingAxis = Axis.X;
+                }
             }
-        } else if (this.movingAxis === Axis.Y) {
-            this.y = potentialY;
-            this.direction = speedY > 0 ? Direction.South : Direction.North;
-            if (this.isCurrentTargetYReached() && !this.isCurrentTargetXReached()) {
-                this.movingAxis = Axis.X;
+
+            budget -= stepMagnitude;
+            this.updateDepth(currentTile);
+
+            if (this.isDestinationReached()) {
+                this.currentTarget = null;
+                this.currentDestination = null;
+                return true;
             }
-        }
 
-        this.updateDepth(currentTile);
+            if (this.isCurrentTargetReached()) {
+                this.setNextTarget(currentTile);
+                continue; // spend any remaining budget walking toward the next waypoint this same frame
+            }
 
-        if (this.isDestinationReached()) {
-            this.currentTarget = null;
-            this.currentDestination = null;
-            return true;
-        }
-
-        if (this.isCurrentTargetReached()) {
-            this.setNextTarget(currentTile);
-            return false;
+            // No progress and no axis switch to make on the next pass → mid-segment with the budget spent
+            // (or genuinely stuck). Stop; the remaining sub-pixel budget carries to next frame implicitly.
+            if (stepMagnitude < MOVE_EPSILON && this.movingAxis === axisBefore) {
+                break;
+            }
         }
 
         return false;

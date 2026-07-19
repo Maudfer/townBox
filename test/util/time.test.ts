@@ -26,6 +26,7 @@ import {
     nextTimeScale,
     effectiveFrameDelta,
     MAX_FRAME_DELTA_MS,
+    NEW_GAME_START_TICK,
 } from 'util/time';
 
 const HOUR_MS = 3_600_000;
@@ -243,21 +244,27 @@ describe('formatDuration — human runtime readout', () => {
 });
 
 describe('first-class time control (W10 / proposal simulation-aliveness-3; formerly the 117 throttle)', () => {
-    test('the shipped ladder cycles 1× → 4× → 8× → 1×; out-of-band values (incl. pause) reset to 1×', () => {
-        expect(nextTimeScale(1)).toBe(4);
-        expect(nextTimeScale(4)).toBe(8);
-        expect(nextTimeScale(8)).toBe(1);
+    test('new games open at 09:00 (V11 / aliveness-4 M7): NEW_GAME_START_TICK is hour 9 of day 0', () => {
+        expect(hourOfTick(NEW_GAME_START_TICK)).toBe(9);
+        expect(dayOfTick(NEW_GAME_START_TICK)).toBe(0);
+    });
+
+    test('the shipped ladder cycles 1× → 10× → 50× → 1×; out-of-band values (incl. pause) reset to 1×', () => {
+        // The ladder was revised to 1/10/50 by V11 (aliveness-4 M8) — 50× is the distortion-free fast-forward.
+        expect(nextTimeScale(1)).toBe(10);
+        expect(nextTimeScale(10)).toBe(50);
+        expect(nextTimeScale(50)).toBe(1);
         expect(nextTimeScale(0)).toBe(1);
         expect(nextTimeScale(7)).toBe(1);
     });
 
     test('effectiveFrameDelta: the one authoritative transform — scaled, hitch-capped, pause-zeroed', () => {
         expect(effectiveFrameDelta(16, 1)).toBe(16);
-        expect(effectiveFrameDelta(16, 4)).toBe(64);
-        expect(effectiveFrameDelta(16, 8)).toBe(128);
+        expect(effectiveFrameDelta(16, 10)).toBe(160);
+        expect(effectiveFrameDelta(16, 50)).toBe(800);
         // A 5-second hang becomes lost wall time, never a sim leap: the cap applies BEFORE the scale.
         expect(effectiveFrameDelta(5000, 1)).toBe(MAX_FRAME_DELTA_MS);
-        expect(effectiveFrameDelta(5000, 8)).toBe(MAX_FRAME_DELTA_MS * 8);
+        expect(effectiveFrameDelta(5000, 50)).toBe(MAX_FRAME_DELTA_MS * 50);
         // Pause and degenerate frames read as no time passed — for EVERY consumer, coherently.
         expect(effectiveFrameDelta(16, 0)).toBe(0);
         expect(effectiveFrameDelta(-5, 1)).toBe(0);
@@ -265,7 +272,7 @@ describe('first-class time control (W10 / proposal simulation-aliveness-3; forme
     });
 
     test('speed invariance: equal SIM time through different frame schedules yields identical elapsed time', () => {
-        // 64 frames of 16ms at 1× ≡ 16 frames of 16ms at 4× ≡ 8 frames of 16ms at 8×.
+        // 500 frames of 16ms at 1× ≡ 50 frames at 10× ≡ 10 frames at 50× (the shipped ladder).
         const total = (frames: number, deltaMs: number, scale: number): number => {
             let elapsed = 0;
             for (let frame = 0; frame < frames; frame++) {
@@ -273,8 +280,8 @@ describe('first-class time control (W10 / proposal simulation-aliveness-3; forme
             }
             return elapsed;
         };
-        const at1 = total(64, 16, 1);
-        expect(total(16, 16, 4)).toBe(at1);
-        expect(total(8, 16, 8)).toBe(at1);
+        const at1 = total(500, 16, 1);
+        expect(total(50, 16, 10)).toBe(at1);
+        expect(total(10, 16, 50)).toBe(at1);
     });
 });
