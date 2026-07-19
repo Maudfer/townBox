@@ -710,6 +710,12 @@ export default class LogicalWorld implements WorldAdapter {
         if (health < 0.7) {
             catchChance += 0.15;
         }
+        // The abstract-encounter discount (W6 / proposal simulation-aliveness-3 Part 4.2): off-map
+        // co-location is a shared abstract venue, so officer-meets-suspect fires FAR more often than on a
+        // real street — the decoded asset showed 12 catches in 15 petty crimes (11 jail terms in 27 years,
+        // ate_prison_food ×678). The discount restores live-like CUMULATIVE odds; the formula above stays
+        // City's, so a chase that does land resolves identically.
+        catchChance *= 0.4;
         if (rng.next() < catchChance) {
             this.arrestSuspect(state, engine, suspectId, tick, ticksPerYear);
         } else {

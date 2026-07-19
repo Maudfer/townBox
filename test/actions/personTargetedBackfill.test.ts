@@ -190,7 +190,7 @@ describe('frequency & balance (the recorded bands)', () => {
         };
     }
 
-    test('social rates land in plausible bands and consent declines ≈ 20% of askFirst attempts', () => {
+    test('social rates land in plausible bands; strangers RARELY propose intimacy (the W6 pricing)', () => {
         const run = sample();
         if (process.env['PRINT_RATES']) {
             console.log(`sampled: ${run.perPersonDay.toFixed(2)} social actions/person/day, ${run.askFirstAttempts} askFirst attempts, decline rate ${(run.declineRate * 100).toFixed(1)}%`);
@@ -198,12 +198,11 @@ describe('frequency & balance (the recorded bands)', () => {
         // Recorded band: a co-located trio produces a modest social cadence, not spam.
         expect(run.perPersonDay).toBeGreaterThan(0.3);
         expect(run.perPersonDay).toBeLessThan(4);
-        expect(run.askFirstAttempts).toBeGreaterThan(10);
-        // Consent v2 (task 083): the trio are strangers/kin on the graph, so declines run far higher than the
-        // old flat 80%-yes placeholder — the band pins the stranger-heavy regime. Ceiling sized for the
-        // small seeded sample (~25-30 attempts): the 118 stream shift landed one run at 23/27 ≈ 0.852.
-        expect(run.declineRate).toBeGreaterThan(0.25);
-        expect(run.declineRate).toBeLessThan(0.92);
+        // The W6 askFirst pricing (proposal simulation-aliveness-3 Part 4.4): the proposer reads the same
+        // standing consent will, so a trio of STRANGERS barely asks — the pre-W6 regime (25-30 attempts,
+        // ~85% declined: the asset's 1,142 lifetime rejected hugs) is exactly what this band retires.
+        // Casual no-consent socials (greetings, chat) keep the cadence; intimacy waits for real edges.
+        expect(run.askFirstAttempts).toBeLessThan(10);
     });
 
     test('deterministic: two identical sampling runs are bit-identical', () => {
