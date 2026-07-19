@@ -1,6 +1,10 @@
 # Simulation Aliveness 3 — the player-experience audit
 
-**Status: findings + proposed arc, v1.** This document is the deliverable of a full re-run of the
+**Status: v2 — the arc IS IMPLEMENTED** (branch `task/simulation-aliveness-3`, one PR: W0 → W8 → W9 →
+W1 → W2 → W3 → W4 → W5 → W7 → W10 → W6 as sequential commits, with the asset regenerated on the arc's
+engines — `HISTORY_GENERATOR_VERSION` 136.0). The engine narrative lives in `CLAUDE.md` §4.17; the
+findings below are the arc's evidence base and the Appendix numbers its re-measure baseline.
+**Originally: findings + proposed arc, v1.** This document is the deliverable of a full re-run of the
 observation effort — the 117 session's promised "much more detail, in a real browser" pass — executed on
 `main` *after* the aliveness-2 merge (PR #101, regenerated asset, `generatorVersion 121.0`). Three
 instruments, cross-checked:
