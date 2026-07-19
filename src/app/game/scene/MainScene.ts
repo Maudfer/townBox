@@ -49,6 +49,12 @@ export default class MainScene extends Phaser.Scene {
         Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
         Game.on("timeChanged", { callback: this.refreshTrashPiles, context: this });
         Game.on("timeChanged", { callback: this.refreshFormations, context: this });
+        // The definitive orphaned-sprite sweep (V8 / proposal simulation-aliveness-4 M2): every minute,
+        // reconcile the scene's sprite registries against Field's live lists — any sprite whose backing
+        // entity has left the world is destroyed. Belt-and-suspenders over the W8 lifecycle fixes, but
+        // enforced rather than merely hoped for: after years of orphan-sprite whack-a-mole, the invariant
+        // is now that a sprite exists iff its entity is in a live list.
+        Game.on("timeChanged", { callback: this.reconcileSprites, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
         // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
         Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
@@ -797,6 +803,76 @@ export default class MainScene extends Phaser.Scene {
         return 'out';
     }
 
+    // Sprite registries for the orphan sweep (V8 / proposal simulation-aliveness-4 M2). Every person/vehicle
+    // sprite the scene creates is registered here so the per-minute reconciliation can find sprites whose
+    // backing entity has left Field's live lists — the definitive close on the orphaned-sprite class.
+    private personSprites = new Map<Person, Image>();
+    private vehicleSprites = new Map<Vehicle, Image>();
+    // The last sweep's tally, for the harness's sprite audit (auditSprites.orphanSprites).
+    private lastReapedOrphans = 0;
+
+    // Reconciles the sprite registries against Field's live lists (V8/M2): any registered sprite whose entity
+    // is gone is destroyed and unregistered. Runs on the minute cadence. The invariant it enforces: a rendered
+    // sprite exists iff its backing entity is in a live list — so a person who entered a building, died, or was
+    // torn down can never leave a sprite standing at a doorway again.
+    private reconcileSprites(): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        let reaped = 0;
+        const livePeople = new Set(field.getPeople());
+        for (const [person, sprite] of this.personSprites) {
+            if (!livePeople.has(person)) {
+                sprite?.destroy();
+                this.personSprites.delete(person);
+                // Drop the person's overlays too — a stale bubble/pet dot would otherwise linger.
+                this.activityLabels.get(person)?.destroy();
+                this.activityLabels.delete(person);
+                this.petDots.get(person)?.destroy();
+                this.petDots.delete(person);
+                reaped += 1;
+            }
+        }
+        const liveVehicles = new Set(field.getVehicles());
+        for (const [vehicle, sprite] of this.vehicleSprites) {
+            if (!liveVehicles.has(vehicle)) {
+                sprite?.destroy();
+                this.vehicleSprites.delete(vehicle);
+                reaped += 1;
+            }
+        }
+        this.lastReapedOrphans = reaped;
+    }
+
+    // The count of registered sprites whose entity is no longer live RIGHT NOW (not yet reaped) — the
+    // standing invariant read for the harness's sprite audit (V8/M2). Zero at every sample = a truthful
+    // street. Kept separate from reconcileSprites so a test can assert BEFORE the next minute sweep.
+    countOrphanSprites(): number {
+        const field = Game.field;
+        if (!field) {
+            return 0;
+        }
+        const livePeople = new Set(field.getPeople());
+        const liveVehicles = new Set(field.getVehicles());
+        let orphans = 0;
+        for (const person of this.personSprites.keys()) {
+            if (!livePeople.has(person)) {
+                orphans += 1;
+            }
+        }
+        for (const vehicle of this.vehicleSprites.keys()) {
+            if (!liveVehicles.has(vehicle)) {
+                orphans += 1;
+            }
+        }
+        return orphans;
+    }
+
+    getLastReapedOrphans(): number {
+        return this.lastReapedOrphans;
+    }
+
     private drawPerson(person: Person): void {
         const position: PixelPosition = person.getPosition();
         if (position === null) {
@@ -806,6 +882,10 @@ export default class MainScene extends Phaser.Scene {
         const personSprite: Image = this.add.image(position.x, position.y, 'person');
         personSprite.setOrigin(0.5, 0.5);
         person.setAsset(personSprite);
+        // Register for the orphan sweep (V8/M2): keyed by the entity, so a person that later leaves the
+        // world (death, teardown, load) can have its sprite reaped even if the removal path didn't destroy
+        // it. (setAsset already self-destroys a sprite attached after markRemoved — the async-race class.)
+        this.personSprites.set(person, personSprite);
 
         // Sidewalk jitter (aliveness-3 follow-up, maintainer read): every pedestrian walks the EXACT curb
         // polyline, so any two at the same spot rendered perfectly stacked — the street read as one person.
@@ -890,6 +970,7 @@ export default class MainScene extends Phaser.Scene {
         const vehicleSprite: Image = this.add.image(position.x, position.y, 'vehicle_md');
         vehicleSprite.setOrigin(0.5, 0.5);
         vehicle.setAsset(vehicleSprite);
+        this.vehicleSprites.set(vehicle, vehicleSprite); // orphan sweep (V8/M2)
 
         vehicle.setRedrawFunction((timeDelta: number) => {
             const vehicleAsset = vehicle.getAsset();

@@ -1149,62 +1149,98 @@ export default class City {
                 if (result.died.length > 0) {
                     this.resolveRehousing(event.tick, ticksPerYear);
                 }
-                // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023)
-                // and grown children leave the family home to form their own household (task 024).
-                for (const signal of result.signals) {
-                    if (!signal.personId) {
-                        continue;
-                    }
-                    if (signal.signal === 'partnershipFormed') {
-                        this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
-                    } else if (signal.signal === 'movedOut') {
-                        this.resolveMoveOut(signal.personId, event.tick);
-                    } else if (signal.signal === 'crimeCommitted') {
-                        // A crime event committed (task 099): file the incident with the ground-truth
-                        // suspect and the co-located potential witnesses at the scene.
-                        this.fileIncident(signal.personId, event.tick);
-                    } else if (signal.signal === 'chaseConcluded') {
-                        // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
-                        this.resolveChase(signal.personId, event.tick, ticksPerYear);
-                    } else if (signal.signal === 'petAdopted') {
-                        // The pet-shop adoption (task 103): draw the species, name it, register it.
-                        this.resolveAdoption(signal.personId, event.tick);
-                    }
-                }
-                // Gossip transfers (task 104 / O2): a shared_gossip commit moves the SPEAKER's juiciest
-                // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
-                // about either of them. The heard_gossip counterpart already landed the listener's log line.
-                for (const commit of result.committed) {
-                    if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
-                        this.transferGossip(commit.personId, commit.params['target'], event.tick);
-                    } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
-                        // The jail visit's counterpart (task 109): the visit travels TO its target, so it
-                        // can't be an interaction contract (those require co-location at START); the
-                        // detainee's half rides the payload instead, chained to the visitor's commit.
-                        Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], event.tick, ticksPerYear,
-                            { source: 'system', causationId: commit.seq });
-                    } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
-                        // The sick visit's counterpart (task 111, same travelling-visit pattern): the
-                        // patient's half — its positive valence feeds their mood through the normal
-                        // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
-                        Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], event.tick, ticksPerYear,
-                            { source: 'system', causationId: commit.seq });
-                    } else if (commit.eventId === 'looked_for_housing') {
-                        // The housing search pays off at the door (W9 / proposal simulation-aliveness-3
-                        // P1-11): a committed looking_for_a_home run triggers the recovery attempt for the
-                        // seeker's household NOW — the get_job-at-the-counter pattern applied to housing.
-                        this.attemptRecoveryFor(commit.personId, event.tick);
-                    } else if (commit.eventId === 'had_sex' && Game.eventEngine) {
-                        // Conception rides intimacy (W4 / P1-6): the pregnancy event's own eligibility
-                        // keeps the last word; the demoted probabilistic trigger stays as background.
-                        maybeConceive(population.getState(), Game.eventEngine, commit.personId, event.tick, ticksPerYear, commit.seq);
-                    }
-                }
+                // Living-arrangement dynamics + counterpart/consequence wiring driven by event signals and
+                // commits — extracted so the harness's forceEvent (V8/M2) can route a forced event's signals
+                // through the SAME consumers instead of dropping them on the floor.
+                this.consumeResultSignals(result, event.tick, ticksPerYear);
                 // Surface the tick's notable happenings to the HUD feed (task 029).
                 this.announceCityEvents(result, personByGenId, event.tick);
                 // Remaining signals (hired, fellIll, …) are consumed by the feed and later phases.
             },
         });
+    }
+
+    // Consumes an event-tick result's signals and commits into world changes — the living-arrangement
+    // dynamics (023/024), the crime/chase/pet registries (099/103), and the counterpart/consequence wiring
+    // (gossip 104, jail/sick visits 109/111, housing recovery, conception W4). Called from handleTick's
+    // onCommitted for the probabilistic/action stream, and from forceEvent so a scripted event lands its
+    // consequences (V8/M2 — the harness used to invoke and drop every signal).
+    private consumeResultSignals(result: TickResult, tick: number, ticksPerYear: number): void {
+        const population = Game.population;
+        if (!population) {
+            return;
+        }
+        // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023)
+        // and grown children leave the family home to form their own household (task 024).
+        for (const signal of result.signals) {
+            if (!signal.personId) {
+                continue;
+            }
+            if (signal.signal === 'partnershipFormed') {
+                this.resolveCohabitation(signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'movedOut') {
+                this.resolveMoveOut(signal.personId, tick);
+            } else if (signal.signal === 'crimeCommitted') {
+                // A crime event committed (task 099): file the incident with the ground-truth
+                // suspect and the co-located potential witnesses at the scene.
+                this.fileIncident(signal.personId, tick);
+            } else if (signal.signal === 'chaseConcluded') {
+                // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
+                this.resolveChase(signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'petAdopted') {
+                // The pet-shop adoption (task 103): draw the species, name it, register it.
+                this.resolveAdoption(signal.personId, tick);
+            }
+        }
+        // Gossip transfers (task 104 / O2): a shared_gossip commit moves the SPEAKER's juiciest
+        // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
+        // about either of them. The heard_gossip counterpart already landed the listener's log line.
+        for (const commit of result.committed) {
+            if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
+                this.transferGossip(commit.personId, commit.params['target'], tick);
+            } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
+                // The jail visit's counterpart (task 109): the visit travels TO its target, so it
+                // can't be an interaction contract (those require co-location at START); the
+                // detainee's half rides the payload instead, chained to the visitor's commit.
+                Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], tick, ticksPerYear,
+                    { source: 'system', causationId: commit.seq });
+            } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
+                // The sick visit's counterpart (task 111, same travelling-visit pattern): the
+                // patient's half — its positive valence feeds their mood through the normal
+                // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
+                Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], tick, ticksPerYear,
+                    { source: 'system', causationId: commit.seq });
+            } else if (commit.eventId === 'looked_for_housing') {
+                // The housing search pays off at the door (W9 / proposal simulation-aliveness-3
+                // P1-11): a committed looking_for_a_home run triggers the recovery attempt for the
+                // seeker's household NOW — the get_job-at-the-counter pattern applied to housing.
+                this.attemptRecoveryFor(commit.personId, tick);
+            } else if (commit.eventId === 'had_sex' && Game.eventEngine) {
+                // Conception rides intimacy (W4 / P1-6): the pregnancy event's own eligibility
+                // keeps the last word; the demoted probabilistic trigger stays as background.
+                maybeConceive(population.getState(), Game.eventEngine, commit.personId, tick, ticksPerYear, commit.seq);
+            }
+        }
+    }
+
+    // Scenario forcing that RESPECTS the world (V8/M2): invokes a manual event and routes its signals/commits
+    // through consumeResultSignals, so a forced crime files a real incident, a forced marriage cohabits, and
+    // so on — the observation-session helper the harness needs (a raw EventEngine.invoke drops all of that).
+    // Returns whether the invoke committed. Test/observation only (called from TestHarness).
+    public forceEventAndConsume(eventId: string, personId: PersonId, tick: number, params?: Record<string, string | number | boolean>): boolean {
+        const population = Game.population;
+        const engine = Game.eventEngine;
+        const clock = Game.clock;
+        if (!population || !engine || !clock) {
+            return false;
+        }
+        const ticksPerYear = clock.getTicksPerYear();
+        const { outcome, result } = engine.invoke(
+            population.getState(), eventId, personId, tick, ticksPerYear,
+            { source: 'system', causationId: null }, {}, {}, params
+        );
+        this.consumeResultSignals(result, tick, ticksPerYear);
+        return outcome.ok;
     }
 
     // Translates the day's deaths, births, and event signals into cityEvent feed entries (task 029). The

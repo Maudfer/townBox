@@ -133,6 +133,12 @@ export default class Person {
         this.direction = direction;
     }
 
+    // The current walking speed in px/ms (V10 makes this vary by locomotion kind; the tracer reads it so
+    // its teleport threshold stays honest as speeds change).
+    getSpeed(): number {
+        return this.speed;
+    }
+
     setDestination(building: Building): void {
         this.destinationBuilding = building;
         this.travelStep = TravelStep.ExitingBuilding;

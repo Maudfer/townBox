@@ -69,6 +69,81 @@ export interface ScreenPoint {
     y: number;
 }
 
+// --- Movement trace (observation sessions): posthumous pixel-movement / destination / action auditing ---
+// Screenshots can't see motion; the tracer can. While active it samples every update frame (scaled sim
+// delta), records per-person state-change timelines + positional breadcrumbs, and flags anomalies
+// (teleports, render-layer jumps, stuck walkers, sprite overlaps, sprite-audit violations) for
+// after-the-fact analysis. Opt-in via startTrace(); zero cost while off.
+
+export interface TraceCrumb {
+    ms: number;      // accumulated effective (sim-scaled) ms since startTrace
+    tick: number;
+    x: number;
+    y: number;
+    step: string;
+    indoors: boolean;
+}
+
+export interface TraceStateEvent {
+    ms: number;
+    tick: number;
+    date: string;
+    personId: string;
+    name: string;
+    x: number;
+    y: number;
+    changed: string[]; // which of the tracked fields changed this frame
+    step: string;
+    indoors: boolean;
+    building: string | null;
+    destination: string | null;
+    vehicle: boolean;
+    action: string | null;       // active instance defId
+    actionStatus: string | null; // pending / waiting_for_materialization / running / …
+    actionLocation: string | null; // the instance's effective location requirement
+    ambulatory: boolean;
+}
+
+export interface TraceAnomaly {
+    // 'disembark' is the by-design car-exit position sync (V8/M2): classified out of 'teleport' so a real
+    // teleport (a bug) alerts at zero noise. 'teleport' means an unexplained logical jump.
+    kind: 'teleport' | 'disembark' | 'renderJump' | 'stuck' | 'overlap' | 'spriteAudit';
+    ms: number;
+    tick: number;
+    date: string;
+    personId?: string;
+    name?: string;
+    detail: Record<string, unknown>;
+}
+
+export interface TraceReport {
+    tracing: boolean;
+    frames: number;
+    simMs: number;
+    startTick: number;
+    endTick: number;
+    peopleTracked: number;
+    totalAnomalies: number;
+    anomaliesByKind: Record<string, number>;
+    topOffenders: { personId: string; name: string; anomalies: number }[];
+}
+
+export interface ActivityCensusRow {
+    personId: string;
+    name: string;
+    x: number;
+    y: number;
+    indoors: boolean;
+    travelStep: string;
+    ambulatory: boolean;
+    action: string | null;
+    actionStatus: string | null;
+    actionLocation: string | null;
+    currentBuilding: string | null;
+    destinationBuilding: string | null;
+    jobTitle: string | null;
+}
+
 export interface TownboxTestApi {
     // --- Time control ---------------------------------------------------
     // Advance the simulation deterministically by `n` in-game hour ticks (default 1), awaiting each tick's
@@ -143,6 +218,22 @@ export interface TownboxTestApi {
     // or scenario session.
     stepGame(ticks: number, framesPerTick?: number, deltaMs?: number): Promise<void>;
 
+    // --- Movement trace (observation sessions) ---------------------------
+    // Begins per-frame sampling of every materialized person: state-change timelines, positional
+    // breadcrumbs, and anomaly detection (teleports, render jumps, stuck walkers, overlaps). Restarting
+    // clears the previous trace.
+    startTrace(): void;
+    stopTrace(): void;
+    traceReport(): TraceReport;
+    // Anomalies, newest last. `kind` filters; `limit` caps (default 200).
+    traceAnomalies(kind?: string, limit?: number): TraceAnomaly[];
+    // One person's state-change timeline (travel steps, buildings, actions), newest last.
+    traceEvents(personId: string, limit?: number): TraceStateEvent[];
+    // One person's positional breadcrumbs (sampled every ~250 sim-ms), newest last.
+    traceCrumbs(personId: string, limit?: number): TraceCrumb[];
+    // A one-call snapshot of what everyone is doing right now (action, status, location, travel state).
+    activityCensus(): ActivityCensusRow[];
+
     // Sprite-vs-state invariants (W8 / proposal simulation-aliveness-3): the standing audit every
     // observation session and the integration suite can assert. All-zero counters = a truthful street.
     auditSprites(): {
@@ -151,8 +242,48 @@ export interface TownboxTestApi {
         orphanControlledVehicles: number; // controlled but no person links to it — the P0-2 leak class
         occupiedDriverlessVehicles: number; // occupant flag set but no person links — phantom drivers
         visibleIndoorsPeople: number;     // sim says inside, sprite says visible — the linger class
+        orphanSprites: number;            // scene sprite whose backing entity left a live list — V8/M2
     };
 }
+
+// Tracked per-person state for the movement tracer.
+interface TraceLast {
+    x: number;
+    y: number;
+    ax: number | null; // rendered sprite position (asset), for render-layer jump detection
+    ay: number | null;
+    step: string;
+    indoors: boolean;
+    building: string | null;
+    destination: string | null;
+    vehicle: boolean;
+    action: string | null;
+    actionStatus: string | null;
+    actionLocation: string | null;
+    ambulatory: boolean;
+}
+
+interface TraceRecord {
+    name: string;
+    crumbs: TraceCrumb[];
+    events: TraceStateEvent[];
+    anomalies: number;
+    lastCrumbMs: number;
+    stillMs: number;
+    stuckFlagged: boolean;
+    last: TraceLast | null;
+}
+
+// Mirrors Person's private walking speed (px/ms) for legit-step math in teleport detection.
+const TRACE_PERSON_SPEED = 0.02;
+const TRACE_TELEPORT_MIN_PX = 20;
+const TRACE_STUCK_MS = 2500;
+const TRACE_CRUMB_INTERVAL_MS = 250;
+const TRACE_CRUMB_CAP = 4000;
+const TRACE_EVENT_CAP = 4000;
+const TRACE_ANOMALY_CAP = 10000;
+const TRACE_OVERLAP_DIST_PX = 4;
+const TRACE_OVERLAP_COOLDOWN_MS = 5000;
 
 // Builds the read/control API object over a live GameManager.
 export function createTestApi(game: GameManager): TownboxTestApi {
@@ -174,6 +305,255 @@ export function createTestApi(game: GameManager): TownboxTestApi {
             age: person.social.getAge(),
         };
     };
+
+    // Shared by auditSprites() and the tracer's periodic invariant pass.
+    const computeSpriteAudit = () => {
+        const field = game.field;
+        const people = field ? field.getPeople() : [];
+        const vehicles = field ? field.getVehicles() : [];
+        const linked = new Set(people.map(person => person.getVehicle()).filter(vehicle => vehicle !== null));
+        return {
+            vehicles: vehicles.length,
+            peopleInFlight: people.filter(person => String(person.getTravelStep()) !== 'idle').length,
+            orphanControlledVehicles: vehicles.filter(vehicle => vehicle.isControlled() && !linked.has(vehicle)).length,
+            occupiedDriverlessVehicles: vehicles.filter(vehicle => vehicle.isOccupied() && !linked.has(vehicle)).length,
+            visibleIndoorsPeople: people.filter(person => person.isIndoors() && person.getAsset()?.visible === true).length,
+            orphanSprites: game.scene?.countOrphanSprites?.() ?? 0,
+        };
+    };
+
+    // Reads a person's active instance into the census/trace shape.
+    const describeActivity = (personId: string): { action: string | null; actionStatus: string | null; actionLocation: string | null } => {
+        const engine = game.actionEngine;
+        const active = engine ? engine.activeInstanceOf(personId) : null;
+        if (!active || !engine) {
+            return { action: null, actionStatus: null, actionLocation: null };
+        }
+        const location = active.locationOverride ?? engine.getDefinition(active.defId)?.location ?? null;
+        return { action: active.defId, actionStatus: String(active.status), actionLocation: location ?? null };
+    };
+
+    // ---- Movement tracer state (opt-in; the update handler below no-ops while inactive) ----
+    const trace = {
+        active: false,
+        frames: 0,
+        ms: 0,
+        startTick: 0,
+        people: new Map<string, TraceRecord>(),
+        anomalies: [] as TraceAnomaly[],
+        overlapCooldown: new Map<string, number>(),
+        lastAudit: null as ReturnType<typeof computeSpriteAudit> | null,
+    };
+
+    const pushAnomaly = (anomaly: TraceAnomaly): void => {
+        if (trace.anomalies.length >= TRACE_ANOMALY_CAP) {
+            return;
+        }
+        trace.anomalies.push(anomaly);
+        if (anomaly.personId) {
+            const rec = trace.people.get(anomaly.personId);
+            if (rec) {
+                rec.anomalies += 1;
+            }
+        }
+    };
+
+    const sampleTrace = (rawDelta: number): void => {
+        const delta = game.effectiveTimeDelta(rawDelta);
+        if (delta <= 0) {
+            return;
+        }
+        trace.ms += delta;
+        trace.frames += 1;
+        const tick = game.clock?.getCurrentTick() ?? 0;
+        const date = game.clock ? formatTimestamp(game.clock.getTimestamp()) : '';
+        const people = game.field ? game.field.getPeople() : [];
+
+        for (const person of people) {
+            const personId = person.social.getPersonId();
+            if (!personId) {
+                continue;
+            }
+            let rec = trace.people.get(personId);
+            if (!rec) {
+                rec = {
+                    name: person.social.getFullName(), crumbs: [], events: [], anomalies: 0,
+                    lastCrumbMs: -Infinity, stillMs: 0, stuckFlagged: false, last: null,
+                };
+                trace.people.set(personId, rec);
+            }
+
+            const position = person.getPosition();
+            const x = position?.x ?? 0;
+            const y = position?.y ?? 0;
+            const asset = person.getAsset();
+            const ax = asset && asset.visible ? asset.x : null;
+            const ay = asset && asset.visible ? asset.y : null;
+            const step = String(person.getTravelStep());
+            const indoors = person.isIndoors();
+            const building = person.getCurrentBuilding()?.getIdentifier() ?? null;
+            const destination = person.getDestinationBuilding()?.getIdentifier() ?? null;
+            const vehicle = person.getVehicle() !== null;
+            const ambulatory = person.isAmbulatory();
+            const { action, actionStatus, actionLocation } = describeActivity(personId);
+
+            const last = rec.last;
+            if (last) {
+                const dist = Math.hypot(x - last.x, y - last.y);
+
+                // Teleport: a logical-position jump beyond what one frame of walking can cover. The
+                // by-design car-exit sync (exit-car → walk-to-destination, sprite hidden while driving)
+                // is classified as 'disembark' so a real 'teleport' means a bug and alerts at zero noise
+                // (V8/M2). Runtime speed is read from the person, so this stays honest once V10 lands
+                // per-kind speeds.
+                const runtimeSpeed = person.getSpeed?.() ?? TRACE_PERSON_SPEED;
+                const maxLegit = Math.max(TRACE_TELEPORT_MIN_PX, runtimeSpeed * delta * 1.5 + 2);
+                if (dist > maxLegit && (!last.indoors || !indoors)) {
+                    const isDisembark = last.step === 'exit-car' || last.step === 'driving' || last.vehicle;
+                    pushAnomaly({
+                        kind: isDisembark ? 'disembark' : 'teleport', ms: trace.ms, tick, date, personId, name: rec.name,
+                        detail: {
+                            from: { x: last.x, y: last.y }, to: { x, y }, dist: Math.round(dist),
+                            deltaMs: Math.round(delta), stepBefore: last.step, stepAfter: step,
+                            indoorsBefore: last.indoors, indoorsAfter: indoors,
+                            action, actionStatus,
+                        },
+                    });
+                }
+
+                // Render jump: the sprite moved much further than the logical position (formation-offset
+                // slot flips, depth-sync issues) — the "clip/short-teleport" class the displacement jitter
+                // may have introduced.
+                if (ax !== null && ay !== null && last.ax !== null && last.ay !== null) {
+                    const renderDist = Math.hypot(ax - last.ax, ay - last.ay);
+                    if (renderDist > dist + 6 && renderDist > 8) {
+                        pushAnomaly({
+                            kind: 'renderJump', ms: trace.ms, tick, date, personId, name: rec.name,
+                            detail: {
+                                logicalDist: Math.round(dist), renderDist: Math.round(renderDist),
+                                step, action, actionStatus,
+                            },
+                        });
+                    }
+                }
+
+                // Stuck: a walking travel step that hasn't moved for a sustained stretch of sim time.
+                const walkingStep = step === 'walk-to-car' || step === 'walk-to-destination';
+                if (walkingStep && dist < 0.01) {
+                    rec.stillMs += delta;
+                    if (rec.stillMs > TRACE_STUCK_MS && !rec.stuckFlagged) {
+                        rec.stuckFlagged = true;
+                        pushAnomaly({
+                            kind: 'stuck', ms: trace.ms, tick, date, personId, name: rec.name,
+                            detail: { x, y, step, stillMs: Math.round(rec.stillMs), action, actionStatus, destination },
+                        });
+                    }
+                } else if (dist >= 0.01) {
+                    rec.stillMs = 0;
+                    rec.stuckFlagged = false;
+                }
+
+                // State-change timeline: any tracked field flipping lands one event with the full snapshot.
+                const changed: string[] = [];
+                if (step !== last.step) { changed.push('step'); }
+                if (indoors !== last.indoors) { changed.push('indoors'); }
+                if (building !== last.building) { changed.push('building'); }
+                if (destination !== last.destination) { changed.push('destination'); }
+                if (vehicle !== last.vehicle) { changed.push('vehicle'); }
+                if (action !== last.action) { changed.push('action'); }
+                if (actionStatus !== last.actionStatus) { changed.push('actionStatus'); }
+                if (ambulatory !== last.ambulatory) { changed.push('ambulatory'); }
+                if (changed.length > 0 && rec.events.length < TRACE_EVENT_CAP) {
+                    rec.events.push({
+                        ms: trace.ms, tick, date, personId, name: rec.name, x, y, changed,
+                        step, indoors, building, destination, vehicle,
+                        action, actionStatus, actionLocation, ambulatory,
+                    });
+                }
+            }
+
+            // Positional breadcrumbs, ring-buffered.
+            if (trace.ms - rec.lastCrumbMs >= TRACE_CRUMB_INTERVAL_MS) {
+                rec.lastCrumbMs = trace.ms;
+                rec.crumbs.push({ ms: trace.ms, tick, x, y, step, indoors });
+                if (rec.crumbs.length > TRACE_CRUMB_CAP) {
+                    rec.crumbs.shift();
+                }
+            }
+
+            rec.last = {
+                x, y, ax, ay, step, indoors, building, destination, vehicle,
+                action, actionStatus, actionLocation, ambulatory,
+            };
+        }
+
+        // Overlap pass (throttled): visible outdoor people stacked within a few pixels — the "one sprite"
+        // class the formation offsets were meant to fix.
+        if (trace.frames % 30 === 0) {
+            const visible = people.filter(person => !person.isIndoors() && person.social.getPersonId());
+            for (let i = 0; i < visible.length; i++) {
+                for (let j = i + 1; j < visible.length; j++) {
+                    const a = visible[i]!;
+                    const b = visible[j]!;
+                    const pa = a.getPosition();
+                    const pb = b.getPosition();
+                    if (!pa || !pb) {
+                        continue;
+                    }
+                    const dist = Math.hypot(pa.x - pb.x, pa.y - pb.y);
+                    if (dist >= TRACE_OVERLAP_DIST_PX) {
+                        continue;
+                    }
+                    const idA = a.social.getPersonId()!;
+                    const idB = b.social.getPersonId()!;
+                    const key = idA < idB ? `${idA}|${idB}` : `${idB}|${idA}`;
+                    const lastAt = trace.overlapCooldown.get(key) ?? -Infinity;
+                    if (trace.ms - lastAt < TRACE_OVERLAP_COOLDOWN_MS) {
+                        continue;
+                    }
+                    trace.overlapCooldown.set(key, trace.ms);
+                    pushAnomaly({
+                        kind: 'overlap', ms: trace.ms, tick, date, personId: idA, name: a.social.getFullName(),
+                        detail: {
+                            other: idB, otherName: b.social.getFullName(), dist: Math.round(dist * 10) / 10,
+                            at: { x: Math.round(pa.x), y: Math.round(pa.y) },
+                            actionA: describeActivity(idA).action, actionB: describeActivity(idB).action,
+                            stepA: String(a.getTravelStep()), stepB: String(b.getTravelStep()),
+                        },
+                    });
+                }
+            }
+        }
+
+        // Sprite-audit pass (throttled): record a violation anomaly whenever an invariant counter changes
+        // to a nonzero value.
+        if (trace.frames % 300 === 0) {
+            const audit = computeSpriteAudit();
+            const previous = trace.lastAudit;
+            const violated = audit.orphanControlledVehicles > 0 || audit.occupiedDriverlessVehicles > 0
+                || audit.visibleIndoorsPeople > 0 || audit.orphanSprites > 0;
+            const changedSincePrevious = !previous
+                || previous.orphanControlledVehicles !== audit.orphanControlledVehicles
+                || previous.occupiedDriverlessVehicles !== audit.occupiedDriverlessVehicles
+                || previous.visibleIndoorsPeople !== audit.visibleIndoorsPeople
+                || previous.orphanSprites !== audit.orphanSprites;
+            if (violated && changedSincePrevious) {
+                pushAnomaly({ kind: 'spriteAudit', ms: trace.ms, tick, date, detail: { ...audit } });
+            }
+            trace.lastAudit = audit;
+        }
+    };
+
+    // One registration for the harness's lifetime; the guard keeps it free while not tracing. (Never use
+    // game.off('update') here — it would clobber Field/clock handlers on the same event.)
+    game.on('update', {
+        callback: (payload: { time: number; timeDelta: number }) => {
+            if (trace.active) {
+                sampleTrace(payload.timeDelta);
+            }
+        },
+        context: game,
+    });
 
     return {
         async stepTicks(n = 1): Promise<void> {
@@ -267,9 +647,15 @@ export function createTestApi(game: GameManager): TownboxTestApi {
         },
 
         forceEvent(eventId: string, personId: string, params?: Record<string, string | number | boolean>): boolean {
+            const clock = game.clock;
+            // Route through City so a forced event's signals/commits land their world consequences (V8/M2):
+            // a forced crime files a real incident, a forced marriage cohabits. The raw-invoke fallback keeps
+            // pre-City test doubles working (arcScenarios constructs no City).
+            if (game.city && clock) {
+                return game.city.forceEventAndConsume(eventId, personId, clock.getCurrentTick(), params);
+            }
             const engine = game.eventEngine;
             const population = game.population;
-            const clock = game.clock;
             if (!engine || !population || !clock) {
                 return false;
             }
@@ -398,18 +784,86 @@ export function createTestApi(game: GameManager): TownboxTestApi {
             }
         },
 
-        auditSprites() {
-            const field = game.field;
-            const people = field ? field.getPeople() : [];
-            const vehicles = field ? field.getVehicles() : [];
-            const linked = new Set(people.map(person => person.getVehicle()).filter(vehicle => vehicle !== null));
+        startTrace(): void {
+            trace.active = false;
+            trace.frames = 0;
+            trace.ms = 0;
+            trace.startTick = game.clock?.getCurrentTick() ?? 0;
+            trace.people.clear();
+            trace.anomalies = [];
+            trace.overlapCooldown.clear();
+            trace.lastAudit = null;
+            trace.active = true;
+        },
+
+        stopTrace(): void {
+            trace.active = false;
+        },
+
+        traceReport(): TraceReport {
+            const anomaliesByKind: Record<string, number> = {};
+            for (const anomaly of trace.anomalies) {
+                anomaliesByKind[anomaly.kind] = (anomaliesByKind[anomaly.kind] ?? 0) + 1;
+            }
+            const topOffenders = Array.from(trace.people.entries())
+                .filter(([, rec]) => rec.anomalies > 0)
+                .sort((a, b) => b[1].anomalies - a[1].anomalies)
+                .slice(0, 10)
+                .map(([personId, rec]) => ({ personId, name: rec.name, anomalies: rec.anomalies }));
             return {
-                vehicles: vehicles.length,
-                peopleInFlight: people.filter(person => String(person.getTravelStep()) !== 'idle').length,
-                orphanControlledVehicles: vehicles.filter(vehicle => vehicle.isControlled() && !linked.has(vehicle)).length,
-                occupiedDriverlessVehicles: vehicles.filter(vehicle => vehicle.isOccupied() && !linked.has(vehicle)).length,
-                visibleIndoorsPeople: people.filter(person => person.isIndoors() && person.getAsset()?.visible === true).length,
+                tracing: trace.active,
+                frames: trace.frames,
+                simMs: Math.round(trace.ms),
+                startTick: trace.startTick,
+                endTick: game.clock?.getCurrentTick() ?? 0,
+                peopleTracked: trace.people.size,
+                totalAnomalies: trace.anomalies.length,
+                anomaliesByKind,
+                topOffenders,
             };
+        },
+
+        traceAnomalies(kind?: string, limit = 200): TraceAnomaly[] {
+            const matches = kind ? trace.anomalies.filter(anomaly => anomaly.kind === kind) : trace.anomalies;
+            return matches.slice(-limit);
+        },
+
+        traceEvents(personId: string, limit = 300): TraceStateEvent[] {
+            return (trace.people.get(personId)?.events ?? []).slice(-limit);
+        },
+
+        traceCrumbs(personId: string, limit = 1000): TraceCrumb[] {
+            return (trace.people.get(personId)?.crumbs ?? []).slice(-limit);
+        },
+
+        activityCensus(): ActivityCensusRow[] {
+            return (game.field ? game.field.getPeople() : [])
+                .filter(person => person.social.getPersonId() !== null)
+                .map(person => {
+                    const personId = person.social.getPersonId()!;
+                    const position = person.getPosition();
+                    const job = person.work.getJob();
+                    const activity = describeActivity(personId);
+                    return {
+                        personId,
+                        name: person.social.getFullName(),
+                        x: position?.x ?? 0,
+                        y: position?.y ?? 0,
+                        indoors: person.isIndoors(),
+                        travelStep: String(person.getTravelStep()),
+                        ambulatory: person.isAmbulatory(),
+                        action: activity.action,
+                        actionStatus: activity.actionStatus,
+                        actionLocation: activity.actionLocation,
+                        currentBuilding: person.getCurrentBuilding()?.getIdentifier() ?? null,
+                        destinationBuilding: person.getDestinationBuilding()?.getIdentifier() ?? null,
+                        jobTitle: job ? job.title : null,
+                    };
+                });
+        },
+
+        auditSprites() {
+            return computeSpriteAudit();
         },
     };
 }
