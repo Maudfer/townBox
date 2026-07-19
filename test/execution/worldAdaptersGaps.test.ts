@@ -59,6 +59,39 @@ describe('LiveWorld.locationOf — every branch', () => {
     });
 });
 
+describe('LiveWorld outdoor co-location is cell-scoped (V2 / aliveness-4)', () => {
+    function outdoorPerson(personId: string, x: number, y: number): Person {
+        return {
+            social: { getPersonId: () => personId, getHome: () => null },
+            getCurrentBuilding: () => null,
+            getPixelPosition: () => ({ x, y }),
+            getPosition: () => ({ x, y }),
+        } as unknown as Person;
+    }
+
+    test('two pedestrians far apart do NOT co-locate (no more town-wide lends/hugs)', () => {
+        const near = outdoorPerson('a', 8, 8);       // cell 0-0
+        const across = outdoorPerson('b', 400, 400); // cell 6-6 (64px cells)
+        const world = new LiveWorld({ getPeople: () => [near, across], buildingByKey: () => null, startCommute: () => {} });
+        expect(world.peopleAt(world.locationOf('a'))).toEqual(['a']); // b is across town, not co-located
+        expect(world.peopleAt(world.locationOf('b'))).toEqual(['b']);
+    });
+
+    test('two pedestrians on the same patch of street DO co-locate', () => {
+        const one = outdoorPerson('a', 8, 8);   // cell 0-0
+        const two = outdoorPerson('b', 40, 24); // same cell 0-0 (< 64px)
+        const world = new LiveWorld({ getPeople: () => [one, two], buildingByKey: () => null, startCommute: () => {} });
+        expect(world.peopleAt(world.locationOf('a'))).toEqual(['a', 'b']);
+    });
+
+    test('a cell-less {kind:outside} query still returns everyone outdoors (the global check)', () => {
+        const near = outdoorPerson('a', 8, 8);
+        const across = outdoorPerson('b', 400, 400);
+        const world = new LiveWorld({ getPeople: () => [near, across], buildingByKey: () => null, startCommute: () => {} });
+        expect(world.peopleAt({ kind: 'outside' })).toEqual(['a', 'b']);
+    });
+});
+
 describe('LiveWorld.objectLocationOf', () => {
     function fakePerson(personId: string, current: Building | null): Person {
         return { social: { getPersonId: () => personId, getHome: () => null }, getCurrentBuilding: () => current } as unknown as Person;

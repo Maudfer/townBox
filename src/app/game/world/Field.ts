@@ -45,6 +45,9 @@ export default class Field {
     private people: Person[];
     private vehicles: Vehicle[];
     private destinations: Set<string>;
+    // Road anchors (V2 / aliveness-4): the roam targets for ambulatory street life, so a walk wanders the
+    // streets and ends mid-block instead of terminating at a building entrance (the entrance-cluster fix).
+    private roadAnchors: Set<string> = new Set();
     private pathFinder: PathFinder;
 
     public matrix: TileMatrix;
@@ -120,7 +123,10 @@ export default class Field {
                 return;
             }
 
-            person.update(currentTile, timeDelta, this.destinations, this.pathFinder);
+            // Ambulatory street life (V2) roams the ROADS (ends mid-block); debug-wander test people keep
+            // the building-destination behaviour. A road-less world falls back to building destinations.
+            const roamTargets = person.isAmbulatory?.() && this.roadAnchors.size > 0 ? this.roadAnchors : this.destinations;
+            person.update(currentTile, timeDelta, roamTargets, this.pathFinder);
             person.redraw(timeDelta);
         });
 
@@ -427,8 +433,14 @@ export default class Field {
         // An address is a structure's anchor cell. Buildings are travel destinations; other structures are not.
         const anchorKey = structure.getIdentifier();
         this.destinations.delete(anchorKey);
+        this.roadAnchors.delete(anchorKey);
         if (structure instanceof Building) {
             this.destinations.add(anchorKey);
+        } else if (structure instanceof Road) {
+            // Road anchors are the roam targets for ambulatory street life (V2): a person "taking a walk"
+            // wanders the ROADS and stops mid-street, instead of pathing to a building's entrance and
+            // clustering there (the audit's crowds at civic doorways).
+            this.roadAnchors.add(anchorKey);
         }
 
         for (const previous of overwritten) {
@@ -481,6 +493,7 @@ export default class Field {
         }
 
         this.destinations.delete(structure.getIdentifier());
+        this.roadAnchors.delete(structure.getIdentifier());
     }
 
     // Resolves where a structure would actually be placed for the given tool, and whether that placement is

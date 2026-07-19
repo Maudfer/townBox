@@ -26,7 +26,12 @@ export type LogicalLocation =
     | { kind: 'home' }
     | { kind: 'building'; key: string } // building anchor key ("row-col" on the map; logical id off-map)
     | { kind: 'venue'; venue: string }
-    | { kind: 'outside' };
+    // Outdoors. `cell` scopes co-location to a patch of street (V2 / aliveness-4): LiveWorld tags a person's
+    // outdoor location with the map cell they stand in, so two pedestrians only co-locate when they are
+    // actually near each other — not town-wide as before (a gift changed hands across the whole map). A
+    // cell-less `{kind:'outside'}` still means "anywhere outdoors" (bootstrap/logical worlds keep the abstract
+    // single outside — the sanctioned seam, like venue hours — and global "is anyone out there" queries).
+    | { kind: 'outside'; cell?: string };
 
 export type TransitionStatus = 'pending' | 'arrived' | 'cancelled';
 

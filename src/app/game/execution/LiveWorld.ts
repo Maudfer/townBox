@@ -23,6 +23,12 @@ import venuesConfig from 'json/venues.json';
 // Venue kind -> hosting blueprint keys (task 107). Data-registered; validated against actions + blueprints.
 const VENUE_HOSTS = venuesConfig as Record<string, string[]>;
 
+// Outdoor co-location scoping (V2 / aliveness-4): the map is bucketed into OUTDOOR_CELL_TILES-tile patches;
+// two outdoor people co-locate only within the same patch. 4 tiles (64px) is "the same bit of street" — big
+// enough that a couple walking together stays co-located, small enough that a lend across town cannot happen.
+const OUTDOOR_CELL_TILES = 4;
+const OUTDOOR_TILE_PX = 16;
+
 export interface LiveWorldDeps {
     getPeople(): Person[];
     buildingByKey(key: string): Building | null;
@@ -73,12 +79,29 @@ export default class LiveWorld implements WorldAdapter {
         }
         const building = person.getCurrentBuilding();
         if (!building) {
-            return { kind: 'outside' };
+            // Outdoors: tag the patch of street the body stands in (V2), so co-location is LOCAL — two
+            // pedestrians only meet when they are actually near each other, not town-wide.
+            return { kind: 'outside', cell: this.outdoorCellOf(person) };
         }
         if (building instanceof House && building === person.social.getHome()) {
             return { kind: 'home' };
         }
         return { kind: 'building', key: building.getIdentifier() };
+    }
+
+    // The street-cell key for an outdoor person's pixel position (V2 / aliveness-4). Buckets the map into
+    // OUTDOOR_CELL_TILES-sized patches; two people in the same patch co-locate. A grid bucket has the usual
+    // boundary approximation (neighbours across a cell edge miss), accepted per the proposal — the point is
+    // that a lend/hug/chat can no longer cross the whole map. Cell-less fallback if the position is unknown.
+    private outdoorCellOf(person: Person): string | undefined {
+        const position = person.getPixelPosition?.() ?? person.getPosition?.();
+        if (!position) {
+            return undefined;
+        }
+        const cellPx = OUTDOOR_CELL_TILES * OUTDOOR_TILE_PX;
+        const cellRow = Math.floor(position.y / cellPx);
+        const cellCol = Math.floor(position.x / cellPx);
+        return `${cellRow}-${cellCol}`;
     }
 
     // Concrete object location (task 070): the current building's own key, home included — every house has
@@ -94,6 +117,10 @@ export default class LiveWorld implements WorldAdapter {
     }
 
     peopleAt(location: LogicalLocation): PersonId[] {
+        // A cell-less `{kind:'outside'}` query means "anyone outdoors, anywhere" (V2): the global check the
+        // pursuit/dispatch hooks want ("is a chase on somewhere?"). A cell-scoped outside query returns only
+        // the people in that street patch — the LOCAL co-location the social hook and witnesses want.
+        const outsideAnywhere = location.kind === 'outside' && location.cell === undefined;
         const ids: PersonId[] = [];
         for (const person of this.deps.getPeople()) {
             const id = person.social.getPersonId();
@@ -101,7 +128,10 @@ export default class LiveWorld implements WorldAdapter {
                 continue;
             }
             const current = this.locationOf(id);
-            if (current.kind === location.kind && JSON.stringify(current) === JSON.stringify(location)) {
+            const match = outsideAnywhere
+                ? current.kind === 'outside'
+                : locationKey(current) === locationKey(location);
+            if (match) {
                 ids.push(id);
             }
         }
