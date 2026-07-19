@@ -17,6 +17,7 @@ import { FireStateChange } from 'types/Events';
 import constructionConfig from 'json/construction.json';
 import { Image, SceneConfig } from 'types/Phaser';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { hashStringToSeed } from 'util/random';
 import { directionToRadianRotation } from 'util/tools';
 
 type Pointer = Phaser.Input.Pointer;
@@ -605,7 +606,12 @@ export default class MainScene extends Phaser.Scene {
             const show = (running || traveling) && !person.isIndoors();
             if (show) {
                 const label = engine.getActionLabel(active!.defId);
-                const display = traveling ? `→ ${label}` : label;
+                // Destination-first travel labels (aliveness-3 follow-up, maintainer read): "→ Sleeping"
+                // over a street walker read as street-sleeping — "→ home: Sleeping" says where they are
+                // going AND why. The destination resolves from the instance's own location requirement.
+                const display = traveling
+                    ? `→ ${this.travelDestinationName(active!.locationOverride ?? engine.getDefinition(active!.defId)?.location)}: ${label}`
+                    : label;
                 text.setText(display);
                 text.setData('baseText', display); // the merge pass suffixes ×N onto this, never compounds
             }
@@ -755,6 +761,36 @@ export default class MainScene extends Phaser.Scene {
         }
     }
 
+    // A short human name for a travel destination key (the "→ home: Sleeping" labels).
+    private travelDestinationName(location: string | undefined): string {
+        if (!location) {
+            return 'out';
+        }
+        if (location === 'home') {
+            return 'home';
+        }
+        if (location === 'outside') {
+            return 'outside';
+        }
+        if (location.startsWith('venue:')) {
+            return `the ${location.slice('venue:'.length).replace(/_/g, ' ')}`;
+        }
+        if (location.startsWith('building:')) {
+            const key = location.slice('building:'.length);
+            const structure = Game.field?.getStructures().find(candidate => candidate instanceof Building && candidate.getIdentifier() === key);
+            if (structure instanceof Workplace) {
+                return structure.getBusiness()?.name ?? 'work';
+            }
+            if (structure instanceof House) {
+                return `the ${structure.getHouseholdName() || 'neighbors'}' place`;
+            }
+        }
+        if (location.startsWith('person:')) {
+            return 'a visit';
+        }
+        return 'out';
+    }
+
     private drawPerson(person: Person): void {
         const position: PixelPosition = person.getPosition();
         if (position === null) {
@@ -765,10 +801,25 @@ export default class MainScene extends Phaser.Scene {
         personSprite.setOrigin(0.5, 0.5);
         person.setAsset(personSprite);
 
+        // Sidewalk jitter (aliveness-3 follow-up, maintainer read): every pedestrian walks the EXACT curb
+        // polyline, so any two at the same spot rendered perfectly stacked — the street read as one person.
+        // A stable per-person render offset (±4px, derived from the id) puts people on different parts of
+        // the sidewalk; render-layer only, logical positions untouched. Memoized once the id exists.
+        let jitterX = 0;
+        let jitterY = 0;
+        let jitterForId: string | null = null;
+
         person.setRedrawFunction((_: number) => {
             const personAsset = person.getAsset();
             if (personAsset === null) {
                 return;
+            }
+            const personId = person.social.getPersonId();
+            if (personId && jitterForId !== personId) {
+                const seed = hashStringToSeed('sidewalk#' + personId);
+                jitterX = (seed % 9) - 4;
+                jitterY = (Math.floor(seed / 9) % 7) - 3;
+                jitterForId = personId;
             }
 
             const isIndoors = person.isIndoors();
@@ -790,8 +841,9 @@ export default class MainScene extends Phaser.Scene {
             const rotation = directionToRadianRotation(direction);
 
             personAsset.setRotation(rotation);
-            // Side-by-side formations (W5): the render offset separates co-walking group members.
-            personAsset.setPosition(position.x + (this.formationOffsets.get(person) ?? 0), position.y);
+            // Side-by-side formations (W5) + the sidewalk jitter: both are render offsets — the formation
+            // separates co-walking group members, the jitter separates everyone else on the shared curb.
+            personAsset.setPosition(position.x + jitterX + (this.formationOffsets.get(person) ?? 0), position.y + jitterY);
             personAsset.setDepth(person.getDepth());
 
             // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
