@@ -222,6 +222,37 @@ export default class ActionEngine {
     // The aggregate counts ATTEMPTS: consent-declined starts record here too (task 073), so anti-repetition
     // and selection cooldowns gate immediate re-tries after a decline. A requirement that needs "successfully
     // did X" (not "attempted X") should query the action's success event via hasEvent instead.
+    // Typed failure logging for unplannable consequence commits (W0 / proposal simulation-aliveness-3
+    // P0-1d): a pool child or direct discrete whose inputs can't be planned used to vanish without a trace —
+    // 19 shopping trips bought nothing and the log said nothing. One `failed: inputsUnavailable` entry per
+    // (person, action, 24 ticks) makes the inspector honest without flooding it; the attempt records into
+    // the action history so selection cooldowns gate re-tries exactly like consent declines (073).
+    private static readonly FAILURE_LOG_WINDOW_TICKS = 24;
+    private logInputsUnavailable(
+        personId: PersonId, actionId: string, params: Record<string, Value>,
+        parentInstanceId: string | null, cause: ActionCause, deps: ActionDeps
+    ): void {
+        const log = this.lifeLog.getPersonLog(personId);
+        const cutoff = deps.tick - ActionEngine.FAILURE_LOG_WINDOW_TICKS;
+        for (let i = log.length - 1; i >= 0; i--) {
+            const entry = log[i]!;
+            if (entry.tick < cutoff) {
+                break; // appended in tick order — nothing earlier can be in the window
+            }
+            if (entry.kind === 'action' && entry.defId === actionId && entry.lifecycle === 'failed'
+                && entry.failureReason === 'inputs_unavailable') {
+                this.recordAction(personId, actionId, deps.tick); // still counts toward recency (no thrash)
+                return;
+            }
+        }
+        this.lifeLog.append(personId, {
+            tick: deps.tick, kind: 'action', defId: actionId, instanceId: null, lifecycle: 'failed',
+            params: { ...params }, parentInstanceId, triggerSource: cause.source,
+            causationId: cause.causationId, failureReason: 'inputs_unavailable',
+        });
+        this.recordAction(personId, actionId, deps.tick);
+    }
+
     hasAction(personId: PersonId, actionId: string, tick: number, query?: HasEventQuery): boolean {
         const record = this.state.actionHistory[personId]?.[actionId];
         if (!record) {
@@ -549,6 +580,7 @@ export default class ActionEngine {
             const commitCtx: CommitContext = { personId, params, outputs: {}, causationId: cause.causationId, deps, result };
             const oarPlan = planOAR(this.oarByAction.get(actionId) ?? [], commitCtx);
             if (oarPlan === null) {
+                this.logInputsUnavailable(personId, actionId, params, parentInstanceId, cause, deps);
                 return { ok: false, reason: 'inputsUnavailable' };
             }
             const plannedOutputs = new Set<string>();
@@ -558,6 +590,7 @@ export default class ActionEngine {
             }
             const opsPlan = def.consequences ? planConsequences(def.consequences, commitCtx, plannedOutputs) : { steps: [] };
             if (!opsPlan) {
+                this.logInputsUnavailable(personId, actionId, params, parentInstanceId, cause, deps);
                 return { ok: false, reason: 'inputsUnavailable' };
             }
 
@@ -758,6 +791,27 @@ export default class ActionEngine {
             const def = this.manifest[instance.defId]!;
             addSub('spine', tSpine);
 
+            // The location hard gate (aliveness-3 follow-up): the JSON `location` field is a STANDING
+            // restriction, not just a start condition. A running location-gated instance whose person was
+            // physically displaced (ejection on demolition, any future drift) goes back to PENDING — the
+            // next materialize pass re-requests the transition (walk back and continue) or the Brain
+            // replaces it at the flip. Structurally, "Sleeping" can never run on the street again.
+            {
+                const world = deps.ctx.world;
+                let requiredLocation = instance.locationOverride ?? def.location;
+                if (requiredLocation?.startsWith('person:') && world) {
+                    requiredLocation = locationKey(world.locationOf(requiredLocation.slice('person:'.length)));
+                }
+                // venue:* resolved to a concrete host at materialization (the handle is gone by now), so
+                // the standing check applies to the CONCRETE location kinds: home / building:<key> /
+                // person-resolved. 'outside' and venue-abstract stay ungated here.
+                const concrete = requiredLocation === 'home' || requiredLocation?.startsWith('building:');
+                if (concrete && world && locationKey(world.locationOf(instance.personId)) !== requiredLocation) {
+                    instance.status = 'pending';
+                    continue; // displaced — re-materialize next pass rather than acting in the wrong place
+                }
+            }
+
             if (def.children?.mode === 'pool') {
                 const tPool = clock ? clock() : 0;
                 this.runPool(instance, def.children.entries, rng, deps, result);
@@ -798,15 +852,36 @@ export default class ActionEngine {
     }
 
     // External interruption (Brain arbitration, shift obligations, death reconciliation).
-    interrupt(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult): boolean {
+    // `handover` (W3 / P1-3d): a work→work switch inside the same shift — the doctor turning from her
+    // charts to a patient — suppresses the lifecycle EVENTS (no stopped_working mid-shift; the audit
+    // watched clock-outs fire for task switches), while the instance's own log entry still lands.
+    interrupt(instanceId: ActionInstanceId, cause: ActionCause, deps: ActionDeps, result: TickResult, handover = false): boolean {
         this.ctxMemo = null; // finishing may mutate — drop the proposal memo
         const instance = this.state.instances[instanceId];
         if (!instance || !ACTIVE_STATUSES.has(instance.status)) {
             return false;
         }
-        this.finish(instance, 'interrupted', cause, deps, result);
+        if (handover) {
+            this.suppressLifecycleEvents = true;
+        }
+        // A natural conclusion is not an interruption (W3 / proposal simulation-aliveness-3 P1-3): an
+        // instance that already ran its FULL duration when the displacing intent arrives completes —
+        // onComplete fires, the log reads 'completed'. The audit's every-morning "sleep interrupted"
+        // (26 starts / 27 interrupted / 0 completed) was the wake-up obligation winning arbitration in the
+        // same tick sleep would have completed; biographies read as chronic sleep disruption.
+        const def = this.manifest[instance.defId];
+        const ranFullDuration = instance.status === 'running'
+            && def?.durationTicks !== undefined
+            && instance.runningSinceTick !== undefined && instance.runningSinceTick !== null
+            && deps.tick - instance.runningSinceTick >= def.durationTicks;
+        this.finish(instance, ranFullDuration ? 'completed' : 'interrupted', cause, deps, result);
+        this.suppressLifecycleEvents = false;
         return true;
     }
+
+    // Transient (never serialized): set for the duration of ONE handover interrupt (W3) so finish() skips
+    // its onInterrupt/onComplete event fire — a mid-shift task switch is not a clock-out.
+    private suppressLifecycleEvents = false;
 
     // Parks a resumable instance (task 087 / L5): logs 'paused', keeps the instance, frees the active slot.
     // Max one paused per person — a second pause turns the first into a real interruption.
@@ -828,10 +903,21 @@ export default class ActionEngine {
         instance.status = 'paused';
         instance.pausedAtTick = deps.tick;
         instance.transitionHandleId = null;
-        this.handles.delete(instance.id);
+        this.releaseHandle(instance, deps);
         this.indexDeactivate(instance);
         this.pausedByPerson.set(instance.personId, instance.id);
         return true;
+    }
+
+    // Drops an instance's transition handle — and if the trip is still in flight, tells the world to stop
+    // it (W8 / proposal simulation-aliveness-3 P0-2.3): the body parks, the commute car despawns. Without
+    // this, an interrupted traveler finished the stale journey and every re-plan stranded a vehicle.
+    private releaseHandle(instance: ActionInstance, deps: ActionDeps): void {
+        const handle = this.handles.get(instance.id);
+        if (handle && handle.status === 'pending') {
+            deps.ctx.world?.cancelTransition?.(handle.id, instance.personId);
+        }
+        this.handles.delete(instance.id);
     }
 
     // Resumes a paused instance (same id — the log reads started → paused → resumed → …): back to pending,
@@ -892,7 +978,7 @@ export default class ActionEngine {
         instance.status = outcome;
         instance.outcome = outcome;
         instance.endedTick = deps.tick;
-        this.handles.delete(instance.id);
+        this.releaseHandle(instance, deps); // in-flight trips stop with the intent (W8 / P0-2.3)
         const tLog = fclock ? fclock() : 0;
         const seq = this.lifeLog.append(instance.personId, {
             tick: deps.tick, kind: 'action', defId: instance.defId, instanceId: instance.id, lifecycle: outcome,
@@ -915,10 +1001,13 @@ export default class ActionEngine {
                 deps.ctx.markets?.habits?.practice(instance.personId, def.habit, deps.tick);
             }
             const tEvent = fclock ? fclock() : 0;
-            this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
-            this.fireTargetEvent(def.events?.onCompleteTarget, def, instance.personId, instance.params, seq, deps, result);
+            // A handover (W3) suppresses the lifecycle events: the mid-shift task switch is not a clock-out.
+            if (!this.suppressLifecycleEvents) {
+                this.fireEvent(def.events?.onComplete, instance.personId, seq, deps, result, instance.params);
+                this.fireTargetEvent(def.events?.onCompleteTarget, def, instance.personId, instance.params, seq, deps, result);
+            }
             addF('finish:onCompleteEvent', tEvent);
-        } else if (outcome === 'interrupted') {
+        } else if (outcome === 'interrupted' && !this.suppressLifecycleEvents) {
             this.fireEvent(def.events?.onInterrupt, instance.personId, seq, deps, result, instance.params);
         }
 

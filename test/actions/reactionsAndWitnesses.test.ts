@@ -49,7 +49,10 @@ describe('reactions (C3)', () => {
             const tickResult = result();
             const outcome = actions.startAction('a', 'argued_with_person', { target: 'b' }, { source: 'system', causationId: null }, { ...deps, tick }, tickResult);
             if (outcome.ok) {
-                brain.processTick(['a', 'b'], { ...deps, tick }, tickResult.committed, tickResult);
+                // Only the TARGET's brain runs (W2 note): with the venue repertoire in the manifest,
+                // free-time processing would walk the aggressor off to a (bootstrap-instant) café and break
+                // the co-location this scene depends on. The reaction under test is b's.
+                brain.processTick(['b'], { ...deps, tick }, tickResult.committed, tickResult);
                 answered = engine.getPersonLog('b').some(entry => entry.kind === 'action'
                     && (entry.defId === 'argued_with_person' || entry.defId === 'apologized_to_person'));
             }

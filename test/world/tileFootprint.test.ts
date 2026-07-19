@@ -201,15 +201,37 @@ describe('Placement resolution: road grid snap & building road-side soft-snap', 
         expect(field.isValidBuildingPlacement({ row: 10, col: 7 })).toBe(false); // now overlaps a building
     });
 
-    test('a building soft-snaps to the nearest road side when the cursor is close', () => {
+    test('a building soft-snaps to the nearest road side when the cursor is CLOSE (≤ 1.5 tiles — W9)', () => {
         const field = makeField(15, 15);
         field.stampFootprint(new Road(7, 7, null));
 
-        const overRoad = field.resolveBuildingPlacement({ row: 7, col: 7 });
+        // One tile from the valid road-side anchor at (10,7): captured.
+        const nearby = field.resolveBuildingPlacement({ row: 9, col: 7 });
+        expect(nearby.valid).toBe(true);
+        expect(nearby.position).toEqual({ row: 10, col: 7 });
+        expect(field.isValidBuildingPlacement(nearby.position)).toBe(true);
+    });
 
-        expect(overRoad.valid).toBe(true);
-        expect(overRoad.position).not.toEqual({ row: 7, col: 7 });
-        expect(field.isValidBuildingPlacement(overRoad.position)).toBe(true);
+    test('the capture gate (W9): beyond 1.5 tiles the preview stays honestly invalid — no yanking', () => {
+        const field = makeField(15, 15);
+        field.stampFootprint(new Road(7, 7, null));
+
+        // The road anchor itself sits 3 tiles from every valid road-side spot — too far to capture.
+        const overRoad = field.resolveBuildingPlacement({ row: 7, col: 7 });
+        expect(overRoad.valid).toBe(false);
+    });
+
+    test('bulldoze resolves any clicked cell to the occupying structure ANCHOR (W9 / P0-6)', () => {
+        const field = makeField(15, 15);
+        field.stampFootprint(new Road(4, 4, null));
+        field.stampFootprint(new House(7, 4, 'house')); // covers rows 6-8, cols 3-5
+
+        // A corner-cell click targets the anchor, so the soil stamp covers the whole footprint.
+        expect(field.resolvePlacement(Tool.Bulldoze, { row: 8, col: 5 }))
+            .toEqual({ position: { row: 7, col: 4 }, valid: true });
+        // Empty ground keeps paint-as-is soil semantics (grass IS the empty state).
+        expect(field.resolvePlacement(Tool.Bulldoze, { row: 12, col: 12 }))
+            .toEqual({ position: { row: 12, col: 12 }, valid: true });
     });
 
     test('a building placed too far from any road side is invalid at the raw cursor', () => {

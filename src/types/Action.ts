@@ -246,7 +246,10 @@ export type ConsequenceOp =
     // the ledger, and the sale is recorded for monthly netting. Without matching stock, `fallback` conjures
     // the archetype instead (the documented 071 keep-list path — venues without real stock) with a one-sided
     // spend. The 12k-bread mountain finally has an outlet.
-    | { op: 'purchaseObject'; query: { archetype?: string; tag?: string }; price: number; fallback?: string; fallbackQuantity?: number }
+    // `optional` (W0 / proposal simulation-aliveness-3 P0-1a): a basket item that may be skipped when the
+    // shelf lacks it or the buyer can't afford it — the plan buys what's there instead of failing whole. A
+    // basket whose EVERY purchase op skipped still fails typed (inputsUnavailable): you can't buy nothing.
+    | { op: 'purchaseObject'; query: { archetype?: string; tag?: string }; price: number; fallback?: string; fallbackQuantity?: number; optional?: boolean }
     // Adjust the elective social graph between the actor and the action's target (task 083). Kind transitions
     // (acquaintance → friend, …) fire their authored events (json/relationships.json ladder) for BOTH sides,
     // chained to this commit. No-op without a graph in context (pure tests).

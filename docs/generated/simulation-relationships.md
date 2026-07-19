@@ -9,9 +9,9 @@
 
 | Manifest | Entries | Notes |
 |---|---|---|
-| `actions.json` | 314 | 96 continuous / 218 discrete |
-| `events.json` | 741 | 167 probabilistic, 357 probabilistic + manual, 214 manual, 3 manual + automated |
-| `object-action-relationships.json` | 41 | first-satisfiable entry per action commit |
+| `actions.json` | 337 | 104 continuous / 233 discrete |
+| `events.json` | 743 | 167 probabilistic, 357 probabilistic + manual, 216 manual, 3 manual + automated |
+| `object-action-relationships.json` | 43 | first-satisfiable entry per action commit |
 
 ## Action → Event (lifecycle links)
 
@@ -23,6 +23,7 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `adopted_a_pet` | onComplete → `adopted_a_pet` |
 | `applied_for_a_job` | onComplete → `get_job` |
 | `attend_school` | onStart → `school_day_started`<br>onComplete → `completed_school_day` |
+| `bought_groceries` | onComplete → `went_grocery_shopping` |
 | `cleaning_house` | onComplete → `decluttered_house` |
 | `cooking_meal` | onComplete → `tried_new_recipe` |
 | `evacuating` | onComplete → `escaped_a_fire` |
@@ -31,12 +32,12 @@ Lifecycle transitions fire the declared manual Events through `EventEngine.invok
 | `gardening` | onComplete → `planted_garden` |
 | `gave_object_to_person` | onComplete → `gave_gift` |
 | `hosting_gathering` | onComplete → `hosted_dinner_party` |
+| `looking_for_a_home` | onComplete → `looked_for_housing` |
 | `pickpocketed_someone` | onComplete → `committed_pickpocketing`<br>onCompleteTarget → `got_pickpocketed` |
 | `pocketed_merchandise` | onComplete → `committed_shoplifting` |
 | `read_book` | onComplete → `finished_great_book` |
 | `resting_at_home_sick` | onStart → `called_in_sick` |
 | `shared_gossip` | onCompleteTarget → `heard_gossip` |
-| `shopping_trip` | onComplete → `went_grocery_shopping` |
 | `sleep` | onComplete → `woke_up` |
 | `treating_patient` | onComplete → `treated_a_patient`<br>onCompleteTarget → `was_treated_by_doctor` |
 | `visiting_relatives` | onComplete → `reconnected_with_relative` |
@@ -66,6 +67,7 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `got_pickpocketed` | manual | — | `pickpocketed_someone`.onCompleteTarget (discrete) |
 | `heard_gossip` | manual | — | `shared_gossip`.onCompleteTarget (discrete) |
 | `hosted_dinner_party` | manual | cooldown 240 ticks | `hosting_gathering`.onComplete (continuous) |
+| `looked_for_housing` | manual | once: perDay | `looking_for_a_home`.onComplete (continuous) |
 | `planted_garden` | manual | cooldown 1440 ticks | `gardening`.onComplete (continuous) |
 | `reconnected_with_relative` | manual | cooldown 720 ticks | `visiting_relatives`.onComplete (continuous) |
 | `school_day_started` | manual | once: perDay | `attend_school`.onStart (continuous) |
@@ -74,10 +76,10 @@ Every event referenced by an action, with its trigger mix and limit. All manual 
 | `treated_a_patient` | manual | — | `treating_patient`.onComplete (continuous) |
 | `tried_new_recipe` | manual | cooldown 168 ticks | `cooking_meal`.onComplete (continuous) |
 | `was_treated_by_doctor` | manual | — | `treating_patient`.onCompleteTarget (continuous) |
-| `went_grocery_shopping` | manual | cooldown 168 ticks | `shopping_trip`.onComplete (continuous) |
+| `went_grocery_shopping` | manual | cooldown 168 ticks | `bought_groceries`.onComplete (discrete) |
 | `woke_up` | manual | once: perDay | `sleep`.onComplete (continuous) |
 
-Of the 574 manual-triggered events, 549 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
+Of the 576 manual-triggered events, 550 have no action source yet — they are invokable texture (052) reserved for future action links and system callers; the rest of their trigger mix (probabilistic rolls) still runs them.
 
 ## Automated schedule rules
 
@@ -92,16 +94,16 @@ Of the 574 manual-triggered events, 549 have no action source yet — they are i
 | Trigger mix | Events |
 |---|---|
 | probabilistic + manual | 357 |
-| manual | 214 |
+| manual | 216 |
 | probabilistic | 167 |
 | manual + automated | 3 |
 
 | Occurrence limit | Events |
 |---|---|
-| cooldown window | 629 |
+| cooldown window | 630 |
 | — | 51 |
 | once: ever | 51 |
-| once: perDay | 10 |
+| once: perDay | 11 |
 
 ## Object-action transformations
 
@@ -137,7 +139,7 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `workshop_planks` | `milled_some_planks` | — | 4× `wood_plank`, owner: employer | — |
 | `packed_parcel_for_shipping` | `taped_up_a_box` | — | 1× `parcel`, owner: employer | — |
 | `kitchen_customer_order` | `plated_a_customer_order` | — | 1× `grilled_steak`, owner: employer | — |
-| `supermarket_restock` | `stocked_the_shelves` | — | 4× `egg`, owner: employer<br>2× `bread_loaf`, owner: employer<br>2× `milk_carton`, owner: employer<br>2× `tomato`, owner: employer<br>1× `lettuce`, owner: employer<br>2× `potato`, owner: employer<br>1× `onion`, owner: employer<br>1× `flour_bag`, owner: employer<br>1× `butter_stick`, owner: employer<br>1× `cheese_wedge`, owner: employer | — |
+| `supermarket_restock` | `stocked_the_shelves` | — | 8× `egg`, owner: employer<br>6× `bread_loaf`, owner: employer<br>4× `milk_carton`, owner: employer<br>5× `tomato`, owner: employer<br>3× `lettuce`, owner: employer<br>5× `potato`, owner: employer<br>3× `onion`, owner: employer<br>3× `flour_bag`, owner: employer<br>2× `butter_stick`, owner: employer<br>2× `cheese_wedge`, owner: employer<br>2× `cream_jar`, owner: employer<br>3× `pasta_box`, owner: employer<br>4× `granola_bar`, owner: employer<br>2× `cereal_box`, owner: employer | — |
 | `ate_meal_from_loaf` | `ate_a_meal` | 1× `bread_loaf` (consumed) | — | — |
 | `ate_meal_from_eggs` | `ate_a_meal` | 2× `egg` (consumed) | — | — |
 | `ate_meal_from_salad` | `ate_a_meal` | 1× `tomato` (consumed)<br>1× `lettuce` (consumed) | — | — |
@@ -149,6 +151,8 @@ At commit, the FIRST satisfiable entry (declaration order) for the action applie
 | `served_family_from_potatoes` | `served_the_family` | 2× `potato` (consumed)<br>1× `onion` (consumed) | — | — |
 | `ate_meal_from_banana` | `ate_a_meal` | 1× `banana` (consumed) | — | — |
 | `ate_meal_from_granola` | `ate_a_meal` | 1× `granola_bar` (consumed) | — | — |
+| `ate_breakfast_from_cereal` | `ate_a_meal` | 1× `cereal_box` (consumed)<br>1× `milk_carton` (consumed) | — | — |
+| `ate_meal_from_milk` | `ate_a_meal` | 1× `milk_carton` (consumed) | — | — |
 | `ate_meal_from_cheese` | `ate_a_meal` | 1× `cheese_wedge` (consumed) | — | — |
 
 ## Interaction contracts (person-targeted actions)

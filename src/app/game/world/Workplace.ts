@@ -12,7 +12,7 @@ type PotentialJob = JobPosition | null;
 
 export default class Workplace extends Building {
     private employees: Person[];
-    private avaiableJobs: JobPosition[];
+    private availableJobs: JobPosition[];
     private business: BusinessInstance | null;
 
     // Re-occupancy bookkeeping (task 037): how many in-game months the lot has been vacant since its last
@@ -31,7 +31,7 @@ export default class Workplace extends Building {
         super(row, col, assetName);
 
         this.employees = [];
-        this.avaiableJobs = [];
+        this.availableJobs = [];
         this.business = null;
         this.vacantMonths = 0;
         this.businessGenerations = 0;
@@ -51,7 +51,7 @@ export default class Workplace extends Building {
     // event; for now all of the instance's positions are treated as open.)
     public setBusiness(business: BusinessInstance): void {
         this.business = business;
-        this.avaiableJobs = [...business.positions];
+        this.availableJobs = [...business.positions];
     }
 
     public getBusiness(): BusinessInstance | null {
@@ -83,7 +83,7 @@ export default class Workplace extends Building {
         }
         this.business.size = newSize;
         this.business.positions = fullPositions;
-        this.avaiableJobs.push(...addedOpen);
+        this.availableJobs.push(...addedOpen);
     }
 
     // Graceful downsizing (task 076/M6): shrink to a smaller position set (mirror of expandPositions). Keeps
@@ -119,7 +119,7 @@ export default class Workplace extends Building {
                 remaining.set(position.title, remaining.get(position.title)! - 1);
             }
         }
-        this.avaiableJobs = open;
+        this.availableJobs = open;
         this.business.size = newSize;
         this.business.positions = fullPositions;
         return laidOff;
@@ -127,26 +127,35 @@ export default class Workplace extends Building {
 
     // The open (unfilled) positions still available for hiring.
     public getOpenPositions(): JobPosition[] {
-        return [...this.avaiableJobs];
+        return [...this.availableJobs];
     }
 
     // `canFill` answers whether the person meets a position's skill requirements — supplied by the caller
     // (JobMarket reads the central SkillBook, task 059) so the scene class stays decoupled from the store.
-    public hire(person: Person, canFill: (requirements: string[]) => boolean = () => true): PotentialJob {
+    // `preferred` (W1 / proposal simulation-aliveness-3 P0-3): the caller's CHOSEN position — the old
+    // first-fit walk ignored the JobMarket's pick, and because Manager sits first in every blueprint's
+    // expansion, whole towns hired 14 managers and one clerk.
+    public hire(person: Person, canFill: (requirements: string[]) => boolean = () => true, preferred?: PotentialJob): PotentialJob {
         if(!person){
             console.error(person);
             throw new Error('Person is not valid for hire');
         }
 
-        // Take the first open position whose requirements the person meets, removing it from the open pool so
-        // filled/open counts stay correct.
-        const index = this.avaiableJobs.findIndex(job => canFill(job.requirements));
+        // Fill the caller's chosen position when it is still open and fillable; otherwise fall back to the
+        // first open position the person meets. Splicing keeps filled/open counts correct either way.
+        let index = preferred ? this.availableJobs.indexOf(preferred) : -1;
+        if (index !== -1 && !canFill(this.availableJobs[index]!.requirements)) {
+            index = -1;
+        }
+        if (index === -1) {
+            index = this.availableJobs.findIndex(job => canFill(job.requirements));
+        }
 
         if (index === -1) {
             return null;
         }
 
-        const [job] = this.avaiableJobs.splice(index, 1);
+        const [job] = this.availableJobs.splice(index, 1);
         if (!job) {
             return null;
         }
@@ -170,7 +179,7 @@ export default class Workplace extends Building {
             this.employees.splice(index, 1);
         }
 
-        this.avaiableJobs.push(currentJob);
+        this.availableJobs.push(currentJob);
         return currentJob;
     }
 
@@ -180,7 +189,7 @@ export default class Workplace extends Building {
     public closeBusiness(): Person[] {
         const laidOff = [...this.employees];
         this.employees = [];
-        this.avaiableJobs = [];
+        this.availableJobs = [];
         this.business = null;
         return laidOff;
     }

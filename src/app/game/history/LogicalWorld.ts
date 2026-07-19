@@ -26,6 +26,7 @@ import PetRegistry, { PETS_CONFIG } from 'game/population/PetRegistry';
 import Traits from 'game/population/Traits';
 import SocialGraph from 'game/population/SocialGraph';
 import EventEngine from 'game/events/EventEngine';
+import { maybeConceive } from 'game/population/Conception';
 import Inventory from 'game/objects/Inventory';
 import { generateBuildingObjects } from 'game/objects/ObjectGeneration';
 import SchoolRegistry, { SchoolSeat, SchoolCandidate } from 'game/skills/SchoolRegistry';
@@ -644,6 +645,11 @@ export default class LogicalWorld implements WorldAdapter {
             }
         }
         for (const commit of result.committed) {
+            if (commit.eventId === 'had_sex') {
+                // Conception rides intimacy (W4 / P1-6) — the same salted roll live play runs, so the
+                // deep-sim and the map agree on how babies happen.
+                maybeConceive(state, engine, commit.personId, tick, ticksPerYear, commit.seq);
+            }
             if (commit.eventId === 'moved_out_of_parents') {
                 this.moveOutOfParents(state, commit.personId, tick, ticksPerYear);
             } else if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
@@ -704,6 +710,12 @@ export default class LogicalWorld implements WorldAdapter {
         if (health < 0.7) {
             catchChance += 0.15;
         }
+        // The abstract-encounter discount (W6 / proposal simulation-aliveness-3 Part 4.2): off-map
+        // co-location is a shared abstract venue, so officer-meets-suspect fires FAR more often than on a
+        // real street — the decoded asset showed 12 catches in 15 petty crimes (11 jail terms in 27 years,
+        // ate_prison_food ×678). The discount restores live-like CUMULATIVE odds; the formula above stays
+        // City's, so a chase that does land resolves identically.
+        catchChance *= 0.4;
         if (rng.next() < catchChance) {
             this.arrestSuspect(state, engine, suspectId, tick, ticksPerYear);
         } else {

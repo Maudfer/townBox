@@ -465,61 +465,85 @@
         "outputs": [
             {
                 "archetype": "egg",
-                "quantity": 4,
+                "quantity": 8,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "bread_loaf",
-                "quantity": 2,
+                "quantity": 6,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "milk_carton",
-                "quantity": 2,
+                "quantity": 4,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "tomato",
-                "quantity": 2,
+                "quantity": 5,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "lettuce",
-                "quantity": 1,
+                "quantity": 3,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "potato",
-                "quantity": 2,
+                "quantity": 5,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "onion",
-                "quantity": 1,
+                "quantity": 3,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "flour_bag",
-                "quantity": 1,
+                "quantity": 3,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "butter_stick",
-                "quantity": 1,
+                "quantity": 2,
                 "owner": "employer",
                 "container": "location"
             },
             {
                 "archetype": "cheese_wedge",
-                "quantity": 1,
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "cream_jar",
+                "quantity": 2,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "pasta_box",
+                "quantity": 3,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "granola_bar",
+                "quantity": 4,
+                "owner": "employer",
+                "container": "location"
+            },
+            {
+                "archetype": "cereal_box",
+                "quantity": 2,
                 "owner": "employer",
                 "container": "location"
             }
@@ -655,6 +679,33 @@
         "inputs": [
             {
                 "archetype": "granola_bar",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_breakfast_from_cereal": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "cereal_box",
+                "quantity": 1,
+                "disposition": "consumed"
+            },
+            {
+                "archetype": "milk_carton",
+                "quantity": 1,
+                "disposition": "consumed"
+            }
+        ],
+        "outputs": []
+    },
+    "ate_meal_from_milk": {
+        "action": "ate_a_meal",
+        "inputs": [
+            {
+                "archetype": "milk_carton",
                 "quantity": 1,
                 "disposition": "consumed"
             }

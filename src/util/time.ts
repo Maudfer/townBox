@@ -124,11 +124,27 @@ export function formatTickAtMinute(tick: number, minute?: number): string {
 
 // The debug time-throttle cycle (task 117): 1× → 4× → 16× → back to 1×. Any out-of-band value (a bad
 // save, a manual poke) resets to 1× rather than compounding.
-export const TIME_SCALES: readonly number[] = [1, 4, 16];
+// First-class time control (W10 / proposal simulation-aliveness-3): the shipped ladder is 1×/4×/8×, with
+// pause (scale 0) reachable only through the HUD's explicit button — the T key cycles the running speeds.
+export const TIME_SCALES: readonly number[] = [1, 4, 8];
+export const PAUSE_TIME_SCALE = 0;
 
 export function nextTimeScale(current: number): number {
     const index = TIME_SCALES.indexOf(current);
     return index === -1 ? 1 : TIME_SCALES[(index + 1) % TIME_SCALES.length]!;
+}
+
+// The one authoritative frame-delta transform (W10): EVERYTHING that consumes real frame time — the clock,
+// movement, particles — runs the raw RAF delta through this, so a framerate drop or CPU hang stalls the
+// whole world TOGETHER. The cap turns a multi-second hitch into lost wall time instead of a sim leap the
+// visual layer can't match (delta lumps used to let the clock jump minutes while walkers tunneled).
+export const MAX_FRAME_DELTA_MS = 100;
+
+export function effectiveFrameDelta(rawDeltaMs: number, timeScale: number, capMs: number = MAX_FRAME_DELTA_MS): number {
+    if (!(rawDeltaMs > 0) || !(timeScale > 0)) {
+        return 0; // pause (scale 0), bad deltas, and NaNs all read as "no time passed"
+    }
+    return Math.min(rawDeltaMs, capMs) * timeScale;
 }
 
 // Human-readable REAL wall-clock duration (NOT in-game time): days/hours/minutes/seconds, dropping leading

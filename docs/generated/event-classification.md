@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserved**.
+Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserved**.
 
 | Event | Category | Triggers | Disposition | Quirk | Invoked by |
 |---|---|---|---|---|---|
@@ -28,6 +28,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserv
 | assembled_flatpack | possessions | probabilistic+manual | texture | quirk | — |
 | ate_at_restaurant | food | probabilistic+manual | texture | quirk | — |
 | ate_questionable_leftover | food | probabilistic+manual | texture | quirk | — |
+| attended_a_wedding | relationship | manual | reserved | — | — |
 | attended_funeral | death | manual | reserved | — | — |
 | attended_party | social | probabilistic+manual | texture | quirk | — |
 | attended_town_fair | community | probabilistic+manual | texture | quirk | — |
@@ -393,6 +394,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserv
 | lifted_spirits | health | probabilistic+manual | vital | — | — |
 | lit_candles_in_outage | weather-reaction | manual | reserved | — | — |
 | locked_out_of_house | housing | probabilistic+manual | texture | quirk | — |
+| looked_for_housing | housing | manual | wired | — | looking_for_a_home.onComplete |
 | lost_argument | social | manual | reserved | — | — |
 | lost_balloon | childhood | probabilistic+manual | texture | quirk | — |
 | lost_chess_match | hobby | probabilistic+manual | texture | quirk | — |
@@ -708,7 +710,7 @@ Totals: 741 events — **30 vital**, **44 wired**, **506 texture**, **161 reserv
 | went_camping | travel | probabilistic | texture | quirk | — |
 | went_fishing | hobby | probabilistic+manual | texture | quirk | — |
 | went_fully_gray | aging | probabilistic | texture | quirk | — |
-| went_grocery_shopping | food | manual | wired | — | shopping_trip.onComplete |
+| went_grocery_shopping | food | manual | wired | — | bought_groceries.onComplete |
 | went_hungry | health | probabilistic | texture | — | — |
 | went_on_first_date | romance | manual | wired | — | asked_person_out.onCompleteTarget |
 | went_on_vacation | travel | probabilistic | texture | quirk | — |

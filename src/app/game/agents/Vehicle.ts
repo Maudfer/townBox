@@ -408,8 +408,20 @@ export default class Vehicle {
     }
 
     setAsset(asset: Image): void {
+        // The spawn/despawn race (W8 / P0-2.2): same-tick spawn+removal destroys getAsset() === null and
+        // the sprite lands afterwards, orphaned outside the vehicle list. See Person.setAsset.
+        if (this.removedFromField) {
+            asset?.destroy();
+            return;
+        }
         this.asset = asset;
     }
+
+    markRemoved(): void {
+        this.removedFromField = true;
+    }
+
+    private removedFromField = false;
 
     setRedrawFunction(redrawFunction: (timeDelta: number) => void): void {
         this.redrawFunction = redrawFunction;

@@ -250,7 +250,7 @@ describe('runCostOfLiving + runEvictions + runRecovery (tasks 019/022/076-L3)', 
 
         expect(house.getHousehold()).toBeNull();
         expect(personA.social.getHome()).toBeNull();
-        expect(personA.isIndoors()).toBe(true);
+        expect(personA.isIndoors()).toBe(false); // visible on the street (W9/P1-11)
         expect(city.getHomelessHouseholds()).toHaveLength(1);
     });
 

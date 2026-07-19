@@ -17,6 +17,7 @@ import { FireStateChange } from 'types/Events';
 import constructionConfig from 'json/construction.json';
 import { Image, SceneConfig } from 'types/Phaser';
 import { PixelPosition, TilePosition } from 'types/Position';
+import { hashStringToSeed } from 'util/random';
 import { directionToRadianRotation } from 'util/tools';
 
 type Pointer = Phaser.Input.Pointer;
@@ -46,10 +47,14 @@ export default class MainScene extends Phaser.Scene {
         Game.on("personSpawned", { callback: this.drawPerson, context: this });
         // Activity bubbles (task 093 / J2): refresh label text/visibility once per in-game minute.
         Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
+        Game.on("timeChanged", { callback: this.refreshTrashPiles, context: this });
+        Game.on("timeChanged", { callback: this.refreshFormations, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
         // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
         Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
         Game.on("gameLoaded", { callback: this.clearFireEmitters, context: this });
+        // Particles follow the time scale (W10): flames speed up, slow down, and freeze with the world.
+        Game.on("timeScaleChanged", { callback: this.syncEmitterTimeScales, context: this });
 
         Game.on("windowDragStart", { callback: () => {
             this.cursorActive = false;
@@ -302,6 +307,13 @@ export default class MainScene extends Phaser.Scene {
             tool: cursor.tool,
             ...(this.constructionPick ?? {}),
         });
+
+        // One click, one building (W9 / proposal simulation-aliveness-3): a successful BUILDING placement
+        // returns the cursor to Select (the bus emit keeps the toolbar highlight and any construction pick
+        // in sync). Roads and the bulldozer keep the continuous drag-paint behavior.
+        if (cursor.tool === Tool.House || cursor.tool === Tool.Work) {
+            Game.emit("toolSelected", Tool.Select);
+        }
     }
 
     // The construction menu's armed pick (task 108): a pinned blueprint and/or placeholder asset that
@@ -523,7 +535,16 @@ export default class MainScene extends Phaser.Scene {
             gravityY: -25,
         });
         flames.setDepth(structure.calculateDepth() + 5);
+        // Particles ride the sim clock (W10): flames burn faster at 4×/8× and freeze on pause, like
+        // everything else — the one-authority contract extended to Phaser's own emitter clock.
+        flames.timeScale = Math.max(Game.getTimeScale(), 0.0001); // 0 stalls Phaser oddly; near-zero freezes
         this.fireEmitters.set(change.buildingKey, flames);
+    }
+
+    private syncEmitterTimeScales(scale: number): void {
+        for (const emitter of this.fireEmitters.values()) {
+            emitter.timeScale = Math.max(scale, 0.0001);
+        }
     }
 
     // A load rebuilds the world wholesale — stale emitters would float over the wrong lots.
@@ -572,7 +593,7 @@ export default class MainScene extends Phaser.Scene {
             if (!text) {
                 text = this.add.text(0, 0, '', {
                     fontSize: '9px', color: '#ffffff', backgroundColor: 'rgba(0, 0, 0, 0.55)',
-                    padding: { x: 3, y: 1 },
+                    padding: { x: 3, y: 1 }, align: 'center',
                 }).setOrigin(0.5, 1).setVisible(false);
                 this.activityLabels.set(person, text);
             }
@@ -584,8 +605,21 @@ export default class MainScene extends Phaser.Scene {
             const traveling = !!active && active.status === 'waiting_for_materialization';
             const show = (running || traveling) && !person.isIndoors();
             if (show) {
-                const label = engine.getActionLabel(active!.defId);
-                text.setText(traveling ? `→ ${label}` : label);
+                // Bubble labels strip unresolved {param} template segments (the LP-14 resolver lives in the
+                // inspector; the street bubble has the destination line instead — "Going to Moraes S.A. /
+                // Plan: Applying for a job", never "…at {employer}").
+                const label = engine.getActionLabel(active!.defId)
+                    .replace(/\s*(?:at|to|with|for|from)?\s*\{[a-zA-Z_]+\}/g, '').trim();
+                // Two-line travel labels (maintainer spec): where they are going, then what they plan to
+                // do there — "Going home / Plan: Spending time at home". The destination resolves from the
+                // instance's own location requirement.
+                const destination = this.travelDestinationName(active!.locationOverride ?? engine.getDefinition(active!.defId)?.location);
+                const going = destination === 'home' || destination === 'out' || destination === 'outside'
+                    ? `Going ${destination === 'outside' ? 'out' : destination}`
+                    : `Going to ${destination}`;
+                const display = traveling ? `${going}\nPlan: ${label}` : label;
+                text.setText(display);
+                text.setData('baseText', display); // the merge pass suffixes ×N onto this, never compounds
             }
             text.setVisible(show);
 
@@ -598,6 +632,169 @@ export default class MainScene extends Phaser.Scene {
             }
             dot?.setVisible(walking);
         }
+
+        // Label collision pass (W8e / proposal simulation-aliveness-3 Part 5.1): co-located identical
+        // labels merge into one "×N" (couples on a walk, coworkers on the same rotation used to double-ink
+        // the same text over itself); distinct labels sharing a block stagger vertically instead of
+        // overlapping into unreadable chains. Recomputed per refresh; the per-frame redraw closure applies
+        // the stored stagger offset.
+        const cells = new Map<string, { first: Phaser.GameObjects.Text; base: string; count: number; stagger: number }[]>();
+        for (const [person, text] of this.activityLabels) {
+            text.setData('stagger', 0);
+            if (!text.visible) {
+                continue;
+            }
+            const position = person.getPosition();
+            if (!position) {
+                continue;
+            }
+            const cellKey = `${Math.round(position.x / 64)}:${Math.round(position.y / 24)}`;
+            const entries = cells.get(cellKey) ?? [];
+            const base = text.getData('baseText') as string ?? text.text;
+            const twin = entries.find(entry => entry.base === base);
+            if (twin) {
+                twin.count += 1;
+                twin.first.setText(`${twin.base} ×${twin.count}`);
+                text.setVisible(false); // merged into the twin's ×N
+            } else {
+                const stagger = entries.length * 11; // distinct labels stack upward within the block
+                text.setData('stagger', stagger);
+                entries.push({ first: text, base, count: 1, stagger });
+                cells.set(cellKey, entries);
+            }
+        }
+    }
+
+    // Formation offsets (W5 / proposal simulation-aliveness-3 Part 5.3): people doing the same activity in
+    // the same spot — a couple's walk, two officers on one chase — used to render as ONE overlapping
+    // sprite. Render-layer only: logical positions stay canonical (pathfinding/co-location untouched); each
+    // group member draws with a small lateral offset by stable slot index. The chase pair groups through an
+    // alias (fleeing↔chasing are one scene). Refreshed per in-game minute; applied in the redraw closure.
+    private formationOffsets = new Map<Person, number>();
+    private static readonly FORMATION_ALIASES: Record<string, string> = {
+        fleeing_the_police: 'chase', chasing_a_suspect: 'chase',
+    };
+
+    private refreshFormations(): void {
+        const field = Game.field;
+        const engine = Game.actionEngine;
+        this.formationOffsets.clear();
+        if (!field || !engine) {
+            return;
+        }
+        const groups = new Map<string, Person[]>();
+        for (const person of field.getPeople()) {
+            if (person.isIndoors()) {
+                continue;
+            }
+            const personId = person.social.getPersonId();
+            const active = personId ? engine.activeInstanceOf(personId) : null;
+            if (!active) {
+                continue;
+            }
+            const position = person.getPosition();
+            if (!position) {
+                continue;
+            }
+            const token = MainScene.FORMATION_ALIASES[active.defId] ?? active.defId;
+            const cell = `${token}|${Math.round(position.x / 32)}|${Math.round(position.y / 32)}`;
+            const members = groups.get(cell) ?? [];
+            members.push(person);
+            groups.set(cell, members);
+        }
+        for (const members of groups.values()) {
+            if (members.length < 2) {
+                continue;
+            }
+            members.sort((a, b) => (a.social.getPersonId() ?? '').localeCompare(b.social.getPersonId() ?? ''));
+            members.forEach((person, index) => {
+                this.formationOffsets.set(person, (index - (members.length - 1) / 2) * 7);
+            });
+        }
+    }
+
+    // Curb-bag piles (W5 / proposal simulation-aliveness-3 P1-7): the town's uncollected curb bags become
+    // VISIBLE — small brown mounds at the street side of occupied homes. The sim's curb pool is one shared
+    // 'outside' location (the 112 collection contract), so per-house attribution is a DISPLAY approximation:
+    // N bags render as piles at the curbs of the N lowest-keyed occupied homes (bags beyond one per home
+    // grow the pile). Squalor 1.0 finally LOOKS like squalor instead of a pristine street with a nagbar.
+    private trashPiles = new Map<string, Phaser.GameObjects.Rectangle>();
+
+    private refreshTrashPiles(): void {
+        const field = Game.field;
+        const inventory = Game.inventory;
+        if (!field || !inventory) {
+            return;
+        }
+        const curbBags = inventory.instancesAtLocation('outside')
+            .filter(instance => instance.archetypeId === 'bag_of_garbage' || instance.archetypeId === 'trash_bag')
+            .reduce((total, instance) => total + instance.quantity, 0);
+        const homes = field.getStructures()
+            .filter((structure): structure is import('game/world/House').default => structure instanceof House && structure.getResidents().length > 0)
+            .sort((a, b) => a.getIdentifier().localeCompare(b.getIdentifier()));
+        const seen = new Set<string>();
+        homes.forEach((home, index) => {
+            const key = home.getIdentifier();
+            if (homes.length === 0) {
+                return;
+            }
+            // Round-robin distribution: every home shows its share; the remainder lands lowest-key first.
+            const bagsHere = Math.floor(curbBags / homes.length) + (index < curbBags % homes.length ? 1 : 0);
+            if (bagsHere <= 0) {
+                return;
+            }
+            seen.add(key);
+            let pile = this.trashPiles.get(key);
+            const entrance = home.getEntrance();
+            if (!entrance) {
+                return;
+            }
+            const size = Math.min(10, 3 + bagsHere); // the pile grows with neglect, capped
+            if (!pile) {
+                pile = this.add.rectangle(0, 0, size, Math.max(2, size - 2), 0x5b4632);
+                this.trashPiles.set(key, pile);
+            }
+            pile.setSize(size, Math.max(2, size - 2));
+            pile.setPosition(entrance.x + 10, entrance.y + 4);
+            pile.setDepth(home.calculateDepth() + 1);
+            pile.setVisible(true);
+        });
+        for (const [key, pile] of this.trashPiles) {
+            if (!seen.has(key)) {
+                pile.destroy();
+                this.trashPiles.delete(key);
+            }
+        }
+    }
+
+    // A short human name for a travel destination key (the "→ home: Sleeping" labels).
+    private travelDestinationName(location: string | undefined): string {
+        if (!location) {
+            return 'out';
+        }
+        if (location === 'home') {
+            return 'home';
+        }
+        if (location === 'outside') {
+            return 'outside';
+        }
+        if (location.startsWith('venue:')) {
+            return `the ${location.slice('venue:'.length).replace(/_/g, ' ')}`;
+        }
+        if (location.startsWith('building:')) {
+            const key = location.slice('building:'.length);
+            const structure = Game.field?.getStructures().find(candidate => candidate instanceof Building && candidate.getIdentifier() === key);
+            if (structure instanceof Workplace) {
+                return structure.getBusiness()?.name ?? 'work';
+            }
+            if (structure instanceof House) {
+                return `the ${structure.getHouseholdName() || 'neighbors'}' place`;
+            }
+        }
+        if (location.startsWith('person:')) {
+            return 'a visit';
+        }
+        return 'out';
     }
 
     private drawPerson(person: Person): void {
@@ -610,19 +807,47 @@ export default class MainScene extends Phaser.Scene {
         personSprite.setOrigin(0.5, 0.5);
         person.setAsset(personSprite);
 
+        // Sidewalk jitter (aliveness-3 follow-up, maintainer read): every pedestrian walks the EXACT curb
+        // polyline, so any two at the same spot rendered perfectly stacked — the street read as one person.
+        // A stable per-person render offset (±4px, derived from the id) puts people on different parts of
+        // the sidewalk; render-layer only, logical positions untouched. Memoized once the id exists.
+        let jitterX = 0;
+        let jitterY = 0;
+        let jitterForId: string | null = null;
+
         person.setRedrawFunction((_: number) => {
             const personAsset = person.getAsset();
             if (personAsset === null) {
                 return;
             }
+            const personId = person.social.getPersonId();
+            if (personId && jitterForId !== personId) {
+                const seed = hashStringToSeed('sidewalk#' + personId);
+                jitterX = (seed % 9) - 4;
+                jitterY = (Math.floor(seed / 9) % 7) - 3;
+                jitterForId = personId;
+            }
 
             const isIndoors = person.isIndoors();
-            if (isIndoors && personAsset.visible) {
-                personAsset.setVisible(false);
+            if (isIndoors) {
+                // Entering a building hides EVERYTHING frame-accurately (aliveness-3 follow-up, maintainer
+                // read): the old early-return hid the sprite but left the activity bubble (and the pet dot)
+                // standing at the door until the next per-minute refresh — ghost labels over entrances.
+                if (personAsset.visible) {
+                    personAsset.setVisible(false);
+                }
+                const staleBubble = this.activityLabels.get(person);
+                if (staleBubble?.visible) {
+                    staleBubble.setVisible(false);
+                }
+                const stalePet = this.petDots.get(person);
+                if (stalePet?.visible) {
+                    stalePet.setVisible(false);
+                }
                 return;
             }
 
-            if (!isIndoors && !personAsset.visible) {
+            if (!personAsset.visible) {
                 personAsset.setVisible(true);
             }
 
@@ -633,15 +858,18 @@ export default class MainScene extends Phaser.Scene {
 
             const direction = person.getDirection();
             const rotation = directionToRadianRotation(direction);
-            
+
             personAsset.setRotation(rotation);
-            personAsset.setPosition(position.x, position.y);
+            // Side-by-side formations (W5) + the sidewalk jitter: both are render offsets — the formation
+            // separates co-walking group members, the jitter separates everyone else on the shared curb.
+            personAsset.setPosition(position.x + jitterX + (this.formationOffsets.get(person) ?? 0), position.y + jitterY);
             personAsset.setDepth(person.getDepth());
 
             // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
+            // The stagger offset (W8e) lifts colliding labels apart within a block.
             const bubble = this.activityLabels.get(person);
             if (bubble && bubble.visible) {
-                bubble.setPosition(position.x, position.y - 12);
+                bubble.setPosition(position.x, position.y - 12 - ((bubble.getData('stagger') as number | undefined) ?? 0));
                 bubble.setDepth(person.getDepth() + 2);
             }
             // The dog trails the owner (task 115): a fixed lag behind the sprite, same depth layer.

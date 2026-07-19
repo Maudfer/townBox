@@ -16,6 +16,7 @@ import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 
 import { PersonId } from 'types/Genealogy';
 import { locationKey } from 'types/Objects';
 import { SeededRandom, hashStringToSeed } from 'util/random';
+import { isOnShiftAtTick } from 'util/shifts';
 import Workplace from 'game/world/Workplace';
 import venuesConfig from 'json/venues.json';
 
@@ -43,6 +44,9 @@ export default class LiveWorld implements WorldAdapter {
     private deps: LiveWorldDeps;
     private nextHandleId = 0;
     private pending: TransitionHandle[] = [];
+    // The venue clock (W2 / P1-2): opening hours read the last simulated tick — updated by every
+    // requestTransition and pump, so hasVenue/nearestVenueHost answer for "now" without a clock dependency.
+    private lastTick = 0;
     // Venue targets resolve ONCE at request time (task 107) — the person walks to THAT building even if a
     // nearer host opens mid-trip. Keyed by handle id; dropped when the handle leaves pending.
     private resolvedVenues: Map<number, string> = new Map();
@@ -145,6 +149,9 @@ export default class LiveWorld implements WorldAdapter {
             if (!blueprintKey || !hosts.includes(blueprintKey)) {
                 continue;
             }
+            if (!this.venueHostOpen(building)) {
+                continue; // closed (W2/P1-2): nobody walks to a dark shop
+            }
             const entrance = building.getEntrance?.();
             const at = person.getPixelPosition?.();
             const distance = entrance && at ? Math.abs(entrance.x - at.x) + Math.abs(entrance.y - at.y) : 0;
@@ -165,7 +172,20 @@ export default class LiveWorld implements WorldAdapter {
         }
         return this.deps.listBuildings().some(building => {
             const blueprintKey = building instanceof Workplace ? building.getBusiness()?.blueprintKey : undefined;
-            return blueprintKey !== undefined && hosts.includes(blueprintKey);
+            return blueprintKey !== undefined && hosts.includes(blueprintKey) && this.venueHostOpen(building as Workplace);
+        });
+    }
+
+    // Opening hours (W2 / proposal simulation-aliveness-3 P1-2): a venue is OPEN while at least one of its
+    // employees is on shift — the audit watched 2 AM shopping trips at unstaffed shops. Derived from the
+    // authored shifts (no new data); an unstaffed business is closed until the labor loop (W1) staffs it.
+    // Live-only truth: bootstrap/logical venues stay abstract and always open (the seam's sanctioned
+    // difference), so off-map lives and the generator are untouched.
+    private venueHostOpen(building: Workplace): boolean {
+        const employees = building.getEmployees?.() ?? [];
+        return employees.some(employee => {
+            const job = employee.work?.getJob?.();
+            return !!job && isOnShiftAtTick(job, this.lastTick);
         });
     }
 
@@ -180,6 +200,7 @@ export default class LiveWorld implements WorldAdapter {
     }
 
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
+        this.lastTick = tick; // the venue clock (W2/P1-2)
         const handle: TransitionHandle = {
             id: this.nextHandleId++,
             personId,
@@ -192,18 +213,23 @@ export default class LiveWorld implements WorldAdapter {
 
         const person = this.findPerson(personId);
         // Stepping OUTSIDE (task 093 / E1): pre-093 this cancelled and outdoor actions blocked in live mode.
-        // Now the person steps out the door — visible at the entrance, no longer in the building — and the
+        // Now the person steps out the door — onto the curb of the connected street (W8 follow-up; the
+        // entrance pixel sits inside the footprint and read as "standing on the house sprite") — and the
         // handle resolves immediately (the walk itself is the ambulatory action's business, not a commute).
         if (person && target.kind === 'outside') {
             const building = person.getCurrentBuilding();
             if (building) {
-                // Optional calls: the scene-facing bits are absent on minimal test doubles (arcScenarios).
-                const entrance = building.getEntrance?.();
-                if (entrance) {
-                    person.setPosition?.(entrance.x, entrance.y);
+                if (person.stepOutside) {
+                    person.stepOutside();
+                } else {
+                    // Optional calls: the scene-facing bits are absent on minimal test doubles (arcScenarios).
+                    const entrance = building.getEntrance?.();
+                    if (entrance) {
+                        person.setPosition?.(entrance.x, entrance.y);
+                    }
+                    person.setIndoors?.(false);
+                    person.setCurrentBuilding?.(null);
                 }
-                person.setIndoors?.(false);
-                person.setCurrentBuilding?.(null);
             }
             handle.status = 'arrived';
             handle.resolvedAtTick = tick;
@@ -218,7 +244,7 @@ export default class LiveWorld implements WorldAdapter {
         if (target.kind === 'venue') {
             this.resolvedVenues.set(handle.id, destination.getIdentifier());
         }
-        if (person.getCurrentBuilding() === destination) {
+        if (this.personInside(person, destination)) {
             handle.status = 'arrived'; // already there — resolves immediately, like bootstrap
             handle.resolvedAtTick = tick;
             return handle;
@@ -237,6 +263,7 @@ export default class LiveWorld implements WorldAdapter {
     // departure minute has come. Called on the minute cadence (minuteOfHour from the clock; callers
     // without minute context — tests, catch-up paths — omit it and everything departs immediately).
     pump(tick: number, minuteOfHour?: number): void {
+        this.lastTick = Math.max(this.lastTick, tick); // the venue clock (W2/P1-2)
         if (this.pending.length === 0) {
             return;
         }
@@ -261,9 +288,13 @@ export default class LiveWorld implements WorldAdapter {
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);
                 this.departures.delete(handle.id);
+                // The body stops with the trip (W8 / P0-2): a destination that vanished mid-flight
+                // (bulldozed, business closed) used to leave the walker finishing a stale journey and the
+                // commute car stranded forever.
+                person?.abortTravel?.();
                 continue;
             }
-            if (person.getCurrentBuilding() === destination) {
+            if (this.personInside(person, destination)) {
                 handle.status = 'arrived';
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);
@@ -274,7 +305,38 @@ export default class LiveWorld implements WorldAdapter {
         this.pending = unresolved;
     }
 
+    // Arrival ground truth (W8 follow-up): the identity link when it exists, else the body physically
+    // inside the destination while flagged indoors. Materialized, loaded and logically-relocated people
+    // used to carry a null currentBuilding, and the pure identity check deadlocked their located actions —
+    // the live audit caught a pending 'home' handle 12 sim-hours old on a man standing in his own living
+    // room, his sleep waiting_for_materialization all night. The fallback heals the link on resolution.
+    private personInside(person: Person, destination: Building): boolean {
+        if (person.getCurrentBuilding() === destination) {
+            return true;
+        }
+        if (person.getCurrentBuilding() === null && person.isIndoors?.() && person.isPhysicallyInside?.(destination)) {
+            person.setCurrentBuilding?.(destination);
+            return true;
+        }
+        return false;
+    }
+
     getPending(): TransitionHandle[] {
         return this.pending;
+    }
+
+    // Coherent travel abort (W8 / proposal simulation-aliveness-3 P0-2.3): the engine reports that the
+    // intent holding this handle died (interrupt/pause/block). The trip stops NOW — handle cancelled and
+    // dropped from every queue, the body parked where it stands, the commute car despawned — instead of
+    // the travel machine finishing a stale journey while a new intent runs somewhere else.
+    cancelTransition(handleId: number, personId: PersonId): void {
+        const handle = this.pending.find(pendingHandle => pendingHandle.id === handleId);
+        if (handle) {
+            handle.status = 'cancelled';
+            this.pending = this.pending.filter(pendingHandle => pendingHandle.id !== handleId);
+        }
+        this.resolvedVenues.delete(handleId);
+        this.departures.delete(handleId);
+        this.findPerson(personId)?.abortTravel?.();
     }
 }

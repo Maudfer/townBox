@@ -62,6 +62,12 @@ export interface WorldAdapter {
     // there). Optional — off-map worlds leave it undefined and keep the abstract-venue fallback.
     businessAt?(location: LogicalLocation): string | null;
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle;
+    // Coherent travel abort (W8 / proposal simulation-aliveness-3 P0-2.3): the engine calls this when the
+    // intent that requested a still-pending transition dies (interrupt, pause, block) — the world stops the
+    // physical trip NOW (LiveWorld parks the body, despawns the commute car) instead of letting it finish a
+    // stale journey into a building nobody asked for. Optional: bootstrap/logical worlds resolve
+    // transitions immediately, so there is never anything in flight to stop.
+    cancelTransition?(handleId: number, personId: PersonId): void;
 }
 
 // The adapter bundle the event engine consults (formerly a loose `adapters` bag; tasks 015/017/024/032).

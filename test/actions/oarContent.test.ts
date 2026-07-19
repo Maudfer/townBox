@@ -4,6 +4,7 @@ import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
 import { runTick } from 'game/execution/TickRunner';
 import Inventory, { DEFAULT_OBJECT_ARCHETYPES } from 'game/objects/Inventory';
+import Needs from 'game/population/Needs';
 import jobsConfig from 'json/jobs.json';
 import oarConfig from 'json/object-action-relationships.json';
 import { OARTable } from 'types/Action';
@@ -227,11 +228,15 @@ describe('long-run object sanity (task 053)', () => {
         } : null);
         const employerKeyOf = (id: string) => (id === 'baker' ? '7-7' : null);
 
+        // The needs ledger drives the day (084) — every real run has one, and without it nothing ever
+        // makes the homebody hungry, so "did they eat" was a pure free-time coin flip (it broke on the W0
+        // stream shift). With hunger real, cooking→eating is structural, not luck.
+        const needs = new Needs();
         for (let tick = 0; tick < 20 * 24; tick++) {
             await runTick({
                 engine, actionEngine: actions, brain,
                 state, agentIds: ['baker', 'homebody'], tick, ticksPerYear: TPY,
-                ctx: { mode: 'bootstrap', world },
+                ctx: { mode: 'bootstrap', world, markets: { needs } },
                 inventory, jobOf, employerKeyOf,
             });
         }
@@ -255,10 +260,12 @@ describe('long-run object sanity (task 053)', () => {
 
         // No runaway duplication: personal possessions stay within pantry-scale bounds. Production is
         // excluded (it grows linearly with shifts worked by design, bounded by pool chances/cooldowns).
+        // Bound widened for W0: real hunger now drives shopping trips whose (per-item-optional, larger)
+        // baskets conjure off-map — grocery-cadence growth, not duplication (runaway would be thousands).
         const personalUnits = Object.values(inventory.getState().instances)
             .filter(i => i.owner.kind === 'person')
             .reduce((sum, i) => sum + i.quantity, 0);
-        expect(personalUnits).toBeLessThan(startingUnits + 120);
+        expect(personalUnits).toBeLessThan(startingUnits + 220);
         expect(bakeryGoods.reduce((sum, i) => sum + i.quantity, 0)).toBeLessThan(20 * 30);
     }, 60000);
 });

@@ -10,6 +10,8 @@ import Feed from 'hud/Feed';
 import Toasts, { ToastItem, ToastType } from 'hud/Toasts';
 import Toolbar from 'hud/Toolbar';
 import Nagbar from 'hud/Nagbar';
+import TimeControls from 'hud/TimeControls';
+import WindowErrorBoundary from 'hud/WindowErrorBoundary';
 import CityDetails from 'hud/windows/CityDetails';
 import ConstructionMenu from 'hud/windows/ConstructionMenu';
 import HouseDetails from 'hud/windows/HouseDetails';
@@ -123,15 +125,24 @@ const HUD: FC<HUDProps> = ({ game }) => {
                 if (!WindowComponent) {
                     return null;
                 }
-                
+
+                // Error boundary per window (W0 / P0-5): one crashing inspector must never take down the
+                // whole HUD — the boundary closes the offending window and the session continues.
                 return (
-                    <WindowComponent 
+                    <WindowErrorBoundary
                         key={uuidv4()}
-                        game={game}
-                        index={index}
-                        data={window.data}
-                        onClose={closeWindow}
-                    />
+                        onWindowCrash={() => {
+                            closeWindow(index);
+                            pushToast('A window crashed and was closed', 'error');
+                        }}
+                    >
+                        <WindowComponent
+                            game={game}
+                            index={index}
+                            data={window.data}
+                            onClose={closeWindow}
+                        />
+                    </WindowErrorBoundary>
                 );
             })}
 
@@ -152,6 +163,7 @@ const HUD: FC<HUDProps> = ({ game }) => {
             */}
 
             <Clock game={game} />
+            <TimeControls game={game} />
             <Feed game={game} />
             <Toolbar game={game} />
             <Nagbar game={game} />

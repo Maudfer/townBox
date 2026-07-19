@@ -303,6 +303,14 @@ export function planOAR(entries: OAREntry[], ctx: CommitContext): Plan | null | 
 export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plannedOutputs: Set<string>): Plan | null {
     const inventory = inventoryOf(ctx);
     const steps: (() => void)[] = [];
+    // Basket accounting (W0 / P0-1a): optional purchase ops may individually skip (missing stock, too
+    // broke), but a basket whose EVERY purchase op skipped fails the plan typed — a shopping commit that
+    // buys nothing is not a purchase.
+    let purchaseOpsSeen = 0;
+    let purchaseOpsPlanned = 0;
+    // Running planned spend (W0 / P1-8): the solvency floor must account for what THIS commit's earlier
+    // ops already plan to spend, or a multi-item basket overdrafts right through the per-op check.
+    let plannedSpend = 0;
     for (const op of ops) {
         switch (op.op) {
             case 'createObject': {
@@ -374,6 +382,19 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 const target = op.target === 'targetPerson' ? ctx.params['target'] : ctx.personId;
                 if (op.target === 'targetPerson' && typeof target !== 'string') {
                     return null;
+                }
+                // Debit solvency floor (W0 / P1-8): action-side spends (paid_the_bill, tips, fees) were the
+                // last unfloored micro-flow — balances drifted to −8/−32 through them. A debit the person
+                // can't cover is a typed plan failure (the engine logs it), symmetric with purchaseObject.
+                if (op.amount < 0) {
+                    const ledger = ctx.deps.ctx.markets?.ledger ?? null;
+                    const spendSoFar = target === ctx.personId ? plannedSpend : 0;
+                    if (ledger?.getPersonBalance && ledger.getPersonBalance(target as string) - spendSoFar < -op.amount) {
+                        return null;
+                    }
+                    if (target === ctx.personId) {
+                        plannedSpend += -op.amount;
+                    }
                 }
                 // Mirrors the event effect: a no-op without a ledger (money doesn't exist off-map).
                 steps.push(() => ctx.deps.ctx.markets?.ledger?.adjustPerson(target as string, op.amount));
@@ -456,23 +477,26 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 // At a REAL shop (task 113: a live world answers businessAt with the occupying business)
                 // the shelf is the truth — the conjuring fallback is retired, and missing stock is a typed
                 // plan failure. Off-map worlds leave businessAt undefined and keep the abstract fallback.
+                // An `optional` basket item (W0 / P0-1a) SKIPS instead of failing the plan — the buyer takes
+                // what the shelf has; the seen/planned counters below enforce "you can't buy nothing".
+                purchaseOpsSeen += 1;
                 const atRealShop = world?.businessAt?.(world.objectLocationOf(ctx.personId)) != null;
-                if (stockId() === null && (op.fallback === undefined || atRealShop)) {
-                    return null;
-                }
-                if (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback))) {
-                    return null;
-                }
-                // The solvency floor (LP-4 / proposal simulation-aliveness-2 P1-5): retail micro-purchases
-                // used to overdraft freely — balances drifted negative within days. Being too broke to buy
-                // IS story: an unaffordable purchase is a typed plan failure (inputsUnavailable upstream),
-                // and the money-urgency selection modifiers get a truthful signal to steer around.
-                {
-                    const ledger = ctx.deps.ctx.markets?.ledger ?? null;
-                    if (ledger?.getPersonBalance && op.price > 0 && ledger.getPersonBalance(ctx.personId) < op.price) {
-                        return null;
+                const ledgerForFloor = ctx.deps.ctx.markets?.ledger ?? null;
+                const unbuyable =
+                    (stockId() === null && (op.fallback === undefined || atRealShop))
+                    || (op.fallback !== undefined && (!inventory || !inventory.getArchetype(op.fallback)))
+                    // The solvency floor (LP-4 / P1-5): retail never overdrafts — too broke is a typed
+                    // failure (or an optional skip), and money-gated selection gets a truthful signal.
+                    || (!!ledgerForFloor?.getPersonBalance && op.price > 0
+                        && ledgerForFloor.getPersonBalance(ctx.personId) - plannedSpend < op.price);
+                if (unbuyable) {
+                    if (op.optional) {
+                        break; // skip this basket item; the basket-level check runs after the loop
                     }
+                    return null;
                 }
+                purchaseOpsPlanned += 1;
+                plannedSpend += op.price;
                 steps.push(() => {
                     const ledger = ctx.deps.ctx.markets?.ledger ?? null;
                     const id = stockId(); // re-resolve at apply time (earlier steps may have moved stock)
@@ -560,6 +584,11 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                 break;
             }
         }
+    }
+    // The basket rule (W0 / P0-1a): a commit that declared purchases but could plan NONE of them is not a
+    // purchase — typed failure (the engine logs it as inputsUnavailable), never a silent empty-handed walk.
+    if (purchaseOpsSeen > 0 && purchaseOpsPlanned === 0) {
+        return null;
     }
     return { steps };
 }

@@ -137,6 +137,7 @@ describe('action reachability (task 076/M3)', () => {
         'responding_to_incident', 'visiting_the_detained',                  // dispatch + jail visits (109; the visit is planner-enqueued)
         'receiving_treatment', 'treating_patient', 'visiting_the_sick',     // hospitals end to end (111): treatment + rounds hooks, planner sick visit
         'applying_at_business',                                             // the job-seeking hook (LP-13): located application trips
+        'looking_for_a_home',                                               // City.enqueueHomeSeeking (W9/P1-11): the homeless daily agenda producer
     ]);
 
     test('every action is reachable via some proposal path', () => {

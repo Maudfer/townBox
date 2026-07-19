@@ -323,9 +323,55 @@ function collectArchetypeParamRefs(node: unknown, refs: string[]): void {
 export function validateActionsSemantics(data: unknown, peers: Record<string, unknown>, issues: IssueCollector): void {
     const manifest = data as ActionManifest;
     const events = (peers['events'] ?? {}) as EventManifest;
-    const archetypes = new Set(Object.keys((peers['objects'] ?? {}) as Record<string, unknown>));
+    const objects = (peers['objects'] ?? {}) as Record<string, { category?: string; generation?: { minPerBuilding?: number } }>;
+    const archetypes = new Set(Object.keys(objects));
+
+    // Purchase sustainability (W0 / proposal simulation-aliveness-3 P0-1b): at a real shop the conjuring
+    // fallback is retired (113), so a food archetype a purchase op queries MUST be obtainable there
+    // sustainably — restocked by some OAR location-output, or seeded at placement (minPerBuilding ≥ 1).
+    // The cream_jar bug — a basket item nothing ever restocks — starved a whole live town silently.
+    const restockable = new Set<string>();
+    const oarTable = (peers['objectActionRelationships'] ?? {}) as Record<string, { outputs?: { archetype: string; container?: string }[] }>;
+    for (const entry of Object.values(oarTable)) {
+        for (const output of entry.outputs ?? []) {
+            if (output.container === 'location') {
+                restockable.add(output.archetype);
+            }
+        }
+    }
+    const sustainableFood = (archetypeId: string): boolean =>
+        restockable.has(archetypeId) || (objects[archetypeId]?.generation?.minPerBuilding ?? 0) >= 1;
+
+    // The INVERSE rule (W6 follow-up, found live): every RESTOCKED food must be purchasable by some
+    // purchase query, or the shelf silts up with exactly the unsellable items while the sellable ones
+    // drain — the live run watched a supermarket reduced to 13 butter sticks and 14 cereal boxes nobody
+    // could buy. Supply and demand sets must span each other.
+    const purchasedArchetypes = new Set<string>();
+    for (const action of Object.values(manifest)) {
+        for (const op of action.consequences ?? []) {
+            const purchase = op as { op: string; query?: { archetype?: string } };
+            if (purchase.op === 'purchaseObject' && purchase.query?.archetype !== undefined) {
+                purchasedArchetypes.add(purchase.query.archetype);
+            }
+        }
+    }
+    for (const archetypeId of restockable) {
+        if (objects[archetypeId]?.category === 'food' && !purchasedArchetypes.has(archetypeId)) {
+            issues.add('objectActionRelationships',
+                `restocked food "${archetypeId}" is not purchasable by any purchase query — it will silt the shelf`);
+        }
+    }
 
     for (const [id, action] of Object.entries(manifest)) {
+        for (const [index, op] of (action.consequences ?? []).entries()) {
+            const purchase = op as { op: string; query?: { archetype?: string } };
+            if (purchase.op === 'purchaseObject' && purchase.query?.archetype !== undefined
+                && objects[purchase.query.archetype]?.category === 'food'
+                && !sustainableFood(purchase.query.archetype)) {
+                issues.add(`${id}.consequences[${index}]`,
+                    `food purchase "${purchase.query.archetype}" is neither restocked (OAR location output) nor placement-seeded (minPerBuilding) — unbuyable at a real shop once sold out`);
+            }
+        }
         // archetypeParam requirement refs (067) must name a declared objectArchetype parameter.
         {
             const refs: string[] = [];

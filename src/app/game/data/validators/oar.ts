@@ -138,7 +138,8 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                 break;
             case 'purchaseObject': {
                 // Task 089/F3: real stock preferred, conjured fallback allowed (the 071 keep-list posture).
-                checkUnknownKeys(issues, opPath, op, ['op', 'query', 'price', 'fallback', 'fallbackQuantity']);
+                // `optional` (W0 / P0-1a): a skippable basket item — buy what's there.
+                checkUnknownKeys(issues, opPath, op, ['op', 'query', 'price', 'fallback', 'fallbackQuantity', 'optional']);
                 const query = op['query'];
                 if (checkRecord(issues, `${opPath}.query`, query)) {
                     checkUnknownKeys(issues, `${opPath}.query`, query as Record<string, unknown>, ['archetype', 'tag']);
@@ -153,6 +154,9 @@ export function validateConsequenceOps(issues: IssueCollector, path: string, ops
                 }
                 if ('fallbackQuantity' in op) {
                     checkNumber(issues, `${opPath}.fallbackQuantity`, op['fallbackQuantity'], { min: 1, integer: true });
+                }
+                if ('optional' in op && typeof op['optional'] !== 'boolean') {
+                    issues.add(`${opPath}.optional`, 'must be a boolean');
                 }
                 break;
             }

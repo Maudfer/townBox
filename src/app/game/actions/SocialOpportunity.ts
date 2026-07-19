@@ -116,6 +116,19 @@ export const socialOpportunityHook: BrainHook = {
         // Bind the picked target into the evaluation context so relationship-gated requirements resolve.
         const context = engine.contextFor(personId, deps, { target: pickedTarget });
 
+        // AskFirst pricing (W6 / proposal simulation-aliveness-3 Part 4.4): the proposer reads the SAME
+        // standing the target's consent policy will — intimacy toward weak edges dampens sharply, so people
+        // mostly stop asking those who'd say no. The decoded asset carried ~39% lifetime hug-decline rates
+        // (1,142 rejected hugs in 30 lifetimes) purely from under-priced proposals. Strong/kin bonds stay
+        // full weight; strangers ×~0.2; rivals near-zero.
+        const pickedStanding = resolveStanding(deps.state.people, social, personId, pickedTarget, deps.tick);
+        const strongKinds = new Set(['family', 'spouse', 'dating', 'engaged', 'close_friend']);
+        const askFirstFactor = pickedStanding && strongKinds.has(pickedStanding.kind)
+            ? 1
+            : pickedStanding?.kind === 'rival'
+                ? 0.05
+                : Math.min(1, 0.2 + (pickedStanding?.strength ?? 0) / 40);
+
         // Return-side coherence (task 074): a carried instance OWNED by a co-located other person is a
         // borrowed object whose return-target is knowable — the ownership-vs-possession split identifies it.
         // Deterministic: first by instance id. When a return-style action wins the pick, its target is the
@@ -149,6 +162,9 @@ export const socialOpportunityHook: BrainHook = {
                 continue;
             }
             let weight = def.selection?.weight ?? DEFAULT_SELECTION_WEIGHT;
+            if (def.interaction?.askFirst) {
+                weight *= askFirstFactor; // W6: don't keep asking people who'd say no
+            }
             if (def.selection?.cooldownTicks !== undefined && engine.hasAction(personId, actionId, deps.tick, { withinTicks: def.selection.cooldownTicks })) {
                 continue;
             }

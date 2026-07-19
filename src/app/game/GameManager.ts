@@ -49,7 +49,7 @@ import { EventPayloads, UpdateEvent } from 'types/Events';
 import { FieldParams, GridParams, ScreenParams } from 'types/Grid';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { DEFAULT_SAVE_SLOT, HistoryHydrationSave } from 'types/Save';
-import { MS_PER_TICK, nextTimeScale } from 'util/time';
+import { MS_PER_TICK, nextTimeScale, effectiveFrameDelta, TIME_SCALES, PAUSE_TIME_SCALE } from 'util/time';
 
 export default class GameManager {
     private eventListeners: EventListeners = {};
@@ -357,6 +357,8 @@ export default class GameManager {
         this.on("hudReady", { callback: this.applyPendingLoad, context: this });
         this.on("saveGameRequest", { callback: this.handleSaveRequest, context: this });
         this.on("update", { callback: this.advanceTime, context: this });
+        // The HUD time toolbar (W10): pause/1×/4×/8× flow through the bus like every cross-system signal.
+        this.on("setTimeScale", { callback: (scale: number) => { this.setTimeScale(scale); }, context: this });
     }
 
     // Sets up a fresh game's world (task 055/077 Part B). Picks a random per-game seed and SELECTS a window
@@ -524,17 +526,31 @@ export default class GameManager {
         }
     }
 
-    // The debug time throttle (task 117): a frame-delta multiplier for the human observation session —
-    // cycled by the T key (masterSwitch-gated in MainScene), never serialized, always 1 in normal play.
+    // First-class time control (W10 / proposal simulation-aliveness-3; formerly the 117 debug throttle):
+    // pause(0)/1×/4×/8×, set by the HUD time toolbar (the setTimeScale bus event) or cycled by the debug T
+    // key. Never serialized; every consumer derives its frame delta through effectiveTimeDelta below, so
+    // the clock, movement, and particles scale — and stall — together.
     private timeScale = 1;
 
     public getTimeScale(): number {
         return this.timeScale;
     }
 
-    public cycleTimeScale(): number {
-        this.timeScale = nextTimeScale(this.timeScale);
+    public setTimeScale(scale: number): number {
+        this.timeScale = scale === PAUSE_TIME_SCALE || TIME_SCALES.includes(scale) ? scale : 1;
+        void this.emit('timeScaleChanged', this.timeScale);
         return this.timeScale;
+    }
+
+    public cycleTimeScale(): number {
+        return this.setTimeScale(nextTimeScale(this.timeScale));
+    }
+
+    // The one authoritative frame-delta transform (W10): raw RAF delta → capped, scaled sim delta. The
+    // clock (advanceTime) and the movement layer (Field.update) both consume THIS, which is the whole
+    // distortion-free contract: they can never diverge, and a hitch stalls everything together.
+    public effectiveTimeDelta(rawDeltaMs: number): number {
+        return effectiveFrameDelta(rawDeltaMs, this.timeScale);
     }
 
     // Advances the clock from the frame delta and emits time signals only when they actually change:
@@ -544,7 +560,11 @@ export default class GameManager {
         if (!this.clock || this.timePaused) {
             return;
         }
-        this.clock.advance(payload.timeDelta * this.timeScale);
+        const delta = this.effectiveTimeDelta(payload.timeDelta);
+        if (delta <= 0) {
+            return; // paused (scale 0) or a degenerate frame — nothing advances, coherently
+        }
+        this.clock.advance(delta);
 
         const timestamp = this.clock.getTimestamp();
         const tick = this.clock.getCurrentTick();

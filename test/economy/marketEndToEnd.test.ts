@@ -218,3 +218,59 @@ describe('the flagship: bake_cake completes in live play from shopped ingredient
         expect(carriedOf('cream_jar')).toBe(0); // consumed by the topping
     });
 });
+
+describe('per-item-optional baskets (W0 / proposal simulation-aliveness-3 P0-1a)', () => {
+    test('a partial shelf sells what it has: missing optional items skip, present ones transfer, money matches', () => {
+        const { actions, economy, deps, shop, person, shelf, carriedOf } = makeLiveTown();
+        economy.adjustPerson('shopper', 100);
+        shelf('bread_loaf', 1); // ONLY bread on the shelf — every other basket item skips
+        person.setCurrentBuilding(shop);
+        expect(actions.startAction('shopper', 'bought_groceries', {}, { source: 'brain', causationId: null }, deps(TICK_NOW), result()).ok).toBe(true);
+        expect(carriedOf('bread_loaf')).toBe(1);
+        expect(carriedOf('flour_bag')).toBe(0);
+        expect(economy.getPersonBalance('shopper')).toBe(100 - 9); // bread only
+    });
+
+    test('an all-skipped basket is a TYPED failure and it LOGS (P0-1d) — rate-limited to one entry per window', () => {
+        const { actions, engine, deps, shop, person } = makeLiveTown();
+        person.setCurrentBuilding(shop); // bare shelf at a real shop: every optional item skips
+        expect(actions.startAction('shopper', 'bought_groceries', {}, { source: 'brain', causationId: null }, deps(TICK_NOW), result()).ok).toBe(false);
+        const failures = () => engine.getPersonLog('shopper').filter(entry =>
+            entry.kind === 'action' && entry.defId === 'bought_groceries' && entry.lifecycle === 'failed' && entry.failureReason === 'inputs_unavailable');
+        expect(failures().length).toBe(1);
+        // A second attempt inside the window does not spam a second entry…
+        expect(actions.startAction('shopper', 'bought_groceries', {}, { source: 'brain', causationId: null }, deps(TICK_NOW + 2), result()).ok).toBe(false);
+        expect(failures().length).toBe(1);
+        // …but past the window the story continues honestly.
+        expect(actions.startAction('shopper', 'bought_groceries', {}, { source: 'brain', causationId: null }, deps(TICK_NOW + 30), result()).ok).toBe(false);
+        expect(failures().length).toBe(2);
+    });
+
+    test('the solvency floor holds ACROSS the basket: the running planned spend gates later items', () => {
+        const { actions, economy, deps, shop, person, shelf, carriedOf } = makeLiveTown();
+        economy.adjustPerson('shopper', 5); // ops run potato(5) → onion(3) → …: potato fits, onion no longer does
+        shelf('onion', 1);
+        shelf('potato', 2);
+        person.setCurrentBuilding(shop);
+        expect(actions.startAction('shopper', 'picked_up_fresh_ingredients', {}, { source: 'brain', causationId: null }, deps(TICK_NOW), result()).ok).toBe(true);
+        expect(carriedOf('potato')).toBe(2); // one shelf instance of quantity 2, price 5
+        expect(carriedOf('onion')).toBe(0); // skipped: 5 − 5 already planned < 3
+        expect(economy.getPersonBalance('shopper')).toBe(0); // never negative
+    });
+});
+
+describe('the adjustMoney debit floor (W0 / P1-8)', () => {
+    test('an action-side spend the person cannot cover is a typed failure with zero mutations — balances never go negative', () => {
+        const { actions, economy, engine, deps, person, shop } = makeLiveTown();
+        person.setCurrentBuilding(shop);
+        economy.adjustPerson('shopper', 5); // ordered_a_drink costs 8
+        expect(actions.startAction('shopper', 'ordered_a_drink', {}, { source: 'brain', causationId: null }, deps(TICK_NOW), result()).ok).toBe(false);
+        expect(economy.getPersonBalance('shopper')).toBe(5);
+        expect(engine.getPersonLog('shopper').some(entry =>
+            entry.kind === 'action' && entry.defId === 'ordered_a_drink' && entry.lifecycle === 'failed' && entry.failureReason === 'inputs_unavailable')).toBe(true);
+        // With funds it commits and debits normally.
+        economy.adjustPerson('shopper', 10);
+        expect(actions.startAction('shopper', 'ordered_a_drink', {}, { source: 'brain', causationId: null }, deps(TICK_NOW + 30), result()).ok).toBe(true);
+        expect(economy.getPersonBalance('shopper')).toBe(15 - 8);
+    });
+});

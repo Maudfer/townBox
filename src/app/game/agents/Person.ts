@@ -32,8 +32,8 @@ export default class Person {
 
     private vehicle: Vehicle | null;
     private destinationBuilding: Building | null;
-    // The building the person is currently in/at (home or workplace). Null is treated as "at home". Set on
-    // arrival; drives the commute scheduler's home<->work decisions (task 006).
+    // The building the person is currently in/at (home or workplace). Set on arrival (and at logical
+    // placement — materialization, load, rehousing); null means outdoors/in transit (W8).
     private currentBuilding: Building | null;
     private travelStep: TravelStep;
 
@@ -84,11 +84,49 @@ export default class Person {
     }
 
     setVehicle(vehicle: Vehicle): void {
+        // A live link never gets silently overwritten (W8 / proposal simulation-aliveness-3 P0-2.1): the
+        // audit found 148 orphaned commute cars in a month — every mid-flight re-plan minted one. The old
+        // car is properly despawned (occupant cleared so no phantom driver) before the new link lands.
+        if (this.vehicle && this.vehicle !== vehicle) {
+            if (this.vehicle.isOccupied()) {
+                this.vehicle.disembark();
+            }
+            this.vehicle.setControlled(false);
+            Game.field?.removeVehicle(this.vehicle);
+        }
         this.vehicle = vehicle;
     }
 
     getVehicle(): Vehicle | null {
         return this.vehicle;
+    }
+
+    // Coherent travel abort (W8 / P0-2.3): called when the intent driving this trip dies (transition
+    // cancelled, instance interrupted). The body stops WHERE IT IS instead of finishing a stale trip into
+    // a building nobody asked for; a boarded person steps out at the car's position; the car despawns.
+    abortTravel(): void {
+        if (this.travelStep === TravelStep.Idle) {
+            return;
+        }
+        if (this.vehicle) {
+            // Boarded (EnteringCar → Driving): the person is "inside" the car — step out where it stands.
+            if (this.vehicle.isOccupied()) {
+                const carPosition = this.vehicle.getPosition();
+                if (carPosition) {
+                    this.x = carPosition.x;
+                    this.y = carPosition.y;
+                }
+                this.vehicle.disembark();
+                this.setIndoors(false);
+            }
+            this.vehicle.setControlled(false);
+            Game.field?.removeVehicle(this.vehicle);
+            this.vehicle = null;
+        }
+        this.destinationBuilding = null;
+        this.path = [];
+        this.currentDestination = null;
+        this.travelStep = TravelStep.Idle;
     }
 
     setDirection(direction: Direction): void {
@@ -98,6 +136,12 @@ export default class Person {
     setDestination(building: Building): void {
         this.destinationBuilding = building;
         this.travelStep = TravelStep.ExitingBuilding;
+    }
+
+    // Where the travel machine is currently headed (W9: demolition ejects people heading TO the doomed
+    // building too, not just those inside it).
+    getDestinationBuilding(): Building | null {
+        return this.destinationBuilding;
     }
 
     getCurrentBuilding(): Building | null {
@@ -112,6 +156,39 @@ export default class Person {
 
     setCurrentBuilding(building: Building | null): void {
         this.currentBuilding = building;
+    }
+
+    // Physical ground truth for "is this body inside that building" (W8 follow-up): the tile under the
+    // person's pixel references the structure (all 9 footprint cells share the instance). LiveWorld uses
+    // it to resolve arrivals for people whose currentBuilding link was never set — materialization, loads
+    // and logical relocations left the link null, and the pure identity check deadlocked every located
+    // action of such a person (a pending 'home' handle for someone standing in their own living room).
+    isPhysicallyInside(building: Building): boolean {
+        const tilePosition = Game?.pixelToTilePosition(this.getPosition());
+        if (!tilePosition) {
+            return false;
+        }
+        return Game.field?.getTile(tilePosition.row, tilePosition.col) === building;
+    }
+
+    // Steps out the front door (the task-093 outside transition, W8 follow-up): the body lands on the CURB
+    // of the connected street — entrance fallback in road-less worlds — instead of the entrance pixel,
+    // which sits inside the footprint and drew the person "standing on the house sprite" for the whole of
+    // an outdoor activity. Also the spot ambulatory walks depart from, so wanderers start road-adjacent.
+    stepOutside(): void {
+        const building = this.currentBuilding;
+        if (building) {
+            const entrance = building.getEntrance();
+            const roadPosition = Game?.field?.getAdjacentRoadTile(building);
+            const roadTile = roadPosition ? Game.field?.getTile(roadPosition.row, roadPosition.col) : null;
+            const curb = roadTile instanceof Road && entrance ? roadTile.getClosestCurbPoint(entrance) : null;
+            const spot = curb ?? entrance;
+            if (spot) {
+                this.setPosition(spot.x, spot.y);
+            }
+        }
+        this.setIndoors(false);
+        this.currentBuilding = null;
     }
 
     // Not currently on a commute (available to be dispatched home/to work).
@@ -136,8 +213,15 @@ export default class Person {
             return false;
         }
 
-        const speedX = this.speed * Math.sign(this.currentTarget.x - this.x) * timeDelta;
-        const speedY = this.speed * Math.sign(this.currentTarget.y - this.y) * timeDelta;
+        // Steps CLAMP to the remaining distance (W8 follow-up): an unclamped `speed × timeDelta` step
+        // overshoots the <1px arrival window whenever the frame delta is large (throttled play at 4×/8×,
+        // harness stepping, a hitch at the cap) and the walker ping-pongs across the target forever —
+        // observed live as a person frozen mid-step 1px from their commute car for 21 sim-hours.
+        const maxStep = this.speed * timeDelta;
+        const deltaX = this.currentTarget.x - this.x;
+        const deltaY = this.currentTarget.y - this.y;
+        const speedX = Math.sign(deltaX) * Math.min(Math.abs(deltaX), maxStep);
+        const speedY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), maxStep);
 
         const potentialX = this.x + speedX;
         const potentialY = this.y + speedY;
@@ -211,12 +295,21 @@ export default class Person {
         this.currentTarget = nextTile.getClosestCurbPoint(currentPixelPosition);
     }
 
+    // Frames left before the next wander pick after an unreachable one (W8 follow-up) — retrying every
+    // frame would hammer A* from a spot that may simply have no route this instant.
+    private wanderRetryFrames = 0;
+
     updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
         if (this.currentDestination) {
             return;
         }
 
         if (!destinations.size) {
+            return;
+        }
+
+        if (this.wanderRetryFrames > 0) {
+            this.wanderRetryFrames -= 1;
             return;
         }
 
@@ -227,17 +320,25 @@ export default class Person {
             return;
         }
 
-        this.currentDestination = { row: destinationRow, col: destinationCol };
-
         const currentTilePosition = {
             row: currentTile.getRow(),
             col: currentTile.getCol()
         };
 
-        this.path = pathFinder.findPath(currentTilePosition, this.currentDestination);
-        if (this.path?.length) {
-            this.setNextTarget(currentTile);
+        // Commit the destination ONLY with a real path (W8 follow-up): committing before the reachability
+        // check froze the walker forever on an unreachable (or own-building) pick — currentDestination set,
+        // no target, walk() a permanent no-op, and every later updateDestination an early return. The
+        // live symptom: an ambulatory person ("Out looking for work", "Patrolling the streets") standing
+        // motionless at their doorstep for the rest of the session.
+        const path = pathFinder.findPath(currentTilePosition, { row: destinationRow, col: destinationCol });
+        if (!path?.length) {
+            this.wanderRetryFrames = 30;
+            return;
         }
+
+        this.currentDestination = { row: destinationRow, col: destinationCol };
+        this.path = path;
+        this.setNextTarget(currentTile);
     }
 
     setDestinationTile(currentTile: Tile, destination: TilePosition, pathFinder: PathFinder): void {
@@ -300,6 +401,10 @@ export default class Person {
         switch (this.travelStep) {
             case TravelStep.ExitingBuilding:
                 this.setIndoors(false);
+                // Leaving means LEFT (W8): keeping the stale reference made LiveWorld's immediate-arrival
+                // check (`currentBuilding === destination`) treat a person mid-street as already back home
+                // — an instant false arrival for any return trip requested while walking.
+                this.currentBuilding = null;
                 this.currentDestination = null;
                 if (this.vehicle) {
                     const vehiclePos = this.vehicle.getPosition();
@@ -452,8 +557,23 @@ export default class Person {
     }
 
     setAsset(asset: Image): void {
+        // The spawn/despawn race (W8 / P0-2.2): sprite attachment rides an async bus handler, so a
+        // same-tick removal can run BEFORE the sprite exists — destroy() hits null and the sprite lands
+        // afterwards as a ghost in no list. A removed entity destroys any late-arriving sprite on contact.
+        if (this.removedFromField) {
+            asset?.destroy();
+            return;
+        }
         this.asset = asset;
     }
+
+    // Marks this person as removed from the field (Field.removePerson): any sprite attached after this
+    // point self-destroys instead of ghosting.
+    markRemoved(): void {
+        this.removedFromField = true;
+    }
+
+    private removedFromField = false;
 
     setRedrawFunction(redrawFunction: (timeDelta: number) => void): void {
         this.redrawFunction = redrawFunction;

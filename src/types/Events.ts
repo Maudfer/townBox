@@ -79,6 +79,11 @@ export interface EventPayloads {
     "loadFailed": string;
     "timeChanged": TimeChangedEvent;
     "newTick": NewTickEvent;
+    // First-class time control (W10 / proposal simulation-aliveness-3): the HUD time toolbar sets the
+    // scale (0 = pause, 1/4/8 = speeds) and every surface (toolbar highlight, fire particles, the debug
+    // overlay) follows the change through the bus.
+    "setTimeScale": number;
+    "timeScaleChanged": number;
     "newDay": NewDayEvent;
     "cityEvent": CityEvent;
 };

@@ -1,9 +1,18 @@
 {
+    "bakery": ["bakery"],
     "bar": ["bar"],
     "beach": ["beach"],
+    "cafe": ["cafe"],
+    "church": ["church"],
+    "cinema": ["cinema"],
+    "gym": ["gym", "sports_complex"],
     "hospital": ["hospital"],
+    "library": ["library"],
     "park": ["park"],
     "pet_shop": ["pet_shop"],
+    "restaurant": ["restaurant"],
+    "salon": ["salon"],
     "shop": ["supermarket", "clothing_store", "electronics_store", "hardware_store", "bookstore", "toy_store"],
+    "sports_complex": ["sports_complex"],
     "supermarket": ["supermarket"]
 }

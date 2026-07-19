@@ -108,7 +108,7 @@ describe('Household eviction (task 022)', () => {
         expect(house.getHousehold()).toBeNull(); // dissolved
         expect(house.getResidents()).toHaveLength(0); // vacated
         expect(personA.social.getHome()).toBeNull(); // homeless
-        expect(personA.isIndoors()).toBe(true); // hidden
+        expect(personA.isIndoors()).toBe(false); // VISIBLE on the street (W9/P1-11 — the hidden-homeless flow is retired)
         const homeless = city.getHomelessHouseholds();
         expect(homeless).toHaveLength(1);
         expect(homeless[0]!.memberIds).toEqual(['a']);

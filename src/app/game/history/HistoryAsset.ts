@@ -62,7 +62,9 @@ export const HISTORY_ASSET_FORMAT_VERSION = 2;
 // 078.0: reduced-manifest generator mode (default) — the probabilistic walk is restricted to loggable events,
 //        dropping the ~680 effect-free texture events. A per-agent perf win that CHANGES the RNG stream, so
 //        assets differ byte-wise from 077.4 (same content in kind); still deterministic per seed.
-export const HISTORY_GENERATOR_VERSION = '121.0';
+// 136.0 — the aliveness-3 arc (W0–W10): conception rides had_sex, the abstract-encounter chase discount,
+// askFirst social pricing, the venue repertoire + stream shifts. Deterministic per seed as ever.
+export const HISTORY_GENERATOR_VERSION = '137.0';
 
 // The event whose hazard the population thermostat throttles (its birth effect is the only fertility source).
 const PREGNANCY_EVENT = 'pregnancy';
@@ -513,10 +515,16 @@ export async function generateHistoryAsset(
                 logical?.cohabit(state, wifeId, tick, tpy);
             }
         }
+        // Stamp the outcome-pass appends (W2 fix of a latent LP-11/121 seam): handleTickOutcomes and the
+        // cohabitation invokes above APPEND entries after runTick's phase-10 stamp — a drain here used to
+        // ship them minute-less while the in-memory path stamped them a tick later (the streamed and
+        // in-memory assets diverged on one entry whenever a flush boundary landed between). Stamping now,
+        // UNCONDITIONALLY in both paths, keeps the batches identical; group keys are (person, entry.tick),
+        // so the extra batch never changes a minute (the LP-11 batch-insensitivity rule).
+        engine.getLifeLog().stampMinutes(tick, state.worldSeed);
         // Streaming flush BEFORE the day-cadence invokes (LP-11): runDaily appends entries carrying the
         // NEXT tick's timestamp; a drain between them and that tick's stamp pass would split a (person,
         // tick) minute-stamp group across batches and diverge the streamed asset from an in-memory run.
-        // Here the pending-stamp queue is empty (runTick's phase 10 just ran), so the drain is stamp-safe.
         if (sink) {
             const flushBucket = Math.floor(tick / flushIntervalTicks);
             if (flushBucket !== lastFlushBucket) {

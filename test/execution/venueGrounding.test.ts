@@ -65,12 +65,25 @@ function harness() {
         startCommute: (person, destination) => commutes.push({ person, destination }),
         listBuildings: () => field.getStructures().filter((tile): tile is Building => tile instanceof Building),
     });
-    const placeShop = (blueprintKey: string, row: number, col: number): Workplace => {
+    // Opening hours (W2 / P1-2): a venue is open only while an employee is ON SHIFT, so grounded-venue
+    // fixtures staff their shops with an always-on clerk by default. Pass staffed:false for a dark shop.
+    const placeShop = (blueprintKey: string, row: number, col: number, staffed = true): Workplace => {
         const shop = field.loadStructure('work', col, row, 'building_1x1x2_2') as Workplace;
         shop.setBusiness(generateBusiness(blueprintKey, BLUEPRINTS[blueprintKey]!, JOBS, blueprintKey + '-' + row, 2));
+        if (staffed) {
+            staffShop(shop, { shiftStart: 0, shiftEnd: 1440 });
+        }
         return shop;
     };
-    return { field, world, commutes, placeShop };
+    const staffShop = (shop: Workplace, shift: { shiftStart: number; shiftEnd: number }): Person => {
+        const clerk = field.loadPerson(0, 0);
+        clerk.social.setPersonId(`staff-${shop.getIdentifier()}`);
+        clerk.work.setJob({ title: 'Clerk', salary: 1000, requirements: [], ...shift });
+        clerk.work.setWorkplace(shop);
+        shop.hire(clerk);
+        return clerk;
+    };
+    return { field, world, commutes, placeShop, staffShop };
 }
 
 describe('resolution', () => {
@@ -179,5 +192,33 @@ describe('real stock at a grounded venue', () => {
         const carried = inventory.carriedInstances('a').filter(instance => instance.archetypeId === 'bread_loaf');
         expect(carried).toHaveLength(1);
         expect(carried[0]!.id).toBe(stock.id); // traceably THE shop's loaf, not a fallback creation
+    });
+});
+
+// W2 — opening hours (proposal simulation-aliveness-3 P1-2): a venue is open only while someone is on
+// shift there. The audit watched 2 AM shopping trips at unstaffed shops; now a dark shop is a closed shop.
+describe('W2: opening hours', () => {
+    test('an UNSTAFFED host is closed: hasVenue false, trips cancel', () => {
+        const { field, world, placeShop } = harness();
+        placeShop('supermarket', 8, 8, false); // no staff at all
+        const person = field.loadPerson(100, 100);
+        person.social.setPersonId('a');
+        expect(world.hasVenue('supermarket')).toBe(false);
+        expect(world.requestTransition('a', { kind: 'venue', venue: 'supermarket' }, 10, null).status).toBe('cancelled');
+    });
+
+    test('staffed but OFF SHIFT is closed too; on shift it opens', () => {
+        const { field, world, placeShop, staffShop } = harness();
+        const shop = placeShop('supermarket', 8, 8, false);
+        staffShop(shop, { shiftStart: 540, shiftEnd: 1020 }); // 09:00–17:00, all days
+        const person = field.loadPerson(100, 100);
+        person.social.setPersonId('a');
+
+        // Tick 3 (03:00): the clerk is asleep — closed.
+        expect(world.requestTransition('a', { kind: 'venue', venue: 'supermarket' }, 3, null).status).toBe('cancelled');
+        expect(world.hasVenue('supermarket')).toBe(false);
+        // Tick 12 (12:00): open — the trip goes out.
+        expect(world.requestTransition('a', { kind: 'venue', venue: 'supermarket' }, 12, null).status).toBe('pending');
+        expect(world.hasVenue('supermarket')).toBe(true);
     });
 });

@@ -75,6 +75,12 @@ export interface ActionIntent {
 const BAND_RANK: Record<IntentBand, number> = { survival: 0, obligation: 1, commitment: 2, need: 3, opportunity: 4, fallback: 5 };
 // The authored interruption thresholds (task 086 / L4, L6).
 export const ARBITRATION_CONFIG = arbitrationConfig as { sameBandUtilityDelta: number; decisionCooldownTicks: number };
+// The aftershock (W3 / proposal simulation-aliveness-3 P1-3c): a recent high-shock event dampens the
+// OUTGOING (social/leisure) free-time weights for a few hours — people lie low after an arrest or a fire.
+// Home/maintenance/recovery candidates keep their weights, so the bias reads as staying in, not paralysis.
+export const AFTERSHOCK_CONFIG = (arbitrationConfig as unknown as {
+    aftershock?: { events: string[]; withinTicks: number; outgoingMultiplier: number };
+}).aftershock ?? { events: [], withinTicks: 0, outgoingMultiplier: 1 };
 // Carry budgets + the acquisitive hook's chances (task 088 / F1–F2).
 export const INVENTORY_CONFIG = inventoryConfig as {
     maxCarriedWeightGrams: number; maxBulkyItems: number; stowAboveFraction: number;
@@ -328,6 +334,14 @@ export default class Brain {
             if (!def) {
                 continue;
             }
+            // The closed-venue guard at the CHOKE POINT (W2 follow-up, found live): the free-time and needs
+            // paths already skip unhosted/closed venues, but planner routines (weekly shopping, dinner out)
+            // proposed straight into shops that had just closed — a 166-blocked-trip wall at 16:00-19:00,
+            // right after the clerk clocks off. One guard here covers every intent source.
+            if (typeof def.location === 'string' && def.location.startsWith('venue:')
+                && deps.ctx.world && !deps.ctx.world.hasVenue(def.location.slice('venue:'.length))) {
+                continue; // closed or unhosted — try the next intent rather than a doomed trip
+            }
             const active = this.actionEngine.activeInstanceOf(personId);
             if (def.type === 'continuous' && active) {
                 if (active.defId === intent.actionId) {
@@ -356,7 +370,11 @@ export default class Brain {
                 if (activeDef?.resumable && intentRank < activeRank) {
                     this.actionEngine.pause(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
                 } else {
-                    this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result);
+                    // Work→work is a HANDOVER (W3 / P1-3d): switching tasks inside the shift must not fire
+                    // stopped_working — the audit watched the doctor 'clock out' by turning to a patient.
+                    const incomingDef = this.actionEngine.getDefinition(intent.actionId);
+                    const handover = activeDef?.category === 'work' && incomingDef?.category === 'work';
+                    this.actionEngine.interrupt(active.id, { source: 'brain', causationId: intent.causationId }, deps, result, handover);
                 }
             }
             // Resume intents (task 087): revive the paused instance instead of starting a new one.
@@ -435,6 +453,14 @@ export default class Brain {
         return candidates;
     }
 
+    // Recent high-shock event? (W3 / P1-3c) — the outgoing free-time weights dampen while it's fresh.
+    private static isShaken(context: import('types/Simulation').SimulationContext): boolean {
+        if (AFTERSHOCK_CONFIG.events.length === 0) {
+            return false;
+        }
+        return AFTERSHOCK_CONFIG.events.some(eventId => context.hasEvent(eventId, { withinTicks: AFTERSHOCK_CONFIG.withinTicks }));
+    }
+
     // The best available continuous action addressing one need (the needsHook's pick, task 084): the normal
     // free-time machinery (cooldowns, hard gates, modifiers, urgency) restricted to candidates that satisfy
     // the need meaningfully. Deterministic per (seed, tick, person) on a salted fork of the free-time stream.
@@ -444,6 +470,7 @@ export default class Brain {
         const traitsReader = deps.ctx.markets?.traits ?? null;
         const habitsReader = deps.ctx.markets?.habits ?? null;
         const urgency = needsLedger?.urgencyByNeed?.(personId, deps.tick, deps.state.worldSeed) ?? null;
+        const shaken = Brain.isShaken(context);
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
@@ -454,6 +481,9 @@ export default class Brain {
             }
             const selection = def.selection;
             let weight = baseWeight;
+            if (shaken && (def.category === 'social' || def.category === 'leisure')) {
+                weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)
+            }
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue;
             }
@@ -544,10 +574,14 @@ export default class Brain {
         const tLoop = clock ? clock() : 0;
         let reqMs = 0;
         let modMs = 0;
+        const shaken = Brain.isShaken(context);
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind, satisfiesEntries } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
             let weight = baseWeight;
+            if (shaken && (def.category === 'social' || def.category === 'leisure')) {
+                weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)
+            }
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue; // anti-repetition
             }
@@ -885,11 +919,11 @@ const needsHook: BrainHook = {
         // The archetypes an ate_a_meal OAR alternative can actually consume (LP-5): the eat-in-hand
         // intent, the pantry-fetch skip, and the fetch preference all key off THIS set, so a person never
         // "carries food" the meal machinery cannot eat (the granola-bar deadlock the fed-week arc caught).
-        const MEAL_CONSUMABLES = new Set(['sandwich', 'bread_loaf', 'egg', 'tomato', 'lettuce', 'potato', 'pasta_box', 'apple', 'banana', 'granola_bar', 'cheese_wedge']);
+        const MEAL_CONSUMABLES = new Set(['sandwich', 'bread_loaf', 'egg', 'tomato', 'lettuce', 'potato', 'pasta_box', 'apple', 'banana', 'granola_bar', 'cheese_wedge', 'milk_carton', 'cereal_box']);
         // Grab what a MEAL can be made of (LP-5 fix): the fetch used to take ingredient-tagged items only
         // (bread is 'meal'-tagged — never fetchable) alphabetically (butter first) — matching none of
         // ate_a_meal's consumption alternatives, so the hungry fetched once and starved holding butter.
-        const MEAL_STAPLE_PRIORITY = ['bread_loaf', 'egg', 'potato', 'pasta_box', 'apple', 'tomato', 'lettuce', 'banana', 'cheese_wedge'];
+        const MEAL_STAPLE_PRIORITY = ['bread_loaf', 'egg', 'potato', 'pasta_box', 'apple', 'tomato', 'lettuce', 'banana', 'cheese_wedge', 'cereal_box', 'milk_carton'];
         if (need === 'food' && world && inventory
             && ledger.levelOf(personId, 'food', deps.tick, deps.state.worldSeed) < INVENTORY_CONFIG.pantryFetchBelowFood
             && locationKey(world.locationOf(personId)) === 'home'
@@ -933,6 +967,29 @@ const needsHook: BrainHook = {
                 priority: 65,
                 necessity: 'required',
                 band: 'survival',
+                mayInterrupt: true,
+                causationId: null,
+            });
+        }
+        // HUNGER SENDS YOU SHOPPING (W0 / proposal simulation-aliveness-3 P0-1e): critical hunger with no
+        // food in hand and none in the pantry proposes the shopping trip the D2 design always promised —
+        // the located venue trip walks them to a real shop where the (now per-item-optional) basket buys
+        // what the shelf has. Below the eat/fetch intents so food-at-hand always wins; cooldown-gated so a
+        // stocked-out or broke trip doesn't loop.
+        if (need === 'food' && world && inventory
+            && deps.ctx.world?.hasVenue?.('shop')
+            && !brain.getActionEngine().hasAction(personId, 'shopping_trip', deps.tick, { withinTicks: 12 })
+            && !inventory.carriedInstances(personId).some(instance => MEAL_CONSUMABLES.has(instance.archetypeId))
+            && !world.objectsAt(world.objectLocationOf(personId)).some(id => {
+                const instance = inventory.getInstance(id);
+                return !!instance && MEAL_CONSUMABLES.has(instance.archetypeId);
+            })) {
+            intents.push({
+                actionId: 'shopping_trip',
+                sourceHook: 'needs',
+                priority: 58,
+                necessity: 'required',
+                band: 'need',
                 mayInterrupt: true,
                 causationId: null,
             });
