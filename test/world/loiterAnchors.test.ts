@@ -7,14 +7,8 @@ import { PixelPosition, TilePosition } from 'types/Position';
 // Loiter nodes (task 128): the curb in front of a GATHERING venue (park/beach/bar/…) is a preferred
 // ambulatory-wander destination. Field.getLoiterAnchors() recomputes this lazily behind a dirty flag,
 // scanning the building destinations for gathering blueprints and mapping each to its adjacent road anchor.
-//
-// NOTE on the manual `destinations.add`: under ts-jest, Field.stampFootprint's `instanceof Building` guard
-// sees a different Building class object than the test's import (a circular-import module-duplication
-// artifact; production bundling dedupes, so destinations/roadAnchors populate correctly live). loadStructure
-// therefore does NOT populate `destinations` here, so we seed the building anchor directly — the recompute
-// under test (gathering-blueprint filter + adjacent-road mapping) is exactly the new code, independent of
-// that pre-existing quirk. `getTile(...) instanceof Workplace` DOES resolve correctly (loadStructure builds
-// the Workplace with Field's own binding), which is what the recompute's own instanceof relies on.
+// (The 2026-07-20 stampFootprint teardown-ordering fix is what makes loadStructure populate `destinations`
+// for a grid-aligned building at all — before it, the overwritten grass at the shared anchor wiped the entry.)
 
 function makeField(rows = 40, cols = 40): Field {
     const game = {
@@ -40,14 +34,13 @@ function makeField(rows = 40, cols = 40): Field {
     return field;
 }
 
-// Places a road above and a work lot flush below it, assigns the given blueprint, and registers the lot as a
-// building destination (see the NOTE above). Returns the Field ready for a loiter recompute.
+// Places a road above and a work lot flush below it, then assigns the given blueprint. loadStructure registers
+// the lot as a building destination (the stampFootprint teardown-ordering fix), so no manual seeding is needed.
 function fieldWithVenue(blueprintKey: string): Field {
     const field = makeField();
     field.loadStructure('road', 1, 4, 'r');                            // rows 0-2, cols 3-5
     const venue = field.loadStructure('work', 4, 4, 'v') as Workplace; // rows 3-5, cols 3-5 — flush below
     venue.setBusiness({ blueprintKey, positions: [] } as unknown as BusinessInstance);
-    (field as unknown as { destinations: Set<string> }).destinations.add('4-4');
     field.markLoiterDirty();
     return field;
 }
@@ -73,7 +66,6 @@ describe('Field loiter anchors (task 128)', () => {
         const field = makeField();
         field.loadStructure('road', 1, 4, 'r');
         field.loadStructure('work', 4, 4, 'w'); // business not set
-        (field as unknown as { destinations: Set<string> }).destinations.add('4-4');
         expect(field.getLoiterAnchors().size).toBe(0);
     });
 
@@ -81,7 +73,6 @@ describe('Field loiter anchors (task 128)', () => {
         const field = makeField();
         field.loadStructure('road', 1, 4, 'r');
         const venue = field.loadStructure('work', 4, 4, 'v') as Workplace;
-        (field as unknown as { destinations: Set<string> }).destinations.add('4-4');
 
         // First read: no business → empty, and the result is cached (dirty cleared).
         expect(field.getLoiterAnchors().size).toBe(0);

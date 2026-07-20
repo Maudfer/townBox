@@ -460,6 +460,21 @@ export default class Field {
         this.destinations.delete(anchorKey);
         this.roadAnchors.delete(anchorKey);
         this.loiterDirty = true; // structure set changed → gathering-venue curbs may have moved
+
+        // Tear down anything this structure fully replaced BEFORE registering our own anchor below. A road or
+        // building placed on a supertile anchor shares its key ("row-col") with the grass footprint it
+        // overwrites — grass footprints are anchored on the SAME 3k+1 grid roads snap to — and
+        // destroyStructure deletes that key from destinations/roadAnchors. Registering AFTER the teardown
+        // means the replaced grass can't wipe our just-added entry. (This ordering bug left roadAnchors and
+        // grid-aligned destinations permanently EMPTY: since roads always snap to the grid, V2's ambulatory
+        // street roam silently had no road targets and every walk fell back to building-entrance wander —
+        // the audit's persistent entrance-clustering.)
+        for (const previous of overwritten) {
+            if (this.isFootprintOrphaned(previous)) {
+                this.destroyStructure(previous);
+            }
+        }
+
         if (structure instanceof Building) {
             this.destinations.add(anchorKey);
         } else if (structure instanceof Road) {
@@ -467,12 +482,6 @@ export default class Field {
             // wanders the ROADS and stops mid-street, instead of pathing to a building's entrance and
             // clustering there (the audit's crowds at civic doorways).
             this.roadAnchors.add(anchorKey);
-        }
-
-        for (const previous of overwritten) {
-            if (this.isFootprintOrphaned(previous)) {
-                this.destroyStructure(previous);
-            }
         }
     }
 
