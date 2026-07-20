@@ -12,7 +12,10 @@ import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
 import { SICK_HEALTH_THRESHOLD } from 'game/actions/JobOrchestrator';
 import { isOnShiftAtTick } from 'util/shifts';
 
-const DOCTOR_JOB_KEY = 'doctor';
+// Medical roles that treat patients (V5 / aliveness-4): the audit found a nurse-only hospital treated
+// NOBODY — the rounds were gated to 'doctor' alone, so a staffed ward that the coverage ledger counted as
+// healthcare healed no one. Nurses treat too (same mechanism; a real staffed hospital is a treating one).
+const TREATING_JOB_KEYS: ReadonlySet<string> = new Set(['doctor', 'nurse']);
 // One treatment per patient per day: the doctor's rounds move on to the untreated.
 const RETREAT_COOLDOWN_TICKS = 24;
 // Patient-side re-seek guard (LP-5 quick fix; the 117 balancing notes' #1 flag): a treatment session is
@@ -72,7 +75,7 @@ export const doctorRoundsHook: BrainHook = {
             return [];
         }
         const job = deps.jobOf?.(personId);
-        if (job?.jobKey !== DOCTOR_JOB_KEY || !isOnShiftAtTick(job, deps.tick)) {
+        if (!job || !TREATING_JOB_KEYS.has(job.jobKey ?? '') || !isOnShiftAtTick(job, deps.tick)) {
             return [];
         }
         const engine = ctx.brain.getActionEngine();

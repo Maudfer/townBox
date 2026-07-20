@@ -127,6 +127,25 @@ describe('the doctor\'s rounds', () => {
         brain.processTick(['doc'], deps(TICK_NOW + 15), [], result());
         expect(actions.activeInstanceOf('doc')?.defId).not.toBe('treating_patient');
     });
+
+    test('a NURSE treats too (V5): a nurse-only ward is not a waiting room', () => {
+        const nurse: JobFacts = { ...DOCTOR, jobKey: 'nurse' };
+        const { engine, actions, brain, world, state, deps } = harness(
+            { rn: gen('rn'), sick: gen('sick') },
+            id => (id === 'rn' ? nurse : null),
+        );
+        engine.invoke(state, 'fell_ill', 'sick', TICK_NOW - 5, TPY, { source: 'system', causationId: null });
+        brain.processTick(['sick'], deps(TICK_NOW + 10), [], result());
+        expect(actions.activeInstanceOf('sick')?.defId).toBe('receiving_treatment');
+        world.requestTransition('rn', { kind: 'venue', venue: 'hospital' }, TICK_NOW + 10, null);
+
+        brain.processTick(['rn'], deps(TICK_NOW + 10), [], result());
+        expect(actions.activeInstanceOf('rn')?.defId).toBe('treating_patient'); // the nurse treats
+        for (let tick = TICK_NOW + 11; tick <= TICK_NOW + 14 && actions.activeInstanceOf('rn'); tick++) {
+            actions.advance(deps(tick));
+        }
+        expect(engine.getPersonLog('sick').some(e => e.kind === 'event' && e.defId === 'was_treated_by_doctor')).toBe(true);
+    });
 });
 
 describe('treatment → recovery speed (the cohort pin)', () => {
