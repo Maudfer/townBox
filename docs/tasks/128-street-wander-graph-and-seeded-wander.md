@@ -2,7 +2,12 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `simulation`, `movement`, `street-life`, `determinism`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V2 remainder)
+- **Status:** ✅ Done — landed in the aliveness-4 follow-up batch (PR #103). Ambulatory walks now PREFER a
+  gathering-venue curb (`Field.getLoiterAnchors` — the road anchor in front of a park/beach/bar/cafe/…,
+  recomputed lazily behind a dirty flag, marked stale on build/teardown and on business assignment), and the
+  wander pick runs on a seeded per-`(worldSeed, tick, person)` stream (`Person.updateDestination`) instead of
+  the global unseeded `Phaser.Math.RND`. Live movement stays frame-paced (arrival timing best-effort, as
+  noted below); the *choice* is deterministic. Debug test people keep the legacy unseeded building wander.
 - **Depends on:** V2 (road-anchor roaming + cell co-location, landed)
 
 ## The problem

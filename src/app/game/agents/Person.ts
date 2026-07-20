@@ -1,6 +1,7 @@
 import GameManager from 'game/GameManager';
 import PathFinder from 'game/agents/PathFinder';
 import Vehicle from 'game/agents/Vehicle';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 import SocialLife from 'game/population/SocialLife';
 import WorkLife from 'game/population/WorkLife';
 import Building from 'game/world/Building';
@@ -34,6 +35,20 @@ const LOCOMOTION_SPEEDS: Record<LocomotionKind, number> = {
     run: BASE_WALK_SPEED * 2.2,
     chase: BASE_WALK_SPEED * 2.5, // the police premium — closes on a fleeing suspect
 };
+
+// Seeded, loiter-biased ambulatory wander (task 128). `loiter` is the gathering-venue curb subset of the
+// roam targets; `seed`/`tick` seed the pick so WHICH destination a walker chooses is deterministic per
+// (worldSeed, tick, person) — live arrival timing stays frame-paced (a best-effort, not a byte-guarantee,
+// as the task notes). Absent (debug test people) → the legacy unseeded building wander.
+export type WanderContext = {
+    loiter: Set<string>;
+    seed: number;
+    tick: number;
+};
+// How often an ambulatory walk aims for a loiter node (a park/beach/bar curb) rather than an arbitrary
+// road anchor, when any loiter node is reachable. High enough that street life visibly congregates at
+// plausible spots, low enough that people still stroll the streets between them.
+const LOITER_BIAS = 0.65;
 
 export default class Person {
     public social: SocialLife;
@@ -350,8 +365,11 @@ export default class Person {
     // Frames left before the next wander pick after an unreachable one (W8 follow-up) — retrying every
     // frame would hammer A* from a spot that may simply have no route this instant.
     private wanderRetryFrames = 0;
+    // Monotonic per-person counter folded into the seeded wander stream (task 128) so successive picks in
+    // the same tick differ; never serialized (outdoor pixel position is not sim state).
+    private wanderPick = 0;
 
-    updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
+    updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder, wander?: WanderContext): void {
         if (this.currentDestination) {
             return;
         }
@@ -365,8 +383,24 @@ export default class Person {
             return;
         }
 
-        const destinationArray = Array.from(destinations);
-        const destinationKey = Phaser.Math.RND.pick(destinationArray);
+        // Loiter-biased, seeded pick (task 128). When a wander context is supplied (ambulatory residents),
+        // prefer a reachable gathering-venue curb and draw from a deterministic per-person stream; debug
+        // test people fall back to the legacy unseeded uniform building pick.
+        const personId = this.social.getPersonId();
+        let destinationKey: string;
+        if (wander && personId) {
+            const rng = new SeededRandom(wander.seed)
+                .fork(hashStringToSeed(personId))
+                .fork(wander.tick)
+                .fork(this.wanderPick++);
+            const loiterArray = Array.from(wander.loiter).filter(key => destinations.has(key));
+            const source = loiterArray.length > 0 && rng.chance(LOITER_BIAS)
+                ? loiterArray
+                : Array.from(destinations);
+            destinationKey = rng.pick(source);
+        } else {
+            destinationKey = Phaser.Math.RND.pick(Array.from(destinations));
+        }
         const [destinationRow, destinationCol] = destinationKey.split('-').map(Number);
         if (!destinationRow || !destinationCol) {
             return;
@@ -579,7 +613,7 @@ export default class Person {
         return this.ambulatory;
     }
 
-    update(currentTile: Tile, timeDelta: number, destinations: Set<string>, pathFinder: PathFinder): void {
+    update(currentTile: Tile, timeDelta: number, destinations: Set<string>, pathFinder: PathFinder, wander?: WanderContext): void {
         if (this.destinationBuilding) {
             this.processTravel(currentTile, timeDelta, pathFinder);
         } else {
@@ -587,7 +621,7 @@ export default class Person {
             // Debug test people wander; residents stay put until dispatched (commute, task 006) — unless
             // their current activity is ambulatory (task 093): joggers jog, strollers stroll, visibly.
             if (this.wander || this.ambulatory) {
-                this.updateDestination(currentTile, destinations, pathFinder);
+                this.updateDestination(currentTile, destinations, pathFinder, wander);
             }
         }
     }

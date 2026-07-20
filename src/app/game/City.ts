@@ -568,6 +568,9 @@ export default class City {
 
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
+        // A gathering venue's curb becomes a loiter node for street wander (task 128); the Workplace had no
+        // business at stamp time, so the assignment is what makes its blueprint knowable to the loiter scan.
+        Game.field?.markLoiterDirty();
         // Seed starting capital (task 017), scaled by size so bigger establishments start with more.
         // Starting capital injected from the external sector (task 076/H3): idempotent + conserved.
         Game.economy?.adjustBusiness(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size - (Game.economy?.getBusinessBalance(key) ?? 0));

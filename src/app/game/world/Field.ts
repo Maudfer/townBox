@@ -36,6 +36,14 @@ const BUILDING_SNAP_CAPTURE_TILES = 1.5;
 // How close (in world pixels) the Select cursor must be to a person sprite to pick it (task 026).
 const SELECT_RADIUS_PX = 12;
 
+// Gathering-venue blueprints (task 128 / street wander graph): the curb in front of one of these is a
+// LOITER NODE — an ambulatory walk prefers to end there ("went to sit by the park") instead of at an
+// arbitrary road anchor. The set is the leisure/civic-gathering venues from json/venues.json — places
+// people plausibly congregate — deliberately excluding shops/offices/homes (destinations, not hangouts).
+const GATHERING_BLUEPRINTS = new Set<string>([
+    'park', 'beach', 'bar', 'cafe', 'restaurant', 'cinema', 'gym', 'sports_complex', 'library', 'church',
+]);
+
 let Game: GameManager;
 
 export default class Field {
@@ -48,6 +56,12 @@ export default class Field {
     // Road anchors (V2 / aliveness-4): the roam targets for ambulatory street life, so a walk wanders the
     // streets and ends mid-block instead of terminating at a building entrance (the entrance-cluster fix).
     private roadAnchors: Set<string> = new Set();
+    // Loiter nodes (task 128): the subset of road anchors sitting in front of a gathering venue (park/beach/
+    // bar/…). An ambulatory walk PREFERS these, so people congregate at plausible spots rather than drifting
+    // to arbitrary curb. Recomputed lazily behind a dirty flag — the gathering-building set changes only on
+    // build/teardown/business-assignment, all of which mark it stale.
+    private loiterAnchors: Set<string> = new Set();
+    private loiterDirty = true;
     private pathFinder: PathFinder;
 
     public matrix: TileMatrix;
@@ -125,8 +139,19 @@ export default class Field {
 
             // Ambulatory street life (V2) roams the ROADS (ends mid-block); debug-wander test people keep
             // the building-destination behaviour. A road-less world falls back to building destinations.
-            const roamTargets = person.isAmbulatory?.() && this.roadAnchors.size > 0 ? this.roadAnchors : this.destinations;
-            person.update(currentTile, timeDelta, roamTargets, this.pathFinder);
+            const ambulatory = person.isAmbulatory?.() && this.roadAnchors.size > 0;
+            const roamTargets = ambulatory ? this.roadAnchors : this.destinations;
+            // A seeded, loiter-biased wander for ambulatory residents (task 128): the pick is deterministic
+            // per (worldSeed, tick, person) and prefers a gathering-venue curb when one is reachable. Debug
+            // test people (no wanderContext) keep the legacy unseeded building wander.
+            const wanderContext = ambulatory
+                ? {
+                    loiter: this.getLoiterAnchors(),
+                    seed: Game.population?.getState()?.worldSeed ?? 0,
+                    tick: Game.clock?.getCurrentTick() ?? 0,
+                }
+                : undefined;
+            person.update(currentTile, timeDelta, roamTargets, this.pathFinder, wanderContext);
             person.redraw(timeDelta);
         });
 
@@ -434,6 +459,7 @@ export default class Field {
         const anchorKey = structure.getIdentifier();
         this.destinations.delete(anchorKey);
         this.roadAnchors.delete(anchorKey);
+        this.loiterDirty = true; // structure set changed → gathering-venue curbs may have moved
         if (structure instanceof Building) {
             this.destinations.add(anchorKey);
         } else if (structure instanceof Road) {
@@ -494,6 +520,50 @@ export default class Field {
 
         this.destinations.delete(structure.getIdentifier());
         this.roadAnchors.delete(structure.getIdentifier());
+        this.loiterDirty = true;
+    }
+
+    // Marks the loiter-node cache stale (task 128). Called by City when a business is (re)assigned to a
+    // workplace — a Workplace has no business at stamp time (setupBusiness runs after workplaceBuilt), so the
+    // build-time dirty flag can't yet see its blueprint; the assignment is the second, decisive signal.
+    markLoiterDirty(): void {
+        this.loiterDirty = true;
+    }
+
+    // The loiter nodes — road anchors in front of gathering venues (task 128). Recomputed lazily on first
+    // access after any change; the scan is O(buildings) (a few dozen) and only runs when stale.
+    getLoiterAnchors(): Set<string> {
+        if (this.loiterDirty) {
+            this.recomputeLoiterAnchors();
+        }
+        return this.loiterAnchors;
+    }
+
+    private recomputeLoiterAnchors(): void {
+        this.loiterAnchors.clear();
+        for (const key of this.destinations) {
+            const [row, col] = key.split('-').map(Number);
+            if (row === undefined || col === undefined) {
+                continue;
+            }
+            const tile = this.getTile(row, col);
+            if (!(tile instanceof Workplace)) {
+                continue;
+            }
+            const blueprintKey = tile.getBusiness()?.blueprintKey;
+            if (!blueprintKey || !GATHERING_BLUEPRINTS.has(blueprintKey)) {
+                continue;
+            }
+            const roadTile = this.getAdjacentRoadTile(tile);
+            if (!roadTile) {
+                continue;
+            }
+            const road = this.getTile(roadTile.row, roadTile.col);
+            if (road instanceof Road) {
+                this.loiterAnchors.add(road.getIdentifier());
+            }
+        }
+        this.loiterDirty = false;
     }
 
     // Resolves where a structure would actually be placed for the given tool, and whether that placement is
