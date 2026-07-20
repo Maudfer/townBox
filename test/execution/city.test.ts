@@ -116,6 +116,40 @@ function materialize(field: Field, house: House | null, id: string, x: number, y
     return person;
 }
 
+describe('services ledger refreshes on building placement (bug 2026-07-20)', () => {
+    // recomputeServices used to run ONLY on newDay, so a hospital/police/fire/school placed mid-day read as
+    // "No facility" in the City Services window + nagbar until the next midnight sweep. setupBusiness (and
+    // closeBusiness) now recompute immediately.
+    function servicesOf(city: City) {
+        return (city as unknown as { services: { latest: () => { service: string; facilities: number }[] } }).services.latest();
+    }
+
+    test('placing a hospital registers its healthcare facility immediately — no newDay needed', () => {
+        const { field, city } = makeGame(30, 30);
+        field.loadStructure('road', 1, 4, 'r');
+        const wp = field.loadStructure('work', 4, 4, 'h') as Workplace;
+        // Before placement: no sweep has run.
+        wp.setPendingBlueprint('hospital'); // the construction-menu civic pin
+        city.setupBusiness(wp);
+
+        const healthcare = servicesOf(city).find(s => s.service === 'healthcare');
+        expect(healthcare).toBeDefined();
+        expect(healthcare!.facilities).toBe(1);
+    });
+
+    test('a non-service business does not fabricate service facilities', () => {
+        const { field, city } = makeGame(30, 30);
+        field.loadStructure('road', 1, 4, 'r');
+        const wp = field.loadStructure('work', 4, 4, 'c') as Workplace;
+        wp.setPendingBlueprint('cafe');
+        city.setupBusiness(wp);
+
+        for (const line of servicesOf(city)) {
+            expect(line.facilities).toBe(0);
+        }
+    });
+});
+
 describe('City basic accessors', () => {
     test('name, population, and homeless-household registries are plain get/set state', () => {
         const { city } = makeGame(10, 10);

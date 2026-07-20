@@ -813,7 +813,10 @@ export default class GameManager {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic bus: handler return types are heterogeneous and unknown to the emitter
     async emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any[]> {
-        if (!payload) {
+        // Only a genuinely ABSENT payload defaults to {}. A falsy-but-valid payload (0, false, '') must pass
+        // through untouched — `!payload` clobbered `setTimeScale(0)` (Pause) to {}, so pause never took (the
+        // handler read {} and fell back to 1×). Any numeric/boolean-payload event hit this.
+        if (payload === undefined || payload === null) {
             payload = {} as EventPayloads[K];
         }
 
@@ -828,8 +831,8 @@ export default class GameManager {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic bus: the single handler's return type is unknown to the emitter; callers narrow it
     async emitSingle<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any> {
-        if (!payload) {
-            payload = {} as EventPayloads[K];
+        if (payload === undefined || payload === null) {
+            payload = {} as EventPayloads[K]; // falsy-but-valid payloads (0/false/'') pass through — see emit()
         }
 
         const handlers = this.eventListeners[eventName] || [];
@@ -847,7 +850,9 @@ export default class GameManager {
         }
 
         const { callback, context } = handler;
-        const result = await context ? callback.call(context, payload) : callback(payload);
+        // `await context ? … : …` parsed as `(await context) ? … : …` — it awaited the CONTEXT, not the
+        // callback's result, so an async single-handler's promise was returned unresolved. Await the call.
+        const result = context ? await callback.call(context, payload) : await callback(payload);
 
         return result;
     }

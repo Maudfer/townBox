@@ -525,6 +525,10 @@ export default class City {
             // drain time, with job-seeking cooldowns cleared, so the town answers the placement NOW rather
             // than after the routine's multi-day cadence.
             this.wakes.enqueue('businessOpened');
+            // Refresh the services ledger NOW, not on the next daily sweep (bug fix): placing a hospital/
+            // police/fire/school must register its facility immediately, or the City Services window and the
+            // nagbar keep reading "No facility" for hours until the midnight recompute.
+            this.recomputeServices(Game.clock?.getCurrentTick() ?? 0);
         }
     }
 
@@ -1517,6 +1521,9 @@ export default class City {
 
         // Re-draw so the now-businessless building reads as vacant (desaturated), like an emptied house.
         Game.emit("tileSpawned", workplace);
+        // Losing a facility updates coverage immediately (bug fix, symmetric with setupBusiness) — a
+        // bulldozed hospital/station shouldn't keep reading as covered until the next daily sweep.
+        this.recomputeServices(tick);
     }
 
     // Re-occupies vacant work buildings over time (task 037): a lot vacated by bankruptcy stays vacant for
