@@ -161,13 +161,14 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [120](120-generator-perf-byte-identical-pass_DONE.md) | ✅ | [Perf] Byte-identical generator perf pass — flatten the super-linear costs |
 | [121](121-headless-city-systems_DONE.md) | ✅ | [Fix] Headless city systems — the off-map world stops dropping live play's loops |
 | [122](122-live-moved-out-signal-orphan_DONE.md) | ✅ Done | [Fix] Live move-out is orphaned — nothing emits the `movedOut` signal |
-| [123](123-business-draw-coherence.md) | ✅ Done | [Feature] Business draw coherence — no beach downtown, no duplicate schools |
-| [124](124-evacuation-as-a-scene.md) | ✅ Done (core) | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
-| [125](125-deferred-venue-needs.md) | ✅ Done | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
-| [126](126-guardianship-depth.md) | ✅ Done (core) | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
-| [127](127-homeless-day-shape-and-domestic-locations.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
-| [128](128-street-wander-graph-and-seeded-wander.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
-| [129](129-persistent-household-cars.md) | ✅ Done | [Feature] Persistent household cars — park it, don't conjure it |
+| [123](123-business-draw-coherence_DONE.md) | ✅ Done | [Feature] Business draw coherence — no beach downtown, no duplicate schools |
+| [124](124-evacuation-as-a-scene_DONE.md) | ✅ Done (core) | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
+| [125](125-deferred-venue-needs_DONE.md) | ✅ Done | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
+| [126](126-guardianship-depth_DONE.md) | ✅ Done (core) | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
+| [127](127-homeless-day-shape-and-domestic-locations_DONE.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
+| [128](128-street-wander-graph-and-seeded-wander_DONE.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
+| [129](129-persistent-household-cars_REVERTED.md) | ⛔ Reverted | [Feature] Persistent household cars — park it, don't conjure it (reverted by 130) |
+| [130](130-ridesharing-and-on-demand-cars.md) | 📋 Planned | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
 
 ## Open work
 
@@ -177,11 +178,21 @@ code (see `CLAUDE.md` §5.1). This README is the index.
   the observation pass). Note: 123 & 127 turned out **asset-byte-unaffected** (the generator's logical world
   uses a round-robin business roster and elastic off-map housing, so neither the amenity fencing nor the
   homeless gate fires off-map) — no regeneration needed for them.
-- **Live-play bug fixed (2026-07-20):** `Field.stampFootprint` registered a structure's destinations/road-anchor
-  key BEFORE tearing down the grass it replaced, and a grid-aligned structure shares that key with the grass —
-  so `destroyStructure` wiped it, leaving `roadAnchors`/`destinations` permanently EMPTY in built towns (V2's
-  street roam had no targets → the audit's persistent entrance-clustering; task 128's loiter nodes never
-  registered). Fixed by registering after the teardown; verified live.
+- **Live-play bugs fixed (2026-07-20):** (a) `Field.stampFootprint` registered a structure's destinations/
+  road-anchor key BEFORE tearing down the grass it replaced, and a grid-aligned structure shares that key with
+  the grass — so `destroyStructure` wiped it, leaving `roadAnchors`/`destinations` permanently EMPTY in built
+  towns (V2's street roam had no targets → the audit's persistent entrance-clustering; task 128's loiter nodes
+  never registered); fixed by registering after teardown. (b) The **Pause** button did nothing —
+  `GameManager.emit`'s `if (!payload)` clobbered the falsy `setTimeScale(0)` to `{}`; fixed the guard. (c)
+  **City Services** read "No facility" for placed buildings — `recomputeServices` ran only on `newDay`; now
+  recomputes on placement/teardown. (d) People **stuck at high speed** — `advanceTime` skipped crossed in-game
+  minutes (the per-minute commute-departure pump missed them); now advances in ≤1-minute steps. All verified
+  live / unit-tested.
+- **[Task 130](130-ridesharing-and-on-demand-cars.md) is planned** (same PR): revert 129's persistent cars to
+  **on-demand** spawn/despawn and build **coordinated ridesharing** — a multi-occupant car, one-car-per-group
+  rides (parents driving kids to school, police carpool patrol, relatives driving the ill to hospital, group
+  outings), and the drive guards (kids/severely-ill can't drive, kids can't reach far schools alone,
+  accompaniment). To be implemented after the maintainer reads the task.
 - The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
   (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 
