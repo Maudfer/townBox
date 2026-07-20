@@ -2,7 +2,10 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `simulation`, `fire`, `wakes`, `live-play`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V4 remainder)
+- **Status:** ✅ Done (core) — landed in the aliveness-4 follow-up batch (PR #103). The 6-hour "Evacuating!"
+  wander is bounded by V4's burning gate (no re-entry loop); a new `homeFire` reactive wake notifies an
+  occupied home's residents on ignition (`City.runFireHazard`). Remaining polish (a richer rally-to-a-named-
+  safe-spot + a dedicated kin "gather at home" hook) is noted below and can ride a later street-life pass.
 - **Depends on:** V4 (the burning gate `LiveWorld.isBurning`, landed) — builds on it
 
 ## The problem

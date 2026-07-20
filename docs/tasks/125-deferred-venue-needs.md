@@ -2,7 +2,10 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `simulation`, `needs`, `planner`, `venues`, `illness`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V5 remainder)
+- **Status:** ✅ Done — landed in the aliveness-4 follow-up batch (PR #103). `WorldAdapter.hasVenuePlaced`
+  distinguishes closed-from-absent; a placed-but-closed hospital makes the sick WAIT (rest) via the
+  treatment hook instead of dissolving; the severity-banded illness suppressor collapses going-out/leisure/
+  outdoor free-time weights for the seriously ill (`Brain`, both selection paths). Perf re-baselined.
 - **Depends on:** V5 (nurses treat, landed); the planner/agenda (task 085)
 
 ## The problem

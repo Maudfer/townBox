@@ -162,8 +162,8 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [121](121-headless-city-systems_DONE.md) | ✅ | [Fix] Headless city systems — the off-map world stops dropping live play's loops |
 | [122](122-live-moved-out-signal-orphan_DONE.md) | ✅ Done | [Fix] Live move-out is orphaned — nothing emits the `movedOut` signal |
 | [123](123-business-draw-coherence.md) | 📋 Planned | [Feature] Business draw coherence — no beach downtown, no duplicate schools |
-| [124](124-evacuation-as-a-scene.md) | 📋 Planned | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
-| [125](125-deferred-venue-needs.md) | 📋 Planned | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
+| [124](124-evacuation-as-a-scene.md) | ✅ Done (core) | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
+| [125](125-deferred-venue-needs.md) | ✅ Done | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
 | [126](126-guardianship-depth.md) | 📋 Planned | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
 | [127](127-homeless-day-shape-and-domestic-locations.md) | 📋 Planned | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
 | [128](128-street-wander-graph-and-seeded-wander.md) | 📋 Planned | [Feature] Street wander graph + seeded wander — walks that end somewhere |
@@ -172,8 +172,10 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 ## Open work
 
 - **The simulation-aliveness-4 deferred follow-ups (tasks 123–129)** — the workstream remainders the arc
-  consciously held back, several with asset-regeneration/determinism coupling. Being tackled on the
-  `task/simulation-aliveness-4` branch (bundled into PR #103 by maintainer decision).
+  consciously held back, several with asset-regeneration/determinism coupling. **124 & 125 landed** on the
+  `task/simulation-aliveness-4` branch (PR #103). The rest (123, 126, 127, 128, 129) are focused follow-ups:
+  126/128 are live-only; **129 wants a live browser for the W8 sprite-invariant check**; **123 & 127**
+  perturb the generator/economy stream and best ride the **asset regeneration**.
 - The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
   (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 
