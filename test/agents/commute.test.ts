@@ -215,6 +215,38 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(field.getVehicles()).toHaveLength(0);
     });
 
+    test('canDrive gates on adulthood (task 130)', () => {
+        const { city, field } = makeWorld();
+        const adult = field.loadPerson(0, 0); adult.social.setAge(30);
+        const kid = field.loadPerson(0, 0); kid.social.setAge(10);
+        expect(city.canDrive(adult, 0)).toBe(true);
+        expect(city.canDrive(kid, 0)).toBe(false); // kids can't drive
+    });
+
+    test('a non-driver bound far away is DRIVEN by a co-located adult, not stranded (task 130)', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const workplace = field.loadStructure('work', 30, 30, 'w') as Workplace; // far from home
+        // A child assigned somewhere far, and a parent at home who can drive.
+        const kid = field.loadPerson(72, 72); kid.setAsset({} as never); kid.social.setAge(9);
+        kid.social.setPersonId('kid'); kid.social.setHome(home); kid.setCurrentBuilding(home);
+        const parent = field.loadPerson(74, 72); parent.setAsset({} as never); parent.social.setAge(35);
+        parent.social.setPersonId('parent'); parent.social.setHome(home); parent.setCurrentBuilding(home);
+        kid.work.setWorkplace(workplace); // so the transition resolves the destination
+
+        city.getWorld().requestTransition('kid', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+
+        // ONE car (a group ride), the PARENT drives, the kid rides — the kid never drives, never walks far alone.
+        expect(field.getVehicles()).toHaveLength(1);
+        const car = field.getVehicles()[0]!;
+        expect(parent.getVehicle()).toBe(car);
+        expect(parent.isDriver()).toBe(true);
+        expect(kid.getVehicle()).toBe(car);
+        expect(kid.isDriver()).toBe(false);
+    });
+
     test('startGroupRide spawns exactly ONE car for a driver + passengers, with correct roles (task 130)', () => {
         const { city, field } = makeWorld();
         const home = field.loadStructure('house', 4, 4, 'h') as House;

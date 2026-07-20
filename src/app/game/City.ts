@@ -76,6 +76,10 @@ const WALK_COMMUTE_MAX_TILES = 12;
 // How many frames a shared car waits at the curb for its passengers to board before departing without the
 // no-shows (task 130). Generous enough for riders to walk out of the origin building and cross to the car.
 const GROUP_RIDE_BOARD_WINDOW_FRAMES = 600;
+// Below this health a person can't drive (task 130) — they're driven instead (the severe-illness band, matching
+// the Brain's going-out suppressor). A relative drives the severely ill to the hospital rather than them
+// self-driving.
+const MIN_DRIVE_HEALTH = 0.35;
 // Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
 // than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
 const MIGRATION_MIN_OPEN_POSITIONS = 3;
@@ -3143,15 +3147,8 @@ export default class City {
             return;
         }
 
-        // Minors walk (task 058): children don't drive, so no commute car is spawned — Person.processTravel
-        // routes them on foot straight to the destination over the pedestrian network.
-        if (person.social.getAge() < ADULT_AGE_YEARS) {
-            person.setDestination(destination);
-            return;
-        }
-
-        // Walk vs. drive by distance from the BODY's current position (V1): a short hop is walked, the car
-        // is for a real commute. Manhattan distance matches the grid movement; the threshold is authored.
+        // Walk vs. drive by distance from the BODY's current position (V1): a short hop is walked (by anyone,
+        // including minors — task 058), the car is for a real commute. Manhattan distance matches the grid.
         const bodyPosition = person.getPosition();
         const walkDistancePx = WALK_COMMUTE_MAX_TILES * Game.gridParams.cells.width;
         const distanceToDestination = bodyPosition
@@ -3159,6 +3156,23 @@ export default class City {
             : Number.POSITIVE_INFINITY;
         if (distanceToDestination <= walkDistancePx) {
             person.setDestination(destination);
+            return;
+        }
+
+        // The trip is drive-distance. Only a driver (adult, not detained — task 130 canDrive) may spawn a
+        // solo car. A NON-driver (a child, or an ill/detained person) who needs to go somewhere FAR gets a
+        // lift: an available co-located adult drives them (a group ride) — the "kids can't reach a far school
+        // alone" guard and the never-strand-a-non-driver net. If no driver is available, they walk as a last
+        // resort (far, but never stuck). Narrated collective actions (drive_kids_to_school, drive_to_hospital)
+        // install their own rides upstream; this is the safety fallback at the transition seam.
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        if (!this.canDrive(person, tick)) {
+            const driver = this.electDriver(person, tick);
+            if (driver) {
+                this.startGroupRide(driver, [person], destination);
+            } else {
+                person.setDestination(destination); // no driver → walk (last resort)
+            }
             return;
         }
 
@@ -3192,6 +3206,60 @@ export default class City {
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);
+    }
+
+    // Can this person legally/physically drive a car (task 130)? A driver must be an adult, not detained, and
+    // not severely ill — so children never drive, a jailed person never drives, and a severely-ill person is
+    // driven by someone else (a relative to the hospital) rather than self-driving. Health is read from the
+    // event context (the same overlay the illness system writes); absent an engine, the age/detention gate
+    // holds. Public for the producers (Treatment, the school run) and unit tests.
+    public canDrive(person: Person, tick: number): boolean {
+        if (person.social.getAge() < ADULT_AGE_YEARS) {
+            return false; // kids can't drive
+        }
+        const id = person.social.getPersonId();
+        if (!id) {
+            return true; // no pool id (edge/test) — age gate only
+        }
+        if (Game.detention?.isDetained(id, tick)) {
+            return false; // detained can't drive
+        }
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (engine && population) {
+            const ticksPerYear = Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear;
+            const health = engine.contextFor(population.getState(), id, tick, ticksPerYear).getAttr('health');
+            if (typeof health === 'number' && health < MIN_DRIVE_HEALTH) {
+                return false; // severely ill — can't drive
+            }
+        }
+        return true;
+    }
+
+    // Finds an available adult to drive `passenger` (task 130): a person CO-LOCATED at the passenger's origin
+    // building who canDrive and is idle (not already committed to their own trip). Prefers a co-resident of
+    // the passenger's home (a parent/relative), then a deterministic id order. Null when nobody can take them.
+    private electDriver(passenger: Person, tick: number): Person | null {
+        const field = Game.field;
+        const origin = passenger.getCurrentBuilding();
+        if (!field || !origin) {
+            return null; // must be at a building to form a co-located ride
+        }
+        const home = passenger.social.getHome();
+        const candidates = field.getPeople().filter(candidate =>
+            candidate !== passenger
+            && candidate.getCurrentBuilding() === origin
+            && candidate.isIdle()
+            && this.canDrive(candidate, tick));
+        candidates.sort((a, b) => {
+            const aHome = home !== null && a.social.getHome() === home ? 0 : 1;
+            const bHome = home !== null && b.social.getHome() === home ? 0 : 1;
+            if (aHome !== bHome) {
+                return aHome - bHome; // co-residents first
+            }
+            return (a.social.getPersonId() ?? '').localeCompare(b.social.getPersonId() ?? '');
+        });
+        return candidates[0] ?? null;
     }
 
     // A coordinated shared ride (task 130): a driver + co-located passengers board ONE car and travel to a
