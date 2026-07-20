@@ -3303,7 +3303,7 @@
         "category": "social",
         "durationTicks": 4,
         "selection": {
-            "weight": 0.7,
+            "weight": 0,
             "cooldownTicks": 72,
             "modifiers": [
                 {
@@ -3441,7 +3441,7 @@
         "category": "social",
         "durationTicks": 3,
         "selection": {
-            "weight": 0.8,
+            "weight": 0,
             "cooldownTicks": 48,
             "modifiers": [
                 {
@@ -3526,6 +3526,50 @@
         "satisfies": {
             "social": 30,
             "fun": 15
+        },
+        "affinity": [
+            "social"
+        ]
+    },
+    "hosting_a_friend_visit": {
+        "label": "Hosting a friend's visit",
+        "type": "continuous",
+        "category": "social",
+        "durationTicks": 3,
+        "location": "home",
+        "selection": {
+            "weight": 0,
+            "modifiers": [
+                {
+                    "when": {
+                        "attr": "depressed",
+                        "op": "==",
+                        "value": true
+                    },
+                    "multiply": 0.35
+                }
+            ]
+        },
+        "children": {
+            "mode": "pool",
+            "entries": [
+                {
+                    "action": "chatted_with_friend",
+                    "chancePerTick": 0.5
+                },
+                {
+                    "action": "swapped_stories",
+                    "chancePerTick": 0.2
+                },
+                {
+                    "action": "laughed_together",
+                    "chancePerTick": 0.25
+                }
+            ]
+        },
+        "satisfies": {
+            "social": 30,
+            "fun": 12
         },
         "affinity": [
             "social"

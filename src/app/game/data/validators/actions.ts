@@ -117,6 +117,19 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
                 issues.add(`${id}.affinity`, 'expected an array of trait-affinity tag strings');
             }
         }
+        // Collective-action integrity (V9 / proposal simulation-aliveness-4): a social continuous action that
+        // SATISFIES the social need but names no interaction target and no location would free-roll — the
+        // audit's "Visiting friends" floating over a business, with no friend and no host. Such an action
+        // must be planner/joint-only (free-time weight 0), so it can only ever run LOCATED toward a real
+        // person (with a mirrored host). Interaction actions and located actions are already targeted.
+        if (action['type'] === 'continuous' && action['category'] === 'social'
+            && !('interaction' in action) && !('location' in action)
+            && ((action['satisfies'] as Record<string, number> | undefined)?.['social'] ?? 0) > 0) {
+            const weight = (action['selection'] as { weight?: number } | undefined)?.weight ?? 0;
+            if (weight > 0) {
+                issues.add(`${id}.selection.weight`, 'a targetless, location-less social action must be planner/joint-only (weight 0) so it never free-rolls — give it an interaction, a location, or weight 0');
+            }
+        }
         // Label templates (LP-14 layer 3): every {placeholder} in a label must name a declared parameter —
         // a typo'd placeholder would render as a bare word forever.
         if (typeof action['label'] === 'string') {

@@ -60,6 +60,9 @@ describe('evacuation (survival band)', () => {
         world.requestTransition('resident', { kind: 'building', key: '5-5' }, 5, null);
         brain.processTick(['resident'], makeDeps(10), [], result());
         expect(actions.activeInstanceOf('resident')).toBeTruthy(); // doing something ordinary
+        // Ensure they're inside when the fire hits — the free-time pick may have wandered them outdoors
+        // (the fire only threatens people IN the burning building).
+        world.requestTransition('resident', { kind: 'building', key: '5-5' }, 11, null);
 
         incidents.report('fire', 11, 'building:5-5', null, 0);
         brain.processTick(['resident'], makeDeps(12), [], result());
