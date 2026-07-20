@@ -109,9 +109,12 @@ describe('the fire loop (live City)', () => {
 
         const sweepTick = ignitionDay(key) * 24;
         world.buildingConditions.damage(key, 500, sweepTick - 1); // → derelict
+        expect(world.city.hasPendingWakes()).toBe(false);
         world.city.runFireHazard(sweepTick);
         expect(world.incidents.openFireAt(`building:${key}`)).toBe(true);
         expect(world.emitted.some(e => e.event === 'fireStateChanged')).toBe(true);
+        // The occupied home notified its resident (task 124): a homeFire wake is queued for the minute pass.
+        expect(world.city.hasPendingWakes()).toBe(true);
 
         world.city.resolveFires(sweepTick + FIRE_CONFIG.responseTicks - 1);
         expect(world.incidents.anyOpenFire()).toBe(true); // before the window

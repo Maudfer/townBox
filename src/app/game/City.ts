@@ -928,6 +928,12 @@ export default class City {
     // that changed, and runs a bounded Brain pass for the woken people only. Deterministic given the
     // mutation; hooks fork their usual per-(tick, person) streams. Runs between flips, so nothing here
     // re-rolls events — intents flow through the same engine the flip uses.
+    // Whether a reactive Brain wake is queued (LP-12) — a test/observation read (e.g. asserting a home fire
+    // notified its residents, task 124). Drained on the minute cadence by runWakePass.
+    public hasPendingWakes(): boolean {
+        return this.wakes.hasPending();
+    }
+
     private runWakePass(tick: number): void {
         if (!this.wakes.hasPending()) {
             return;
@@ -1842,6 +1848,17 @@ export default class City {
             }
             incidents.report('fire', tick, 'building:' + key, null, 0);
             Game.emit('fireStateChanged', { buildingKey: key, burning: true }); // the scene lights the flames (116)
+            // Family notified (task 124): a fire at an occupied HOME wakes its residents at the minute, so
+            // occupants who are elsewhere re-plan NOW instead of at the next hourly flip (the on-site
+            // presence hook owns the actual evacuation; this is the "kin drop what they're doing" channel).
+            if (structure instanceof House) {
+                const residentIds = structure.getResidents()
+                    .map(person => person.social.getPersonId())
+                    .filter((id): id is PersonId => !!id);
+                if (residentIds.length > 0) {
+                    this.wakes.enqueue('homeFire', residentIds);
+                }
+            }
             const name = structure instanceof Workplace ? structure.getBusiness()?.name ?? 'a workplace' : 'a home';
             this.announce('fire', tick, 'A fire broke out at ' + name, null);
         }

@@ -13,7 +13,7 @@
 
 import { PersonId } from 'types/Genealogy';
 
-export type WakeKind = 'businessOpened' | 'businessClosed' | 'homeLost';
+export type WakeKind = 'businessOpened' | 'businessClosed' | 'homeLost' | 'homeFire';
 
 // Which action recencies a wake clears (the cooldown class): clearing job_hunting reopens both the
 // action's own selection cooldown and the job_seeking routine's cadence read (both read the same
@@ -23,6 +23,10 @@ export const WAKE_CLEARS: Record<WakeKind, string[]> = {
     businessOpened: ['job_hunting'],
     businessClosed: ['job_hunting'],
     homeLost: [],
+    // A fire at home (task 124): residents/kin re-evaluate NOW — occupants elsewhere react at the minute
+    // (evacuation is owned by the on-site presence hook), not at the next hourly flip. Clears leisure/social
+    // cooldowns so a woken person isn't held to a routine cadence while their home burns.
+    homeFire: [],
 };
 
 export interface WakeRecord {
