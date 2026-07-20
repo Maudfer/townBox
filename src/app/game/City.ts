@@ -3119,10 +3119,7 @@ export default class City {
             }
             for (const vehicle of [...field.getVehicles()]) {
                 if (vehicle.isControlled() && !linked.has(vehicle)) {
-                    if (vehicle.isOccupied()) {
-                        vehicle.disembark();
-                    }
-                    field.removeVehicle(vehicle);
+                    field.removeVehicle(vehicle); // ejects any remaining occupants (ridesharing) + clears sprite
                 }
             }
         }

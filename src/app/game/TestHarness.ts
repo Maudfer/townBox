@@ -316,7 +316,8 @@ export function createTestApi(game: GameManager): TownboxTestApi {
             vehicles: vehicles.length,
             peopleInFlight: people.filter(person => String(person.getTravelStep()) !== 'idle').length,
             orphanControlledVehicles: vehicles.filter(vehicle => vehicle.isControlled() && !linked.has(vehicle)).length,
-            occupiedDriverlessVehicles: vehicles.filter(vehicle => vehicle.isOccupied() && !linked.has(vehicle)).length,
+            // A car with occupants but no DRIVER aboard can't move — a phantom-passenger car (task 130).
+            occupiedDriverlessVehicles: vehicles.filter(vehicle => vehicle.isOccupied() && !vehicle.hasDriver()).length,
             visibleIndoorsPeople: people.filter(person => person.isIndoors() && person.getAsset()?.visible === true).length,
             orphanSprites: game.scene?.countOrphanSprites?.() ?? 0,
         };

@@ -123,11 +123,9 @@ export default class Person {
         // audit found 148 orphaned commute cars in a month — every mid-flight re-plan minted one. The old
         // car is properly despawned (occupant cleared so no phantom driver) before the new link lands.
         if (this.vehicle && this.vehicle !== vehicle) {
-            if (this.vehicle.isOccupied()) {
-                this.vehicle.disembark();
-            }
+            this.vehicle.disembark(this);
             this.vehicle.setControlled(false);
-            Game.field?.removeVehicle(this.vehicle);
+            Game.field?.removeVehicle(this.vehicle); // ejects any remaining occupants (ridesharing)
         }
         this.vehicle = vehicle;
     }
@@ -145,23 +143,41 @@ export default class Person {
         }
         if (this.vehicle) {
             // Boarded (EnteringCar → Driving): the person is "inside" the car — step out where it stands.
-            if (this.vehicle.isOccupied()) {
+            if (this.vehicle.isAboard(this)) {
                 const carPosition = this.vehicle.getPosition();
                 if (carPosition) {
                     this.x = carPosition.x;
                     this.y = carPosition.y;
                 }
-                this.vehicle.disembark();
+                this.vehicle.disembark(this);
                 this.setIndoors(false);
             }
             this.vehicle.setControlled(false);
-            Game.field?.removeVehicle(this.vehicle);
+            Game.field?.removeVehicle(this.vehicle); // ejects any remaining occupants (ridesharing)
             this.vehicle = null;
         }
         this.destinationBuilding = null;
         this.path = [];
         this.currentDestination = null;
         this.travelStep = TravelStep.Idle;
+    }
+
+    // Ejected from a vanishing car (task 130 ridesharing): step out at the car's position with the sprite
+    // restored, disembark, and clear the link to this car. Called by Field.removeVehicle for EVERY occupant
+    // (driver and passengers) so nobody is left invisible-inside a despawned car — the W8 contract for N
+    // riders. Idempotent; only touches vehicle/position state (a passenger's stalled ride re-plans elsewhere).
+    ejectFromVehicle(vehicle: Vehicle, position: PixelPosition | null): void {
+        if (vehicle.isAboard(this)) {
+            vehicle.disembark(this);
+        }
+        if (position) {
+            this.x = position.x;
+            this.y = position.y;
+        }
+        this.setIndoors(false);
+        if (this.vehicle === vehicle) {
+            this.vehicle = null;
+        }
     }
 
     setDirection(direction: Direction): void {
@@ -522,7 +538,7 @@ export default class Person {
                 // front of the destination — cars stop on the road, never inside a footprint (anchor fallback
                 // for legacy/test worlds with no adjacent road).
                 if (this.vehicle) {
-                    this.vehicle.board();
+                    this.vehicle.board(this, true); // the traveller drives their own commute car
                     this.setIndoors(true);
                     const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
                     const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
@@ -551,7 +567,7 @@ export default class Person {
                         this.x = carPosition.x;
                         this.y = carPosition.y;
                     }
-                    this.vehicle.disembark();
+                    this.vehicle.disembark(this);
                     this.setIndoors(false);
                     const carTilePos = Game.pixelToTilePosition(this.vehicle.getPosition());
                     if (carTilePos) {

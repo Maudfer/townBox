@@ -911,12 +911,19 @@ export default class Field {
         return this.vehicles;
     }
 
-    // Despawns a vehicle: destroys its sprite and drops it from the update list. Used when a commute car is
-    // parked/abandoned at the destination on arrival.
+    // Despawns a vehicle: ejects any remaining occupants, destroys its sprite, and drops it from the update
+    // list. Used when a commute car is despawned at the destination on arrival (task 130 on-demand cars).
     removeVehicle(vehicle: Vehicle): void {
         const index = this.vehicles.indexOf(vehicle);
         if (index === -1) {
             return;
+        }
+        // Eject everyone still aboard (ridesharing / forced despawn, task 130): a car must never vanish with
+        // a person invisibly inside. Each occupant is stepped out at the car's position with their sprite
+        // restored and their vehicle link cleared — the W8 contract, generalized from one driver to N riders.
+        const carPosition = vehicle.getPosition();
+        for (const occupant of [...vehicle.getOccupants()]) {
+            occupant.ejectFromVehicle(vehicle, carPosition);
         }
         this.vehicles.splice(index, 1);
         vehicle.getAsset()?.destroy();

@@ -152,7 +152,7 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         city.getWorld().pump(10);
         expect(field.getVehicles()).toHaveLength(1);
         const firstCar = field.getVehicles()[0]!;
-        firstCar.board(); // simulate the commuter mid-drive (occupant flag set)
+        firstCar.board(person, true); // simulate the commuter mid-drive (occupant flag set)
         // Mid-drive, genuinely far from home — the situation the 148-car leak actually arose in. (The V1 trip
         // planner walks SHORT trips, so the re-plan must be a real driving distance to spawn a second car.)
         person.setPosition(560, 560);
@@ -193,6 +193,28 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(field.getVehicles()).toHaveLength(0);
     });
 
+    test('despawning a shared car ejects EVERY occupant — driver and passengers (task 130)', () => {
+        const { field } = makeWorld();
+        const car = field.spawnVehicle({ x: 200, y: 200 });
+        car.setControlled(true);
+        const driver = field.loadPerson(72, 72); driver.setAsset({} as never);
+        const rider = field.loadPerson(80, 80); rider.setAsset({} as never);
+        // Both board the same car (driver + passenger) and are hidden "inside".
+        driver.setVehicle(car); car.board(driver, true); driver.setIndoors(true);
+        rider.setVehicle(car); car.board(rider, false); rider.setIndoors(true);
+        expect(car.getOccupants()).toHaveLength(2);
+
+        field.removeVehicle(car);
+
+        // Every occupant is stepped out at the car's position, sprite restored, link cleared.
+        for (const p of [driver, rider]) {
+            expect(p.isIndoors()).toBe(false);
+            expect(p.getVehicle()).toBeNull();
+            expect(p.getPosition()).toEqual({ x: 200, y: 200 });
+        }
+        expect(field.getVehicles()).toHaveLength(0);
+    });
+
     test('cancelTransition parks the body and despawns the car — the trip stops with the intent', () => {
         const { city, field } = makeWorld();
         const { person, workplace } = employ(field);
@@ -218,7 +240,7 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
         city.getWorld().pump(10);
         const car = person.getVehicle()!;
-        car.board();
+        car.board(person, true);
         person.setIndoors(true); // boarded: hidden "inside" the car (the EnteringCar state)
 
         person.abortTravel();

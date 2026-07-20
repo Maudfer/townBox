@@ -1,3 +1,4 @@
+import type Person from 'game/agents/Person';
 import PathFinder from 'game/agents/PathFinder';
 import Building from 'game/world/Building';
 import Road from 'game/world/Road';
@@ -44,11 +45,16 @@ export default class Vehicle {
     // destination (Field skips updateDestination for it). Test/idle cars stay false and wander.
     private controlled: boolean;
 
-    // Cars cannot move without at least one person inside (task 008 commute spec). `occupied` flips when a
-    // commuter boards (EnteringCar) and clears when they step out (ExitingCar); drive() gates on it. The
-    // debug V-key test car instead carries an implicit `debugDriver` so the wander demo still works.
-    private occupied: boolean;
+    // Occupants (task 130 ridesharing): the people physically inside — one DRIVER (whose presence lets the
+    // car move) plus passengers. board() at EnteringCar / joinRide, disembark() at ExitingCar; drive() gates
+    // on a driver being aboard. A car can't move driverless (task 008). The debug V-key test car carries an
+    // implicit `debugDriver` so the wander demo still works with no real occupants. Person is a type-only
+    // import (erased at compile) so storing the refs doesn't create a runtime Person↔Vehicle cycle.
+    private occupants: Person[] = [];
+    private driver: Person | null = null;
     private debugDriver: boolean;
+    // Max seats — a group ride beyond this needs a second car (task 130).
+    static readonly SEAT_CAPACITY = 4;
 
     private asset: Image;
 
@@ -72,7 +78,8 @@ export default class Vehicle {
         this.path = [];
         this.currentDestination = null;
         this.controlled = false;
-        this.occupied = false;
+        this.occupants = [];
+        this.driver = null;
         this.debugDriver = false;
         this.asset = null;
 
@@ -87,17 +94,49 @@ export default class Vehicle {
         return this.controlled;
     }
 
-    // Boarding/disembarking (task 008 commute spec): drive() refuses to move an empty car.
-    board(): void {
-        this.occupied = true;
+    // Boarding/disembarking (task 008 commute spec + task 130 ridesharing): drive() refuses to move a
+    // driverless car. The first boarder is the driver unless `asDriver` says otherwise; a shared ride boards
+    // the driver first (asDriver), then passengers (asDriver=false).
+    board(person: Person, asDriver = false): void {
+        if (!this.occupants.includes(person)) {
+            this.occupants.push(person);
+        }
+        if (asDriver || (this.driver === null && this.occupants.length === 1)) {
+            this.driver = person;
+        }
     }
 
-    disembark(): void {
-        this.occupied = false;
+    disembark(person: Person): void {
+        this.occupants = this.occupants.filter(occupant => occupant !== person);
+        if (this.driver === person) {
+            this.driver = null;
+        }
     }
 
+    // True while anyone is aboard (backward-compatible name). Distinct from hasDriver() — a car with only
+    // passengers and no driver is occupied but can't move (the W8 occupied-driverless invariant guards it).
     isOccupied(): boolean {
-        return this.occupied;
+        return this.occupants.length > 0;
+    }
+
+    hasDriver(): boolean {
+        return this.driver !== null || this.debugDriver;
+    }
+
+    getDriver(): Person | null {
+        return this.driver;
+    }
+
+    getOccupants(): readonly Person[] {
+        return this.occupants;
+    }
+
+    isAboard(person: Person): boolean {
+        return this.occupants.includes(person);
+    }
+
+    seatsAvailable(): number {
+        return Vehicle.SEAT_CAPACITY - this.occupants.length;
     }
 
     setDebugDriver(debugDriver: boolean): void {
@@ -105,11 +144,10 @@ export default class Vehicle {
     }
 
     drive(currentTile: Tile, timeDelta: number): void {
-        // Cars cannot move without a person inside (task 008 commute spec) — a commuter boards at
+        // Cars cannot move without a DRIVER (task 008 commute spec + task 130) — the driver boards at
         // EnteringCar and steps out at ExitingCar; the debug V-key test car carries an implicit test driver.
         // And cars only drive on ROADS: they spawn and park on the street, never inside a footprint.
-        const hasDriver = this.occupied || this.debugDriver;
-        if (!this.asset || !this.currentTarget || !hasDriver || !(currentTile instanceof Road)) {
+        if (!this.asset || !this.currentTarget || !this.hasDriver() || !(currentTile instanceof Road)) {
             return;
         }
 
