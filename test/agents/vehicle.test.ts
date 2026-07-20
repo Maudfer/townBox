@@ -197,6 +197,39 @@ describe('drive() guard clauses skip movement entirely', () => {
         v.drive(new Road(0, 0, null), 100);
         expect(v.getPosition()!.x).toBeGreaterThan(10);
     });
+
+    test('a shared car waits at the curb until all expected riders board (the board window, task 130)', () => {
+        const v = new Vehicle(10, 10);
+        v.setAsset({} as any);
+        const driver = {} as any, rider = {} as any;
+        (v as any).currentTarget = { x: 50, y: 10 };
+        (v as any).movingAxis = Axis.X;
+        v.setRideExpectations(2, 1000); // expect 2 riders, a long window
+        v.board(driver, true);
+
+        // Driver aboard but the passenger hasn't boarded yet → the car holds at the curb.
+        v.drive(new Road(0, 0, null), 100);
+        expect(v.getPosition()).toEqual({ x: 10, y: 10 });
+
+        // Passenger boards → the ride departs.
+        v.board(rider, false);
+        v.drive(new Road(0, 0, null), 100);
+        expect(v.getPosition()!.x).toBeGreaterThan(10);
+    });
+
+    test('the board window lapses so a no-show never strands the car (task 130)', () => {
+        const v = new Vehicle(10, 10);
+        v.setAsset({} as any);
+        (v as any).currentTarget = { x: 50, y: 10 };
+        (v as any).movingAxis = Axis.X;
+        v.setRideExpectations(2, 2); // expect 2, but only a 2-frame window
+        v.board({} as any, true); // only the driver ever boards
+        v.drive(new Road(0, 0, null), 100); // window frame 1 — wait
+        v.drive(new Road(0, 0, null), 100); // window frame 2 — wait
+        expect(v.getPosition()).toEqual({ x: 10, y: 10 });
+        v.drive(new Road(0, 0, null), 100); // window lapsed — leave without the no-show
+        expect(v.getPosition()!.x).toBeGreaterThan(10);
+    });
 });
 
 describe('drive(): real per-frame movement', () => {

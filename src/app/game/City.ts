@@ -73,6 +73,9 @@ const CARE_AGE_YEARS = 10;
 // the destination is at or under this many tiles is WALKED — the car is reserved for real commutes. The
 // audit found people driving zero-to-a-few tiles constantly (magic pop-in/pop-out cars everywhere).
 const WALK_COMMUTE_MAX_TILES = 12;
+// How many frames a shared car waits at the curb for its passengers to board before departing without the
+// no-shows (task 130). Generous enough for riders to walk out of the origin building and cross to the car.
+const GROUP_RIDE_BOARD_WINDOW_FRAMES = 600;
 // Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
 // than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
 const MIGRATION_MIN_OPEN_POSITIONS = 3;
@@ -3189,6 +3192,37 @@ export default class City {
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);
+    }
+
+    // A coordinated shared ride (task 130): a driver + co-located passengers board ONE car and travel to a
+    // shared destination — a parent driving the kids to school, officers sharing a patrol car, a relative
+    // driving the ill to hospital, a household outing. Exactly one car is spawned (never one per rider); the
+    // driver drives, passengers are carried, and the car waits at the curb until everyone has boarded (the
+    // board window) before departing. Passengers beyond the car's seats are dropped (the caller should cap; a
+    // second car for a big household is a future refinement). Returns the spawned car (null if it couldn't
+    // spawn). The driver MUST be a valid driver (canDrive) — the caller/producer guarantees that.
+    public startGroupRide(driver: Person, passengers: Person[], destination: Building): Vehicle | null {
+        const field = Game.field;
+        if (!field || !destination.getEntrance()) {
+            return null;
+        }
+        const riders = passengers.slice(0, Vehicle.SEAT_CAPACITY - 1); // driver + up to capacity-1 passengers
+        const bodyPosition = driver.getPosition();
+        const currentBuilding = driver.getCurrentBuilding();
+        const originRoadTile = currentBuilding
+            ? field.getAdjacentRoadTile(currentBuilding)
+            : (bodyPosition ? field.nearestRoadTile(bodyPosition) : null);
+        const streetSpot = originRoadTile ? Game.tileToPixelPosition(originRoadTile) : bodyPosition;
+        const car = field.spawnVehicle(streetSpot ?? destination.getEntrance());
+        car.setControlled(true);
+        car.setRideExpectations(1 + riders.length, GROUP_RIDE_BOARD_WINDOW_FRAMES);
+        driver.setVehicle(car, true);
+        driver.setDestination(destination);
+        for (const passenger of riders) {
+            passenger.setVehicle(car, false);
+            passenger.setDestination(destination);
+        }
+        return car;
     }
 
     public setupCar(vehicle: Vehicle): void {

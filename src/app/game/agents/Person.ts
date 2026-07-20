@@ -66,6 +66,10 @@ export default class Person {
     private insideBuilding: boolean;
 
     private vehicle: Vehicle | null;
+    // Whether this person DRIVES their current vehicle (task 130 ridesharing). A ride's driver sets the car's
+    // destination and its presence lets the car move; a passenger just boards and is carried. Default true —
+    // a normal solo commute drives its own car.
+    private isDriverOfVehicle = true;
     private destinationBuilding: Building | null;
     // The building the person is currently in/at (home or workplace). Set on arrival (and at logical
     // placement — materialization, load, rehousing); null means outdoors/in transit (W8).
@@ -118,16 +122,23 @@ export default class Person {
         Game = gameManager;
     }
 
-    setVehicle(vehicle: Vehicle): void {
+    setVehicle(vehicle: Vehicle, asDriver = true): void {
         // A live link never gets silently overwritten (W8 / proposal simulation-aliveness-3 P0-2.1): the
         // audit found 148 orphaned commute cars in a month — every mid-flight re-plan minted one. The old
         // car is properly despawned (occupant cleared so no phantom driver) before the new link lands.
+        // A shared ride passes asDriver=false for passengers — they board the SAME car but don't drive it,
+        // and the guard below never despawns a car they're merely joining (only a DIFFERENT prior link).
         if (this.vehicle && this.vehicle !== vehicle) {
             this.vehicle.disembark(this);
             this.vehicle.setControlled(false);
             Game.field?.removeVehicle(this.vehicle); // ejects any remaining occupants (ridesharing)
         }
         this.vehicle = vehicle;
+        this.isDriverOfVehicle = asDriver;
+    }
+
+    isDriver(): boolean {
+        return this.isDriverOfVehicle;
     }
 
     getVehicle(): Vehicle | null {
@@ -538,15 +549,19 @@ export default class Person {
                 // front of the destination — cars stop on the road, never inside a footprint (anchor fallback
                 // for legacy/test worlds with no adjacent road).
                 if (this.vehicle) {
-                    this.vehicle.board(this, true); // the traveller drives their own commute car
+                    // Board by role (task 130): the driver drives; a passenger just rides. Only the DRIVER
+                    // routes the car — a passenger boarding the same car must not overwrite/duplicate its route.
+                    this.vehicle.board(this, this.isDriverOfVehicle);
                     this.setIndoors(true);
-                    const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
-                    const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
-                        ?? this.destinationBuilding.getPosition();
-                    if (vehicleTile && destTile) {
-                        const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
-                        if (tile) {
-                            this.vehicle.setDestinationTile(tile, destTile, pathFinder);
+                    if (this.isDriverOfVehicle) {
+                        const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
+                        const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
+                            ?? this.destinationBuilding.getPosition();
+                        if (vehicleTile && destTile) {
+                            const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
+                            if (tile) {
+                                this.vehicle.setDestinationTile(tile, destTile, pathFinder);
+                            }
                         }
                     }
                 }

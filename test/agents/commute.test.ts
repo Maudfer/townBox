@@ -215,6 +215,32 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(field.getVehicles()).toHaveLength(0);
     });
 
+    test('startGroupRide spawns exactly ONE car for a driver + passengers, with correct roles (task 130)', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r'); // a street for the car to spawn on
+        const workplace = field.loadStructure('work', 16, 16, 'w') as Workplace;
+        const driver = field.loadPerson(72, 72); driver.setAsset({} as never); driver.setCurrentBuilding(home);
+        const kid1 = field.loadPerson(74, 72); kid1.setAsset({} as never); kid1.setCurrentBuilding(home);
+        const kid2 = field.loadPerson(76, 72); kid2.setAsset({} as never); kid2.setCurrentBuilding(home);
+
+        const car = city.startGroupRide(driver, [kid1, kid2], workplace);
+
+        // Exactly one car — not one per rider.
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(car).toBe(field.getVehicles()[0]);
+        // Roles: the driver drives, the kids ride, all linked to the same car.
+        expect(driver.getVehicle()).toBe(car);
+        expect(driver.isDriver()).toBe(true);
+        for (const kid of [kid1, kid2]) {
+            expect(kid.getVehicle()).toBe(car);
+            expect(kid.isDriver()).toBe(false);
+        }
+        // All three are heading to the workplace (their travel machines are engaged).
+        expect(driver.isIdle()).toBe(false);
+        expect(kid1.isIdle()).toBe(false);
+    });
+
     test('cancelTransition parks the body and despawns the car — the trip stops with the intent', () => {
         const { city, field } = makeWorld();
         const { person, workplace } = employ(field);

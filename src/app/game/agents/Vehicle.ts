@@ -55,6 +55,12 @@ export default class Vehicle {
     private debugDriver: boolean;
     // Max seats — a group ride beyond this needs a second car (task 130).
     static readonly SEAT_CAPACITY = 4;
+    // Board window (task 130 ridesharing): a shared car waits at the curb until all EXPECTED riders are
+    // aboard, so it never drives off without the passengers who are still walking to it. `expectedOccupants`
+    // is how many will ride (driver + passengers; 1 for a solo commute → no wait); `boardWindowFrames` counts
+    // down while waiting so a no-show passenger can't strand the car forever (it leaves without them).
+    private expectedOccupants = 1;
+    private boardWindowFrames = 0;
 
     private asset: Image;
 
@@ -139,6 +145,18 @@ export default class Vehicle {
         return Vehicle.SEAT_CAPACITY - this.occupants.length;
     }
 
+    // Declares a shared ride: how many riders to wait for and for how long (task 130). A solo commute leaves
+    // this at (1, 0) so it departs the instant its driver is aboard.
+    setRideExpectations(expectedOccupants: number, boardWindowFrames: number): void {
+        this.expectedOccupants = Math.max(1, expectedOccupants);
+        this.boardWindowFrames = Math.max(0, boardWindowFrames);
+    }
+
+    // True once everyone expected is aboard, or the board window has lapsed (leave the no-shows behind).
+    private readyToDepart(): boolean {
+        return this.occupants.length >= this.expectedOccupants || this.boardWindowFrames <= 0;
+    }
+
     setDebugDriver(debugDriver: boolean): void {
         this.debugDriver = debugDriver;
     }
@@ -148,6 +166,12 @@ export default class Vehicle {
         // EnteringCar and steps out at ExitingCar; the debug V-key test car carries an implicit test driver.
         // And cars only drive on ROADS: they spawn and park on the street, never inside a footprint.
         if (!this.asset || !this.currentTarget || !this.hasDriver() || !(currentTile instanceof Road)) {
+            return;
+        }
+        // Wait at the curb for the rest of a shared ride to board (task 130) — don't drive off without the
+        // passengers still walking to the car. The window counts down so a no-show never strands the car.
+        if (!this.readyToDepart()) {
+            this.boardWindowFrames -= 1;
             return;
         }
 
