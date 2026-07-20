@@ -210,6 +210,21 @@ export default class LiveWorld implements WorldAdapter {
         });
     }
 
+    // Whether a hosting business for this venue is PLACED, regardless of hours (V5 follow-up / task 125): the
+    // distinction `hasVenue` hides — "there is a hospital, it's just closed right now" vs "there is no
+    // hospital at all". A venue-gated need that is placed-but-closed should DEFER (wait for it to open), not
+    // dissolve into an unrelated errand (the audit's seriously-ill man who went shopping past a shut clinic).
+    hasVenuePlaced(venue: string): boolean {
+        const hosts = VENUE_HOSTS[venue];
+        if (!hosts || !this.deps.listBuildings) {
+            return false;
+        }
+        return this.deps.listBuildings().some(building => {
+            const blueprintKey = building instanceof Workplace ? building.getBusiness()?.blueprintKey : undefined;
+            return blueprintKey !== undefined && hosts.includes(blueprintKey);
+        });
+    }
+
     // Opening hours (W2 / proposal simulation-aliveness-3 P1-2): a venue is OPEN while at least one of its
     // employees is on shift — the audit watched 2 AM shopping trips at unstaffed shops. Derived from the
     // authored shifts (no new data); an unstaffed business is closed until the labor loop (W1) staffs it.

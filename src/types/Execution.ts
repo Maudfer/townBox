@@ -62,6 +62,10 @@ export interface WorldAdapter {
     // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
     // places and always exist — the seam's only sanctioned difference is physical backing.
     hasVenue(venue: string): boolean;
+    // Whether a hosting business is PLACED regardless of hours (task 125): distinguishes "closed" from
+    // "absent" so a placed-but-closed venue-need defers instead of dissolving. Optional — bootstrap/logical
+    // worlds have no hours, so absent an impl a caller treats it as == hasVenue.
+    hasVenuePlaced?(venue: string): boolean;
     // The business hosting this location, if any (task 113): live worlds answer with the occupying
     // business's key so purchases at a REAL shop consume real stock (the conjuring fallback is retired
     // there). Optional — off-map worlds leave it undefined and keep the abstract-venue fallback.
