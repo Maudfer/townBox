@@ -37,6 +37,10 @@ export interface LiveWorldDeps {
     listBuildings?(): Building[];
     startCommute(person: Person, destination: Building): void;
     getInventory?(): Inventory | null;
+    // Whether a building currently has an open fire (V4 / aliveness-4): a located transition INTO a burning
+    // building is refused, so nobody walks back in to sleep/work while it burns (the audit's man who went
+    // back to bed in his burning house). Optional — pre-V4 doubles never block.
+    isBurning?(buildingKey: string): boolean;
 }
 
 // Departure spreading (LP-11 / proposal simulation-aliveness-2 M1): commutes leave within the first
@@ -271,6 +275,13 @@ export default class LiveWorld implements WorldAdapter {
             handle.resolvedAtTick = tick;
             return handle;
         }
+        // The burning gate (V4): refuse a trip INTO a building on fire — nobody walks back in to sleep or
+        // work while it burns. The person shrugs and picks something else; the evacuation hook owns the exit.
+        if (this.deps.isBurning?.(destination.getIdentifier()) && !this.personInside(person, destination)) {
+            handle.status = 'cancelled';
+            handle.resolvedAtTick = tick;
+            return handle;
+        }
         if (target.kind === 'venue') {
             this.resolvedVenues.set(handle.id, destination.getIdentifier());
         }
@@ -313,7 +324,11 @@ export default class LiveWorld implements WorldAdapter {
             }
             const person = this.findPerson(handle.personId);
             const destination = person ? this.targetBuilding(person, handle.target, this.resolvedVenues.get(handle.id)) : null;
-            if (!person || !destination) {
+            // The burning gate (V4): a destination that caught fire mid-trip cancels like one that vanished —
+            // the walker stops rather than finishing the journey into a burning building.
+            const destinationBurning = !!destination && !!person
+                && this.deps.isBurning?.(destination.getIdentifier()) && !this.personInside(person, destination);
+            if (!person || !destination || destinationBurning) {
                 handle.status = 'cancelled';
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);

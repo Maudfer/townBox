@@ -142,6 +142,30 @@ describe('LiveWorld.objectsAt', () => {
     });
 });
 
+describe('LiveWorld burning gate (V4 / aliveness-4)', () => {
+    function fakePerson(personId: string, home: Building, current: Building | null): Person {
+        return { social: { getPersonId: () => personId, getHome: () => home }, getCurrentBuilding: () => current, abortTravel: () => {} } as unknown as Person;
+    }
+
+    test('a transition INTO a burning building is refused (nobody walks back in)', () => {
+        const home = fakeBuilding('1-1');
+        const work = fakeBuilding('9-9');
+        const person = fakePerson('p1', home, null); // outdoors, heading home
+        const world = new LiveWorld({
+            getPeople: () => [person],
+            buildingByKey: key => (key === '9-9' ? work : home),
+            startCommute: () => {},
+            isBurning: key => key === '1-1', // the person's home is on fire
+        });
+
+        const homeward = world.requestTransition('p1', { kind: 'home' }, 10, null);
+        expect(homeward.status).toBe('cancelled'); // can't go back into the fire
+
+        const toWork = world.requestTransition('p1', { kind: 'building', key: '9-9' }, 10, null);
+        expect(toWork.status).toBe('pending'); // a building that ISN'T burning is fine
+    });
+});
+
 describe('LiveWorld.pump — cancellation of pending transitions', () => {
     function fakePerson(personId: string, home: Building, current: { value: Building | null }): Person {
         return { social: { getPersonId: () => personId, getHome: () => home }, getCurrentBuilding: () => current.value } as unknown as Person;

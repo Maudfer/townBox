@@ -136,6 +136,8 @@ export default class City {
             // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
             listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,
+            // The burning gate (V4): a transition INTO a building on fire is refused (nobody walks back in).
+            isBurning: key => Game.incidents?.openFireAt('building:' + key) ?? false,
         });
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
@@ -2253,6 +2255,31 @@ export default class City {
     // materialized but hidden, in the registry) — then dissolves the household and vacates the house. Shared by
     // eviction (022) and bulldoze teardown (025); returns a summary so each caller can phrase its own feed
     // messages. A no-op (zeros) when the house has no household.
+    // Interrupts a person's running HOME-located action (V4): called when their home is torn down or they're
+    // rehoused, so a stale "resting at home" instance can't keep running at a rubble lot or a home they no
+    // longer live in. Other-located activities are untouched. A no-op without the engines (pure tests).
+    private interruptStaleHomeAction(personId: PersonId, tick: number): void {
+        const actionEngine = Game.actionEngine;
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        const clock = Game.clock;
+        if (!actionEngine || !engine || !population || !clock) {
+            return;
+        }
+        const active = actionEngine.activeInstanceOf(personId);
+        if (!active) {
+            return;
+        }
+        const def = actionEngine.getDefinition(active.defId);
+        if (def?.location !== 'home' && active.locationOverride !== 'home') {
+            return;
+        }
+        actionEngine.interrupt(active.id, { source: 'system', causationId: null }, {
+            state: population.getState(), tick, ticksPerYear: clock.getTicksPerYear(),
+            ctx: { mode: 'live', world: this.world }, eventEngine: engine, inventory: Game.inventory ?? null,
+        }, { died: [], born: [], signals: [], committed: [] });
+    }
+
     private displaceHousehold(house: House, tick: number): { householdName: string; rehoused: number; homeless: number } {
         const population = Game.population;
         const household = house.getHousehold();
@@ -2266,6 +2293,14 @@ export default class City {
         // Physical ejection (W9 / proposal simulation-aliveness-3 P1-11): whoever is INSIDE steps out onto
         // the connected street before the paperwork — displacement is a visible scene, not a vanishing.
         this.ejectOccupants(house);
+
+        // Re-validate running home activities (V4 / aliveness-4): a member mid-`spending_time_at_home` when
+        // the house comes down would otherwise keep "resting at home" at the rubble (the audit's homeless
+        // woman). Interrupt each displaced member's home-located instance so their woken brain re-plans from
+        // reality (shelter-seeking, the street repertoire) instead of a home that no longer exists.
+        for (const memberId of household.memberIds.filter(id => byGenId.has(id))) {
+            this.interruptStaleHomeAction(memberId, tick);
+        }
 
         // Household-unit rehousing FIRST (W4 / P1-4): the audit's fire split a couple — she moved in with
         // kin, he went homeless at the supermarket — because relocation was per-member by blood relation.
