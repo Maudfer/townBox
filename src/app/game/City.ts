@@ -3275,6 +3275,7 @@ export default class City {
             return null;
         }
         const riders = passengers.slice(0, Vehicle.SEAT_CAPACITY - 1); // driver + up to capacity-1 passengers
+        this.narrateRide(driver, riders, destination);
         const bodyPosition = driver.getPosition();
         const currentBuilding = driver.getCurrentBuilding();
         const originRoadTile = currentBuilding
@@ -3291,6 +3292,66 @@ export default class City {
             passenger.setDestination(destination);
         }
         return car;
+    }
+
+    // Narrates a coordinated ride (task 130 Phase D) so the log/feed read the TRUTH — "Drove Ana to school",
+    // "Was driven to the hospital" — rather than each rider silently teleporting. Purpose is derived from the
+    // destination + the riders (a minor bound for a school building is a school run; anyone bound for a
+    // hospital is a medical drive; else a plain lift), so the narration rides the SAME election path that
+    // already forms the ride — no separate producer needed for the behavior to read. Manual, effect-free
+    // texture events invoked live-only (bootstrap/the generator never call startGroupRide), so the off-map
+    // RNG stream and the committed asset are untouched. Best-effort: a missing engine/pool no-ops silently.
+    private narrateRide(driver: Person, riders: Person[], destination: Building): void {
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (!engine || !population || riders.length === 0) {
+            return;
+        }
+        const driverId = driver.social.getPersonId();
+        if (!driverId) {
+            return;
+        }
+        const state = population.getState();
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        const ticksPerYear = Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        const blueprint = destination instanceof Workplace ? destination.getBusiness()?.blueprintKey : undefined;
+        const cause = { source: 'system' as const, causationId: null };
+        const firstRiderId = riders[0]?.social.getPersonId();
+
+        if (blueprint === 'school' && riders.some(r => r.social.getAge() < ADULT_AGE_YEARS)) {
+            if (firstRiderId) {
+                engine.invoke(state, 'drove_kids_to_school', driverId, tick, ticksPerYear, cause, {}, {}, { target: firstRiderId });
+            }
+            for (const rider of riders) {
+                const rid = rider.social.getPersonId();
+                if (rid) {
+                    engine.invoke(state, 'rode_to_school', rid, tick, ticksPerYear, cause);
+                }
+            }
+            return;
+        }
+        if (blueprint === 'hospital') {
+            if (firstRiderId) {
+                engine.invoke(state, 'drove_relative_to_hospital', driverId, tick, ticksPerYear, cause, {}, {}, { target: firstRiderId });
+            }
+            for (const rider of riders) {
+                const rid = rider.social.getPersonId();
+                if (rid) {
+                    engine.invoke(state, 'was_driven_to_hospital', rid, tick, ticksPerYear, cause);
+                }
+            }
+            return;
+        }
+        // Generic lift (an outing, a carpool): the driver gave a ride, each passenger caught one.
+        if (firstRiderId) {
+            engine.invoke(state, 'gave_someone_a_ride', driverId, tick, ticksPerYear, cause, {}, {}, { target: firstRiderId });
+        }
+        for (const rider of riders) {
+            const rid = rider.social.getPersonId();
+            if (rid) {
+                engine.invoke(state, 'caught_a_ride', rid, tick, ticksPerYear, cause);
+            }
+        }
     }
 
     public setupCar(vehicle: Vehicle): void {

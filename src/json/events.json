@@ -27286,6 +27286,129 @@
         "valence": 1,
         "effects": []
     },
+    "drove_kids_to_school": {
+        "label": "Drove {target} to school",
+        "category": "family",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "rode_to_school": {
+        "label": "Got a lift to school",
+        "category": "family",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "drove_relative_to_hospital": {
+        "label": "Drove {target} to the hospital",
+        "category": "family",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 0,
+        "effects": []
+    },
+    "was_driven_to_hospital": {
+        "label": "Was driven to the hospital",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "gave_someone_a_ride": {
+        "label": "Gave {target} a ride",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "caught_a_ride": {
+        "label": "Caught a ride",
+        "category": "social",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
     "visited_person_in_jail": {
         "label": "Visited {target} in jail",
         "category": "crime",

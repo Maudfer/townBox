@@ -8,7 +8,7 @@ import Workplace from 'game/world/Workplace';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { TimeChangedEvent } from 'types/Time';
 
-function makeWorld(): { city: City; field: Field } {
+function makeWorld(): { city: City; field: Field; game: GameManager } {
     const rows = 40;
     const cols = 40;
     const game = {
@@ -35,7 +35,7 @@ function makeWorld(): { city: City; field: Field } {
     const field = new Field(game, rows, cols);
     (game as unknown as { field: Field }).field = field;
     const city = new City(game);
-    return { city, field };
+    return { city, field, game };
 }
 
 function timeAt(hour: number, minute: number): TimeChangedEvent {
@@ -271,6 +271,63 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         // All three are heading to the workplace (their travel machines are engaged).
         expect(driver.isIdle()).toBe(false);
         expect(kid1.isIdle()).toBe(false);
+    });
+
+    // Task 130 Phase D: a coordinated ride NARRATES itself in the per-person log — the maintainer's "the
+    // parent's action must read 'driving the kids to school'". The purpose is derived from the destination +
+    // riders, so the SAME election path that forms the ride narrates it (no separate producer).
+    type InvokeCall = { eventId: string; subjectId: string; params?: Record<string, unknown> };
+    function narratingWorld(blueprintKey: string, riderAges: number[]): {
+        city: City; field: Field; workplace: Workplace; driver: Person; riders: Person[]; calls: InvokeCall[];
+    } {
+        const { city, field, game } = makeWorld();
+        const calls: InvokeCall[] = [];
+        // Inject a recording engine + minimal pool/clock on the live Game reference (set by the City ctor).
+        const gm = game as unknown as Record<string, unknown>;
+        gm['eventEngine'] = {
+            invoke: (_state: unknown, eventId: string, subjectId: string, _t: number, _ty: number, _c: unknown, _b: unknown, _ctx: unknown, params?: Record<string, unknown>) => {
+                calls.push({ eventId, subjectId, params });
+                return { outcome: { ok: true, seq: 1 }, result: { died: [], born: [], signals: [], committed: [] } };
+            },
+        };
+        gm['population'] = { getState: () => ({ people: {}, worldSeed: 1 }) };
+        gm['clock'] = { getCurrentTick: () => 100, getTicksPerYear: () => 8640 };
+
+        field.loadStructure('road', 1, 4, 'r');
+        const workplace = field.loadStructure('work', 16, 16, 'w') as Workplace;
+        workplace.setBusiness({ blueprintKey, positions: [] } as never);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const driver = field.loadPerson(72, 72); driver.setAsset({} as never); driver.setCurrentBuilding(home);
+        driver.social.setAge(34); driver.social.setPersonId('driver1');
+        const riders = riderAges.map((age, i) => {
+            const r = field.loadPerson(74 + i * 2, 72); r.setAsset({} as never); r.setCurrentBuilding(home);
+            r.social.setAge(age); r.social.setPersonId(`rider${i}`);
+            return r;
+        });
+        return { city, field, workplace, driver, riders, calls };
+    }
+
+    test('a ride to a school building narrates a school run for the parent + the kids (task 130)', () => {
+        const { city, workplace, driver, riders, calls } = narratingWorld('school', [8, 10]);
+        city.startGroupRide(driver, riders, workplace);
+        expect(calls.find(c => c.subjectId === 'driver1')).toEqual(
+            expect.objectContaining({ eventId: 'drove_kids_to_school', params: { target: 'rider0' } }));
+        expect(calls.filter(c => c.eventId === 'rode_to_school').map(c => c.subjectId).sort())
+            .toEqual(['rider0', 'rider1']);
+    });
+
+    test('a ride to a hospital building narrates the drive + the patient side (task 130)', () => {
+        const { city, workplace, driver, riders, calls } = narratingWorld('hospital', [70]);
+        city.startGroupRide(driver, riders, workplace);
+        expect(calls.find(c => c.subjectId === 'driver1')).toEqual(
+            expect.objectContaining({ eventId: 'drove_relative_to_hospital', params: { target: 'rider0' } }));
+        expect(calls.find(c => c.eventId === 'was_driven_to_hospital')?.subjectId).toBe('rider0');
+    });
+
+    test('a ride to an ordinary workplace narrates a plain lift, not a school/hospital run (task 130)', () => {
+        const { city, workplace, driver, riders, calls } = narratingWorld('bakery', [34]);
+        city.startGroupRide(driver, riders, workplace);
+        expect(calls.map(c => c.eventId).sort()).toEqual(['caught_a_ride', 'gave_someone_a_ride']);
     });
 
     test('cancelTransition parks the body and despawns the car — the trip stops with the intent', () => {

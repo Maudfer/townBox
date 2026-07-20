@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserved**.
+Totals: 749 events — **30 vital**, **45 wired**, **506 texture**, **168 reserved**.
 
 | Event | Category | Triggers | Disposition | Quirk | Invoked by |
 |---|---|---|---|---|---|
@@ -98,6 +98,7 @@ Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserv
 | car_was_keyed | crime-mischief | probabilistic+manual | texture | quirk | — |
 | cast_first_vote | milestone | manual | reserved | — | — |
 | cat_brought_gift | pet | probabilistic | texture | — | — |
+| caught_a_ride | social | manual | reserved | — | — |
 | caught_cheating_on_test | education | probabilistic+manual | texture | quirk | — |
 | caught_cold | health | probabilistic+manual | texture | quirk | — |
 | caught_fireflies | childhood | probabilistic+manual | texture | quirk | — |
@@ -165,6 +166,8 @@ Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserv
 | drifted_apart | social | probabilistic+manual | texture | quirk | — |
 | dropped_out | education | probabilistic+manual | texture | quirk | — |
 | dropped_phone_in_toilet | accident | probabilistic | texture | quirk | — |
+| drove_kids_to_school | family | manual | reserved | — | — |
+| drove_relative_to_hospital | family | manual | reserved | — | — |
 | earned_black_belt | achievement | probabilistic+manual | texture | quirk | — |
 | earned_certificate | education | probabilistic+manual | texture | quirk | — |
 | earned_first_paycheck | milestone | manual | reserved | — | — |
@@ -236,6 +239,7 @@ Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserv
 | gave_birth | lifecycle | manual+automated | vital | — | City.handleTick (birth, task 076) |
 | gave_directions | community | probabilistic+manual | texture | quirk | — |
 | gave_gift | social | manual | wired | — | gave_object_to_person.onComplete |
+| gave_someone_a_ride | social | manual | reserved | — | — |
 | gave_up_driving | aging | probabilistic | texture | quirk | — |
 | gave_up_hobby | hobby | probabilistic | texture | quirk | — |
 | gave_up_sweets | food | probabilistic | texture | quirk | — |
@@ -544,6 +548,7 @@ Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserv
 | retired | career | manual | reserved | — | — |
 | retirement | career | probabilistic | vital | — | — |
 | returned_garden_gnome | crime-mischief | probabilistic | texture | quirk | — |
+| rode_to_school | family | manual | reserved | — | — |
 | roof_leaked | housing | probabilistic+manual | texture | quirk | — |
 | said_final_goodbyes | death | manual | reserved | — | — |
 | said_first_word | milestone | probabilistic+manual | texture | quirk | — |
@@ -680,6 +685,7 @@ Totals: 743 events — **30 vital**, **45 wired**, **506 texture**, **162 reserv
 | was_burgled | crime-mischief | probabilistic+manual | texture | quirk | — |
 | was_cheated_on | romance | manual | reserved | — | — |
 | was_detained | crime | manual | vital | — | — |
+| was_driven_to_hospital | health | manual | reserved | — | — |
 | was_evicted | housing | manual | reserved | — | — |
 | was_fired | career | probabilistic+manual | texture | quirk | — |
 | was_gossiped_about | social | probabilistic+manual | texture | quirk | — |
