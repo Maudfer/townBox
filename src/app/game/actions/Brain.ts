@@ -599,9 +599,19 @@ export default class Brain {
         // uses — a seriously-ill person recovers at home rather than running errands or socialising.
         const healthAttr = context.getAttr('health');
         const severelyIll = typeof healthAttr === 'number' && healthAttr < SEVERE_ILLNESS_HEALTH;
+        // Homeless day-shape (task 127): a person with no home can't run a home-located domestic action —
+        // it would only request a transition to a home that resolves to nothing and block on no_route,
+        // tick after tick. Hard-gate those out so the outdoor repertoire (walks, looking_for_a_home, park/
+        // bench rest) takes their weight instead of a stream of blocked "spending time at home" attempts at
+        // the rubble. Live-only in effect: the generator's logical world has elastic housing (no evictions),
+        // so `homeless` is never set there and this gate never fires — the asset is unchanged.
+        const homeless = context.getAttr('homeless') === true;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind, satisfiesEntries } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
+            if (homeless && def.location === 'home') {
+                continue; // no home to do it in — don't propose a guaranteed no-route block
+            }
             let weight = baseWeight;
             if (shaken && (def.category === 'social' || def.category === 'leisure')) {
                 weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)

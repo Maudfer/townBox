@@ -165,7 +165,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [124](124-evacuation-as-a-scene.md) | ✅ Done (core) | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
 | [125](125-deferred-venue-needs.md) | ✅ Done | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
 | [126](126-guardianship-depth.md) | ✅ Done (core) | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
-| [127](127-homeless-day-shape-and-domestic-locations.md) | 📋 Planned | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
+| [127](127-homeless-day-shape-and-domestic-locations.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
 | [128](128-street-wander-graph-and-seeded-wander.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
 | [129](129-persistent-household-cars.md) | 📋 Planned | [Feature] Persistent household cars — park it, don't conjure it |
 
