@@ -61,6 +61,9 @@ export default class MainScene extends Phaser.Scene {
         Game.on("gameLoaded", { callback: this.clearFireEmitters, context: this });
         // Particles follow the time scale (W10): flames speed up, slow down, and freeze with the world.
         Game.on("timeScaleChanged", { callback: this.syncEmitterTimeScales, context: this });
+        // Selective activity labels (V6 / aliveness-4 M1): the scene shows a label only over an INSPECTED
+        // person, so the street isn't a wall of overlapping text. The HUD tells us who is inspected.
+        Game.on("inspectedPeopleChanged", { callback: (ids: string[]) => { this.inspectedPeople = new Set(ids); }, context: this });
 
         Game.on("windowDragStart", { callback: () => {
             this.cursorActive = false;
@@ -178,6 +181,11 @@ export default class MainScene extends Phaser.Scene {
             this.input.keyboard.addKey('T').on('down', () => {
                 Game.cycleTimeScale();
                 this.refreshDebugOverlay();
+            });
+            // Toggle showing ALL activity labels (V6/M1): normally only inspected people are labelled.
+            this.input.keyboard.addKey('L').on('down', () => {
+                this.labelsShowAll = !this.labelsShowAll;
+                this.refreshActivityLabels();
             });
             Game.on("timeChanged", { callback: this.refreshDebugOverlay, context: this });
         }
@@ -567,6 +575,10 @@ export default class MainScene extends Phaser.Scene {
     // were never CREATED — the map stayed empty forever — so the street never actually narrated. They are
     // now created lazily on the first refresh that sees the person.)
     private activityLabels = new Map<Person, Phaser.GameObjects.Text>();
+    // Who has an open inspector window (V6/M1): only these people get an activity label — unless the
+    // debug show-all toggle is on (masterSwitch-gated, the L key).
+    private inspectedPeople = new Set<string>();
+    private labelsShowAll = false;
     // Pets on the street (task 115): a tiny brown rectangle trailing the owner while walking_the_dog runs
     // — no pathfinding of its own, it shadows the owner's sprite with a small offset.
     private petDots = new Map<Person, Phaser.GameObjects.Rectangle>();
@@ -609,7 +621,9 @@ export default class MainScene extends Phaser.Scene {
             const active = engine.activeInstanceOf(personId);
             const running = !!active && active.status === 'running';
             const traveling = !!active && active.status === 'waiting_for_materialization';
-            const show = (running || traveling) && !person.isIndoors();
+            // Only label an INSPECTED person (V6/M1) — or everyone, under the debug show-all toggle.
+            const watched = this.labelsShowAll || this.inspectedPeople.has(personId);
+            const show = watched && (running || traveling) && !person.isIndoors();
             if (show) {
                 // Bubble labels strip unresolved {param} template segments (the LP-14 resolver lives in the
                 // inspector; the street bubble has the destination line instead — "Going to Moraes S.A. /
@@ -677,33 +691,45 @@ export default class MainScene extends Phaser.Scene {
     // group member draws with a small lateral offset by stable slot index. The chase pair groups through an
     // alias (fleeing↔chasing are one scene). Refreshed per in-game minute; applied in the redraw closure.
     private formationOffsets = new Map<Person, number>();
-    private static readonly FORMATION_ALIASES: Record<string, string> = {
-        fleeing_the_police: 'chase', chasing_a_suspect: 'chase',
-    };
+    // The eased offset actually rendered (V6 / aliveness-4 Part 5.1): the target offset changes in discrete
+    // jumps when a group re-slots, and applying it instantly popped sprites 8-10px (the "jitter clips" the
+    // maintainer saw). The rendered offset lerps toward the target so re-slotting glides.
+    private currentFormationOffsets = new Map<Person, number>();
+
+    // Eases a person's rendered formation offset toward its target; returns the value to draw at (V6/M1).
+    private easedFormationOffset(person: Person, timeDelta: number): number {
+        const target = this.formationOffsets.get(person) ?? 0;
+        const current = this.currentFormationOffsets.get(person);
+        if (current === undefined) {
+            this.currentFormationOffsets.set(person, target); // first sight: no pop from zero
+            return target;
+        }
+        const eased = current + (target - current) * Math.min(1, timeDelta * MainScene.FORMATION_EASE_RATE);
+        this.currentFormationOffsets.set(person, eased);
+        return eased;
+    }
+    private static readonly FORMATION_EASE_RATE = 0.012;
 
     private refreshFormations(): void {
         const field = Game.field;
-        const engine = Game.actionEngine;
         this.formationOffsets.clear();
-        if (!field || !engine) {
+        if (!field) {
             return;
         }
+        // Offset ALL co-located visible people (V6 / aliveness-4 Part 5.3), not just same-activity groups —
+        // a couple's walk, coworkers heading the same way, or a chase pair used to render as one overlapping
+        // sprite whenever their activities differed. Group purely by position cell; slot by stable id. The
+        // activity-alias grouping stays only for LABEL merging (refreshActivityLabels), never for bodies.
         const groups = new Map<string, Person[]>();
         for (const person of field.getPeople()) {
             if (person.isIndoors()) {
-                continue;
-            }
-            const personId = person.social.getPersonId();
-            const active = personId ? engine.activeInstanceOf(personId) : null;
-            if (!active) {
                 continue;
             }
             const position = person.getPosition();
             if (!position) {
                 continue;
             }
-            const token = MainScene.FORMATION_ALIASES[active.defId] ?? active.defId;
-            const cell = `${token}|${Math.round(position.x / 32)}|${Math.round(position.y / 32)}`;
+            const cell = `${Math.round(position.x / 24)}|${Math.round(position.y / 24)}`;
             const members = groups.get(cell) ?? [];
             members.push(person);
             groups.set(cell, members);
@@ -831,6 +857,7 @@ export default class MainScene extends Phaser.Scene {
                 this.activityLabels.delete(person);
                 this.petDots.get(person)?.destroy();
                 this.petDots.delete(person);
+                this.currentFormationOffsets.delete(person); // V6: drop the eased-offset entry too
                 reaped += 1;
             }
         }
@@ -895,7 +922,7 @@ export default class MainScene extends Phaser.Scene {
         let jitterY = 0;
         let jitterForId: string | null = null;
 
-        person.setRedrawFunction((_: number) => {
+        person.setRedrawFunction((timeDelta: number) => {
             const personAsset = person.getAsset();
             if (personAsset === null) {
                 return;
@@ -940,9 +967,10 @@ export default class MainScene extends Phaser.Scene {
             const rotation = directionToRadianRotation(direction);
 
             personAsset.setRotation(rotation);
-            // Side-by-side formations (W5) + the sidewalk jitter: both are render offsets — the formation
-            // separates co-walking group members, the jitter separates everyone else on the shared curb.
-            personAsset.setPosition(position.x + jitterX + (this.formationOffsets.get(person) ?? 0), position.y + jitterY);
+            // Side-by-side formations (W5/V6) + the sidewalk jitter: both are render offsets — the formation
+            // separates co-located group members (eased so re-slots glide, never pop), the jitter separates
+            // everyone else on the shared curb.
+            personAsset.setPosition(position.x + jitterX + this.easedFormationOffset(person, timeDelta), position.y + jitterY);
             personAsset.setDepth(person.getDepth());
 
             // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.

@@ -86,4 +86,8 @@ export interface EventPayloads {
     "timeScaleChanged": number;
     "newDay": NewDayEvent;
     "cityEvent": CityEvent;
+    // The set of pool person-ids with an open inspector window (V6 / aliveness-4 M1): the scene shows an
+    // activity label only over an INSPECTED person, so the street isn't a wall of overlapping text. Emitted
+    // by the HUD whenever a person window opens/closes.
+    "inspectedPeopleChanged": string[];
 };
