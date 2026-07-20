@@ -506,6 +506,61 @@ garbage-saturated, mood-collapsed place nobody (sim or player) could fix. What c
   identical position with the identical clock; a 5s hitch advances both by exactly the cap; pause moves
   nothing.
 
+### 4.18 The aliveness-4 arc (V1–V11)
+
+The player-experience/visual-truth pass (audit + proposal: `docs/proposals/simulation-aliveness-4-audit.md`;
+single PR, branch `task/simulation-aliveness-4`). The theme: **the movement is truthful now — make it
+sensible**, and make place, purpose, and company real on the street. What changed at the engine level:
+
+- **V8 — sprite hardening & the movement tracer.** `TestHarness` gains the standing movement tracer
+  (`startTrace`/`traceReport`/`traceAnomalies`/`traceEvents`/`traceCrumbs`/`activityCensus`: per-frame
+  state timelines, breadcrumbs, and anomaly classes — teleport/disembark/renderJump/stuck/overlap/
+  spriteAudit). `MainScene` reconciles a **sprite registry** against `Field`'s live lists every minute
+  (`countOrphanSprites` → `auditSprites().orphanSprites`) — a sprite exists iff its entity is live.
+  `forceEvent` routes a scripted event's signals through the SAME City consumers (`City.forceEventAndConsume`
+  with the extracted `consumeResultSignals`) so a forced crime files a real incident.
+- **V11 — time & clock config.** New games open at **09:00** (`NEW_GAME_START_TICK`); the speed ladder is
+  **1×/10×/50×** (`TIME_SCALES`). The **50× distortion pass**: `Person.walk`/`Vehicle.drive` consume the
+  whole frame's travel budget across as many curb/lane segments as it covers, clamped per axis (no
+  overshoot) — the old single-step reached one waypoint and RETURNED, so at 50× feet fell behind the clock.
+  One iteration at ≤10×, so 1×/4×/8× stay byte-identical; `timeConsistency` extended to 10×/50×.
+- **V1 — the trip planner.** `City.startCommute` fixes the car ritual: **origin truth** (the car spawns on
+  the road nearest the BODY via `Field.nearestRoadTile`, never the person's distant home), **walk vs. drive**
+  by distance (`WALK_COMMUTE_MAX_TILES`), **no zero-length drive**. `Person.setAmbulatory` clears the stale
+  wander path on an ambulatory action's end (the "sleepwalk").
+- **V2 — outdoor place-hood.** `LogicalLocation`'s `outside` variant gains an optional `cell`; `LiveWorld`
+  tags an outdoor person with their 4-tile map patch, so co-location is LOCAL (a lend can't cross the map).
+  A cell-less `{kind:'outside'}` still means "anywhere outdoors" (the global chase check; bootstrap/logical
+  worlds stay town-wide — the sanctioned seam). Ambulatory walks roam `Field.roadAnchors` and stop mid-block
+  (the entrance-cluster fix).
+- **V10 — locomotion & the real chase.** Per-kind speed (`Person.setLocomotionKind`: stroll/jog/run, +
+  a **chase** premium so the officer closes). `City.resolveChase` resolves PHYSICALLY — an on-duty officer
+  co-located (V2 cell) with the suspect is a catch, else the suspect got away; the dice roll is retired
+  (the generator keeps its abstract roll — no sprites off-map).
+- **V9 — collective-action integrity.** `visiting_friends`/`visiting_relatives` are planner-only (free-time
+  weight 0), always LOCATED to a real person, and enqueue a mirrored **`hosting_a_friend_visit`** for the
+  host (both linked, ending together). A validator rejects a targetless, location-less social action with
+  free-time weight (no free-rolling "Visiting friends" over a business).
+- **V3 — guardianship.** A `minAge` field on actions (enforced in `ActionEngine.startAction`); venue-located
+  actions get a default independence floor (`VENUE_INDEPENDENCE_AGE`), so a 2-year-old can't take solo
+  shopping trips or roam to venues; `job_hunting` is 18+.
+- **V4 — scene aftermath.** The **burning gate** (`LiveWorld.isBurning`): a located transition INTO a
+  building on fire is refused (nobody walks back in to sleep/work). Displacement (eviction/demolition)
+  interrupts a member's running home-located instance (`City.interruptStaleHomeAction`) so the homeless
+  don't "rest at home" at the rubble.
+- **V5 — service roles.** The doctor-rounds hook admits both medical treating roles (`TREATING_JOB_KEYS`:
+  doctor AND nurse) — a nurse-only hospital is no longer a waiting room.
+- **V6 — street render polish.** Activity labels render only over **inspected** people
+  (`inspectedPeopleChanged` bus event; masterSwitch `L` toggles show-all). Formation offsets separate ALL
+  co-located visible people (by position cell), **eased** so re-slots glide instead of popping.
+- **V7 — rhythm.** A night-floor on `taking_a_walk` (×0.05, 22:00–06:00) ends 3 AM strolls. Live
+  first-offense sentencing verified fine-only (inflated priors are a generator/asset-regen concern).
+
+Deferred (own follow-ups, noted in the proposal): the business draw-coherence guard (beach/cemetery/
+duplicate categories — determinism/asset risk); evacuation rally/conclusion + the domestic-`home`-location
+data pass; deferred venue-need planning. The final in-browser observation pass + asset regeneration are the
+maintainer's pre-merge step (validated here via 1947 unit tests, ESLint, and the Playwright smoke test).
+
 ---
 
 ## 5. Codebase directives (working agreements)

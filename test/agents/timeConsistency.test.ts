@@ -64,17 +64,24 @@ function walker(field: Field): { x: () => number; y: () => number } {
 }
 
 describe('W10: the distortion-free time contract', () => {
-    test('equal SIM time at 1×, 4×, and 8× lands the walker at the SAME position with the SAME clock', () => {
+    test('equal SIM time at 1×, 4×, 8×, 10×, and 50× lands the walker at the SAME position with the SAME clock', () => {
+        // 50× is the aliveness-4 fast-forward speed (V11/M8): the budget-consuming walk (Person.walk) spends
+        // the whole frame's travel across as many curb segments as it covers, so feet keep up with the clock
+        // even at 16px-per-frame steps — no falling behind, no overshoot. frames × 16ms × scale = 12,800
+        // sim-ms every schedule, so all five must land the identical walked position and clock.
         const results: { x: number; y: number; ticks: number }[] = [];
-        for (const [scale, frames] of [[1, 800], [4, 200], [8, 100]] as const) {
+        for (const [scale, frames] of [[1, 800], [4, 200], [8, 100], [10, 80], [50, 16]] as const) {
             const scaleRef = { scale };
             const { field, clock } = makeWorld(scaleRef);
             const position = walker(field);
-            run(scaleRef, field, clock, frames, 16); // frames × 16ms × scale = 12,800 sim-ms every time
+            run(scaleRef, field, clock, frames, 16);
             results.push({ x: position.x(), y: position.y(), ticks: clock.getCurrentTick() });
         }
-        expect(results[1]).toEqual(results[0]);
-        expect(results[2]).toEqual(results[0]);
+        for (let index = 1; index < results.length; index++) {
+            expect(results[index]!.ticks).toEqual(results[0]!.ticks);
+            expect(results[index]!.x).toBeCloseTo(results[0]!.x, 3);
+            expect(results[index]!.y).toBeCloseTo(results[0]!.y, 3);
+        }
     });
 
     test('a framerate hitch stalls the world together: one 5s frame advances clock AND walker by the cap only', () => {

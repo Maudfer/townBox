@@ -1,4 +1,4 @@
-import ActionEngine from 'game/actions/ActionEngine';
+import ActionEngine, { DEFAULT_ACTION_MANIFEST } from 'game/actions/ActionEngine';
 import Brain, { BrainDeps, JobFacts } from 'game/actions/Brain';
 import EventEngine from 'game/events/EventEngine';
 import BootstrapWorld from 'game/execution/BootstrapWorld';
@@ -147,6 +147,31 @@ describe('free-time selection', () => {
             }
         }
         expect(sleepPicks / SAMPLES).toBeGreaterThan(0.6); // weight 0.2 × 30 ≈ 6 vs ~2.3 total others
+    });
+
+    test('serious illness suppresses going out — the sick stay in and recover (task 125)', () => {
+        const { engine, brain, makeDeps } = harness();
+        const manifest = DEFAULT_ACTION_MANIFEST;
+        const goesOut = (id: string | null): boolean => {
+            const def = id ? manifest[id] : null;
+            return !!def && (def.category === 'social' || def.category === 'leisure'
+                || def.location === 'outside' || (typeof def.location === 'string' && def.location.startsWith('venue:')));
+        };
+        const countOut = (): number => {
+            let out = 0;
+            for (let tick = 200; tick < 264; tick++) {
+                if (goesOut(brain.selectFreeTimeAction('a', makeDeps(tick)))) {
+                    out += 1;
+                }
+            }
+            return out;
+        };
+        const healthyOut = countOut();
+        expect(healthyOut).toBeGreaterThan(0); // a healthy person goes out sometimes
+
+        // Now 'a' is seriously ill (health 0.25 < the severe band) — going out collapses.
+        engine.invoke(makeDeps(100).state, 'fell_seriously_ill', 'a', 100, TPY, { source: 'system', causationId: null });
+        expect(countOut()).toBeLessThan(healthyOut);
     });
 
     test('hard gates hold: read_book is never picked without a book in Possessions', () => {

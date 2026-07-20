@@ -16,7 +16,7 @@ import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
 import { SICK_HEALTH_THRESHOLD } from 'game/actions/JobOrchestrator';
 import routinesConfig from 'json/routines.json';
 import { RoutinesConfig } from 'types/Agenda';
-import { spouseAt, childrenOf, parentsOf } from 'util/kinship';
+import { spouseAt, childrenOf, parentsOf, isAliveAt } from 'util/kinship';
 import { evaluatePredicateCached } from 'util/predicate';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { TICKS_PER_DAY, hourOfTick } from 'util/time';
@@ -32,6 +32,29 @@ const SORTED_ROUTINES = Object.entries(ROUTINES_CONFIG).sort(([a], [b]) => a.loc
 // Adoption is a pure function of (worldSeed, personId, routineId) — memoized (task 118): the seeded fork
 // chain ran ~9× per person per tick in the generator's hot band. Bounded by people × routines.
 const adoptionMemo = new Map<string, boolean>();
+
+// The strongest real friendship worth a visit (V9), or null. A located visit only happens toward a genuine
+// friend/partner edge above the strength floor — below it the generic company is enough.
+function bestFriendTarget(deps: HookContext['deps'], personId: string): string | null {
+    const social = deps.ctx.markets?.social ?? null;
+    const friends = social?.edgesOf(personId, deps.tick)
+        .filter(edge => ['friend', 'close_friend', 'dating', 'engaged'].includes(edge.view.kind) && edge.view.strength >= VISIT_EDGE_MIN_STRENGTH) ?? [];
+    if (friends.length === 0) {
+        return null;
+    }
+    return friends.reduce((top, edge) => edge.view.strength > top.view.strength ? edge : top).otherId;
+}
+
+// A living close relative to visit (V9), or null — the lowest-id living parent or adult child (deterministic).
+// The spouse is excluded (you cohabit, you don't "visit"); an unresolvable/off-map target simply cancels.
+function bestRelativeTarget(deps: HookContext['deps'], personId: string): string | null {
+    const pool = deps.state.people;
+    const spouse = spouseAt(pool, personId, deps.tick);
+    const kin = [...parentsOf(pool, personId), ...childrenOf(pool, personId)]
+        .filter(id => id !== personId && id !== spouse && pool[id] && isAliveAt(pool[id]!, deps.tick))
+        .sort();
+    return kin[0] ?? null;
+}
 
 function isAdopted(worldSeed: number, personId: string, routineId: string, adoption: number): boolean {
     const key = `${worldSeed}|${personId}|${routineId}`;
@@ -91,16 +114,33 @@ export const plannerHook: BrainHook = {
                 causationId: null,
                 source: 'routine',
             };
-            // The located social visit (D2): see_friends goes to a REAL friend when one exists.
-            if (routine.action === 'visiting_friends') {
-                const social = deps.ctx.markets?.social ?? null;
-                const friends = social?.edgesOf(personId, deps.tick)
-                    .filter(edge => ['friend', 'close_friend', 'dating', 'engaged'].includes(edge.view.kind) && edge.view.strength >= VISIT_EDGE_MIN_STRENGTH) ?? [];
-                if (friends.length > 0) {
-                    const best = friends.reduce((top, edge) => edge.view.strength > top.view.strength ? edge : top);
-                    agenda.enqueue({ ...entry, locationOverride: `person:${best.otherId}` });
-                    continue;
+            // Collective social visits (V9 / aliveness-4): a visit is a TWO-SIDED scene in ONE house, not a
+            // solo trip the host ignores (the audit's "Visiting friends" floating over a business). Both
+            // visiting_friends and visiting_relatives are now planner-only (free-time weight 0) and ALWAYS
+            // located to a real person — and they enqueue a MIRRORED hosting_a_friend_visit for the host, so
+            // the friend/relative is genuinely hosting at home at the same time, both ending together.
+            if (routine.action === 'visiting_friends' || routine.action === 'visiting_relatives') {
+                const hostId = routine.action === 'visiting_friends'
+                    ? bestFriendTarget(deps, personId)
+                    : bestRelativeTarget(deps, personId);
+                if (hostId !== null) {
+                    const linkId = `visit${deps.tick}-${personId}`;
+                    agenda.enqueue({ ...entry, locationOverride: `person:${hostId}`, linkId });
+                    // The host's side (V9): welcomes the visitor at home, linked to the same window.
+                    agenda.enqueue({
+                        personId: hostId,
+                        actionId: 'hosting_a_friend_visit',
+                        locationOverride: 'home',
+                        enqueuedAtTick: deps.tick,
+                        earliestTick: entry.earliestTick,
+                        latestTick: entry.latestTick,
+                        linkId,
+                        causationId: null,
+                        source: 'routine',
+                    });
                 }
+                // No real target → no visit (never enqueue an unlocated one — a visit needs someone to visit).
+                continue;
             }
             agenda.enqueue(entry);
         }

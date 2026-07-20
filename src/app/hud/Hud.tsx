@@ -69,6 +69,17 @@ const HUD: FC<HUDProps> = ({ game }) => {
         setOpenWindows(prev => prev.filter((_, i) => i !== index));
     }
 
+    // Tell the scene which people are being inspected (V6 / aliveness-4 M1): activity labels render only over
+    // people with an open inspector, so the street isn't a wall of overlapping text. Re-emitted whenever the
+    // set of open person windows changes.
+    useEffect(() => {
+        const inspectedIds = openWindows
+            .filter(w => w.type === WindowTypes.PersonDetails)
+            .map(w => (w.data as Person | null)?.social?.getPersonId?.() ?? null)
+            .filter((id): id is string => id !== null);
+        void game.emit('inspectedPeopleChanged', inspectedIds);
+    }, [openWindows, game]);
+
     useEffect(() => {
         // Selection events are HUD-only (no game-side handler), so game.off here is safe.
         game.on("HouseSelected", { callback: (house: House) => openWindow(WindowTypes.HouseDetails, house, 'replaceType') });

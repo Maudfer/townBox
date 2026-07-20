@@ -23,6 +23,12 @@ import venuesConfig from 'json/venues.json';
 // Venue kind -> hosting blueprint keys (task 107). Data-registered; validated against actions + blueprints.
 const VENUE_HOSTS = venuesConfig as Record<string, string[]>;
 
+// Outdoor co-location scoping (V2 / aliveness-4): the map is bucketed into OUTDOOR_CELL_TILES-tile patches;
+// two outdoor people co-locate only within the same patch. 4 tiles (64px) is "the same bit of street" — big
+// enough that a couple walking together stays co-located, small enough that a lend across town cannot happen.
+const OUTDOOR_CELL_TILES = 4;
+const OUTDOOR_TILE_PX = 16;
+
 export interface LiveWorldDeps {
     getPeople(): Person[];
     buildingByKey(key: string): Building | null;
@@ -31,6 +37,10 @@ export interface LiveWorldDeps {
     listBuildings?(): Building[];
     startCommute(person: Person, destination: Building): void;
     getInventory?(): Inventory | null;
+    // Whether a building currently has an open fire (V4 / aliveness-4): a located transition INTO a burning
+    // building is refused, so nobody walks back in to sleep/work while it burns (the audit's man who went
+    // back to bed in his burning house). Optional — pre-V4 doubles never block.
+    isBurning?(buildingKey: string): boolean;
 }
 
 // Departure spreading (LP-11 / proposal simulation-aliveness-2 M1): commutes leave within the first
@@ -73,12 +83,29 @@ export default class LiveWorld implements WorldAdapter {
         }
         const building = person.getCurrentBuilding();
         if (!building) {
-            return { kind: 'outside' };
+            // Outdoors: tag the patch of street the body stands in (V2), so co-location is LOCAL — two
+            // pedestrians only meet when they are actually near each other, not town-wide.
+            return { kind: 'outside', cell: this.outdoorCellOf(person) };
         }
         if (building instanceof House && building === person.social.getHome()) {
             return { kind: 'home' };
         }
         return { kind: 'building', key: building.getIdentifier() };
+    }
+
+    // The street-cell key for an outdoor person's pixel position (V2 / aliveness-4). Buckets the map into
+    // OUTDOOR_CELL_TILES-sized patches; two people in the same patch co-locate. A grid bucket has the usual
+    // boundary approximation (neighbours across a cell edge miss), accepted per the proposal — the point is
+    // that a lend/hug/chat can no longer cross the whole map. Cell-less fallback if the position is unknown.
+    private outdoorCellOf(person: Person): string | undefined {
+        const position = person.getPixelPosition?.() ?? person.getPosition?.();
+        if (!position) {
+            return undefined;
+        }
+        const cellPx = OUTDOOR_CELL_TILES * OUTDOOR_TILE_PX;
+        const cellRow = Math.floor(position.y / cellPx);
+        const cellCol = Math.floor(position.x / cellPx);
+        return `${cellRow}-${cellCol}`;
     }
 
     // Concrete object location (task 070): the current building's own key, home included — every house has
@@ -94,6 +121,10 @@ export default class LiveWorld implements WorldAdapter {
     }
 
     peopleAt(location: LogicalLocation): PersonId[] {
+        // A cell-less `{kind:'outside'}` query means "anyone outdoors, anywhere" (V2): the global check the
+        // pursuit/dispatch hooks want ("is a chase on somewhere?"). A cell-scoped outside query returns only
+        // the people in that street patch — the LOCAL co-location the social hook and witnesses want.
+        const outsideAnywhere = location.kind === 'outside' && location.cell === undefined;
         const ids: PersonId[] = [];
         for (const person of this.deps.getPeople()) {
             const id = person.social.getPersonId();
@@ -101,7 +132,10 @@ export default class LiveWorld implements WorldAdapter {
                 continue;
             }
             const current = this.locationOf(id);
-            if (current.kind === location.kind && JSON.stringify(current) === JSON.stringify(location)) {
+            const match = outsideAnywhere
+                ? current.kind === 'outside'
+                : locationKey(current) === locationKey(location);
+            if (match) {
                 ids.push(id);
             }
         }
@@ -176,6 +210,21 @@ export default class LiveWorld implements WorldAdapter {
         });
     }
 
+    // Whether a hosting business for this venue is PLACED, regardless of hours (V5 follow-up / task 125): the
+    // distinction `hasVenue` hides — "there is a hospital, it's just closed right now" vs "there is no
+    // hospital at all". A venue-gated need that is placed-but-closed should DEFER (wait for it to open), not
+    // dissolve into an unrelated errand (the audit's seriously-ill man who went shopping past a shut clinic).
+    hasVenuePlaced(venue: string): boolean {
+        const hosts = VENUE_HOSTS[venue];
+        if (!hosts || !this.deps.listBuildings) {
+            return false;
+        }
+        return this.deps.listBuildings().some(building => {
+            const blueprintKey = building instanceof Workplace ? building.getBusiness()?.blueprintKey : undefined;
+            return blueprintKey !== undefined && hosts.includes(blueprintKey);
+        });
+    }
+
     // Opening hours (W2 / proposal simulation-aliveness-3 P1-2): a venue is OPEN while at least one of its
     // employees is on shift — the audit watched 2 AM shopping trips at unstaffed shops. Derived from the
     // authored shifts (no new data); an unstaffed business is closed until the labor loop (W1) staffs it.
@@ -241,6 +290,13 @@ export default class LiveWorld implements WorldAdapter {
             handle.resolvedAtTick = tick;
             return handle;
         }
+        // The burning gate (V4): refuse a trip INTO a building on fire — nobody walks back in to sleep or
+        // work while it burns. The person shrugs and picks something else; the evacuation hook owns the exit.
+        if (this.deps.isBurning?.(destination.getIdentifier()) && !this.personInside(person, destination)) {
+            handle.status = 'cancelled';
+            handle.resolvedAtTick = tick;
+            return handle;
+        }
         if (target.kind === 'venue') {
             this.resolvedVenues.set(handle.id, destination.getIdentifier());
         }
@@ -283,7 +339,11 @@ export default class LiveWorld implements WorldAdapter {
             }
             const person = this.findPerson(handle.personId);
             const destination = person ? this.targetBuilding(person, handle.target, this.resolvedVenues.get(handle.id)) : null;
-            if (!person || !destination) {
+            // The burning gate (V4): a destination that caught fire mid-trip cancels like one that vanished —
+            // the walker stops rather than finishing the journey into a burning building.
+            const destinationBurning = !!destination && !!person
+                && this.deps.isBurning?.(destination.getIdentifier()) && !this.personInside(person, destination);
+            if (!person || !destination || destinationBurning) {
                 handle.status = 'cancelled';
                 handle.resolvedAtTick = tick;
                 this.resolvedVenues.delete(handle.id);

@@ -18,6 +18,10 @@ const CURVE_TOP_SPEED = 0.100;
 const INITIAL_SPEED = 0.000;
 const ROTATION_SPEED = 0.009;
 
+// Budget-consuming drive tunables (V11 / aliveness-4 M8), mirroring Person's.
+const VEHICLE_MOVE_EPSILON = 1e-6;
+const VEHICLE_DRIVE_ITERATION_LIMIT = 10000;
+
 export default class Vehicle {
     private x: number;
     private y: number;
@@ -124,38 +128,50 @@ export default class Vehicle {
         } else if (this.speed > this.topSpeed) {
             this.speed -= this.acceleration;
         }
-        
-        // Movement logic
-        const movement = this.speed * timeDelta;
-        if (this.movingAxis === Axis.X) {
-            const movementX = movement * Math.sign(this.currentTarget.x - this.x);
-            let potentialX = this.x + movementX;
 
-            if (Math.abs(potentialX - this.currentTarget.x) < Math.abs(movementX)) {
-                potentialX = this.currentTarget.x; // Snap directly to target if overshooting
+        // Budget-consuming drive (V11 / aliveness-4 M8): the same fix walkers got — spend the frame's travel
+        // across as many lane segments as it covers, clamped per axis so nothing overshoots. Acceleration is
+        // resolved ONCE per frame above (unchanged physics); only the position advancement loops. At 1×/10×
+        // the budget is small and this runs one iteration (identical to the old single-step); only large
+        // 50×/hitch deltas iterate, so a commute car keeps up with the clock instead of stranding budget at
+        // every lane waypoint (the old code moved one axis, snapped to target, and RETURNED — falling behind).
+        let budget = this.speed * timeDelta;
+        let guard = 0;
+        while (budget > VEHICLE_MOVE_EPSILON && this.currentTarget && guard++ < VEHICLE_DRIVE_ITERATION_LIMIT) {
+            const axisBefore = this.movingAxis;
+            let stepMagnitude = 0;
+            if (this.movingAxis === Axis.X) {
+                const deltaX = this.currentTarget.x - this.x;
+                const stepX = Math.sign(deltaX) * Math.min(Math.abs(deltaX), budget);
+                this.x += stepX;
+                stepMagnitude = Math.abs(stepX);
+            } else if (this.movingAxis === Axis.Y) {
+                const deltaY = this.currentTarget.y - this.y;
+                const stepY = Math.sign(deltaY) * Math.min(Math.abs(deltaY), budget);
+                this.y += stepY;
+                stepMagnitude = Math.abs(stepY);
+            } else {
+                throw new Error(`[Vehicle] Invalid moving axis: ${this.movingAxis}`);
             }
 
-            this.x = potentialX;
+            budget -= stepMagnitude;
+            this.updateDirection(this.movingAxis); // handles the axis switch on reaching a target
+            this.updateDepth(currentTile);
 
-        } else if (this.movingAxis === Axis.Y) {
-            const movementY = movement * Math.sign(this.currentTarget.y - this.y);
-            let potentialY = this.y + movementY;
-
-            if (Math.abs(potentialY - this.currentTarget.y) < Math.abs(movementY)) {
-                potentialY = this.currentTarget.y; // Snap directly to target if overshooting
+            if (this.isCurrentTargetReached()) {
+                if (this.isDestinationReached()) {
+                    break; // at the final lane target, path empty — the travel machine takes over
+                }
+                this.setNextTarget(currentTile);
+                if (!this.currentTarget || this.isCurrentTargetReached()) {
+                    break; // no further advance possible this frame
+                }
+                continue;
             }
-
-            this.y = potentialY;
-
-        } else {
-            throw new Error(`[Vehicle] Invalid moving axis: ${this.movingAxis}`);
-        }
-
-        this.updateDirection(this.movingAxis);
-        this.updateDepth(currentTile);
-
-        if (this.isCurrentTargetReached()) {
-            this.setNextTarget(currentTile);
+            // Mid-segment with the budget spent (or an axis with no distance and no switch pending) → stop.
+            if (stepMagnitude < VEHICLE_MOVE_EPSILON && this.movingAxis === axisBefore) {
+                break;
+            }
         }
     }
 

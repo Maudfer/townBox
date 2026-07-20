@@ -65,6 +65,18 @@ describe('the treatment trip', () => {
         expect(town.actions.activeInstanceOf('sick')?.defId).not.toBe('receiving_treatment');
     });
 
+    test('a placed-but-CLOSED hospital makes the sick WAIT (rest), not dissolve into errands (task 125)', () => {
+        const { engine, actions, brain, world, state, deps } = harness({ sick: gen('sick') });
+        engine.invoke(state, 'fell_ill', 'sick', TICK_NOW - 5, TPY, { source: 'system', causationId: null });
+        // The town HAS a hospital, but it's off-hours (unstaffed) — placed, not open.
+        (world as unknown as { hasVenue: () => boolean }).hasVenue = () => false;
+        (world as unknown as { hasVenuePlaced: () => boolean }).hasVenuePlaced = () => true;
+
+        brain.processTick(['sick'], deps(TICK_NOW + 10), [], result());
+        // Waits for the clinic to open instead of wandering off — the audit's sick-man-goes-shopping fix.
+        expect(actions.activeInstanceOf('sick')?.defId).toBe('resting_at_home_sick');
+    });
+
     test('a healthy person never seeks treatment', () => {
         const { actions, brain, deps } = harness({ fine: gen('fine') });
         brain.processTick(['fine'], deps(TICK_NOW + 10), [], result());
@@ -126,6 +138,25 @@ describe('the doctor\'s rounds', () => {
         // The rounds move on: the same patient is not re-treated within the day.
         brain.processTick(['doc'], deps(TICK_NOW + 15), [], result());
         expect(actions.activeInstanceOf('doc')?.defId).not.toBe('treating_patient');
+    });
+
+    test('a NURSE treats too (V5): a nurse-only ward is not a waiting room', () => {
+        const nurse: JobFacts = { ...DOCTOR, jobKey: 'nurse' };
+        const { engine, actions, brain, world, state, deps } = harness(
+            { rn: gen('rn'), sick: gen('sick') },
+            id => (id === 'rn' ? nurse : null),
+        );
+        engine.invoke(state, 'fell_ill', 'sick', TICK_NOW - 5, TPY, { source: 'system', causationId: null });
+        brain.processTick(['sick'], deps(TICK_NOW + 10), [], result());
+        expect(actions.activeInstanceOf('sick')?.defId).toBe('receiving_treatment');
+        world.requestTransition('rn', { kind: 'venue', venue: 'hospital' }, TICK_NOW + 10, null);
+
+        brain.processTick(['rn'], deps(TICK_NOW + 10), [], result());
+        expect(actions.activeInstanceOf('rn')?.defId).toBe('treating_patient'); // the nurse treats
+        for (let tick = TICK_NOW + 11; tick <= TICK_NOW + 14 && actions.activeInstanceOf('rn'); tick++) {
+            actions.advance(deps(tick));
+        }
+        expect(engine.getPersonLog('sick').some(e => e.kind === 'event' && e.defId === 'was_treated_by_doctor')).toBe(true);
     });
 });
 

@@ -131,6 +131,7 @@ describe('action reachability (task 076/M3)', () => {
         'pocketed_small_object', 'grab', 'use_object', 'put_down', 'discard_object', // inventoryOpportunityHook
         'resting_at_home_sick',                                             // jobOrchestrator's fitness gate (092)
         'taking_a_walk_together',                                           // joint plans (085/093 — agenda-proposed)
+        'visiting_friends', 'visiting_relatives', 'hosting_a_friend_visit', // collective visits (V9 — planner-enqueued, located; host mirror)
         'fleeing_the_police', 'chasing_a_suspect',                          // the pursuit hook (099)
         'serving_time',                                                     // the detained hook (100)
         'evacuating', 'rushing_to_the_fire', 'responding_to_fire',          // the fire hooks (102/110)

@@ -63,6 +63,10 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
+// Walk-vs-drive threshold (V1 / aliveness-4 trip planner): a trip whose Manhattan distance from the body to
+// the destination is at or under this many tiles is WALKED — the car is reserved for real commutes. The
+// audit found people driving zero-to-a-few tiles constantly (magic pop-in/pop-out cars everywhere).
+const WALK_COMMUTE_MAX_TILES = 12;
 // Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
 // than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
 const MIGRATION_MIN_OPEN_POSITIONS = 3;
@@ -132,6 +136,8 @@ export default class City {
             // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
             listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,
+            // The burning gate (V4): a transition INTO a building on fire is refused (nobody walks back in).
+            isBurning: key => Game.incidents?.openFireAt('building:' + key) ?? false,
         });
 
         Game.on("houseBuilt", { callback: this.setupHousehold, context: this });
@@ -922,6 +928,12 @@ export default class City {
     // that changed, and runs a bounded Brain pass for the woken people only. Deterministic given the
     // mutation; hooks fork their usual per-(tick, person) streams. Runs between flips, so nothing here
     // re-rolls events — intents flow through the same engine the flip uses.
+    // Whether a reactive Brain wake is queued (LP-12) — a test/observation read (e.g. asserting a home fire
+    // notified its residents, task 124). Drained on the minute cadence by runWakePass.
+    public hasPendingWakes(): boolean {
+        return this.wakes.hasPending();
+    }
+
     private runWakePass(tick: number): void {
         if (!this.wakes.hasPending()) {
             return;
@@ -1149,62 +1161,98 @@ export default class City {
                 if (result.died.length > 0) {
                     this.resolveRehousing(event.tick, ticksPerYear);
                 }
-                // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023)
-                // and grown children leave the family home to form their own household (task 024).
-                for (const signal of result.signals) {
-                    if (!signal.personId) {
-                        continue;
-                    }
-                    if (signal.signal === 'partnershipFormed') {
-                        this.resolveCohabitation(signal.personId, event.tick, ticksPerYear);
-                    } else if (signal.signal === 'movedOut') {
-                        this.resolveMoveOut(signal.personId, event.tick);
-                    } else if (signal.signal === 'crimeCommitted') {
-                        // A crime event committed (task 099): file the incident with the ground-truth
-                        // suspect and the co-located potential witnesses at the scene.
-                        this.fileIncident(signal.personId, event.tick);
-                    } else if (signal.signal === 'chaseConcluded') {
-                        // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
-                        this.resolveChase(signal.personId, event.tick, ticksPerYear);
-                    } else if (signal.signal === 'petAdopted') {
-                        // The pet-shop adoption (task 103): draw the species, name it, register it.
-                        this.resolveAdoption(signal.personId, event.tick);
-                    }
-                }
-                // Gossip transfers (task 104 / O2): a shared_gossip commit moves the SPEAKER's juiciest
-                // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
-                // about either of them. The heard_gossip counterpart already landed the listener's log line.
-                for (const commit of result.committed) {
-                    if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
-                        this.transferGossip(commit.personId, commit.params['target'], event.tick);
-                    } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
-                        // The jail visit's counterpart (task 109): the visit travels TO its target, so it
-                        // can't be an interaction contract (those require co-location at START); the
-                        // detainee's half rides the payload instead, chained to the visitor's commit.
-                        Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], event.tick, ticksPerYear,
-                            { source: 'system', causationId: commit.seq });
-                    } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
-                        // The sick visit's counterpart (task 111, same travelling-visit pattern): the
-                        // patient's half — its positive valence feeds their mood through the normal
-                        // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
-                        Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], event.tick, ticksPerYear,
-                            { source: 'system', causationId: commit.seq });
-                    } else if (commit.eventId === 'looked_for_housing') {
-                        // The housing search pays off at the door (W9 / proposal simulation-aliveness-3
-                        // P1-11): a committed looking_for_a_home run triggers the recovery attempt for the
-                        // seeker's household NOW — the get_job-at-the-counter pattern applied to housing.
-                        this.attemptRecoveryFor(commit.personId, event.tick);
-                    } else if (commit.eventId === 'had_sex' && Game.eventEngine) {
-                        // Conception rides intimacy (W4 / P1-6): the pregnancy event's own eligibility
-                        // keeps the last word; the demoted probabilistic trigger stays as background.
-                        maybeConceive(population.getState(), Game.eventEngine, commit.personId, event.tick, ticksPerYear, commit.seq);
-                    }
-                }
+                // Living-arrangement dynamics + counterpart/consequence wiring driven by event signals and
+                // commits — extracted so the harness's forceEvent (V8/M2) can route a forced event's signals
+                // through the SAME consumers instead of dropping them on the floor.
+                this.consumeResultSignals(result, event.tick, ticksPerYear);
                 // Surface the tick's notable happenings to the HUD feed (task 029).
                 this.announceCityEvents(result, personByGenId, event.tick);
                 // Remaining signals (hired, fellIll, …) are consumed by the feed and later phases.
             },
         });
+    }
+
+    // Consumes an event-tick result's signals and commits into world changes — the living-arrangement
+    // dynamics (023/024), the crime/chase/pet registries (099/103), and the counterpart/consequence wiring
+    // (gossip 104, jail/sick visits 109/111, housing recovery, conception W4). Called from handleTick's
+    // onCommitted for the probabilistic/action stream, and from forceEvent so a scripted event lands its
+    // consequences (V8/M2 — the harness used to invoke and drop every signal).
+    private consumeResultSignals(result: TickResult, tick: number, ticksPerYear: number): void {
+        const population = Game.population;
+        if (!population) {
+            return;
+        }
+        // Living-arrangement dynamics driven by event signals: newlyweds move in together (task 023)
+        // and grown children leave the family home to form their own household (task 024).
+        for (const signal of result.signals) {
+            if (!signal.personId) {
+                continue;
+            }
+            if (signal.signal === 'partnershipFormed') {
+                this.resolveCohabitation(signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'movedOut') {
+                this.resolveMoveOut(signal.personId, tick);
+            } else if (signal.signal === 'crimeCommitted') {
+                // A crime event committed (task 099): file the incident with the ground-truth
+                // suspect and the co-located potential witnesses at the scene.
+                this.fileIncident(signal.personId, tick);
+            } else if (signal.signal === 'chaseConcluded') {
+                // The chase ended (task 099): roll the outcome — caught (fine + record) or evaded.
+                this.resolveChase(signal.personId, tick, ticksPerYear);
+            } else if (signal.signal === 'petAdopted') {
+                // The pet-shop adoption (task 103): draw the species, name it, register it.
+                this.resolveAdoption(signal.personId, tick);
+            }
+        }
+        // Gossip transfers (task 104 / O2): a shared_gossip commit moves the SPEAKER's juiciest
+        // known fact (|valence| × recency, deterministic tie-break) to the LISTENER — never one
+        // about either of them. The heard_gossip counterpart already landed the listener's log line.
+        for (const commit of result.committed) {
+            if (commit.eventId === 'shared_gossip' && typeof commit.params?.['target'] === 'string') {
+                this.transferGossip(commit.personId, commit.params['target'], tick);
+            } else if (commit.eventId === 'visited_person_in_jail' && typeof commit.params?.['target'] === 'string') {
+                // The jail visit's counterpart (task 109): the visit travels TO its target, so it
+                // can't be an interaction contract (those require co-location at START); the
+                // detainee's half rides the payload instead, chained to the visitor's commit.
+                Game.eventEngine?.invoke(population.getState(), 'received_a_visitor', commit.params['target'], tick, ticksPerYear,
+                    { source: 'system', causationId: commit.seq });
+            } else if (commit.eventId === 'visited_sick_relative' && typeof commit.params?.['target'] === 'string') {
+                // The sick visit's counterpart (task 111, same travelling-visit pattern): the
+                // patient's half — its positive valence feeds their mood through the normal
+                // machinery, which is what makes lifted_spirits reachable (the 095 support loop).
+                Game.eventEngine?.invoke(population.getState(), 'was_visited_while_sick', commit.params['target'], tick, ticksPerYear,
+                    { source: 'system', causationId: commit.seq });
+            } else if (commit.eventId === 'looked_for_housing') {
+                // The housing search pays off at the door (W9 / proposal simulation-aliveness-3
+                // P1-11): a committed looking_for_a_home run triggers the recovery attempt for the
+                // seeker's household NOW — the get_job-at-the-counter pattern applied to housing.
+                this.attemptRecoveryFor(commit.personId, tick);
+            } else if (commit.eventId === 'had_sex' && Game.eventEngine) {
+                // Conception rides intimacy (W4 / P1-6): the pregnancy event's own eligibility
+                // keeps the last word; the demoted probabilistic trigger stays as background.
+                maybeConceive(population.getState(), Game.eventEngine, commit.personId, tick, ticksPerYear, commit.seq);
+            }
+        }
+    }
+
+    // Scenario forcing that RESPECTS the world (V8/M2): invokes a manual event and routes its signals/commits
+    // through consumeResultSignals, so a forced crime files a real incident, a forced marriage cohabits, and
+    // so on — the observation-session helper the harness needs (a raw EventEngine.invoke drops all of that).
+    // Returns whether the invoke committed. Test/observation only (called from TestHarness).
+    public forceEventAndConsume(eventId: string, personId: PersonId, tick: number, params?: Record<string, string | number | boolean>): boolean {
+        const population = Game.population;
+        const engine = Game.eventEngine;
+        const clock = Game.clock;
+        if (!population || !engine || !clock) {
+            return false;
+        }
+        const ticksPerYear = clock.getTicksPerYear();
+        const { outcome, result } = engine.invoke(
+            population.getState(), eventId, personId, tick, ticksPerYear,
+            { source: 'system', causationId: null }, {}, {}, params
+        );
+        this.consumeResultSignals(result, tick, ticksPerYear);
+        return outcome.ok;
     }
 
     // Translates the day's deaths, births, and event signals into cityEvent feed entries (task 029). The
@@ -1476,33 +1524,24 @@ export default class City {
         incidents.report(kind, tick, locationKey(location), suspectId, witnesses);
     }
 
-    // The chase's outcome (task 099): fleeing_the_police completed -> a deterministic roll weighted by the
-    // suspect's age and health decides caught (fine + record + case closed) vs got away (still wanted).
+    // The chase's outcome (task 099; made PHYSICAL by V10 / aliveness-4 M6): fleeing_the_police completed —
+    // did the officer catch up? A dice roll used to decide it, so a suspect could be "caught" while the
+    // officer was across town. Now it is what the SPRITES did: an on-duty police officer co-located with the
+    // suspect (same street cell — V2's local co-location, closed by the officer's chase-speed premium — V10
+    // M5) is a catch; otherwise the suspect outran them and got away. The flee action's own duration is the
+    // chase time, so there is no insta-catch on the initial encounter. Escape here IS the impunity path (a
+    // town whose police can't keep up lets crime slide). The off-map generator keeps its abstract roll
+    // (LogicalWorld.resolveChase) — no sprites off-map, the sanctioned seam.
     public resolveChase(suspectId: PersonId, tick: number, ticksPerYear: number): void {
         const incidents = Game.incidents;
-        const population = Game.population;
-        if (!incidents || !population || !incidents.isWanted(suspectId)) {
+        if (!incidents || !incidents.isWanted(suspectId)) {
             return;
         }
-        const record = population.getPerson(suspectId);
-        if (!record) {
-            return;
-        }
-        const worldSeed = population.getState().worldSeed;
-        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`chase#${suspectId}#${tick}`)) >>> 0);
-        const age = ageAt(record, tick, ticksPerYear);
-        const engine = Game.eventEngine;
-        const health = engine ? Number(engine.contextFor(population.getState(), suspectId, tick, ticksPerYear).getAttr('health') ?? 1) : 1;
-        let catchChance = 0.55;
-        if (age >= 50) {
-            catchChance += 0.2;
-        } else if (age < 25) {
-            catchChance -= 0.15;
-        }
-        if (health < 0.7) {
-            catchChance += 0.15;
-        }
-        if (rng.next() < catchChance) {
+        const byGenId = this.indexMaterialized();
+        const coLocated = this.world.peopleAt(this.world.locationOf(suspectId));
+        const caught = coLocated.some(otherId =>
+            otherId !== suspectId && byGenId.get(otherId)?.work.getJob()?.title === 'Police Officer');
+        if (caught) {
             this.arrestSuspect(suspectId, tick, ticksPerYear);
         } else {
             this.fireMilestone('evaded_the_police', suspectId, tick);
@@ -1809,6 +1848,17 @@ export default class City {
             }
             incidents.report('fire', tick, 'building:' + key, null, 0);
             Game.emit('fireStateChanged', { buildingKey: key, burning: true }); // the scene lights the flames (116)
+            // Family notified (task 124): a fire at an occupied HOME wakes its residents at the minute, so
+            // occupants who are elsewhere re-plan NOW instead of at the next hourly flip (the on-site
+            // presence hook owns the actual evacuation; this is the "kin drop what they're doing" channel).
+            if (structure instanceof House) {
+                const residentIds = structure.getResidents()
+                    .map(person => person.social.getPersonId())
+                    .filter((id): id is PersonId => !!id);
+                if (residentIds.length > 0) {
+                    this.wakes.enqueue('homeFire', residentIds);
+                }
+            }
             const name = structure instanceof Workplace ? structure.getBusiness()?.name ?? 'a workplace' : 'a home';
             this.announce('fire', tick, 'A fire broke out at ' + name, null);
         }
@@ -2222,6 +2272,31 @@ export default class City {
     // materialized but hidden, in the registry) — then dissolves the household and vacates the house. Shared by
     // eviction (022) and bulldoze teardown (025); returns a summary so each caller can phrase its own feed
     // messages. A no-op (zeros) when the house has no household.
+    // Interrupts a person's running HOME-located action (V4): called when their home is torn down or they're
+    // rehoused, so a stale "resting at home" instance can't keep running at a rubble lot or a home they no
+    // longer live in. Other-located activities are untouched. A no-op without the engines (pure tests).
+    private interruptStaleHomeAction(personId: PersonId, tick: number): void {
+        const actionEngine = Game.actionEngine;
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        const clock = Game.clock;
+        if (!actionEngine || !engine || !population || !clock) {
+            return;
+        }
+        const active = actionEngine.activeInstanceOf(personId);
+        if (!active) {
+            return;
+        }
+        const def = actionEngine.getDefinition(active.defId);
+        if (def?.location !== 'home' && active.locationOverride !== 'home') {
+            return;
+        }
+        actionEngine.interrupt(active.id, { source: 'system', causationId: null }, {
+            state: population.getState(), tick, ticksPerYear: clock.getTicksPerYear(),
+            ctx: { mode: 'live', world: this.world }, eventEngine: engine, inventory: Game.inventory ?? null,
+        }, { died: [], born: [], signals: [], committed: [] });
+    }
+
     private displaceHousehold(house: House, tick: number): { householdName: string; rehoused: number; homeless: number } {
         const population = Game.population;
         const household = house.getHousehold();
@@ -2235,6 +2310,14 @@ export default class City {
         // Physical ejection (W9 / proposal simulation-aliveness-3 P1-11): whoever is INSIDE steps out onto
         // the connected street before the paperwork — displacement is a visible scene, not a vanishing.
         this.ejectOccupants(house);
+
+        // Re-validate running home activities (V4 / aliveness-4): a member mid-`spending_time_at_home` when
+        // the house comes down would otherwise keep "resting at home" at the rubble (the audit's homeless
+        // woman). Interrupt each displaced member's home-located instance so their woken brain re-plans from
+        // reality (shelter-seeking, the street repertoire) instead of a home that no longer exists.
+        for (const memberId of household.memberIds.filter(id => byGenId.has(id))) {
+            this.interruptStaleHomeAction(memberId, tick);
+        }
 
         // Household-unit rehousing FIRST (W4 / P1-4): the audit's fire split a couple — she moved in with
         // kin, he went homeless at the supermarket — because relocation was per-member by blood relation.
@@ -2931,6 +3014,10 @@ export default class City {
                 const active = actionEngine.activeInstanceOf(personId);
                 const def = active && active.status === 'running' ? actionEngine.getDefinition(active.defId) : null;
                 person.setAmbulatory(def?.ambulatory !== undefined);
+                // Locomotion speed (V10 / M5): the authored kind, with the police-chase premium so the
+                // officer visibly closes on a fleeing suspect. Null (non-ambulatory) → the default walk.
+                const chasing = active?.defId === 'chasing_a_suspect';
+                person.setLocomotionKind(chasing ? 'chase' : (def?.ambulatory ?? null));
             }
         }
 
@@ -2956,14 +3043,18 @@ export default class City {
         }
     }
 
+    // The trip planner (V1 / aliveness-4): decides walk vs. drive and where the car (if any) starts. The
+    // audit found every trip was a car trip that spawned at the person's HOME regardless of where they
+    // actually stood — a woman out walking would "walk home, board a car parked at her own door, drive zero
+    // metres, and get out." This fixes three things: (a) origin truth — the car starts from the road nearest
+    // the BODY, never a building the person isn't at; (b) short trips are WALKED; (c) no zero-length drive.
     private startCommute(person: Person, destination: Building): void {
         const field = Game.field;
         if (!field) {
             return;
         }
-        const origin = person.getCurrentBuilding() ?? person.social.getHome();
-        const entrance = origin ? origin.getEntrance() : null;
-        if (!entrance) {
+        const destEntrance = destination.getEntrance();
+        if (!destEntrance) {
             return;
         }
 
@@ -2974,12 +3065,41 @@ export default class City {
             return;
         }
 
-        // The car materializes ON THE STREET in front of the origin building (task 008 commute spec), never
-        // inside a footprint — the person walks out to it and boards. Entrance fallback for legacy/test
-        // worlds with no adjacent road.
-        const streetTile = origin ? field.getAdjacentRoadTile(origin) : null;
-        const streetSpot = streetTile ? Game.tileToPixelPosition(streetTile) : null;
-        const vehicle = field.spawnVehicle(streetSpot ?? entrance);
+        // Walk vs. drive by distance from the BODY's current position (V1): a short hop is walked, the car
+        // is for a real commute. Manhattan distance matches the grid movement; the threshold is authored.
+        const bodyPosition = person.getPosition();
+        const walkDistancePx = WALK_COMMUTE_MAX_TILES * Game.gridParams.cells.width;
+        const distanceToDestination = bodyPosition
+            ? Math.abs(bodyPosition.x - destEntrance.x) + Math.abs(bodyPosition.y - destEntrance.y)
+            : Number.POSITIVE_INFINITY;
+        if (distanceToDestination <= walkDistancePx) {
+            person.setDestination(destination);
+            return;
+        }
+
+        // Origin truth (V1): the car spawns on the road nearest WHERE THE BODY IS. If the person is at a
+        // building, that building's adjacent road; if outdoors, the nearest road to their pixel position —
+        // never their home when they are standing somewhere else.
+        const currentBuilding = person.getCurrentBuilding();
+        const originRoadTile = currentBuilding
+            ? field.getAdjacentRoadTile(currentBuilding)
+            : (bodyPosition ? field.nearestRoadTile(bodyPosition) : null);
+        const destRoadTile = field.getAdjacentRoadTile(destination);
+
+        // No zero-length drive (V1): if the origin and destination resolve to the SAME road tile, the car
+        // would spawn exactly where it would immediately park — walk instead.
+        const sameRoad = originRoadTile !== null && destRoadTile !== null
+            && originRoadTile.row === destRoadTile.row && originRoadTile.col === destRoadTile.col;
+        if (sameRoad) {
+            person.setDestination(destination);
+            return;
+        }
+
+        // Drive: the car materializes ON THE STREET at the origin road tile (task 008 commute spec), never
+        // inside a footprint. Body-position fallback (origin truth) for road-less test/edge worlds — the car
+        // still starts from WHERE THE PERSON IS, never their distant home.
+        const streetSpot = originRoadTile ? Game.tileToPixelPosition(originRoadTile) : bodyPosition;
+        const vehicle = field.spawnVehicle(streetSpot ?? destEntrance);
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);

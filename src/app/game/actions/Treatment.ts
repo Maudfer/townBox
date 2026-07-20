@@ -12,7 +12,10 @@ import { ActionIntent, BrainHook, HookContext } from 'game/actions/Brain';
 import { SICK_HEALTH_THRESHOLD } from 'game/actions/JobOrchestrator';
 import { isOnShiftAtTick } from 'util/shifts';
 
-const DOCTOR_JOB_KEY = 'doctor';
+// Medical roles that treat patients (V5 / aliveness-4): the audit found a nurse-only hospital treated
+// NOBODY — the rounds were gated to 'doctor' alone, so a staffed ward that the coverage ledger counted as
+// healthcare healed no one. Nurses treat too (same mechanism; a real staffed hospital is a treating one).
+const TREATING_JOB_KEYS: ReadonlySet<string> = new Set(['doctor', 'nurse']);
 // One treatment per patient per day: the doctor's rounds move on to the untreated.
 const RETREAT_COOLDOWN_TICKS = 24;
 // Patient-side re-seek guard (LP-5 quick fix; the 117 balancing notes' #1 flag): a treatment session is
@@ -37,10 +40,28 @@ export const treatmentHook: BrainHook = {
         if (typeof health !== 'number' || health >= SICK_HEALTH_THRESHOLD) {
             return [];
         }
-        if (!world.hasVenue('hospital')) {
-            return []; // no hospital in this town — the 092 resting behavior stands, unchanged
-        }
         const active = engine.activeInstanceOf(personId);
+        if (!world.hasVenue('hospital')) {
+            // Placed-but-closed vs. absent (task 125): a CLOSED hospital shouldn't dissolve the need into an
+            // unrelated errand (the audit's seriously-ill man who went shopping past a shut clinic). If the
+            // town HAS a hospital that is merely off-hours, the sick person WAITS — rests at home until it
+            // opens, when the treatment proposal below takes over. A town with NO hospital keeps the plain
+            // 092 resting behavior, unchanged (nothing new to propose).
+            if (world.hasVenuePlaced?.('hospital') && active?.defId !== 'resting_at_home_sick') {
+                return [{
+                    actionId: 'resting_at_home_sick',
+                    sourceHook: 'treatment',
+                    // Need band, urgency-scaled: waiting for care beats free-time errands, so the sick don't
+                    // wander off shopping — but it never outranks a true survival need.
+                    priority: Math.min(120, 70 + Math.round(((SICK_HEALTH_THRESHOLD - health) / SICK_HEALTH_THRESHOLD) * 50)),
+                    necessity: 'required',
+                    band: 'need',
+                    mayInterrupt: true,
+                    causationId: null,
+                }];
+            }
+            return [];
+        }
         if (active?.defId === 'receiving_treatment') {
             return [];
         }
@@ -72,7 +93,7 @@ export const doctorRoundsHook: BrainHook = {
             return [];
         }
         const job = deps.jobOf?.(personId);
-        if (job?.jobKey !== DOCTOR_JOB_KEY || !isOnShiftAtTick(job, deps.tick)) {
+        if (!job || !TREATING_JOB_KEYS.has(job.jobKey ?? '') || !isOnShiftAtTick(job, deps.tick)) {
             return [];
         }
         const engine = ctx.brain.getActionEngine();

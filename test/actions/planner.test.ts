@@ -142,6 +142,28 @@ describe('routines (D2)', () => {
             expect(located.routineId).toBe('see_friends');
         }
     });
+
+    test('a friend visit enqueues a MIRRORED host action for the friend (V9 collective visit)', () => {
+        const { brain, agenda, social, deps } = harness(['a', 'b']);
+        social.adjust('a', 'b', 40, 999); // a and b are friends
+        let visit = null;
+        for (let tick = 1000; tick < 1000 + 24 * 12 && !visit; tick++) {
+            brain.processTick(['a', 'b'], { ...deps, tick }, [], result());
+            brain.getActionEngine().advance({ ...deps, tick });
+            visit = Object.values(agenda.serialize().entries)
+                .find(entry => entry.personId === 'a' && entry.actionId === 'visiting_friends' && entry.locationOverride === 'person:b') ?? null;
+        }
+        if (!visit) {
+            // Adoption of see_friends may be false for this (seed, person); nothing to assert (the located
+            // test above covers absence). When it DOES fire, the host mirror must be present:
+            return;
+        }
+        const host = Object.values(agenda.serialize().entries)
+            .find(entry => entry.personId === 'b' && entry.actionId === 'hosting_a_friend_visit');
+        expect(host).toBeTruthy();
+        expect(host!.locationOverride).toBe('home');           // the friend hosts at their own home
+        expect(host!.linkId).toBe(visit.linkId);                // one scene: both sides linked, ending together
+    });
 });
 
 describe('joint plans (D3)', () => {

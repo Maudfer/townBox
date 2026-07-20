@@ -428,6 +428,8 @@ describe('actions validation (task 043)', () => {
         ['a binding to an undeclared parent parameter', { a: { ...continuous, children: { mode: 'sequence', steps: [{ action: 'b', params: { x: '$parent.ghost' } }] } } }, /undeclared parent parameter "ghost"/],
         // Label templates (LP-14 layer 3): placeholders must name declared parameters.
         ['a label placeholder naming no declared parameter', { a: { ...discrete, label: 'Hugged {target}' } }, /placeholder \{target\}/],
+        // Collective-action integrity (V9): a targetless, location-less social action can't free-roll.
+        ['a free-rolling targetless social action', { a: { ...continuous, category: 'social', satisfies: { social: 20 }, selection: { weight: 0.8 } } }, /planner\/joint-only \(weight 0\)/],
     ])('structure rejects %s', (_label, fixture, pattern) => {
         expect(messagesOf(structure(validateActionsStructure, fixture))).toMatch(pattern);
     });

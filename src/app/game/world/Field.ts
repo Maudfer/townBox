@@ -45,6 +45,9 @@ export default class Field {
     private people: Person[];
     private vehicles: Vehicle[];
     private destinations: Set<string>;
+    // Road anchors (V2 / aliveness-4): the roam targets for ambulatory street life, so a walk wanders the
+    // streets and ends mid-block instead of terminating at a building entrance (the entrance-cluster fix).
+    private roadAnchors: Set<string> = new Set();
     private pathFinder: PathFinder;
 
     public matrix: TileMatrix;
@@ -120,7 +123,10 @@ export default class Field {
                 return;
             }
 
-            person.update(currentTile, timeDelta, this.destinations, this.pathFinder);
+            // Ambulatory street life (V2) roams the ROADS (ends mid-block); debug-wander test people keep
+            // the building-destination behaviour. A road-less world falls back to building destinations.
+            const roamTargets = person.isAmbulatory?.() && this.roadAnchors.size > 0 ? this.roadAnchors : this.destinations;
+            person.update(currentTile, timeDelta, roamTargets, this.pathFinder);
             person.redraw(timeDelta);
         });
 
@@ -427,8 +433,14 @@ export default class Field {
         // An address is a structure's anchor cell. Buildings are travel destinations; other structures are not.
         const anchorKey = structure.getIdentifier();
         this.destinations.delete(anchorKey);
+        this.roadAnchors.delete(anchorKey);
         if (structure instanceof Building) {
             this.destinations.add(anchorKey);
+        } else if (structure instanceof Road) {
+            // Road anchors are the roam targets for ambulatory street life (V2): a person "taking a walk"
+            // wanders the ROADS and stops mid-street, instead of pathing to a building's entrance and
+            // clustering there (the audit's crowds at civic doorways).
+            this.roadAnchors.add(anchorKey);
         }
 
         for (const previous of overwritten) {
@@ -481,6 +493,7 @@ export default class Field {
         }
 
         this.destinations.delete(structure.getIdentifier());
+        this.roadAnchors.delete(structure.getIdentifier());
     }
 
     // Resolves where a structure would actually be placed for the given tool, and whether that placement is
@@ -626,6 +639,48 @@ export default class Field {
     // closest to the building's entrance. This is where a commute car materializes (task 008 spec: cars live
     // on the street, never inside a footprint) and where it parks at the destination. Null when the building
     // somehow has no adjacent road (legacy/test worlds) — callers fall back to the entrance.
+    // The nearest road tile to a pixel position (V1 / aliveness-4 trip planner): a commute car for an
+    // OUTDOORS person must spawn on the road near their BODY, not at their home (origin truth). The person's
+    // own tile is usually already a curb; otherwise a small ring search outward finds the closest road.
+    nearestRoadTile(pixel: PixelPosition, maxRadius = 3): TilePosition {
+        if (!pixel) {
+            return null;
+        }
+        const origin = Game.pixelToTilePosition(pixel);
+        if (!origin) {
+            return null;
+        }
+        if (this.getTile(origin.row, origin.col) instanceof Road) {
+            return origin;
+        }
+        for (let radius = 1; radius <= maxRadius; radius++) {
+            let best: TilePosition = null;
+            let bestDistance = Infinity;
+            for (let dr = -radius; dr <= radius; dr++) {
+                for (let dc = -radius; dc <= radius; dc++) {
+                    if (Math.max(Math.abs(dr), Math.abs(dc)) !== radius) {
+                        continue; // ring boundary only — inner rings were checked at smaller radii
+                    }
+                    const row = origin.row + dr;
+                    const col = origin.col + dc;
+                    if (!this.isValidPosition(row, col) || !(this.getTile(row, col) instanceof Road)) {
+                        continue;
+                    }
+                    const center = Game.tileToPixelPosition({ row, col });
+                    const distance = center ? Math.hypot(center.x - pixel.x, center.y - pixel.y) : 0;
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        best = { row, col };
+                    }
+                }
+            }
+            if (best) {
+                return best;
+            }
+        }
+        return null;
+    }
+
     getAdjacentRoadTile(building: Building): TilePosition {
         const footprintTiles = Game.gridParams.footprint.tiles;
         const half = Math.floor(footprintTiles / 2);

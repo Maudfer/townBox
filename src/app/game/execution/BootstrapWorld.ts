@@ -92,5 +92,10 @@ export function sameLocation(a: LogicalLocation, b: LogicalLocation): boolean {
     if (a.kind === 'venue' && b.kind === 'venue') {
         return a.venue === b.venue;
     }
+    if (a.kind === 'outside' && b.kind === 'outside') {
+        // Cell-scoped outdoors (V2): equal when the same cell (or both cell-less — the abstract outside
+        // bootstrap/logical worlds use throughout, so this stays town-wide off-map, the sanctioned seam).
+        return a.cell === b.cell;
+    }
     return true;
 }

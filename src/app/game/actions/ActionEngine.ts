@@ -50,6 +50,11 @@ import { hourOfTick } from 'util/time';
 export const DEFAULT_ACTION_MANIFEST: ActionManifest = actionsConfig as unknown as ActionManifest;
 export const DEFAULT_OAR_TABLE: OARTable = oarConfig as unknown as OARTable;
 
+// The default age below which a person cannot independently visit a VENUE (V3 / aliveness-4): shops, cafes,
+// gyms, the pet shop… are not places a toddler goes alone. An action's explicit `minAge` overrides this
+// (e.g. a bar is 18+). School (a `building` location) is unaffected — children walk to their assigned school.
+export const VENUE_INDEPENDENCE_AGE = 8;
+
 // Everything one advance/start call needs from the outside world. Built per tick by the TickRunner (live
 // and bootstrap alike); tests build it directly.
 export interface ActionDeps {
@@ -533,6 +538,18 @@ export default class ActionEngine {
                 if (!world || locationKey(world.locationOf(personId)) !== locationKey(world.locationOf(targetId))) {
                     return { ok: false, reason: 'targetNotPresent' };
                 }
+            }
+        }
+        // Guardianship age gate (V3 / proposal simulation-aliveness-4): a young child can't independently do
+        // adult errands — the audit watched a 2-year-old take solo shopping trips and roam to venues across
+        // town. An action's explicit `minAge` applies; a venue-located action gets a default independence
+        // floor even without one (venues are places you don't go alone as a toddler). Below it, a typed
+        // failure — the child stays home, where the household-meal fan-out feeds them.
+        const requiredMinAge = def.minAge ?? (typeof def.location === 'string' && def.location.startsWith('venue:') ? VENUE_INDEPENDENCE_AGE : 0);
+        if (requiredMinAge > 0) {
+            const age = Number(this.contextFor(personId, deps, params).getAttr('age') ?? requiredMinAge);
+            if (age < requiredMinAge) {
+                return { ok: false, reason: 'requirementsUnmet' };
             }
         }
         // Requirements gate BEFORE consent (task 090): "am I even in a position to do this" is the actor's

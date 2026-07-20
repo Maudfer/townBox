@@ -49,12 +49,21 @@ export default class MainScene extends Phaser.Scene {
         Game.on("timeChanged", { callback: this.refreshActivityLabels, context: this });
         Game.on("timeChanged", { callback: this.refreshTrashPiles, context: this });
         Game.on("timeChanged", { callback: this.refreshFormations, context: this });
+        // The definitive orphaned-sprite sweep (V8 / proposal simulation-aliveness-4 M2): every minute,
+        // reconcile the scene's sprite registries against Field's live lists — any sprite whose backing
+        // entity has left the world is destroyed. Belt-and-suspenders over the W8 lifecycle fixes, but
+        // enforced rather than merely hoped for: after years of orphan-sprite whack-a-mole, the invariant
+        // is now that a sprite exists iff its entity is in a live list.
+        Game.on("timeChanged", { callback: this.reconcileSprites, context: this });
         Game.on("vehicleSpawned", { callback: this.drawVehicle, context: this });
         // Fire particles (task 116): flames anchor on a burning building, doused on resolution.
         Game.on("fireStateChanged", { callback: this.handleFireStateChanged, context: this });
         Game.on("gameLoaded", { callback: this.clearFireEmitters, context: this });
         // Particles follow the time scale (W10): flames speed up, slow down, and freeze with the world.
         Game.on("timeScaleChanged", { callback: this.syncEmitterTimeScales, context: this });
+        // Selective activity labels (V6 / aliveness-4 M1): the scene shows a label only over an INSPECTED
+        // person, so the street isn't a wall of overlapping text. The HUD tells us who is inspected.
+        Game.on("inspectedPeopleChanged", { callback: (ids: string[]) => { this.inspectedPeople = new Set(ids); }, context: this });
 
         Game.on("windowDragStart", { callback: () => {
             this.cursorActive = false;
@@ -172,6 +181,11 @@ export default class MainScene extends Phaser.Scene {
             this.input.keyboard.addKey('T').on('down', () => {
                 Game.cycleTimeScale();
                 this.refreshDebugOverlay();
+            });
+            // Toggle showing ALL activity labels (V6/M1): normally only inspected people are labelled.
+            this.input.keyboard.addKey('L').on('down', () => {
+                this.labelsShowAll = !this.labelsShowAll;
+                this.refreshActivityLabels();
             });
             Game.on("timeChanged", { callback: this.refreshDebugOverlay, context: this });
         }
@@ -561,6 +575,10 @@ export default class MainScene extends Phaser.Scene {
     // were never CREATED — the map stayed empty forever — so the street never actually narrated. They are
     // now created lazily on the first refresh that sees the person.)
     private activityLabels = new Map<Person, Phaser.GameObjects.Text>();
+    // Who has an open inspector window (V6/M1): only these people get an activity label — unless the
+    // debug show-all toggle is on (masterSwitch-gated, the L key).
+    private inspectedPeople = new Set<string>();
+    private labelsShowAll = false;
     // Pets on the street (task 115): a tiny brown rectangle trailing the owner while walking_the_dog runs
     // — no pathfinding of its own, it shadows the owner's sprite with a small offset.
     private petDots = new Map<Person, Phaser.GameObjects.Rectangle>();
@@ -603,7 +621,9 @@ export default class MainScene extends Phaser.Scene {
             const active = engine.activeInstanceOf(personId);
             const running = !!active && active.status === 'running';
             const traveling = !!active && active.status === 'waiting_for_materialization';
-            const show = (running || traveling) && !person.isIndoors();
+            // Only label an INSPECTED person (V6/M1) — or everyone, under the debug show-all toggle.
+            const watched = this.labelsShowAll || this.inspectedPeople.has(personId);
+            const show = watched && (running || traveling) && !person.isIndoors();
             if (show) {
                 // Bubble labels strip unresolved {param} template segments (the LP-14 resolver lives in the
                 // inspector; the street bubble has the destination line instead — "Going to Moraes S.A. /
@@ -671,33 +691,45 @@ export default class MainScene extends Phaser.Scene {
     // group member draws with a small lateral offset by stable slot index. The chase pair groups through an
     // alias (fleeing↔chasing are one scene). Refreshed per in-game minute; applied in the redraw closure.
     private formationOffsets = new Map<Person, number>();
-    private static readonly FORMATION_ALIASES: Record<string, string> = {
-        fleeing_the_police: 'chase', chasing_a_suspect: 'chase',
-    };
+    // The eased offset actually rendered (V6 / aliveness-4 Part 5.1): the target offset changes in discrete
+    // jumps when a group re-slots, and applying it instantly popped sprites 8-10px (the "jitter clips" the
+    // maintainer saw). The rendered offset lerps toward the target so re-slotting glides.
+    private currentFormationOffsets = new Map<Person, number>();
+
+    // Eases a person's rendered formation offset toward its target; returns the value to draw at (V6/M1).
+    private easedFormationOffset(person: Person, timeDelta: number): number {
+        const target = this.formationOffsets.get(person) ?? 0;
+        const current = this.currentFormationOffsets.get(person);
+        if (current === undefined) {
+            this.currentFormationOffsets.set(person, target); // first sight: no pop from zero
+            return target;
+        }
+        const eased = current + (target - current) * Math.min(1, timeDelta * MainScene.FORMATION_EASE_RATE);
+        this.currentFormationOffsets.set(person, eased);
+        return eased;
+    }
+    private static readonly FORMATION_EASE_RATE = 0.012;
 
     private refreshFormations(): void {
         const field = Game.field;
-        const engine = Game.actionEngine;
         this.formationOffsets.clear();
-        if (!field || !engine) {
+        if (!field) {
             return;
         }
+        // Offset ALL co-located visible people (V6 / aliveness-4 Part 5.3), not just same-activity groups —
+        // a couple's walk, coworkers heading the same way, or a chase pair used to render as one overlapping
+        // sprite whenever their activities differed. Group purely by position cell; slot by stable id. The
+        // activity-alias grouping stays only for LABEL merging (refreshActivityLabels), never for bodies.
         const groups = new Map<string, Person[]>();
         for (const person of field.getPeople()) {
             if (person.isIndoors()) {
-                continue;
-            }
-            const personId = person.social.getPersonId();
-            const active = personId ? engine.activeInstanceOf(personId) : null;
-            if (!active) {
                 continue;
             }
             const position = person.getPosition();
             if (!position) {
                 continue;
             }
-            const token = MainScene.FORMATION_ALIASES[active.defId] ?? active.defId;
-            const cell = `${token}|${Math.round(position.x / 32)}|${Math.round(position.y / 32)}`;
+            const cell = `${Math.round(position.x / 24)}|${Math.round(position.y / 24)}`;
             const members = groups.get(cell) ?? [];
             members.push(person);
             groups.set(cell, members);
@@ -797,6 +829,77 @@ export default class MainScene extends Phaser.Scene {
         return 'out';
     }
 
+    // Sprite registries for the orphan sweep (V8 / proposal simulation-aliveness-4 M2). Every person/vehicle
+    // sprite the scene creates is registered here so the per-minute reconciliation can find sprites whose
+    // backing entity has left Field's live lists — the definitive close on the orphaned-sprite class.
+    private personSprites = new Map<Person, Image>();
+    private vehicleSprites = new Map<Vehicle, Image>();
+    // The last sweep's tally, for the harness's sprite audit (auditSprites.orphanSprites).
+    private lastReapedOrphans = 0;
+
+    // Reconciles the sprite registries against Field's live lists (V8/M2): any registered sprite whose entity
+    // is gone is destroyed and unregistered. Runs on the minute cadence. The invariant it enforces: a rendered
+    // sprite exists iff its backing entity is in a live list — so a person who entered a building, died, or was
+    // torn down can never leave a sprite standing at a doorway again.
+    private reconcileSprites(): void {
+        const field = Game.field;
+        if (!field) {
+            return;
+        }
+        let reaped = 0;
+        const livePeople = new Set(field.getPeople());
+        for (const [person, sprite] of this.personSprites) {
+            if (!livePeople.has(person)) {
+                sprite?.destroy();
+                this.personSprites.delete(person);
+                // Drop the person's overlays too — a stale bubble/pet dot would otherwise linger.
+                this.activityLabels.get(person)?.destroy();
+                this.activityLabels.delete(person);
+                this.petDots.get(person)?.destroy();
+                this.petDots.delete(person);
+                this.currentFormationOffsets.delete(person); // V6: drop the eased-offset entry too
+                reaped += 1;
+            }
+        }
+        const liveVehicles = new Set(field.getVehicles());
+        for (const [vehicle, sprite] of this.vehicleSprites) {
+            if (!liveVehicles.has(vehicle)) {
+                sprite?.destroy();
+                this.vehicleSprites.delete(vehicle);
+                reaped += 1;
+            }
+        }
+        this.lastReapedOrphans = reaped;
+    }
+
+    // The count of registered sprites whose entity is no longer live RIGHT NOW (not yet reaped) — the
+    // standing invariant read for the harness's sprite audit (V8/M2). Zero at every sample = a truthful
+    // street. Kept separate from reconcileSprites so a test can assert BEFORE the next minute sweep.
+    countOrphanSprites(): number {
+        const field = Game.field;
+        if (!field) {
+            return 0;
+        }
+        const livePeople = new Set(field.getPeople());
+        const liveVehicles = new Set(field.getVehicles());
+        let orphans = 0;
+        for (const person of this.personSprites.keys()) {
+            if (!livePeople.has(person)) {
+                orphans += 1;
+            }
+        }
+        for (const vehicle of this.vehicleSprites.keys()) {
+            if (!liveVehicles.has(vehicle)) {
+                orphans += 1;
+            }
+        }
+        return orphans;
+    }
+
+    getLastReapedOrphans(): number {
+        return this.lastReapedOrphans;
+    }
+
     private drawPerson(person: Person): void {
         const position: PixelPosition = person.getPosition();
         if (position === null) {
@@ -806,6 +909,10 @@ export default class MainScene extends Phaser.Scene {
         const personSprite: Image = this.add.image(position.x, position.y, 'person');
         personSprite.setOrigin(0.5, 0.5);
         person.setAsset(personSprite);
+        // Register for the orphan sweep (V8/M2): keyed by the entity, so a person that later leaves the
+        // world (death, teardown, load) can have its sprite reaped even if the removal path didn't destroy
+        // it. (setAsset already self-destroys a sprite attached after markRemoved — the async-race class.)
+        this.personSprites.set(person, personSprite);
 
         // Sidewalk jitter (aliveness-3 follow-up, maintainer read): every pedestrian walks the EXACT curb
         // polyline, so any two at the same spot rendered perfectly stacked — the street read as one person.
@@ -815,7 +922,7 @@ export default class MainScene extends Phaser.Scene {
         let jitterY = 0;
         let jitterForId: string | null = null;
 
-        person.setRedrawFunction((_: number) => {
+        person.setRedrawFunction((timeDelta: number) => {
             const personAsset = person.getAsset();
             if (personAsset === null) {
                 return;
@@ -860,9 +967,10 @@ export default class MainScene extends Phaser.Scene {
             const rotation = directionToRadianRotation(direction);
 
             personAsset.setRotation(rotation);
-            // Side-by-side formations (W5) + the sidewalk jitter: both are render offsets — the formation
-            // separates co-walking group members, the jitter separates everyone else on the shared curb.
-            personAsset.setPosition(position.x + jitterX + (this.formationOffsets.get(person) ?? 0), position.y + jitterY);
+            // Side-by-side formations (W5/V6) + the sidewalk jitter: both are render offsets — the formation
+            // separates co-located group members (eased so re-slots glide, never pop), the jitter separates
+            // everyone else on the shared curb.
+            personAsset.setPosition(position.x + jitterX + this.easedFormationOffset(person, timeDelta), position.y + jitterY);
             personAsset.setDepth(person.getDepth());
 
             // The activity bubble follows the sprite (task 093 / J2); text/visibility refresh per minute.
@@ -890,6 +998,7 @@ export default class MainScene extends Phaser.Scene {
         const vehicleSprite: Image = this.add.image(position.x, position.y, 'vehicle_md');
         vehicleSprite.setOrigin(0.5, 0.5);
         vehicle.setAsset(vehicleSprite);
+        this.vehicleSprites.set(vehicle, vehicleSprite); // orphan sweep (V8/M2)
 
         vehicle.setRedrawFunction((timeDelta: number) => {
             const vehicleAsset = vehicle.getAsset();

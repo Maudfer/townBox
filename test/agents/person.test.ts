@@ -667,3 +667,27 @@ describe('processTravel(): WalkingToCar / WalkingToDestination case bodies invok
         expect(() => person.update(currentTile, 50, new Set(), pathFinder)).not.toThrow();
     });
 });
+
+describe('locomotion speed by kind (V10 / aliveness-4 M5)', () => {
+    test('running is faster than walking, and the police chase is the fastest of all', () => {
+        const person = new Person(0, 0);
+        person.setLocomotionKind('walk');
+        const walk = person.getSpeed();
+        person.setLocomotionKind('stroll');
+        const stroll = person.getSpeed();
+        person.setLocomotionKind('jog');
+        const jog = person.getSpeed();
+        person.setLocomotionKind('run');
+        const run = person.getSpeed();
+        person.setLocomotionKind('chase');
+        const chase = person.getSpeed();
+
+        expect(stroll).toBeLessThan(walk);   // a leisurely amble
+        expect(jog).toBeGreaterThan(walk);
+        expect(run).toBeGreaterThan(jog);
+        expect(chase).toBeGreaterThan(run);  // the police premium closes the gap on a fleeing suspect
+
+        person.setLocomotionKind(null);
+        expect(person.getSpeed()).toBe(walk); // null resets to the default walk
+    });
+});

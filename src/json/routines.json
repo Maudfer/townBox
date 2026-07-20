@@ -55,6 +55,20 @@
             "value": 8
         }
     },
+    "see_relatives": {
+        "action": "visiting_relatives",
+        "cadenceDays": 6,
+        "window": [
+            13,
+            20
+        ],
+        "adoption": 0.6,
+        "requires": {
+            "attr": "age",
+            "op": ">=",
+            "value": 10
+        }
+    },
     "housekeeping_day": {
         "action": "cleaning_house",
         "cadenceDays": 6,

@@ -26,7 +26,12 @@ export type LogicalLocation =
     | { kind: 'home' }
     | { kind: 'building'; key: string } // building anchor key ("row-col" on the map; logical id off-map)
     | { kind: 'venue'; venue: string }
-    | { kind: 'outside' };
+    // Outdoors. `cell` scopes co-location to a patch of street (V2 / aliveness-4): LiveWorld tags a person's
+    // outdoor location with the map cell they stand in, so two pedestrians only co-locate when they are
+    // actually near each other — not town-wide as before (a gift changed hands across the whole map). A
+    // cell-less `{kind:'outside'}` still means "anywhere outdoors" (bootstrap/logical worlds keep the abstract
+    // single outside — the sanctioned seam, like venue hours — and global "is anyone out there" queries).
+    | { kind: 'outside'; cell?: string };
 
 export type TransitionStatus = 'pending' | 'arrived' | 'cancelled';
 
@@ -57,6 +62,10 @@ export interface WorldAdapter {
     // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
     // places and always exist — the seam's only sanctioned difference is physical backing.
     hasVenue(venue: string): boolean;
+    // Whether a hosting business is PLACED regardless of hours (task 125): distinguishes "closed" from
+    // "absent" so a placed-but-closed venue-need defers instead of dissolving. Optional — bootstrap/logical
+    // worlds have no hours, so absent an impl a caller treats it as == hasVenue.
+    hasVenuePlaced?(venue: string): boolean;
     // The business hosting this location, if any (task 113): live worlds answer with the occupying
     // business's key so purchases at a REAL shop consume real stock (the conjuring fallback is retired
     // there). Optional — off-map worlds leave it undefined and keep the abstract-venue fallback.
