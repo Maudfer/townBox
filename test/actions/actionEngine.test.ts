@@ -73,6 +73,9 @@ const ACTIONS: ActionManifest = {
     },
     mix: { label: 'Mixed', type: 'discrete', category: 'maintenance', parameters: { recipe: { type: 'recipe' } } },
     needs_history: { label: 'Reminisced', type: 'discrete', category: 'leisure', requirements: { hasAction: 'stretch', minCount: 2 } },
+    // Guardianship (V3): a venue trip (default independence floor) and an explicit adults-only errand.
+    shop_trip: { label: 'Shopping', type: 'continuous', category: 'leisure', location: 'venue:shop', durationTicks: 2 },
+    adult_errand: { label: 'Adult errand', type: 'continuous', category: 'maintenance', location: 'outside', minAge: 18, durationTicks: 2 },
 } as unknown as ActionManifest;
 
 function makeDeps(state: PopulationState, tick: number, world: WorldAdapter = new BootstrapWorld(), inventory: Inventory | null = null): { deps: ActionDeps; engine: EventEngine; actions: ActionEngine } {
@@ -88,6 +91,34 @@ const cause = { source: 'system' as const, causationId: null };
 function actionEntries(engine: EventEngine, personId: string): ActionLogEntry[] {
     return engine.getPersonLog(personId).filter((entry): entry is ActionLogEntry => entry.kind === 'action');
 }
+
+describe('guardianship age gate (V3 / aliveness-4)', () => {
+    function poolWithToddler(tickNow: number): PopulationState {
+        return {
+            worldSeed: 33,
+            people: {
+                adult: gen('adult', Genders.Female, 30, tickNow),
+                child: gen('child', Genders.Male, 8, tickNow),
+                toddler: gen('toddler', Genders.Female, 3, tickNow),
+            },
+            drawSeed: 1, placedIds: [], nextSeq: 100, lastSimulatedYear: 0,
+        };
+    }
+
+    test('a toddler cannot independently visit a venue or do an adults-only errand; an adult can', () => {
+        const state = poolWithToddler(1000);
+        const { deps, actions } = makeDeps(state, 1000);
+        // The 3-year-old is blocked from a venue trip (default independence floor) and the 18+ errand. Both
+        // fail without creating an instance, so the ordering below (one successful start per person) holds.
+        expect(actions.startAction('toddler', 'shop_trip', {}, cause, deps, emptyResult())).toEqual({ ok: false, reason: 'requirementsUnmet' });
+        expect(actions.startAction('toddler', 'adult_errand', {}, cause, deps, emptyResult())).toEqual({ ok: false, reason: 'requirementsUnmet' });
+        // An 8-year-old is blocked from the 18+ errand but clears the venue floor (8).
+        expect(actions.startAction('child', 'adult_errand', {}, cause, deps, emptyResult())).toEqual({ ok: false, reason: 'requirementsUnmet' });
+        expect(actions.startAction('child', 'shop_trip', {}, cause, deps, emptyResult()).ok).toBe(true);
+        // The adult does the adults-only errand freely.
+        expect(actions.startAction('adult', 'adult_errand', {}, cause, deps, emptyResult()).ok).toBe(true);
+    });
+});
 
 describe('discrete actions', () => {
     test('commit immediately with a performed entry, params snapshot, and aggregate history', () => {

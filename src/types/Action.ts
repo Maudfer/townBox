@@ -134,6 +134,12 @@ export interface ActionDefinition {
     // Trait affinity tags (task 087 / proposal M2): which temperament axes this action appeals to, mapped
     // through json/traits.json — a high-orderliness person actually keeps their house clean.
     affinity?: string[];
+    // Guardianship (V3 / proposal simulation-aliveness-4): the minimum age to do this ALONE. The audit found
+    // a 2-year-old taking solo shopping trips, hosting gatherings, and roaming to venues across town. Below
+    // minAge the start is a typed failure (the child stays home / with a guardian). Venue-located actions
+    // (shops, bars, gyms…) get a default independence floor even without an explicit value; an explicit
+    // minAge overrides it (e.g. a bar is adults-only).
+    minAge?: number;
 }
 
 export type ActionManifest = Record<ActionId, ActionDefinition>;

@@ -10,7 +10,7 @@ import { validateConsequenceOps, validateConsequenceOpsSemantics } from 'game/da
 import { ActionManifest } from 'types/Action';
 import { EventManifest } from 'types/LifeEvent';
 
-const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies', 'resumable', 'affinity', 'ambulatory', 'habit'];
+const ACTION_KEYS = ['label', 'type', 'category', 'requirements', 'parameters', 'selection', 'location', 'durationTicks', 'completeWhen', 'children', 'events', 'interaction', 'consequences', 'satisfies', 'resumable', 'affinity', 'ambulatory', 'habit', 'minAge'];
 // The closed need vocabulary (task 084) — mirrors types/Needs.ts NEED_IDS.
 const NEED_KEYS = ['food', 'rest', 'social', 'fun', 'hygiene', 'purpose'];
 const ACTION_TYPES = ['discrete', 'continuous'];
@@ -115,6 +115,13 @@ export function validateActionsStructure(data: unknown, issues: IssueCollector):
             // Trait affinity tags (task 087) — cross-checked against json/traits.json in semantics.
             if (!Array.isArray(action['affinity']) || !(action['affinity'] as unknown[]).every(tag => typeof tag === 'string')) {
                 issues.add(`${id}.affinity`, 'expected an array of trait-affinity tag strings');
+            }
+        }
+        if ('minAge' in action) {
+            // Guardianship (V3): the minimum age to do this alone — a non-negative number of years.
+            const minAge = action['minAge'];
+            if (typeof minAge !== 'number' || !Number.isFinite(minAge) || minAge < 0) {
+                issues.add(`${id}.minAge`, 'expected a non-negative number (years)');
             }
         }
         // Collective-action integrity (V9 / proposal simulation-aliveness-4): a social continuous action that
