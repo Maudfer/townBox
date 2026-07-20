@@ -81,6 +81,11 @@ export const ARBITRATION_CONFIG = arbitrationConfig as { sameBandUtilityDelta: n
 export const AFTERSHOCK_CONFIG = (arbitrationConfig as unknown as {
     aftershock?: { events: string[]; withinTicks: number; outgoingMultiplier: number };
 }).aftershock ?? { events: [], withinTicks: 0, outgoingMultiplier: 1 };
+// Severity-banded illness (task 125): below this health, going-out/leisure/social free-time weights are
+// suppressed to a token — the seriously ill recover at home rather than running errands (the audit's
+// mildly-and-not-so-mildly-ill people who walked and visited until midnight). Home/recovery is untouched.
+const SEVERE_ILLNESS_HEALTH = 0.35;
+const SEVERE_ILLNESS_SUPPRESSION = 0.1;
 // Carry budgets + the acquisitive hook's chances (task 088 / F1–F2).
 export const INVENTORY_CONFIG = inventoryConfig as {
     maxCarriedWeightGrams: number; maxBulkyItems: number; stowAboveFraction: number;
@@ -471,6 +476,12 @@ export default class Brain {
         const habitsReader = deps.ctx.markets?.habits ?? null;
         const urgency = needsLedger?.urgencyByNeed?.(personId, deps.tick, deps.state.worldSeed) ?? null;
         const shaken = Brain.isShaken(context);
+        // Severity-banded illness (task 125): a SERIOUSLY ill person stays in and recovers — going out to a
+        // venue, socialising, or errands collapses to a token weight, so serious illness visibly cancels the
+        // day (home/recovery actions are untouched and dominate). The audit's mildly-ill people walked and
+        // visited until midnight; this is the bedridden band with teeth.
+        const healthAttr = context.getAttr('health');
+        const severelyIll = typeof healthAttr === 'number' && healthAttr < SEVERE_ILLNESS_HEALTH;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind } of this.getFreeTimeCandidates()) {
             if ((def.satisfies?.[need] ?? 0) < 5) {
@@ -483,6 +494,9 @@ export default class Brain {
             let weight = baseWeight;
             if (shaken && (def.category === 'social' || def.category === 'leisure')) {
                 weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)
+            }
+            if (severelyIll && (def.category === 'social' || def.category === 'leisure' || venueKind !== undefined || def.location === 'outside')) {
+                weight *= SEVERE_ILLNESS_SUPPRESSION;
             }
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue;
@@ -575,12 +589,19 @@ export default class Brain {
         let reqMs = 0;
         let modMs = 0;
         const shaken = Brain.isShaken(context);
+        // Serious illness suppresses going out (task 125): the same bedridden-band gate selectActionForNeed
+        // uses — a seriously-ill person recovers at home rather than running errands or socialising.
+        const healthAttr = context.getAttr('health');
+        const severelyIll = typeof healthAttr === 'number' && healthAttr < SEVERE_ILLNESS_HEALTH;
         const candidates: { actionId: string; weight: number }[] = [];
         for (const { actionId, def, baseWeight, venueKind, satisfiesEntries } of this.getFreeTimeCandidates()) {
             const selection = def.selection;
             let weight = baseWeight;
             if (shaken && (def.category === 'social' || def.category === 'leisure')) {
                 weight *= AFTERSHOCK_CONFIG.outgoingMultiplier; // lying low (W3/P1-3c)
+            }
+            if (severelyIll && (def.category === 'social' || def.category === 'leisure' || venueKind !== undefined || def.location === 'outside')) {
+                weight *= SEVERE_ILLNESS_SUPPRESSION;
             }
             if (selection?.cooldownTicks !== undefined && this.actionEngine.hasAction(personId, actionId, deps.tick, { withinTicks: selection.cooldownTicks })) {
                 continue; // anti-repetition
