@@ -1,7 +1,14 @@
 # Simulation Aliveness 4 — the visual-experience audit
 
-**Status: findings + proposed arc, v2 (not yet broken into tasks).** v2 folds in the maintainer's own
-observations and directives (Part 6, M1–M8) and threads them through the arc (V6/V8 extended, V9–V11
+**Status: v3 — the arc IS IMPLEMENTED** (branch `task/simulation-aliveness-4`, one PR: the foundation doc,
+then V8 → V11 → V1 → V2 → V10 → V9 → V3 → V4 → V5 → V6 → V7 as sequential commits). Validated by the full
+Jest suite (1947 tests), ESLint, the offline-generator perf gates (re-baselined for the intentional
+behavior shift), and the Playwright integration smoke test (the production build boots, the HUD mounts,
+the determinism hook installs). Engine narrative: `CLAUDE.md` §4.18. The final deep in-browser observation
+pass + asset regeneration remain the maintainer's pre-merge step (the aliveness-2/3 pattern). Deferred
+items are called out per-workstream in Part 6 and CLAUDE.md §4.18. **Originally: findings + proposed arc,
+v2.** v2 folded in the maintainer's own
+observations and directives (Part 6, M1–M8) and threaded them through the arc (V6/V8 extended, V9–V11
 added). This document is the deliverable of
 the round-4 observation session: a full re-run of the observation effort with **the real-time visual
 player experience as the first-class citizen**. Round 1 made the engines feed each other, round 2 made
