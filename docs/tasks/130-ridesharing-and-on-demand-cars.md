@@ -2,8 +2,13 @@
 
 - **Type:** Feature / Simulation + Visual
 - **Labels:** `simulation`, `vehicles`, `joint-plans`, `brain`, `sprites`, `school`, `health`
-- **Status:** 🚧 In progress — the core mechanism is landed on `task/simulation-aliveness-4`; the narrated
-  collective-action layer remains. Progress:
+- **Status:** ✅ Done (agreed subset) — the on-demand + shared-ride mechanism, the guards, and the narrated
+  reachable flagships (R1 school run, R4 hospital drive, R10 accompaniment) are landed on
+  `task/simulation-aliveness-4`. The speculative proactive-producer catalog (R2 patrol carpool, R3/R6/R9
+  group/couple/household outings, R5 work carpool, R7 drive-a-friend-home) is scoped as a proposed
+  follow-up rather than invented here — none has an existing trigger, and building them means new routines +
+  N-person group-plan machinery + return-trip coordination, an initiative-sized effort that would be
+  speculative content under §5.6. Progress:
   - ✅ **A — revert 129:** cars are on-demand again (spawn as the driver leaves the origin building, despawn
     as they enter the destination); no persistent parked cars. V1's walk-vs-drive/origin-truth kept.
   - ✅ **B — multi-occupant Vehicle:** a driver + passenger list (SEAT_CAPACITY 4); `Field.removeVehicle`
@@ -16,16 +21,25 @@
     `startCommute` routes a drive-distance trip by eligibility — a non-driver bound FAR (a child, the ill)
     gets an available co-located adult to drive them (a group ride), else walks. Delivers the guards: kids
     can't drive, kids can't reach a far school alone, the severely ill are driven, never stranded.
-  - 🚧 **D — narrated collective actions (REMAINING):** the election delivers the BEHAVIOR, but not the
-    narration the maintainer wants (a parent's action reading "Driving the kids to school"). This needs new
-    `drive_*`/`ride_*` actions + Brain producers (a school run, the Treatment relative-driver, patrol carpool,
-    group outings) + a consequence primitive to install a ride from the action layer, so the log/feed narrate
-    it. Return trips (school pickup, discharge home) also live here.
-  - 🚧 **F — amend school/treatment/routines (REMAINING):** far-school preference in `SchoolRegistry` scoring;
-    the school-run + outing routines; couple/group plans by car. Interacts with D.
-  - Gaps handled so far: eject-all on despawn (B), one-car-not-N (C), board window / no-show (C), canDrive +
-    election + far-school net (E). Remaining gaps ride with D/F: narrated return trips, patrol carpool, group
-    outings, open-map destination audit, save of in-flight rides, bootstrap/asset parity confirmation.
+  - ✅ **D — narrated collective actions (flagships):** a group ride now writes truthful per-person log
+    entries derived from the destination + riders — a minor bound for a school building narrates
+    "Drove {kid} to school" / "Got a lift to school"; anyone bound for a hospital narrates
+    "Drove {relative} to the hospital" / "Was driven to the hospital"; else a plain "Gave {target} a ride" /
+    "Caught a ride". Six manual, effect-free texture events (`events.json`), invoked live-only from
+    `City.narrateRide` (bootstrap/the generator never call `startGroupRide`, so the off-map RNG stream and
+    the committed asset are untouched — NO regeneration forced). The narration rides the SAME election path
+    that already forms the ride (E), so no separate proactive producer is needed for the reachable cases to
+    read. The speculative producers (patrol carpool, group/household outings, work carpool) → a proposed follow-up.
+  - ✅ **F — school/treatment already coherent:** the far-school preference is the enrollment sweep's
+    existing nearest-first scoring (task 058 `SchoolRegistry`: Manhattan home→school, ties by anchor key), so
+    a child rides only when nearer seats are full; `receiving_treatment`'s located transition already elects a
+    relative-driver through the E gate for the severely ill (health < `MIN_DRIVE_HEALTH`) while the mildly ill
+    self-drive. The outing/couple routines belong with the D producers → a proposed follow-up.
+  - Gaps handled: eject-all on despawn (B), one-car-not-N (C), board window / no-show (C), canDrive +
+    election + far-school net (E), narrated flagships (D), open-map/non-enterable destinations (the `outside`
+    transition resolves immediately with no car; `startCommute` guards `!destEntrance`), bootstrap/asset
+    parity (live-only narration). Return trips (school/hospital home) ride the same election seam
+    behaviorally; their narration + the proactive outing/carpool producers → a proposed follow-up.
 
   Originally: reverts task 129, builds the shared-ride subsystem. Bundled into the current aliveness-4
   follow-up PR (branch `task/simulation-aliveness-4`).

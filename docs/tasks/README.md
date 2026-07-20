@@ -168,7 +168,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [127](127-homeless-day-shape-and-domestic-locations_DONE.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
 | [128](128-street-wander-graph-and-seeded-wander_DONE.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
 | [129](129-persistent-household-cars_REVERTED.md) | ⛔ Reverted | [Feature] Persistent household cars — park it, don't conjure it (reverted by 130) |
-| [130](130-ridesharing-and-on-demand-cars.md) | 📋 Planned | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
+| [130](130-ridesharing-and-on-demand-cars.md) | ✅ Done | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
 
 ## Open work
 
@@ -188,11 +188,16 @@ code (see `CLAUDE.md` §5.1). This README is the index.
   recomputes on placement/teardown. (d) People **stuck at high speed** — `advanceTime` skipped crossed in-game
   minutes (the per-minute commute-departure pump missed them); now advances in ≤1-minute steps. All verified
   live / unit-tested.
-- **[Task 130](130-ridesharing-and-on-demand-cars.md) is planned** (same PR): revert 129's persistent cars to
-  **on-demand** spawn/despawn and build **coordinated ridesharing** — a multi-occupant car, one-car-per-group
-  rides (parents driving kids to school, police carpool patrol, relatives driving the ill to hospital, group
-  outings), and the drive guards (kids/severely-ill can't drive, kids can't reach far schools alone,
-  accompaniment). To be implemented after the maintainer reads the task.
+- **[Task 130](130-ridesharing-and-on-demand-cars.md) is done** (agreed subset, same PR): reverted 129's
+  persistent cars to **on-demand** spawn/despawn and built **coordinated ridesharing** — a multi-occupant car
+  that ejects every occupant on despawn, the one-car-per-group `startGroupRide` primitive with a board window,
+  the `canDrive` gate + driver election (kids/severely-ill can't drive, kids can't reach far schools alone,
+  the ill are driven, accompaniment closed), and the **narrated flagships** (a group ride reads "Drove {kid}
+  to school" / "Drove {relative} to the hospital" / "Gave {target} a ride" in the per-person log, derived
+  from the destination + riders and invoked live-only — no asset regeneration forced). The far-school
+  preference is the enrollment sweep's existing nearest-first scoring; the speculative proactive-producer
+  catalog (patrol carpool, group/household/couple outings, work carpool, drive-a-friend-home) is a **proposed
+  follow-up** rather than invented here (no existing trigger; would be speculative content under §5.6).
 - The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
   (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 
