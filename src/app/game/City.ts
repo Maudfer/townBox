@@ -63,6 +63,12 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
+// A child under this age can't be left home alone (task 126 / home-alone care): the last adult present at
+// home anchors `caring_for_children` rather than wandering off to leisure while a young dependent is home
+// unattended. Above VENUE_INDEPENDENCE_AGE (8) — a school-age child can be briefly on their own; a toddler
+// can't. School/work still take a parent out (the sim has no daycare model), so this only holds the parent
+// against DISCRETIONARY departures, which is the audit's actual break.
+const CARE_AGE_YEARS = 10;
 // Walk-vs-drive threshold (V1 / aliveness-4 trip planner): a trip whose Manhattan distance from the body to
 // the destination is at or under this many tiles is WALKED — the car is reserved for real commutes. The
 // audit found people driving zero-to-a-few tiles constantly (magic pop-in/pop-out cars everywhere).
@@ -998,6 +1004,7 @@ export default class City {
             jobOf: id => this.jobFactsOf(id, personByGenId),
             schoolOf: id => this.schoolFactsOf(id, personByGenId, tick, ticksPerYear),
             detentionOf: id => (Game.detention && Game.detention.isDetained(id, tick) ? Game.detention.detentionOf(id) : null),
+            unattendedDependentAtHome: id => this.unattendedYoungDependentAtHome(id, personByGenId, population.getPeople(), tick, ticksPerYear),
         }, [], result);
         engine.unbindMarkets();
         // Stamp any log appends the pass produced (starts, declines) — same pass the flip runs (LP-11).
@@ -2717,9 +2724,19 @@ export default class City {
             if (livingMembers.length === 0) {
                 continue;
             }
-            const hasAdult = livingMembers.some(id => ageAt(pool[id]!, tick, ticksPerYear) >= ADULT_AGE_YEARS);
+            // A caregiver is a living adult who is actually AVAILABLE to mind the home — a jailed adult isn't
+            // (task 126 / guardianship fan-out): the audit's single parent hauled off to detention left a
+            // toddler home alone, and the death-only orphan path never fired because the parent was still
+            // alive. Detention removes them from the home exactly as death does, so a sole-caregiver jailing
+            // fans the dependents out to a relative's household, same as an orphaning. (Illness keeps the
+            // parent physically home — the child isn't unattended, just under-attended — so it is handled by
+            // the home-alone care hook + LP-5 meal fan-out, not relocation.)
+            const hasAdult = livingMembers.some(id =>
+                ageAt(pool[id]!, tick, ticksPerYear) >= ADULT_AGE_YEARS
+                && !(Game.detention?.isDetained(id, tick) ?? false)
+            );
             if (hasAdult) {
-                continue; // a coherent guardian remains
+                continue; // a coherent, available guardian remains
             }
 
             // No adult present: relocate each minor to a relative's adult household.
@@ -2804,6 +2821,45 @@ export default class City {
             }
         }
         return byGenId;
+    }
+
+    // Home-alone care (task 126): true when `adultId` is an adult currently present at their home together
+    // with a co-resident child under CARE_AGE_YEARS who is ALSO home, and no OTHER available adult is home to
+    // mind them. The guardianship Brain hook reads this to anchor `caring_for_children` — the last adult in
+    // the house minds a young dependent instead of drifting off to a discretionary activity. Live-only
+    // (presence is a map concept): the generator/bootstrap never supply this resolver, so it can't diverge.
+    public unattendedYoungDependentAtHome(adultId: PersonId, byGenId: Map<PersonId, Person>, pool: PersonTable, tick: number, ticksPerYear: number): boolean {
+        const adult = byGenId.get(adultId);
+        if (!adult) {
+            return false;
+        }
+        const home = adult.social.getHome();
+        if (!(home instanceof House) || adult.getCurrentBuilding() !== home) {
+            return false; // only the adult who is actually AT home can be the one minding the child
+        }
+        const household = home.getHousehold();
+        if (!household) {
+            return false;
+        }
+        let youngDependentHome = false;
+        let otherAdultHome = false;
+        for (const memberId of household.memberIds) {
+            if (memberId === adultId) {
+                continue;
+            }
+            const member = byGenId.get(memberId);
+            const record = pool[memberId];
+            if (!member || !record || !isAliveAt(record, tick) || member.getCurrentBuilding() !== home) {
+                continue; // only members physically home matter for "is the child unattended"
+            }
+            const age = ageAt(record, tick, ticksPerYear);
+            if (age < CARE_AGE_YEARS) {
+                youngDependentHome = true;
+            } else if (age >= ADULT_AGE_YEARS && !(Game.detention?.isDetained(memberId, tick) ?? false)) {
+                otherAdultHome = true; // another available adult is here — the child isn't unattended
+            }
+        }
+        return youngDependentHome && !otherAdultHome;
     }
 
     // The materialized minor children of `parentId` who currently live in `house` — the dependents that move

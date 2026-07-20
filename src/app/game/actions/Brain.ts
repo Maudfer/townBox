@@ -29,6 +29,7 @@ import { detainedHook } from 'game/actions/Detained';
 import { evacuationHook, fireResponseHook } from 'game/actions/FireResponse';
 import { pursuitHook } from 'game/actions/Pursuit';
 import { doctorRoundsHook, treatmentHook } from 'game/actions/Treatment';
+import { guardianshipHook } from 'game/actions/Guardianship';
 import { socialOpportunityHook } from 'game/actions/SocialOpportunity';
 import { schoolObligationHook } from 'game/skills/SchoolOrchestrator';
 import arbitrationConfig from 'json/arbitration.json';
@@ -133,6 +134,10 @@ export interface BrainDeps extends ActionDeps {
     // The person's detention facts (task 100) — resolved by the host (live: City's DetentionRegistry).
     // Null = free. The detained hook keeps them at the facility while a record exists.
     detentionOf?: (personId: PersonId) => { locationKey: string } | null;
+    // Home-alone care (task 126): true when this adult is the last available guardian present at home with a
+    // young dependent who is also home. Resolved by the host from households + live presence; absent in
+    // bootstrap/the generator (presence is a map concept), so the guardianship hook is a no-op off-map.
+    unattendedDependentAtHome?: (personId: PersonId) => boolean;
 }
 
 // Dispatched today: `onTick` and `onEventCommitted` (processTick), and `onActionFailed` (the decline path,
@@ -197,6 +202,7 @@ export default class Brain {
             pursuitHook, // the chase (task 099): flee (survival) / give chase (obligation) on co-location
             treatmentHook, // the sick travel to a placed hospital (task 111) — urgency-scaled obligation
             doctorRoundsHook, // on-duty doctors treat co-located patients-in-treatment (task 111)
+            guardianshipHook, // the last adult home minds a young dependent instead of drifting off (task 126)
             needsHook, // critical-need required intents (task 084) — outranks leisure, yields to obligations
             plannerHook, // due agenda entries: routines, located visits, joint plans (task 085)
             jobSeekingHook, // located application trips at real openings (LP-13) — hired at the counter

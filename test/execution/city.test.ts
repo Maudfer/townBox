@@ -425,6 +425,112 @@ describe('City rehousing/cohabitation/move-out (direct calls — public for unit
         expect(house2.getHousehold()!.memberIds).toContain('minor');
     });
 
+    test('resolveRehousing fans out a jailed sole caregiver\'s minor to a relative (task 126)', () => {
+        const tickNow = 50 * TICKS_PER_YEAR;
+        const { game, field, population, clock, city } = makeGame(30, 30);
+        const mom = gen('mom', Genders.Female, 40, tickNow);
+        const kid = gen('kid', Genders.Male, 6, tickNow, { motherId: 'mom' });
+        const bro = gen('bro', Genders.Male, 35, tickNow, { motherId: 'mom' }); // the kid's adult sibling
+        loadState(population, clock, { mom, kid, bro }, ['mom', 'kid', 'bro'], tickNow);
+
+        const house1 = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        materialize(field, house1, 'mom', 68, 64);
+        const kidPerson = materialize(field, house1, 'kid', 72, 64);
+        house1.setHousehold({ id: 'hh-1', houseKey: house1.getIdentifier(), headId: 'mom', memberIds: ['mom', 'kid'], arrangement: HouseholdArrangements.Nuclear });
+
+        const house2 = field.loadStructure('house', 16, 16, 'building_1x1x1_1') as House;
+        materialize(field, house2, 'bro', 256, 256);
+        house2.setHousehold({ id: 'hh-2', houseKey: house2.getIdentifier(), headId: 'bro', memberIds: ['bro'], arrangement: HouseholdArrangements.Single });
+
+        // Mom is alive but in detention — an unavailable caregiver, so her sole minor is left unattended.
+        (game as unknown as { detention: unknown }).detention = { isDetained: (id: string) => id === 'mom' };
+
+        city.resolveRehousing(tickNow, TICKS_PER_YEAR);
+
+        expect(kidPerson.social.getHome()).toBe(house2);
+        expect(house2.getHousehold()!.memberIds).toContain('kid');
+    });
+
+    test('resolveRehousing leaves the minor put when the sole caregiver is home (not jailed)', () => {
+        const tickNow = 50 * TICKS_PER_YEAR;
+        const { field, population, clock, city } = makeGame(30, 30);
+        const mom = gen('mom', Genders.Female, 40, tickNow);
+        const kid = gen('kid', Genders.Male, 6, tickNow, { motherId: 'mom' });
+        const bro = gen('bro', Genders.Male, 35, tickNow, { motherId: 'mom' });
+        loadState(population, clock, { mom, kid, bro }, ['mom', 'kid', 'bro'], tickNow);
+
+        const house1 = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        materialize(field, house1, 'mom', 68, 64);
+        const kidPerson = materialize(field, house1, 'kid', 72, 64);
+        house1.setHousehold({ id: 'hh-1', houseKey: house1.getIdentifier(), headId: 'mom', memberIds: ['mom', 'kid'], arrangement: HouseholdArrangements.Nuclear });
+        const house2 = field.loadStructure('house', 16, 16, 'building_1x1x1_1') as House;
+        materialize(field, house2, 'bro', 256, 256);
+        house2.setHousehold({ id: 'hh-2', houseKey: house2.getIdentifier(), headId: 'bro', memberIds: ['bro'], arrangement: HouseholdArrangements.Single });
+
+        // No detention registry / mom free → she's a coherent guardian, the child stays home.
+        city.resolveRehousing(tickNow, TICKS_PER_YEAR);
+
+        expect(kidPerson.social.getHome()).toBe(house1);
+    });
+
+    describe('unattendedYoungDependentAtHome (task 126 home-alone care)', () => {
+        const tickNow = 40 * TICKS_PER_YEAR;
+
+        function setup() {
+            const { game, field, population, clock, city } = makeGame(30, 30);
+            const mom = gen('mom', Genders.Female, 35, tickNow);
+            const dad = gen('dad', Genders.Male, 37, tickNow);
+            const kid = gen('kid', Genders.Male, 5, tickNow, { motherId: 'mom', fatherId: 'dad' });
+            const pool: PersonTable = { mom, kid, dad };
+            loadState(population, clock, pool, ['mom', 'kid', 'dad'], tickNow);
+            const house = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+            const momP = materialize(field, house, 'mom', 68, 64);
+            const kidP = materialize(field, house, 'kid', 72, 64);
+            const dadP = materialize(field, house, 'dad', 76, 64);
+            house.setHousehold({ id: 'hh', houseKey: house.getIdentifier(), headId: 'mom', memberIds: ['mom', 'dad', 'kid'], arrangement: HouseholdArrangements.Nuclear });
+            const byGenId = new Map<string, Person>([['mom', momP], ['dad', dadP], ['kid', kidP]]);
+            return { game, city, house, momP, dadP, kidP, byGenId, pool };
+        }
+
+        test('true when the last adult present at home has a young dependent also home', () => {
+            const { city, house, momP, kidP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house);
+            kidP.setCurrentBuilding(house);
+            // dad is out (currentBuilding null) → mom is the only adult minding the child.
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(true);
+        });
+
+        test('false when another adult is also home to mind the child', () => {
+            const { city, house, momP, dadP, kidP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house);
+            dadP.setCurrentBuilding(house);
+            kidP.setCurrentBuilding(house);
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(false);
+        });
+
+        test('false when the adult is not actually at home', () => {
+            const { city, house, kidP, byGenId, pool } = setup();
+            kidP.setCurrentBuilding(house); // mom's currentBuilding stays null (she's out)
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(false);
+        });
+
+        test('false when the young dependent is not home (e.g. at school)', () => {
+            const { city, house, momP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house); // kid's currentBuilding stays null (out)
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(false);
+        });
+
+        test('true even when another co-resident adult is home BUT detained', () => {
+            const { game, city, house, momP, dadP, kidP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house);
+            dadP.setCurrentBuilding(house);
+            kidP.setCurrentBuilding(house);
+            (game as unknown as { detention: unknown }).detention = { isDetained: (id: string) => id === 'dad' };
+            // dad is physically home but jailed (house arrest fiction aside — a detained adult can't mind).
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(true);
+        });
+    });
+
     test('resolveRehousing is a no-op when field or population is missing', () => {
         const game = {
             field: null, population: null,

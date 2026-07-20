@@ -2,7 +2,19 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `simulation`, `guardianship`, `joint-plans`, `wakes`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V3 remainder)
+- **Status:** ✅ Done (core) — landed in the aliveness-4 follow-up batch (PR #103). **Home-alone care**
+  (requirement 2): `City.unattendedYoungDependentAtHome` (households + live presence) + a `guardianshipHook`
+  anchor `caring_for_children` for the last available adult at home with a co-resident child under
+  `CARE_AGE_YEARS` (10) also home — so the last parent minds the child instead of drifting off to a
+  discretionary activity (a due work/school obligation still pulls them out; the sim has no daycare model).
+  **Dependent fan-out on caregiver loss** (requirement 3): `City.resolveRehousing` now treats a *detained*
+  adult as an unavailable guardian, so a jailed sole caregiver's minors fan out to a relative exactly as an
+  orphaning does (illness keeps the parent physically home, handled by the home-alone hook + the LP-5 meal
+  fan-out, not relocation). Live-only (presence/detention are map concepts), inert in bootstrap/the generator.
+  **Deferred — accompaniment (requirement 1):** V3's `minAge` gate already blocks a young child's
+  discretionary located trips (errands/venues), leaving only school (on foot, an obligation) — so a
+  child-rides-with-a-guardian joint-plan primitive has almost nothing to bind to in the current design;
+  it is held for a future street-life pass rather than built speculatively.
 - **Depends on:** V3 (the `minAge` gate, landed); the D3 joint-plan machinery (task 085)
 
 ## The problem
