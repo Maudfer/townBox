@@ -564,12 +564,21 @@ anchor + a jailed-caregiver `resolveRehousing` fan-out; travel accompaniment def
 gate already removed the trips it would escort), **123** (business draw coherence — `placement:"amenity"`
 fences beach/cemetery/park to the construction menu + an unrepresented-category draw boost), and **127**
 (homeless day-shape (core) — a Brain hard-gate so the homeless never free-time-pick a home-located action;
-`sleeping_rough` shelter deferred). **123/127 turned out asset-byte-unaffected** (the generator's logical
-world uses a round-robin business roster and elastic housing, so neither the amenity fencing nor the homeless
-gate fires off-map — no regeneration needed for them). Still deferred: **129** (persistent household cars —
-a cross-cutting vehicle-lifecycle change whose W8 sprite-invariant verification wants a live browser, so it
-rides the observation pass). The final in-browser observation pass + asset regeneration remain the
-maintainer's pre-merge step (validated here via the full unit suite, ESLint, and the Playwright smoke test).
+`sleeping_rough` shelter deferred), and **129** (persistent household cars — a commute car PARKS on arrival
+and is re-boarded next trip instead of per-trip conjuring; stranded cars are released, mid-drive cars keep the
+W8 despawn, `removePerson` tears down the owner's car, and a restored linked car is marked controlled on load).
+**123/127 turned out asset-byte-unaffected** (the generator's logical world uses a round-robin business roster
+and elastic housing, so neither the amenity fencing nor the homeless gate fires off-map — no regeneration
+needed for them). The **in-browser observation pass** (2026-07-20, via the Claude-in-Chrome extension) verified
+these live and caught one **long-standing bug**: `Field.stampFootprint` registered a structure's
+destinations/road-anchor key BEFORE tearing down the grass footprint it replaced — and a grid-aligned structure
+(roads always; grid-aligned buildings) shares that anchor key with the grass, so `destroyStructure` wiped it.
+`roadAnchors`/`destinations` therefore came up permanently EMPTY in built towns, so V2's ambulatory street roam
+had no road targets (the audit's persistent entrance-clustering) and task-128 loiter nodes never registered.
+Fixed by registering AFTER the teardown (regression-tested, revert-dance verified; also the true cause of the
+"ts-jest instanceof quirk"). Post-fix, live: `roadAnchors`/`destinations` populate, walkers target loiter nodes,
+129's cars persist with all W8 sprite invariants zero across two in-game days. The asset regeneration remains
+the maintainer's pre-merge step (validated here via the full unit suite, ESLint, and the Playwright smoke test).
 
 ---
 

@@ -82,11 +82,12 @@ describe('Person travel flow', () => {
     expect(routedTo).toEqual([streetSpot]);
   });
 
-  test('arrival records the building, despawns the commute car, and returns to idle', () => {
+  test('arrival records the building and PARKS the persistent car (task 129), returning to idle', () => {
     const road = new Road(0, 0, 'road');
     const destBuilding = new Building(2, 2, null);
     const vehicle = new Vehicle(1, 1);
     vehicle.setControlled(true);
+    vehicle.board(); // occupied on the drive in
 
     const removed: Vehicle[] = [];
     const gameStub = {
@@ -108,8 +109,12 @@ describe('Person travel flow', () => {
 
     expect(person.isIndoors()).toBe(true);
     expect(person.getCurrentBuilding()).toBe(destBuilding);
-    expect(removed).toContain(vehicle); // car despawned from the field
-    expect(person.getVehicle()).toBeNull();
+    // Persistent household car (task 129): the car PARKS instead of despawning — still on the field, still
+    // linked to its owner, disembarked (empty) but controlled so Field.update won't wander it.
+    expect(removed).not.toContain(vehicle);
+    expect(person.getVehicle()).toBe(vehicle);
+    expect(vehicle.isOccupied()).toBe(false);
+    expect(vehicle.isControlled()).toBe(true);
     expect(person.isIdle()).toBe(true);
   });
 });

@@ -167,15 +167,21 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [126](126-guardianship-depth.md) | ✅ Done (core) | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
 | [127](127-homeless-day-shape-and-domestic-locations.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
 | [128](128-street-wander-graph-and-seeded-wander.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
-| [129](129-persistent-household-cars.md) | 📋 Planned | [Feature] Persistent household cars — park it, don't conjure it |
+| [129](129-persistent-household-cars.md) | ✅ Done | [Feature] Persistent household cars — park it, don't conjure it |
 
 ## Open work
 
-- **The simulation-aliveness-4 deferred follow-ups (tasks 123–129)** — the workstream remainders the arc
-  consciously held back, several with asset-regeneration/determinism coupling. **124 & 125 landed** on the
-  `task/simulation-aliveness-4` branch (PR #103). The rest (123, 126, 127, 128, 129) are focused follow-ups:
-  126/128 are live-only; **129 wants a live browser for the W8 sprite-invariant check**; **123 & 127**
-  perturb the generator/economy stream and best ride the **asset regeneration**.
+- **The simulation-aliveness-4 deferred follow-ups (tasks 123–129) all landed** on the
+  `task/simulation-aliveness-4` branch (PR #103). 124/125/128 in full; 126/127 "core" (accompaniment and a
+  `sleeping_rough` shelter action deferred, both noted in-file); 123; and 129 (implemented + live-verified in
+  the observation pass). Note: 123 & 127 turned out **asset-byte-unaffected** (the generator's logical world
+  uses a round-robin business roster and elastic off-map housing, so neither the amenity fencing nor the
+  homeless gate fires off-map) — no regeneration needed for them.
+- **Live-play bug fixed (2026-07-20):** `Field.stampFootprint` registered a structure's destinations/road-anchor
+  key BEFORE tearing down the grass it replaced, and a grid-aligned structure shares that key with the grass —
+  so `destroyStructure` wiped it, leaving `roadAnchors`/`destinations` permanently EMPTY in built towns (V2's
+  street roam had no targets → the audit's persistent entrance-clustering; task 128's loiter nodes never
+  registered). Fixed by registering after the teardown; verified live.
 - The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
   (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 

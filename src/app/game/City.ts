@@ -3173,6 +3173,27 @@ export default class City {
             return;
         }
 
+        // Persistent household car (task 129): reuse the owner's PARKED car instead of conjuring a fresh one
+        // every trip (the audit's "magic pop-in/pop-out cars everywhere"). A car parked near the body — the
+        // common case, since a round trip parks it at the building the next trip leaves from — is re-boarded:
+        // the travel machine walks the owner to it (Person.processTravel reads this.vehicle) and drives off.
+        // A car stranded far away (the owner walked off and now drives from elsewhere) is released rather than
+        // teleported to them, and a fresh one spawns at the origin below.
+        // Only a PARKED (unoccupied) car is reusable. A car the owner is still IN — a mid-flight re-plan — is
+        // left to the setVehicle despawn below (the W8 148-car-leak fix); reusing it would strand a moving car.
+        const parked = person.getVehicle();
+        if (parked && !parked.isOccupied()) {
+            const carPosition = parked.getPosition();
+            const near = carPosition && bodyPosition
+                && Math.abs(carPosition.x - bodyPosition.x) + Math.abs(carPosition.y - bodyPosition.y) <= walkDistancePx;
+            if (near) {
+                parked.setControlled(true);
+                person.setDestination(destination); // re-board the parked car via the normal travel machine
+                return;
+            }
+            person.releaseVehicle(); // stranded — despawn before spawning a fresh car at the body
+        }
+
         // Drive: the car materializes ON THE STREET at the origin road tile (task 008 commute spec), never
         // inside a footprint. Body-position fallback (origin truth) for road-less test/edge worlds — the car
         // still starts from WHERE THE PERSON IS, never their distant home.

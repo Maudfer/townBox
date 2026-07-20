@@ -167,6 +167,37 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(firstCar.isOccupied()).toBe(false);
     });
 
+    test('a parked household car is re-boarded on the next trip instead of spawning a new one (task 129)', () => {
+        const { city, field } = makeWorld();
+        const { person, workplace } = employ(field);
+        person.social.setPersonId('p1');
+        // A prior commute left the car parked at the curb by the body: controlled + unoccupied.
+        const parked = field.spawnVehicle({ x: 80, y: 80 });
+        parked.setControlled(true);
+        person.setVehicle(parked);
+        expect(field.getVehicles()).toHaveLength(1);
+
+        // The next drive: startCommute must RE-BOARD the parked car, not conjure a second one.
+        city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
+        city.getWorld().pump(10);
+
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(field.getVehicles()[0]).toBe(parked);
+        expect(person.getVehicle()).toBe(parked);
+    });
+
+    test('removePerson despawns the owner\'s parked car — no orphan on the street (task 129)', () => {
+        const { field } = makeWorld();
+        const { person } = employ(field);
+        const parked = field.spawnVehicle({ x: 80, y: 80 });
+        parked.setControlled(true);
+        person.setVehicle(parked);
+        expect(field.getVehicles()).toHaveLength(1);
+
+        field.removePerson(person);
+        expect(field.getVehicles()).toHaveLength(0);
+    });
+
     test('cancelTransition parks the body and despawns the car — the trip stops with the intent', () => {
         const { city, field } = makeWorld();
         const { person, workplace } = employ(field);
