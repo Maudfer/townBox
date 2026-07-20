@@ -11,6 +11,8 @@ jest.mock('phaser', () => ({
 }));
 
 import GameManager from 'game/GameManager';
+import Clock from 'game/Clock';
+import { MS_PER_TICK } from 'util/time';
 
 type FakeBus = { eventListeners: Record<string, { callback: (p: unknown) => unknown; context: unknown }[]> };
 
@@ -48,5 +50,44 @@ describe('GameManager.emit — falsy payloads reach handlers (pause bug)', () =>
     test('emitSingle has the same contract: 0 reaches the handler', async () => {
         expect(await emitSingle(0)).toBe(0);
         expect(await emitSingle(undefined)).toEqual({});
+    });
+});
+
+// advanceTime must step over EVERY crossed in-game minute (stuck-people-at-50x bug): a single large frame
+// delta (a hitch at 50×) used to jump the clock past minutes whose commute-departure pump never fired.
+describe('GameManager.advanceTime — no crossed minute is skipped', () => {
+    type FakeClockOwner = {
+        clock: Clock; timePaused: boolean;
+        lastDayEmitted: number; lastTickEmitted: number; lastMinuteEmitted: number;
+        effectiveTimeDelta: (d: number) => number;
+        emit: (name: string, payload?: { timestamp: { hour: number; minute: number } }) => void;
+        emitTimeCadence: () => void;
+    };
+
+    // Drives advanceTime once with the given effective delta and returns the emitted timeChanged minutes.
+    function timeChangedMinutes(deltaMs: number): number[] {
+        const emits: number[] = [];
+        const self: FakeClockOwner = {
+            clock: new Clock(0), timePaused: false,
+            lastDayEmitted: -1, lastTickEmitted: -1, lastMinuteEmitted: -1,
+            effectiveTimeDelta: d => d, // pass-through: deltaMs IS the advance
+            emit: (name, payload) => { if (name === 'timeChanged' && payload) { emits.push(payload.timestamp.hour * 60 + payload.timestamp.minute); } },
+            emitTimeCadence: GameManager.prototype['emitTimeCadence' as keyof GameManager] as unknown as () => void,
+        };
+        (GameManager.prototype['advanceTime' as keyof GameManager] as unknown as (this: FakeClockOwner, p: { timeDelta: number }) => void)
+            .call(self, { timeDelta: deltaMs });
+        return emits;
+    }
+
+    test('a 3-in-game-minute frame delta emits timeChanged for each of the 3 minutes', () => {
+        const minuteMs = MS_PER_TICK / 60;
+        const minutes = timeChangedMinutes(minuteMs * 3 + 5); // just over 3 in-game minutes in one frame
+        expect(new Set(minutes).size).toBe(3); // 3 distinct minutes, none skipped
+        expect(minutes).toEqual([1, 2, 3]);
+    });
+
+    test('a sub-minute frame delta emits at most one minute (no behaviour change at 1×)', () => {
+        const minuteMs = MS_PER_TICK / 60;
+        expect(timeChangedMinutes(minuteMs * 0.4).length).toBeLessThanOrEqual(1);
     });
 });
