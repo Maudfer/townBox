@@ -164,17 +164,6 @@ export default class Person {
         this.travelStep = TravelStep.Idle;
     }
 
-    // Despawn and unlink the owner's parked car (task 129). Called when the persistent car is stranded far
-    // from the body at a new trip (so it can't teleport across town to be re-boarded) or when the owner is
-    // removed. Safe on an idle person — it only touches the vehicle link, not the travel state.
-    releaseVehicle(): void {
-        if (this.vehicle) {
-            this.vehicle.setControlled(false);
-            Game.field?.removeVehicle(this.vehicle);
-            this.vehicle = null;
-        }
-    }
-
     setDirection(direction: Direction): void {
         this.direction = direction;
     }
@@ -586,14 +575,16 @@ export default class Person {
                 this.setIndoors(true);
                 // Record where we now are (home or workplace) for the commute scheduler.
                 this.currentBuilding = this.destinationBuilding;
-                // Persistent household car (task 129): the commute car PARKS where it arrived instead of being
-                // despawned every trip. It stays linked to its owner and controlled (so Field.update won't
-                // wander it) but empty (disembarked in ExitingCar, so drive() can't move it) — the next
-                // commute re-boards it (City.startCommute) instead of conjuring a fresh one. It is not an
-                // orphan (still linked → the runWakePass sweep skips it) and satisfies the W8 invariants
-                // (unoccupied + driver-linked). Despawned only on owner removal (Field.removePerson) or when
-                // it is stranded far from the body at the next trip (City.startCommute releases it).
-                this.vehicle?.disembark();
+                // On-demand car (task 130, revert of the 129 persistence): the commute car is despawned as the
+                // driver ENTERS the destination — the desired visual (a car appears when someone leaves to
+                // drive, vanishes when they arrive), no parked cars accumulating. The driver already stepped
+                // out in ExitingCar; removeVehicle ejects any remaining occupants (ridesharing, task 130) and
+                // clears their sprites, so nothing is left invisible-inside a vanished car.
+                if (this.vehicle) {
+                    Game.field?.removeVehicle(this.vehicle);
+                    this.vehicle.setControlled(false);
+                    this.vehicle = null;
+                }
                 this.destinationBuilding = null;
                 this.travelStep = TravelStep.Idle;
                 break;

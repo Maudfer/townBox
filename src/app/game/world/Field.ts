@@ -896,9 +896,9 @@ export default class Field {
             return;
         }
         this.people.splice(index, 1);
-        // Despawn the owner's persistent parked car (task 129): once its owner is gone it links to nobody, so
+        // Despawn the removed person's linked car (task 130): once its driver is gone it links to nobody, so
         // it would become a controlled orphan (the runWakePass sweep would reap it a minute later, but tearing
-        // it down here keeps the invariant immediate — no transient orphan sprite on the street).
+        // it down here keeps the invariant immediate). removeVehicle ejects any remaining occupants (ridesharing).
         const vehicle = person.getVehicle();
         if (vehicle) {
             this.removeVehicle(vehicle);

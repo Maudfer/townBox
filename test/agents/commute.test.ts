@@ -167,31 +167,26 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(firstCar.isOccupied()).toBe(false);
     });
 
-    test('a parked household car is re-boarded on the next trip instead of spawning a new one (task 129)', () => {
+    test('a driving commute spawns exactly one on-demand car (no persistence, no reuse) — task 130', () => {
         const { city, field } = makeWorld();
         const { person, workplace } = employ(field);
         person.social.setPersonId('p1');
-        // A prior commute left the car parked at the curb by the body: controlled + unoccupied.
-        const parked = field.spawnVehicle({ x: 80, y: 80 });
-        parked.setControlled(true);
-        person.setVehicle(parked);
-        expect(field.getVehicles()).toHaveLength(1);
+        expect(field.getVehicles()).toHaveLength(0);
 
-        // The next drive: startCommute must RE-BOARD the parked car, not conjure a second one.
+        // The drive spawns one car; there is no parked car to reuse.
         city.getWorld().requestTransition('p1', { kind: 'building', key: workplace.getIdentifier() }, 10, null);
         city.getWorld().pump(10);
-
         expect(field.getVehicles()).toHaveLength(1);
-        expect(field.getVehicles()[0]).toBe(parked);
-        expect(person.getVehicle()).toBe(parked);
+        expect(field.getVehicles()[0]!.isControlled()).toBe(true);
+        expect(person.getVehicle()).toBe(field.getVehicles()[0]);
     });
 
-    test('removePerson despawns the owner\'s parked car — no orphan on the street (task 129)', () => {
+    test('removePerson despawns the removed driver\'s car — no orphan on the street (task 130)', () => {
         const { field } = makeWorld();
         const { person } = employ(field);
-        const parked = field.spawnVehicle({ x: 80, y: 80 });
-        parked.setControlled(true);
-        person.setVehicle(parked);
+        const car = field.spawnVehicle({ x: 80, y: 80 });
+        car.setControlled(true);
+        person.setVehicle(car);
         expect(field.getVehicles()).toHaveLength(1);
 
         field.removePerson(person);
