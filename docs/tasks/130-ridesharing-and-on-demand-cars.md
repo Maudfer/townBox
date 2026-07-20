@@ -2,8 +2,33 @@
 
 - **Type:** Feature / Simulation + Visual
 - **Labels:** `simulation`, `vehicles`, `joint-plans`, `brain`, `sprites`, `school`, `health`
-- **Status:** 📋 Planned — reverts task 129, builds the shared-ride subsystem. Bundled into the current
-  aliveness-4 follow-up PR (branch `task/simulation-aliveness-4`).
+- **Status:** 🚧 In progress — the core mechanism is landed on `task/simulation-aliveness-4`; the narrated
+  collective-action layer remains. Progress:
+  - ✅ **A — revert 129:** cars are on-demand again (spawn as the driver leaves the origin building, despawn
+    as they enter the destination); no persistent parked cars. V1's walk-vs-drive/origin-truth kept.
+  - ✅ **B — multi-occupant Vehicle:** a driver + passenger list (SEAT_CAPACITY 4); `Field.removeVehicle`
+    ejects EVERY occupant (sprite restored, link cleared) so nobody vanishes inside a car; the W8
+    occupied-driverless invariant is `isOccupied() && !hasDriver()`.
+  - ✅ **C — the shared-ride primitive:** `City.startGroupRide(driver, passengers, destination)` spawns ONE
+    car; passengers board the same car (`setVehicle(car, false)`), only the driver routes it, and the car
+    waits at the curb (a board window) until everyone's aboard before departing (a no-show never strands it).
+  - ✅ **E — canDrive gate + driver election:** `City.canDrive` (adult, not detained, not severely ill);
+    `startCommute` routes a drive-distance trip by eligibility — a non-driver bound FAR (a child, the ill)
+    gets an available co-located adult to drive them (a group ride), else walks. Delivers the guards: kids
+    can't drive, kids can't reach a far school alone, the severely ill are driven, never stranded.
+  - 🚧 **D — narrated collective actions (REMAINING):** the election delivers the BEHAVIOR, but not the
+    narration the maintainer wants (a parent's action reading "Driving the kids to school"). This needs new
+    `drive_*`/`ride_*` actions + Brain producers (a school run, the Treatment relative-driver, patrol carpool,
+    group outings) + a consequence primitive to install a ride from the action layer, so the log/feed narrate
+    it. Return trips (school pickup, discharge home) also live here.
+  - 🚧 **F — amend school/treatment/routines (REMAINING):** far-school preference in `SchoolRegistry` scoring;
+    the school-run + outing routines; couple/group plans by car. Interacts with D.
+  - Gaps handled so far: eject-all on despawn (B), one-car-not-N (C), board window / no-show (C), canDrive +
+    election + far-school net (E). Remaining gaps ride with D/F: narrated return trips, patrol carpool, group
+    outings, open-map destination audit, save of in-flight rides, bootstrap/asset parity confirmation.
+
+  Originally: reverts task 129, builds the shared-ride subsystem. Bundled into the current aliveness-4
+  follow-up PR (branch `task/simulation-aliveness-4`).
 - **Depends on:** V1 (the trip planner — `City.startCommute`), 129 (to be reverted), the D3 joint-plan
   machinery (task 085: `Consequences.planJointActivity`, `Agenda` linkId-mirrored entries, `Planner`), the
   execution boundary (`LiveWorld.requestTransition` → `startCommute`).
