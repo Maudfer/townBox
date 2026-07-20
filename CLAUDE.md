@@ -556,10 +556,20 @@ sensible**, and make place, purpose, and company real on the street. What change
 - **V7 — rhythm.** A night-floor on `taking_a_walk` (×0.05, 22:00–06:00) ends 3 AM strolls. Live
   first-offense sentencing verified fine-only (inflated priors are a generator/asset-regen concern).
 
-Deferred (own follow-ups, noted in the proposal): the business draw-coherence guard (beach/cemetery/
-duplicate categories — determinism/asset risk); evacuation rally/conclusion + the domestic-`home`-location
-data pass; deferred venue-need planning. The final in-browser observation pass + asset regeneration are the
-maintainer's pre-merge step (validated here via 1947 unit tests, ESLint, and the Playwright smoke test).
+The deferred follow-ups (tasks 123–129 in `docs/tasks/`) then landed on the same branch: **124** (evacuation
+scene — family-notify wake + V4-bounded wander), **125** (deferred venue needs — `hasVenuePlaced` +
+severity-banded illness suppressor), **128** (street wander graph — gathering-venue loiter nodes +
+seeded/loiter-biased wander pick), **126** (guardianship depth (core) — `caring_for_children` home-alone
+anchor + a jailed-caregiver `resolveRehousing` fan-out; travel accompaniment deferred, since V3's `minAge`
+gate already removed the trips it would escort), **123** (business draw coherence — `placement:"amenity"`
+fences beach/cemetery/park to the construction menu + an unrepresented-category draw boost), and **127**
+(homeless day-shape (core) — a Brain hard-gate so the homeless never free-time-pick a home-located action;
+`sleeping_rough` shelter deferred). **123/127 turned out asset-byte-unaffected** (the generator's logical
+world uses a round-robin business roster and elastic housing, so neither the amenity fencing nor the homeless
+gate fires off-map — no regeneration needed for them). Still deferred: **129** (persistent household cars —
+a cross-cutting vehicle-lifecycle change whose W8 sprite-invariant verification wants a live browser, so it
+rides the observation pass). The final in-browser observation pass + asset regeneration remain the
+maintainer's pre-merge step (validated here via the full unit suite, ESLint, and the Playwright smoke test).
 
 ---
 
