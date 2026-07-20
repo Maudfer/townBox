@@ -21,6 +21,20 @@ let Game: GameManager;
 const MOVE_EPSILON = 1e-6;
 const WALK_ITERATION_LIMIT = 10000;
 
+// Per-kind locomotion speed in px/ms (V10 / aliveness-4 M5): running was purely nominal before — a fleeing
+// suspect, a jogger, and an evening stroller all moved at the one fixed walk speed, so a chase had no
+// urgency in the pixels. `chase` (police pursuit) is slightly above `run` (a fleeing civilian) so a chase
+// visibly CLOSES rather than pacing forever. `walk` is the default (commutes, minors, directed trips).
+export type LocomotionKind = 'walk' | 'stroll' | 'jog' | 'run' | 'chase';
+const BASE_WALK_SPEED = 0.02;
+const LOCOMOTION_SPEEDS: Record<LocomotionKind, number> = {
+    walk: BASE_WALK_SPEED,
+    stroll: BASE_WALK_SPEED * 0.9, // a leisurely amble
+    jog: BASE_WALK_SPEED * 1.6,
+    run: BASE_WALK_SPEED * 2.2,
+    chase: BASE_WALK_SPEED * 2.5, // the police premium — closes on a fleeing suspect
+};
+
 export default class Person {
     public social: SocialLife;
     public work: WorkLife;
@@ -139,10 +153,18 @@ export default class Person {
         this.direction = direction;
     }
 
-    // The current walking speed in px/ms (V10 makes this vary by locomotion kind; the tracer reads it so
-    // its teleport threshold stays honest as speeds change).
+    // The current walking speed in px/ms — varies by locomotion kind (V10); the tracer reads it so its
+    // teleport threshold stays honest as speeds change.
     getSpeed(): number {
         return this.speed;
+    }
+
+    // Sets the movement speed for the current locomotion kind (V10 / aliveness-4 M5). Derived each in-game
+    // minute by City from the active action's authored `ambulatory` kind (with `chase` for the pursuit), so
+    // joggers jog, runners run, and an officer gains on a fleeing suspect. Null → the default walk speed
+    // (commutes, directed trips). Orthogonal to setAmbulatory (which owns the roam flag).
+    setLocomotionKind(kind: LocomotionKind | null): void {
+        this.speed = LOCOMOTION_SPEEDS[kind ?? 'walk'];
     }
 
     setDestination(building: Building): void {

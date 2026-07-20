@@ -1516,33 +1516,24 @@ export default class City {
         incidents.report(kind, tick, locationKey(location), suspectId, witnesses);
     }
 
-    // The chase's outcome (task 099): fleeing_the_police completed -> a deterministic roll weighted by the
-    // suspect's age and health decides caught (fine + record + case closed) vs got away (still wanted).
+    // The chase's outcome (task 099; made PHYSICAL by V10 / aliveness-4 M6): fleeing_the_police completed —
+    // did the officer catch up? A dice roll used to decide it, so a suspect could be "caught" while the
+    // officer was across town. Now it is what the SPRITES did: an on-duty police officer co-located with the
+    // suspect (same street cell — V2's local co-location, closed by the officer's chase-speed premium — V10
+    // M5) is a catch; otherwise the suspect outran them and got away. The flee action's own duration is the
+    // chase time, so there is no insta-catch on the initial encounter. Escape here IS the impunity path (a
+    // town whose police can't keep up lets crime slide). The off-map generator keeps its abstract roll
+    // (LogicalWorld.resolveChase) — no sprites off-map, the sanctioned seam.
     public resolveChase(suspectId: PersonId, tick: number, ticksPerYear: number): void {
         const incidents = Game.incidents;
-        const population = Game.population;
-        if (!incidents || !population || !incidents.isWanted(suspectId)) {
+        if (!incidents || !incidents.isWanted(suspectId)) {
             return;
         }
-        const record = population.getPerson(suspectId);
-        if (!record) {
-            return;
-        }
-        const worldSeed = population.getState().worldSeed;
-        const rng = new SeededRandom((worldSeed ^ hashStringToSeed(`chase#${suspectId}#${tick}`)) >>> 0);
-        const age = ageAt(record, tick, ticksPerYear);
-        const engine = Game.eventEngine;
-        const health = engine ? Number(engine.contextFor(population.getState(), suspectId, tick, ticksPerYear).getAttr('health') ?? 1) : 1;
-        let catchChance = 0.55;
-        if (age >= 50) {
-            catchChance += 0.2;
-        } else if (age < 25) {
-            catchChance -= 0.15;
-        }
-        if (health < 0.7) {
-            catchChance += 0.15;
-        }
-        if (rng.next() < catchChance) {
+        const byGenId = this.indexMaterialized();
+        const coLocated = this.world.peopleAt(this.world.locationOf(suspectId));
+        const caught = coLocated.some(otherId =>
+            otherId !== suspectId && byGenId.get(otherId)?.work.getJob()?.title === 'Police Officer');
+        if (caught) {
             this.arrestSuspect(suspectId, tick, ticksPerYear);
         } else {
             this.fireMilestone('evaded_the_police', suspectId, tick);
@@ -2971,6 +2962,10 @@ export default class City {
                 const active = actionEngine.activeInstanceOf(personId);
                 const def = active && active.status === 'running' ? actionEngine.getDefinition(active.defId) : null;
                 person.setAmbulatory(def?.ambulatory !== undefined);
+                // Locomotion speed (V10 / M5): the authored kind, with the police-chase premium so the
+                // officer visibly closes on a fleeing suspect. Null (non-ambulatory) → the default walk.
+                const chasing = active?.defId === 'chasing_a_suspect';
+                person.setLocomotionKind(chasing ? 'chase' : (def?.ambulatory ?? null));
             }
         }
 

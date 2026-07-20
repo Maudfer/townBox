@@ -24,7 +24,6 @@ import { TickResult } from 'types/LifeEvent';
 import { PixelPosition, TilePosition } from 'types/Position';
 import { Genders } from 'types/Social';
 import { JobPosition } from 'types/Work';
-import { SeededRandom, hashStringToSeed } from 'util/random';
 
 // Police, end to end (task 109): dispatch drives officers to open cases; a caught chase is a REAL arrest —
 // the officer's act, the criminal's counterpart, the family fan-out, the ride texture, the escort to the
@@ -95,16 +94,9 @@ describe('the arrest ceremony', () => {
         station.setBusiness(generateBusiness('police_station', BLUEPRINTS['police_station']!, JOBS, 'Precinct', 2));
 
         world.incidents.report('shoplifting', TICK_NOW, 'building:5-5', 'thief', 2);
-        // A catching tick: the chase roll is deterministic per (worldSeed, suspect, tick).
-        let catchTick = 0;
-        for (let tick = TICK_NOW + 1; tick < TICK_NOW + 200; tick++) {
-            if (new SeededRandom((3 ^ hashStringToSeed(`chase#thief#${tick}`)) >>> 0).next() < 0.55) {
-                catchTick = tick;
-                break;
-            }
-        }
-        expect(catchTick).toBeGreaterThan(0);
-        world.city.resolveChase('thief', catchTick, TPY);
+        // The catch is PHYSICAL now (V10 / M6): the officer and the thief were loaded at the same tile
+        // (100,100) — the same street cell — so the officer physically caught up. No dice roll.
+        world.city.resolveChase('thief', TICK_NOW + 1, TPY);
 
         const thiefLog = world.eventEngine.getPersonLog('thief').filter(e => e.kind === 'event').map(e => e.defId);
         expect(thiefLog).toEqual(expect.arrayContaining(['was_arrested', 'got_a_ride', 'got_caught']));
@@ -119,6 +111,29 @@ describe('the arrest ceremony', () => {
         expect(world.eventEngine.getPersonLog('kid').some(e => e.kind === 'event' && e.defId === 'relative_arrested')).toBe(true);
         // The case closed and the record landed.
         expect(world.incidents.isWanted('thief')).toBe(false);
+    });
+
+    test('a distant officer does NOT catch — the suspect gets away (physical, not a roll)', () => {
+        const world = makeGame();
+        const people = {
+            thief: gen('thief'),
+            officer: gen('officer'),
+        };
+        world.population.loadState({ worldSeed: 3, people, drawSeed: 0, placedIds: [], nextSeq: 10, lastSimulatedYear: 0 });
+        world.clock.setElapsedMs(TICK_NOW * HOUR_MS);
+        // The thief is here; the officer is far across town (a different outdoor cell) — outran, not caught.
+        world.field.loadPerson(100, 100).social.setPersonId('thief');
+        const officerPerson = world.field.loadPerson(1000, 1000);
+        officerPerson.social.setPersonId('officer');
+        officerPerson.work.setJob({ title: 'Police Officer', salary: 0, requirements: [], shiftStart: 480, shiftEnd: 1020 } as JobPosition);
+
+        world.incidents.report('shoplifting', TICK_NOW, 'building:5-5', 'thief', 2);
+        expect(world.incidents.isWanted('thief')).toBe(true);
+        world.city.resolveChase('thief', TICK_NOW + 1, TPY);
+
+        const thiefLog = world.eventEngine.getPersonLog('thief').filter(e => e.kind === 'event').map(e => e.defId);
+        expect(thiefLog).toContain('evaded_the_police');
+        expect(thiefLog).not.toContain('was_arrested'); // the officer never physically caught up
     });
 });
 
