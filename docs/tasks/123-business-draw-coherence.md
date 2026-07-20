@@ -2,7 +2,18 @@
 
 - **Type:** Feature / Economy generation
 - **Labels:** `economy`, `generation`, `determinism`, `asset-regen`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V7 remainder)
+- **Status:** ✅ Done — landed in the aliveness-4 follow-up batch (PR #103). `beach`/`cemetery`/`park` carry
+  `placement: "amenity"` and are fenced from all three random draw paths (generic draw, re-occupancy,
+  entrepreneurship) alongside the civic set (`isMenuOnlyBlueprint`); they are placeable through the
+  construction menu (added to `json/construction.json`, its only spawn path — validator-enforced like civic)
+  and stay venue-mapped so `visiting_beach`/park actions resolve. The first-placement draw folds an
+  **unrepresented-category boost** (`UNREPRESENTED_CATEGORY_BOOST`) into the demand-deficit weighting so the
+  town spreads across categories instead of stacking a second supermarket/school while dining/leisure sit
+  empty. **Correction to the assumption below:** the committed **asset is byte-unaffected** — the offline
+  generator's logical world (`LogicalWorld.buildJobs`) builds its roster by round-robin over all blueprint
+  keys, not via `openBusiness`/the deficit draw, and `generateBusiness` ignores `placement`, so neither the
+  asset nor the generation op-count baselines change (perf suite verified green). Only the LIVE map draw
+  changed — no regeneration needed. Determinism per seed holds.
 - **Depends on:** — (interacts with the maintainer's asset regeneration; changes the draw RNG stream)
 
 ## The problem

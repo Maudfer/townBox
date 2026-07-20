@@ -81,6 +81,18 @@ const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
 // Civic blueprints (task 108) are placed deliberately through the construction menu — never drawn onto
 // generic lots by the random draw, re-occupancy, or entrepreneurship.
 const isCivicBlueprint = (key: string): boolean => BUSINESS_BLUEPRINTS[key]?.placement === 'civic';
+// Amenity blueprints (task 123): non-commercial public venues (beach, cemetery, park) that read wrong as a
+// random work lot — the audit drew a BEACH between the bar and the bakery. Fenced from the same three draw
+// paths as civic (generic draw / re-occupancy / entrepreneurship); placed deliberately through the
+// construction menu, and still venue-mapped so visiting_beach/park actions resolve once one is placed.
+const isAmenityBlueprint = (key: string): boolean => BUSINESS_BLUEPRINTS[key]?.placement === 'amenity';
+// A blueprint that never appears on a randomly-drawn generic work lot (civic OR amenity) — both are
+// menu-placed. The single predicate the three draw paths share.
+const isMenuOnlyBlueprint = (key: string): boolean => isCivicBlueprint(key) || isAmenityBlueprint(key);
+// How much more the first-placement draw favours a demand category with NO placed business yet over a
+// merely under-supplied one (task 123): the deficit weighting alone stacked a second supermarket/school
+// while dining/leisure sat empty, so an unrepresented category's weight is boosted to spread the town out.
+const UNREPRESENTED_CATEGORY_BOOST = 4;
 // A criminal record fades after two in-game years (task 099) — the town forgives, slowly.
 const CRIMINAL_RECORD_WINDOW_TICKS = 2 * 8640;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
@@ -537,20 +549,27 @@ export default class City {
         const rng = new SeededRandom(seed);
         fakerPT_BR.seed(seed);
 
-        const drawable = blueprintKeys.filter(candidate => !isCivicBlueprint(candidate));
+        const drawable = blueprintKeys.filter(candidate => !isMenuOnlyBlueprint(candidate));
         let blueprintKey: string;
         if (options.blueprintKey) {
-            // A forced blueprint (task 097/I3 founders; task 108 construction-menu pins).
+            // A forced blueprint (task 097/I3 founders; task 108 construction-menu pins — including the
+            // menu-placed civic AND amenity blueprints, which the draws below fence out but a pin instantiates).
             blueprintKey = options.blueprintKey;
         } else if (category) {
             const candidates = drawable.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === category);
             blueprintKey = rng.pick(candidates.length > 0 ? candidates : drawable);
         } else {
             // First-placement matching (task 097/I2): an unconstrained draw prefers categories the town's
-            // demand actually lacks, weighted by unmet demand. With no positive deficit anywhere (an empty
+            // demand actually lacks, weighted by unmet demand — and (task 123) boosts categories with NO
+            // placed business at all, so the town spreads across categories instead of stacking a second
+            // supermarket/school while dining/leisure sit empty. With no positive deficit anywhere (an empty
             // map) the draw falls back to the legacy uniform pick — same seed, same stream, same business.
-            const { deficits } = this.categorySupplyAndDeficits();
-            const weighted = [...deficits.entries()].filter(([, deficit]) => deficit > 0).sort((a, b) => a[0].localeCompare(b[0]));
+            const { supply, deficits } = this.categorySupplyAndDeficits();
+            const weighted = [...deficits.entries()]
+                .filter(([, deficit]) => deficit > 0)
+                .map(([cat, deficit]): [string, number] =>
+                    [cat, deficit * ((supply[cat] ?? 0) > 0 ? 1 : UNREPRESENTED_CATEGORY_BOOST)])
+                .sort((a, b) => a[0].localeCompare(b[0]));
             if (weighted.length === 0) {
                 blueprintKey = rng.pick(drawable);
             } else {
@@ -2013,7 +2032,7 @@ export default class City {
         let pick: { category: string; blueprintKey: string; founderId: PersonId } | null = null;
         for (const [category] of openCategories) {
             const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS)
-                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category && !isCivicBlueprint(key))
+                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category && !isMenuOnlyBlueprint(key))
                 .sort();
             for (const blueprintKey of blueprintKeys) {
                 const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
@@ -2111,8 +2130,8 @@ export default class City {
         // Blueprints grouped by category, so a chosen category always has something to build.
         const blueprintsByCategory = new Map<string, string[]>();
         for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
-            if (isCivicBlueprint(blueprintKey)) {
-                continue; // civic buildings are placed, never attracted (task 108)
+            if (isMenuOnlyBlueprint(blueprintKey)) {
+                continue; // civic + amenity buildings are placed, never attracted (task 108/123)
             }
             const keys = blueprintsByCategory.get(blueprint.category) ?? [];
             keys.push(blueprintKey);
