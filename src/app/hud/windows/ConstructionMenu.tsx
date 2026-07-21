@@ -19,7 +19,7 @@ interface ConstructionEntry {
 
 const ENTRIES = (constructionConfig as { entries: ConstructionEntry[] }).entries;
 
-const INITIAL_SIZE = { width: 380, height: 320 };
+const INITIAL_SIZE = { width: 400, height: 415 };
 
 
 

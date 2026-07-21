@@ -12,8 +12,8 @@ const TREE_DEPTH = 2;
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
 import { FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
 
-const INITIAL_WIDTH = 600;
-const INITIAL_HEIGHT = 600;
+const INITIAL_WIDTH = 800;
+const INITIAL_HEIGHT = 700;
 
 const LINKS_CLASS = 'links';
 const LINK_LABELS_CLASS = 'link-labels';

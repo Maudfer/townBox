@@ -23,7 +23,7 @@ import { DetailsWindowProps } from 'types/HUD';
 import { formatTickAtMinute } from 'util/time';
 import { resolveLogParams, renderLabelSegments } from 'hud/logEntities';
 
-const INITIAL_SIZE = { width: 360, height: 460 };
+const INITIAL_SIZE = { width: 800, height: 700 };
 const REFRESH_MS = 1500;
 const MAX_LOG_ENTRIES = 40;
 

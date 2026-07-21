@@ -5,7 +5,7 @@ import Window from 'hud/Window';
 import { DetailsWindowProps } from 'types/HUD';
 import { summarizePositions } from 'util/positions';
 
-const INITIAL_SIZE = { width: 360, height: 440 };
+const INITIAL_SIZE = { width: 800, height: 700 };
 const REFRESH_MS = 1500;
 
 const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
