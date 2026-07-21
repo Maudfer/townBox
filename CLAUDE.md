@@ -272,7 +272,7 @@ All event names and payload types are declared in `types/Events.ts` (`EventPaylo
 Rendering order is driven by per-object depth values keyed off the structure's **anchor row**:
 
 - `Soil.calculateDepth()` → `0`
-- `Road.calculateDepth()` → `row * 10`
+- `Road.calculateDepth()` → `Road.DEPTH` (a constant `1` — roads never overlap, always draw below every building and person and above soil, so a road south of a walking person can't clip over them)
 - `Building.calculateDepth()` → `(row + 1) * 10`
 - `Person` / `Vehicle` depth → `(row + 1) * 10 + 1` (using the anchor row of the footprint they currently stand on)
 - Cursor preview → `rows * 10 + 1`; grid lines → `rows * 10 + 100`

@@ -47,10 +47,21 @@ describe('Depth/layering derives from the footprint anchor row', () => {
         const building = new Building(10, 10, null);
 
         expect(soil.calculateDepth()).toBe(0);
-        expect(road.calculateDepth()).toBe(100);
+        expect(road.calculateDepth()).toBe(1); // one constant, not row*10 (task 131 follow-up #5)
         expect(building.calculateDepth()).toBe(110);
         expect(soil.calculateDepth()).toBeLessThan(road.calculateDepth());
         expect(road.calculateDepth()).toBeLessThan(building.calculateDepth());
+    });
+
+    // Task 131 follow-up #5: a road SOUTH of a person/building (higher row) must still sort BELOW them — the
+    // old row*10 made a southern road out-sort a walking person and clip over them mid-step.
+    test('a southern road never out-sorts a person or building to its north', () => {
+        const southernRoad = new Road(30, 10, null);   // far south (high row)
+        const northernBuilding = new Building(5, 10, null); // north of it
+        expect(southernRoad.calculateDepth()).toBeLessThan(northernBuilding.calculateDepth());
+        // A person's depth is (row+1)*10+1; even the northernmost person (row 0 -> 11) out-sorts any road.
+        const northmostPersonDepth = (0 + 1) * 10 + 1;
+        expect(southernRoad.calculateDepth()).toBeLessThan(northmostPersonDepth);
     });
 
     test('a mover below a building renders in front, above it renders behind', () => {
