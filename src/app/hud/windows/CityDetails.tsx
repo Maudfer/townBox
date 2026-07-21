@@ -29,7 +29,7 @@ const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, on
 
     return (
         <Window game={game} index={index} z={z} onFocus={onFocus} title={`${stats.name} — overview`} testId="window-city" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div style={{ padding: '4px 10px', overflowY: 'auto', height: '100%' }}>
+            <div style={{ padding: '4px 10px' }}>
                 <section>
                     <h4>Population</h4>
                     <ul style={{ margin: 0, paddingLeft: 16 }}>

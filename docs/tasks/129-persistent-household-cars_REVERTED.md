@@ -3,7 +3,7 @@
 - **Type:** Feature / Simulation + Visual
 - **Labels:** `simulation`, `vehicles`, `sprites`, `save`
 - **Status:** ⛔ Reverted — landed briefly (implemented + live-verified in the observation pass), then
-  **reverted by [task 130](130-ridesharing-and-on-demand-cars.md)** in the same PR: persistent parked cars
+  **reverted by [task 130](130-ridesharing-and-on-demand-cars_DONE.md)** in the same PR: persistent parked cars
   read as abandoned and the maintainer preferred on-demand spawn/despawn. Task 130 restores V1's on-demand
   car (spawn as the driver leaves the origin, despawn as they enter the destination) and builds coordinated
   ridesharing on top. The description below records what 129 did before it was reverted. A commuter's car

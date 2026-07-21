@@ -138,7 +138,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, 
 
     return (
         <Window game={game} index={index} z={z} onFocus={onFocus} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div className="person-details" style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
+            <div className="person-details" style={{ padding: '4px 8px' }}>
                 <section>
                     {nowLine && (
                         <p data-testid="person-now-line">

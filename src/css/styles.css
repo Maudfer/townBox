@@ -102,8 +102,13 @@ canvas {
     color: #fff;
     text-align: left;
     width: 100%;
+    /* The ONE scroller for a window's content (task 131 follow-up): flex-fill the space between header and
+       footer (min-height:0 lets it actually shrink) and scroll here. Detail windows must NOT add their own
+       overflow container, or you get the double scrollbar. Replaces height:-webkit-fill-available, which
+       overflowed the flex column and produced a second scrollbar. */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
-    height: -webkit-fill-available;
     background-color: #0f353b;
     box-shadow: inset 0 0 5px #00000099;
 }

@@ -57,7 +57,7 @@ const ServicesDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus
 
     return (
         <Window game={game} index={index} z={z} onFocus={onFocus} title="City services" testId="window-services" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div style={{ padding: '4px 10px', overflowY: 'auto', height: '100%' }} data-testid="services-rows">
+            <div style={{ padding: '4px 10px' }} data-testid="services-rows">
                 {lines.length === 0 && <p>The coverage ledger has not measured the town yet.</p>}
                 {lines.map(line => {
                     const critical = line.ratio < SERVICES.advisoryBelow;

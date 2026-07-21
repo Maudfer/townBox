@@ -39,7 +39,7 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocu
 
     return (
         <Window game={game} index={index} z={z} onFocus={onFocus} title={business.name} testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
+            <div style={{ padding: '4px 8px' }}>
                 <p><strong>{business.lineOfWork}</strong> &nbsp; <small>size {business.size}</small></p>
                 {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
                 {business.lastPnl !== undefined && (

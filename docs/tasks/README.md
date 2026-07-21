@@ -168,7 +168,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [127](127-homeless-day-shape-and-domestic-locations_DONE.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
 | [128](128-street-wander-graph-and-seeded-wander_DONE.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
 | [129](129-persistent-household-cars_REVERTED.md) | ⛔ Reverted | [Feature] Persistent household cars — park it, don't conjure it (reverted by 130) |
-| [130](130-ridesharing-and-on-demand-cars.md) | ✅ Done | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
+| [130](130-ridesharing-and-on-demand-cars_DONE.md) | ✅ Done | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
 | [131](131-proactive-ride-producers_DONE.md) | ✅ Done | [Feature] Proactive ride producers — carpools, group outings, narrated return trips (follow-up to 130) |
 
 ## Open work
@@ -189,7 +189,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
   recomputes on placement/teardown. (d) People **stuck at high speed** — `advanceTime` skipped crossed in-game
   minutes (the per-minute commute-departure pump missed them); now advances in ≤1-minute steps. All verified
   live / unit-tested.
-- **[Task 130](130-ridesharing-and-on-demand-cars.md) is done** (agreed subset, same PR): reverted 129's
+- **[Task 130](130-ridesharing-and-on-demand-cars_DONE.md) is done** (agreed subset, same PR): reverted 129's
   persistent cars to **on-demand** spawn/despawn and built **coordinated ridesharing** — a multi-occupant car
   that ejects every occupant on despawn, the one-car-per-group `startGroupRide` primitive with a board window,
   the `canDrive` gate + driver election (kids/severely-ill can't drive, kids can't reach far schools alone,
