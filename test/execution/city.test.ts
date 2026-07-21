@@ -1054,4 +1054,35 @@ describe('coordinated rides — City-side election, carpool & narration (task 13
         expect(world.isPresent(people[0]!.social.getPersonId()!)).toBe(true);
         expect(world.isPresent('nobody-here')).toBe(false);
     });
+
+    // Task 131 follow-up: the reach-a-person pursuit, driven through the full City/LiveWorld execution stack.
+    test('coLocated is physical, and a person pursuit resolves on arrival / cancels for an absent target', () => {
+        const { field, population, clock, city } = makeGame(40, 40);
+        const tickNow = 100;
+        loadState(population, clock, {
+            a: gen('a', Genders.Male, 30, tickNow),
+            b: gen('b', Genders.Female, 32, tickNow),
+        }, ['a', 'b'], tickNow);
+        const home1 = field.loadStructure('house', 4, 4, 'h1') as House;
+        const work = field.loadStructure('work', 22, 22, 'w') as Workplace;
+        field.loadStructure('road', 1, 4, 'r');
+        const a = materialize(field, home1, 'a', 72, 72); a.setAsset({} as never); a.setCurrentBuilding(home1);
+        const b = materialize(field, null, 'b', 74, 72); b.setAsset({} as never); b.setCurrentBuilding(work);
+        const world = city.getWorld();
+        const physical = world as unknown as { coLocated(x: string, y: string): boolean };
+
+        expect(physical.coLocated('a', 'b')).toBe(false); // different buildings
+        // a pursues b (in a far building): pending, then arrived once a catches up.
+        const handle = world.requestTransition('a', { kind: 'person', personId: 'b' }, tickNow, null);
+        expect(handle.status).toBe('pending');
+        world.pump(tickNow);
+        expect(a.isEnRoute()).toBe(true); // dispatched toward b
+        a.setCurrentBuilding(work); // a arrives where b is
+        world.pump(tickNow + 1);
+        expect(handle.status).toBe('arrived');
+        expect(physical.coLocated('a', 'b')).toBe(true);
+
+        // Pursuing someone who isn't on the map cancels (no ghost visit).
+        expect(world.requestTransition('a', { kind: 'person', personId: 'ghost' }, tickNow, null).status).toBe('cancelled');
+    });
 });
