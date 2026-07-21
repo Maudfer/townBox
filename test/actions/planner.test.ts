@@ -203,6 +203,31 @@ describe('joint plans (D3)', () => {
     });
 });
 
+describe('the jail visit producer (task 109)', () => {
+    test('schedules a visit to a detained close relative, located at the facility', () => {
+        const { brain, agenda, deps, state } = harness(['a', 'b']);
+        state.people['b']!.motherId = 'a'; // b is a's child — a close relative
+        const facility = { locationKey: 'jail-7' };
+        const jailDeps = { ...deps, tick: 1000, detentionOf: (id: string) => (id === 'b' ? facility : null) };
+
+        brain.processTick(['a'], jailDeps, [], result());
+
+        const visit = Object.values(agenda.serialize().entries).find(e => e.actionId === 'visiting_the_detained');
+        expect(visit).toBeTruthy();
+        expect(visit!.params?.['target']).toBe('b');
+        expect(visit!.locationOverride).toBe('building:jail-7'); // located to the facility, not the person
+        expect(visit!.routineId).toBe('jail_visit');
+    });
+
+    test('no jail visit when no relative is detained', () => {
+        const { brain, agenda, deps, state } = harness(['a', 'b']);
+        state.people['b']!.motherId = 'a';
+        const noneDeps = { ...deps, tick: 1000, detentionOf: () => null };
+        brain.processTick(['a'], noneDeps, [], result());
+        expect(Object.values(agenda.serialize().entries).some(e => e.actionId === 'visiting_the_detained')).toBe(false);
+    });
+});
+
 // Task 131 follow-up: a person-located visit only targets someone who is PRESENT (materialized) in the
 // world — otherwise the visitor stands still on the street "visiting a ghost" (the live-observed bug where a
 // relative to visit wasn't on the map, so the trip resolved to town-wide 'outside' and never moved).

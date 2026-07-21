@@ -960,3 +960,98 @@ describe('household outings — weekend family trips co-scheduled to one venue (
         expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
     });
 });
+
+// Task 130/131: the City-side ride cluster (driver eligibility, election, the group ride + its narration, the
+// carpool grouping). Exercised through the full execution harness so City.ts — the module owner — is covered.
+describe('coordinated rides — City-side election, carpool & narration (task 130/131)', () => {
+    const TICK_NOW = 100;
+    interface RideScene { city: City; field: Field; home: House; work: Workplace; people: Person[] }
+    // A household at (4,4), a road, and a far workplace at (20,20) — far enough to be a drive, not a walk.
+    function scene(blueprintKey: string, ages: number[]): RideScene {
+        const { field, population, clock, city } = makeGame(40, 40);
+        const table: PersonTable = {};
+        ages.forEach((age, i) => { table[`r${i}`] = gen(`r${i}`, i % 2 ? Genders.Female : Genders.Male, age, TICK_NOW); });
+        loadState(population, clock, table, Object.keys(table), TICK_NOW);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const work = field.loadStructure('work', 20, 20, 'w') as Workplace;
+        work.setBusiness({ blueprintKey, positions: [] } as never);
+        const people = ages.map((age, i) => {
+            const p = materialize(field, home, `r${i}`, 72 + i * 2, 72);
+            p.social.setAge(age); p.setAsset({} as never); p.setCurrentBuilding(home);
+            return p;
+        });
+        return { city, field, home, work, people };
+    }
+
+    test('canDrive gates on adulthood; electDriver picks a co-located adult', () => {
+        const { city, people } = scene('bakery', [34, 9]); // an adult + a child
+        const [adult, child] = people;
+        expect(city.canDrive(adult!, TICK_NOW)).toBe(true);
+        expect(city.canDrive(child!, TICK_NOW)).toBe(false); // kids can't drive
+        // The child (a non-driver) bound far gets the co-located adult elected as driver.
+        const driver = (city as unknown as { electDriver(p: Person, t: number): Person | null }).electDriver(child!, TICK_NOW);
+        expect(driver).toBe(adult);
+    });
+
+    test('startGroupRide spawns ONE car with a driver + passengers and narrates a school run', () => {
+        const { city, field, work, people } = scene('school', [34, 8, 10]);
+        const [driver, ...kids] = people;
+        const car = city.startGroupRide(driver!, kids, work);
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(car).toBe(field.getVehicles()[0]);
+        expect(driver!.isDriver()).toBe(true);
+        for (const kid of kids) {
+            expect(kid.getVehicle()).toBe(car);
+            expect(kid.isDriver()).toBe(false);
+        }
+    });
+
+    test('startGroupRide narrates a hospital drive and (origin-aware) a school pickup home', () => {
+        const hosp = scene('hospital', [40, 70]);
+        expect(hosp.city.startGroupRide(hosp.people[0]!, [hosp.people[1]!], hosp.work)).not.toBeNull();
+
+        // Origin a school, destination home → the return-trip (pickup) narration branch.
+        const sch = scene('school', [34, 9]);
+        sch.people.forEach(p => p.setCurrentBuilding(sch.work)); // set off FROM the school
+        expect(sch.city.startGroupRide(sch.people[0]!, [sch.people[1]!], sch.home)).not.toBeNull();
+    });
+
+    test('startCommuteGroup: one car for a drive-distance group, driver elected among them', () => {
+        const { city, field, work, people } = scene('bakery', [30, 31, 32]);
+        city.startCommuteGroup(people, work);
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(people.filter(p => p.isDriver())).toHaveLength(1);
+        for (const p of people) {
+            expect(p.getVehicle()).toBe(field.getVehicles()[0]);
+        }
+    });
+
+    test('startCommuteGroup walks everyone for a NEAR destination (no car)', () => {
+        const { field, population, clock, city } = makeGame(40, 40);
+        loadState(population, clock, {}, [], TICK_NOW);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const near = field.loadStructure('work', 5, 5, 'n') as Workplace; // within walk distance
+        const people = [0, 1].map(i => {
+            const p = field.loadPerson(72 + i * 2, 72); p.setAsset({} as never);
+            p.social.setAge(30); p.social.setPersonId(`w${i}`); p.setCurrentBuilding(home);
+            return p;
+        });
+        city.startCommuteGroup(people, near);
+        expect(field.getVehicles()).toHaveLength(0);
+    });
+
+    test('startCommuteGroup over one car spawns a SECOND car for the overflow', () => {
+        const { city, field, work, people } = scene('bakery', [30, 31, 32, 33, 34, 35]); // six adults
+        city.startCommuteGroup(people, work);
+        expect(field.getVehicles()).toHaveLength(2);
+    });
+
+    test('LiveWorld.isPresent is true for a materialized person, false for a ghost', () => {
+        const { city, people } = scene('bakery', [30]);
+        const world = city.getWorld() as unknown as { isPresent(id: string): boolean };
+        expect(world.isPresent(people[0]!.social.getPersonId()!)).toBe(true);
+        expect(world.isPresent('nobody-here')).toBe(false);
+    });
+});
