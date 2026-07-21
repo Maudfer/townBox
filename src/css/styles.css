@@ -315,8 +315,10 @@ canvas {
 
 .city-feed {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
+    /* Upper-right, just below the speed buttons (.time-controls: top 12px + ~30px tall + 10px gap), and
+       right-aligned with them (task 131 follow-up #4). Top-anchored so it grows DOWNWARD when expanded. */
+    top: 52px;
+    right: 12px;
     width: 280px;
     max-height: 40vh;
     display: flex;
