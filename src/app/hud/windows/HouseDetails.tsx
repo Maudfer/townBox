@@ -19,7 +19,7 @@ const LINKS_CLASS = 'links';
 const LINK_LABELS_CLASS = 'link-labels';
 const NODES_CLASS = 'nodes';
 
-const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const initialSize: WindowSize = { width: INITIAL_WIDTH, height: INITIAL_HEIGHT };
 
     const [size, setSize] = useState<WindowSize>(initialSize);
@@ -98,6 +98,8 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         <Window
             game={game}
             index={index}
+            z={z}
+            onFocus={onFocus}
             title={`Casa ${house?.getHouseholdName() ?? ''}`}
             testId="window-house"
             initialSize={initialSize}

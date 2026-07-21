@@ -3,8 +3,9 @@ import { Rnd } from 'react-rnd';
 
 import { WindowProps } from 'types/HUD';
 
-const Window: FC<WindowProps> = ({ children, game, index, title, testId, header, footer, initialSize, onClose, onResize }) => {
+const Window: FC<WindowProps> = ({ children, game, index, title, testId, header, footer, initialSize, z, onFocus, onClose, onResize }) => {
     function handleDragStart() {
+        onFocus?.();
         game.emit("windowDragStart");
     }
 
@@ -35,8 +36,9 @@ const Window: FC<WindowProps> = ({ children, game, index, title, testId, header,
             onDragStart={handleDragStart}
             onDragStop={handleDragStop}
             onResize={onResize}
+            style={z !== undefined ? { zIndex: z } : undefined}
         >
-            <div className="window" data-testid={testId ?? 'window'}>
+            <div className="window" data-testid={testId ?? 'window'} onMouseDown={() => onFocus?.()}>
                 <div className="window-header glass">
                     {!header && (
                         <>

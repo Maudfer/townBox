@@ -68,7 +68,7 @@ function locationHint(key: string | undefined): string | null {
     return null;
 }
 
-const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const person = data as Person;
 
     // Re-read the live Person/engine state on a light interval so age and the event log stay current.
@@ -137,7 +137,7 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     const relationshipRows = Object.entries(overview.relationships).filter(([, names]) => !!names);
 
     return (
-        <Window game={game} index={index} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
+        <Window game={game} index={index} z={z} onFocus={onFocus} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div className="person-details" style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
                 <section>
                     {nowLine && (

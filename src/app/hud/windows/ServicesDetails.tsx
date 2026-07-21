@@ -33,7 +33,7 @@ function buildEntriesFor(service: string): ConstructionEntry[] {
     return CONSTRUCTION_ENTRIES.filter(entry => entry.blueprint !== undefined && facilities.includes(entry.blueprint));
 }
 
-const ServicesDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const ServicesDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const city = data as City;
     const [lines, setLines] = useState(() => city?.getCityStats().services ?? []);
 
@@ -56,7 +56,7 @@ const ServicesDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose })
     };
 
     return (
-        <Window game={game} index={index} title="City services" testId="window-services" initialSize={INITIAL_SIZE} onClose={onClose}>
+        <Window game={game} index={index} z={z} onFocus={onFocus} title="City services" testId="window-services" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div style={{ padding: '4px 10px', overflowY: 'auto', height: '100%' }} data-testid="services-rows">
                 {lines.length === 0 && <p>The coverage ledger has not measured the town yet.</p>}
                 {lines.map(line => {
