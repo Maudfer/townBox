@@ -27409,6 +27409,88 @@
         "valence": 1,
         "effects": []
     },
+    "picked_up_kids_from_school": {
+        "label": "Picked up {target} from school",
+        "category": "family",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "rode_home_from_school": {
+        "label": "Rode home from school",
+        "category": "family",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "drove_relative_home_from_hospital": {
+        "label": "Drove {target} home from the hospital",
+        "category": "family",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "parameters": {
+            "target": {
+                "type": "string"
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
+    "was_driven_home_from_hospital": {
+        "label": "Was driven home from the hospital",
+        "category": "health",
+        "roles": {
+            "subject": {
+                "where": {
+                    "attr": "alive",
+                    "op": "==",
+                    "value": true
+                }
+            }
+        },
+        "triggers": {
+            "manual": {}
+        },
+        "valence": 1,
+        "effects": []
+    },
     "visited_person_in_jail": {
         "label": "Visited {target} in jail",
         "category": "crime",

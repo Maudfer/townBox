@@ -330,6 +330,36 @@ describe('W8: the vehicle lifecycle and coherent travel aborts', () => {
         expect(calls.map(c => c.eventId).sort()).toEqual(['caught_a_ride', 'gave_someone_a_ride']);
     });
 
+    // Task 131: narration is direction-aware — a ride FROM a school/hospital back HOME reads as a return.
+    function narratingReturn(originBlueprint: string, riderAges: number[]): {
+        city: City; field: Field; home: House; driver: Person; riders: Person[]; calls: InvokeCall[];
+    } {
+        const { city, field, workplace, driver, riders, calls } = narratingWorld(originBlueprint, riderAges);
+        const home = field.loadStructure('house', 30, 30, 'home2') as House;
+        // The ride ORIGINATES at the school/hospital and heads HOME (the pickup / discharge direction).
+        driver.setCurrentBuilding(workplace);
+        for (const r of riders) {
+            r.setCurrentBuilding(workplace);
+        }
+        return { city, field, home, driver, riders, calls };
+    }
+
+    test('a ride FROM a school back home narrates a school PICKUP (task 131)', () => {
+        const { city, home, driver, riders, calls } = narratingReturn('school', [9]);
+        city.startGroupRide(driver, riders, home);
+        expect(calls.find(c => c.subjectId === 'driver1')).toEqual(
+            expect.objectContaining({ eventId: 'picked_up_kids_from_school', params: { target: 'rider0' } }));
+        expect(calls.find(c => c.eventId === 'rode_home_from_school')?.subjectId).toBe('rider0');
+    });
+
+    test('a ride FROM a hospital back home narrates a DISCHARGE drive home (task 131)', () => {
+        const { city, home, driver, riders, calls } = narratingReturn('hospital', [68]);
+        city.startGroupRide(driver, riders, home);
+        expect(calls.find(c => c.subjectId === 'driver1')).toEqual(
+            expect.objectContaining({ eventId: 'drove_relative_home_from_hospital', params: { target: 'rider0' } }));
+        expect(calls.find(c => c.eventId === 'was_driven_home_from_hospital')?.subjectId).toBe('rider0');
+    });
+
     test('cancelTransition parks the body and despawns the car — the trip stops with the intent', () => {
         const { city, field } = makeWorld();
         const { person, workplace } = employ(field);

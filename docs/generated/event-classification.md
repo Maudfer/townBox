@@ -4,7 +4,7 @@
 `actions.json` change (a checked-diff test enforces this). See `util/eventClassification.ts`
 for what each disposition means and why texture/reserved events are kept.
 
-Totals: 749 events — **30 vital**, **45 wired**, **506 texture**, **168 reserved**.
+Totals: 753 events — **30 vital**, **45 wired**, **506 texture**, **172 reserved**.
 
 | Event | Category | Triggers | Disposition | Quirk | Invoked by |
 |---|---|---|---|---|---|
@@ -167,6 +167,7 @@ Totals: 749 events — **30 vital**, **45 wired**, **506 texture**, **168 reserv
 | dropped_out | education | probabilistic+manual | texture | quirk | — |
 | dropped_phone_in_toilet | accident | probabilistic | texture | quirk | — |
 | drove_kids_to_school | family | manual | reserved | — | — |
+| drove_relative_home_from_hospital | family | manual | reserved | — | — |
 | drove_relative_to_hospital | family | manual | reserved | — | — |
 | earned_black_belt | achievement | probabilistic+manual | texture | quirk | — |
 | earned_certificate | education | probabilistic+manual | texture | quirk | — |
@@ -489,6 +490,7 @@ Totals: 749 events — **30 vital**, **45 wired**, **506 texture**, **168 reserv
 | photo_in_local_paper | community | manual | reserved | — | — |
 | picked_first_for_team | childhood | probabilistic+manual | texture | quirk | — |
 | picked_last_for_team | childhood | probabilistic+manual | texture | quirk | — |
+| picked_up_kids_from_school | family | manual | reserved | — | — |
 | pipe_burst | housing | probabilistic+manual | texture | quirk | — |
 | planned_dream_trip | travel | probabilistic | texture | quirk | — |
 | planned_own_funeral | death | probabilistic | texture | quirk | — |
@@ -548,6 +550,7 @@ Totals: 749 events — **30 vital**, **45 wired**, **506 texture**, **168 reserv
 | retired | career | manual | reserved | — | — |
 | retirement | career | probabilistic | vital | — | — |
 | returned_garden_gnome | crime-mischief | probabilistic | texture | quirk | — |
+| rode_home_from_school | family | manual | reserved | — | — |
 | rode_to_school | family | manual | reserved | — | — |
 | roof_leaked | housing | probabilistic+manual | texture | quirk | — |
 | said_final_goodbyes | death | manual | reserved | — | — |
@@ -685,6 +688,7 @@ Totals: 749 events — **30 vital**, **45 wired**, **506 texture**, **168 reserv
 | was_burgled | crime-mischief | probabilistic+manual | texture | quirk | — |
 | was_cheated_on | romance | manual | reserved | — | — |
 | was_detained | crime | manual | vital | — | — |
+| was_driven_home_from_hospital | health | manual | reserved | — | — |
 | was_driven_to_hospital | health | manual | reserved | — | — |
 | was_evicted | housing | manual | reserved | — | — |
 | was_fired | career | probabilistic+manual | texture | quirk | — |
