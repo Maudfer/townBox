@@ -158,6 +158,7 @@ export default class City {
                 return null;
             },
             startCommute: (person, destination) => this.startCommute(person, destination),
+            startCommuteGroup: (people, destination) => this.startCommuteGroup(people, destination),
             // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
             listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,
@@ -3206,6 +3207,59 @@ export default class City {
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);
+    }
+
+    // A carpool (task 131): co-located people (same origin building) heading to the SAME destination leave
+    // together in ONE car — a household to the same shop/venue, co-workers to the same workplace, a couple on
+    // an outing. LiveWorld's departure phase gathers the group; this elects a driver among them and forms one
+    // group ride. A short hop is walked by everyone (no car for a near trip). A group with no eligible driver
+    // (all children/ill) falls back to the per-person path (each elects an external driver or walks — never
+    // stranded). A group larger than one car spawns a SECOND car for the overflow (recursively).
+    public startCommuteGroup(people: Person[], destination: Building): void {
+        const field = Game.field;
+        const destEntrance = destination.getEntrance();
+        if (!field || !destEntrance) {
+            return;
+        }
+        const riders = people.filter(person => person.getVehicle() === null); // never re-seat someone mid-ride
+        if (riders.length <= 1) {
+            const solo = riders[0];
+            if (solo) {
+                this.startCommute(solo, destination);
+            }
+            return;
+        }
+        // Walk vs. drive from a representative co-located body (V1): a near destination is walked by all.
+        const body = riders[0]!.getPosition();
+        const walkDistancePx = WALK_COMMUTE_MAX_TILES * Game.gridParams.cells.width;
+        const distance = body
+            ? Math.abs(body.x - destEntrance.x) + Math.abs(body.y - destEntrance.y)
+            : Number.POSITIVE_INFINITY;
+        if (distance <= walkDistancePx) {
+            for (const person of riders) {
+                person.setDestination(destination);
+            }
+            return;
+        }
+        // Drive: elect a driver among the group (deterministic by personId). No eligible driver → per-person
+        // fallback (each will elect an external driver or walk — the 130 never-strand net).
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        const drivers = riders.filter(person => this.canDrive(person, tick))
+            .sort((a, b) => (a.social.getPersonId() ?? '').localeCompare(b.social.getPersonId() ?? ''));
+        const driver = drivers[0];
+        if (!driver) {
+            for (const person of riders) {
+                this.startCommute(person, destination);
+            }
+            return;
+        }
+        const passengers = riders.filter(person => person !== driver);
+        const seats = Vehicle.SEAT_CAPACITY - 1;
+        this.startGroupRide(driver, passengers.slice(0, seats), destination);
+        const overflow = passengers.slice(seats);
+        if (overflow.length > 0) {
+            this.startCommuteGroup(overflow, destination); // a second car for a big household
+        }
     }
 
     // Can this person legally/physically drive a car (task 130)? A driver must be an adult, not detained, and

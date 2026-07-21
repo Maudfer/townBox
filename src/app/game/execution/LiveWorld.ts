@@ -36,6 +36,11 @@ export interface LiveWorldDeps {
     // pre-107 doubles keep working (venues then resolve to nothing, as before).
     listBuildings?(): Building[];
     startCommute(person: Person, destination: Building): void;
+    // Carpool coordination (task 131): co-located people (same origin building) bound to the SAME
+    // destination leave together in ONE car — a household to the same shop/venue, co-workers to the same
+    // workplace. City elects a driver among them and forms one group ride (never one car per person).
+    // Optional so pre-131 doubles keep the per-person path.
+    startCommuteGroup?(people: Person[], destination: Building): void;
     getInventory?(): Inventory | null;
     // Whether a building currently has an open fire (V4 / aliveness-4): a located transition INTO a burning
     // building is refused, so nobody walks back in to sleep/work while it burns (the audit's man who went
@@ -323,19 +328,55 @@ export default class LiveWorld implements WorldAdapter {
         if (this.pending.length === 0) {
             return;
         }
+        // Phase 1 — fire due departures, forming CARPOOLS (task 131). When a departure comes due, any
+        // co-located companions (same origin building) bound to the SAME destination leave WITH it in one
+        // car, whether or not their own jitter minute has arrived — a household to the same shop, co-workers
+        // to the same workplace. Processed in stable handle order; each departure is consumed exactly once.
+        const fired = new Set<number>();
+        for (const handle of this.pending) {
+            if (fired.has(handle.id)) {
+                continue;
+            }
+            const departure = this.departures.get(handle.id);
+            if (!departure) {
+                continue;
+            }
+            const due = minuteOfHour === undefined || tick > handle.requestedAtTick || minuteOfHour >= departure.departMinute;
+            if (!due) {
+                continue; // not yet left home — leave it pending
+            }
+            const originKey = departure.person.getCurrentBuilding()?.getIdentifier() ?? null;
+            const destKey = departure.destination.getIdentifier();
+            const group = [departure.person];
+            fired.add(handle.id);
+            this.departures.delete(handle.id);
+            if (originKey && this.deps.startCommuteGroup) {
+                // Gather co-located same-destination companions still waiting to depart — they carpool.
+                for (const [otherId, other] of [...this.departures].sort((a, b) => a[0] - b[0])) {
+                    if (fired.has(otherId)) {
+                        continue;
+                    }
+                    if (other.destination.getIdentifier() === destKey
+                        && other.person.getCurrentBuilding()?.getIdentifier() === originKey) {
+                        group.push(other.person);
+                        fired.add(otherId);
+                        this.departures.delete(otherId);
+                    }
+                }
+            }
+            if (group.length > 1 && this.deps.startCommuteGroup) {
+                this.deps.startCommuteGroup(group, departure.destination);
+            } else {
+                this.deps.startCommute(departure.person, departure.destination);
+            }
+        }
+        // Phase 2 — resolve pending handles (arrival / cancellation).
         const unresolved: TransitionHandle[] = [];
         for (const handle of this.pending) {
-            // Deferred departure first: past the minute (or any later tick — the catch-up), start the walk.
-            const departure = this.departures.get(handle.id);
-            if (departure) {
-                const due = minuteOfHour === undefined || tick > handle.requestedAtTick || minuteOfHour >= departure.departMinute;
-                if (due) {
-                    this.departures.delete(handle.id);
-                    this.deps.startCommute(departure.person, departure.destination);
-                } else {
-                    unresolved.push(handle); // not yet left home — nothing to resolve or cancel
-                    continue;
-                }
+            // Still waiting on its departure minute? Nothing to resolve yet.
+            if (this.departures.has(handle.id)) {
+                unresolved.push(handle);
+                continue;
             }
             const person = this.findPerson(handle.personId);
             const destination = person ? this.targetBuilding(person, handle.target, this.resolvedVenues.get(handle.id)) : null;

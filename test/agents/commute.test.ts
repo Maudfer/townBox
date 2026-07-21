@@ -498,3 +498,113 @@ describe('W8 follow-up: placement truth & arrival healing', () => {
         expect(field.getTile(Math.floor(position.y / 16), Math.floor(position.x / 16))).toBeInstanceOf(Road);
     });
 });
+
+// Task 131: co-located people bound to the SAME destination share ONE car (a household to the same venue,
+// co-workers to the same workplace). The unifying reactive mechanism — no bespoke producer.
+describe('carpooling — one car for a co-located group (task 131)', () => {
+    function household(field: Field): { home: House; work: Workplace; people: Person[] } {
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r'); // a street to spawn the car on
+        const work = field.loadStructure('work', 20, 20, 'w') as Workplace; // far → drive distance
+        const people = [0, 1, 2].map(i => {
+            const p = field.loadPerson(72 + i * 2, 72);
+            p.setAsset({} as never);
+            p.social.setHome(home);
+            p.social.setAge(30 + i);
+            p.social.setPersonId(`p${i}`);
+            p.setCurrentBuilding(home);
+            return p;
+        });
+        return { home, work, people };
+    }
+
+    test('startCommuteGroup forms ONE car with a driver + passengers, not one per person', () => {
+        const { city, field } = makeWorld();
+        const { work, people } = household(field);
+        city.startCommuteGroup(people, work);
+        expect(field.getVehicles()).toHaveLength(1);
+        const car = field.getVehicles()[0]!;
+        const drivers = people.filter(p => p.isDriver());
+        expect(drivers).toHaveLength(1); // exactly one driver
+        for (const p of people) {
+            expect(p.getVehicle()).toBe(car);
+            expect(p.isIdle()).toBe(false);
+        }
+    });
+
+    test('a near destination is WALKED by everyone — no carpool car for a short hop', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const nearShop = field.loadStructure('work', 5, 5, 'w') as Workplace; // within walk distance
+        const people = [0, 1].map(i => {
+            const p = field.loadPerson(72 + i * 2, 72); p.setAsset({} as never);
+            p.social.setHome(home); p.social.setAge(30); p.social.setPersonId(`p${i}`); p.setCurrentBuilding(home);
+            return p;
+        });
+        city.startCommuteGroup(people, nearShop);
+        expect(field.getVehicles()).toHaveLength(0);
+        for (const p of people) {
+            expect(p.getVehicle()).toBeNull();
+            expect(p.isIdle()).toBe(false); // walking there
+        }
+    });
+
+    test('a group with NO eligible driver (all minors) never forms a car here — falls back per-person', () => {
+        const { city, field } = makeWorld();
+        const { work, people } = household(field);
+        for (const p of people) {
+            p.social.setAge(9); // all children — none canDrive
+        }
+        city.startCommuteGroup(people, work);
+        // No driver among them → per-person fallback; with no co-located adult on the field, each walks far.
+        expect(field.getVehicles()).toHaveLength(0);
+    });
+
+    test('a group larger than one car spawns a SECOND car for the overflow', () => {
+        const { city, field } = makeWorld();
+        const { home, work } = household(field);
+        // Six adults from one home → 4 seats fill the first car, 2 overflow into a second (needs a 2nd driver).
+        const people = [0, 1, 2, 3, 4, 5].map(i => {
+            const p = field.loadPerson(72 + i * 2, 72); p.setAsset({} as never);
+            p.social.setHome(home); p.social.setAge(30 + i); p.social.setPersonId(`a${i}`); p.setCurrentBuilding(home);
+            return p;
+        });
+        city.startCommuteGroup(people, work);
+        expect(field.getVehicles()).toHaveLength(2);
+        for (const p of people) {
+            expect(p.getVehicle()).not.toBeNull();
+        }
+        const drivers = people.filter(p => p.isDriver());
+        expect(drivers).toHaveLength(2); // one per car
+    });
+
+    test('LiveWorld folds two co-located same-destination pending departures into one car', () => {
+        const { city, field } = makeWorld();
+        const { work, people } = household(field);
+        const [a, b] = people;
+        a!.social.setPersonId('a'); b!.social.setPersonId('b');
+        const world = city.getWorld();
+        // Both request a trip to the SAME workplace from the SAME home, same tick.
+        world.requestTransition('a', { kind: 'building', key: work.getIdentifier() }, 10, null);
+        world.requestTransition('b', { kind: 'building', key: work.getIdentifier() }, 10, null);
+        expect(field.getVehicles()).toHaveLength(0); // not departed yet (jitter)
+        world.pump(10); // minute-less pump: departs immediately, carpool forms
+        expect(field.getVehicles()).toHaveLength(1); // ONE car for both, not two
+        expect(a!.getVehicle()).toBe(b!.getVehicle());
+    });
+
+    test('LiveWorld does NOT carpool people bound to DIFFERENT destinations', () => {
+        const { city, field } = makeWorld();
+        const { home, work, people } = household(field);
+        const otherWork = field.loadStructure('work', 30, 30, 'w2') as Workplace;
+        const [a, b] = people;
+        a!.social.setPersonId('a'); b!.social.setPersonId('b');
+        b!.setCurrentBuilding(home);
+        const world = city.getWorld();
+        world.requestTransition('a', { kind: 'building', key: work.getIdentifier() }, 10, null);
+        world.requestTransition('b', { kind: 'building', key: otherWork.getIdentifier() }, 10, null);
+        world.pump(10);
+        expect(field.getVehicles()).toHaveLength(2); // different destinations → two cars
+    });
+});
