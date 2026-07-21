@@ -58,6 +58,12 @@ export interface WorldAdapter {
     // Object instance ids physically at the location (task 041) — the query "is there something pocketable
     // here" style requirements resolve through. Ids resolve against the Inventory (game/Inventory.ts).
     objectsAt(location: LogicalLocation): string[];
+    // Whether a person is MATERIALIZED/present in this world (task 131 follow-up): live worlds answer with
+    // whether the person is actually on the map, so a planner never schedules a person-located visit to a
+    // relative/friend who isn't materialized (the "visiting a ghost — standing still on the street" bug).
+    // Optional — bootstrap/logical worlds are town-wide-abstract (everyone is co-located), so absent an impl
+    // a caller treats it as always present (no off-map behavior change, so the generated asset is untouched).
+    isPresent?(personId: PersonId): boolean;
     // Venue availability (task 107): does this world HOST the venue kind? Live: a placed, occupied business
     // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
     // places and always exist — the seam's only sanctioned difference is physical backing.

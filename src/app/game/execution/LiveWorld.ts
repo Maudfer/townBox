@@ -81,6 +81,13 @@ export default class LiveWorld implements WorldAdapter {
         return null;
     }
 
+    // Materialized on the map right now (task 131 follow-up)? A person-located visit to someone NOT present
+    // resolves to town-wide 'outside' and leaves the visitor standing still "visiting a ghost" — the planner
+    // checks this so it only schedules visits to people who are actually here.
+    isPresent(personId: PersonId): boolean {
+        return this.findPerson(personId) !== null;
+    }
+
     locationOf(personId: PersonId): LogicalLocation {
         const person = this.findPerson(personId);
         if (!person) {
