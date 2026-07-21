@@ -760,6 +760,29 @@ export default class Field {
         return null;
     }
 
+    // Directed outdoor walk (task 131 follow-up): send `person` on foot toward `targetPixel` — the physical
+    // primitive behind "walk over to that person" that the person-pursuit transition needs. Steps them out of
+    // any building first (the walk starts on the street), then paths from their current tile to the nearest
+    // reachable road tile to the target. A no-route target simply leaves the body where it stands.
+    walkPersonTo(person: Person, targetPixel: PixelPosition): void {
+        if (!targetPixel) {
+            return;
+        }
+        if (person.getCurrentBuilding()) {
+            person.stepOutside?.();
+        }
+        const bodyTile = Game.pixelToTilePosition(person.getPosition());
+        if (!bodyTile) {
+            return;
+        }
+        const currentTile = this.getTile(bodyTile.row, bodyTile.col);
+        const targetTile = this.nearestRoadTile(targetPixel) ?? Game.pixelToTilePosition(targetPixel);
+        if (!currentTile || !targetTile) {
+            return;
+        }
+        person.walkOutdoorsTo(currentTile, targetTile, this.pathFinder);
+    }
+
     getAdjacentRoadTile(building: Building): TilePosition {
         const footprintTiles = Game.gridParams.footprint.tiles;
         const half = Math.floor(footprintTiles / 2);

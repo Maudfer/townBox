@@ -214,6 +214,25 @@ export default class Person {
         this.travelStep = TravelStep.ExitingBuilding;
     }
 
+    // A DIRECTED outdoor walk to a specific tile (task 131 follow-up): unlike setDestination (which commutes
+    // to a building) or the ambulatory roam (which wanders road anchors), this heads straight for a point on
+    // the street — the piece that was missing for "walk over to that person". No building destination, so
+    // update() drives it through walk() (the else branch); on arrival walk() clears the target and the body
+    // stops. The caller (Field.walkPersonTo) has already stepped the person out of any building.
+    walkOutdoorsTo(currentTile: Tile, targetTile: TilePosition, pathFinder: PathFinder): void {
+        this.destinationBuilding = null;
+        this.travelStep = TravelStep.Idle;
+        this.setDestinationTile(currentTile, targetTile, pathFinder);
+    }
+
+    // Is the body currently travelling — a commute to a building or a directed outdoor walk with a live
+    // target (task 131 follow-up)? Distinct from isIdle(), which reads true DURING an outdoor walk (a directed
+    // walk leaves travelStep at Idle and sets no destinationBuilding). Pursuit uses this to avoid re-issuing a
+    // fresh leg every tick while the pursuer is already on its way.
+    isEnRoute(): boolean {
+        return this.destinationBuilding !== null || this.currentDestination !== null;
+    }
+
     // Where the travel machine is currently headed (W9: demolition ejects people heading TO the doomed
     // building too, not just those inside it).
     getDestinationBuilding(): Building | null {

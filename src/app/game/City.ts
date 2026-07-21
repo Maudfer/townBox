@@ -174,6 +174,8 @@ export default class City {
             },
             startCommute: (person, destination) => this.startCommute(person, destination),
             startCommuteGroup: (people, destination) => this.startCommuteGroup(people, destination),
+            // Directed outdoor walk (task 131 follow-up): person-pursuit walks toward a target on the street.
+            walkToward: (person, targetPixel) => { if (targetPixel) { Game.field?.walkPersonTo(person, targetPixel); } },
             // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
             listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,

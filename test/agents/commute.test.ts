@@ -638,3 +638,63 @@ describe('carpooling — one car for a co-located group (task 131)', () => {
         expect(field.getVehicles()).toHaveLength(2); // different destinations → two cars
     });
 });
+
+// Task 131 follow-up: "reach a person" pursuit — go to someone wherever they are (building, street, moved),
+// with PHYSICAL co-location, not the 'home' key alias that let people "visit" from their own couch.
+describe('person pursuit — reaching people wherever they are (task 131 follow-up)', () => {
+    test('coLocated is PHYSICAL: two people each in their OWN home are NOT together', () => {
+        const { city, field } = makeWorld();
+        const home1 = field.loadStructure('house', 4, 4, 'h1') as House;
+        const home2 = field.loadStructure('house', 20, 20, 'h2') as House;
+        const a = field.loadPerson(72, 72); a.social.setPersonId('a'); a.social.setHome(home1); a.setCurrentBuilding(home1);
+        const b = field.loadPerson(328, 328); b.social.setPersonId('b'); b.social.setHome(home2); b.setCurrentBuilding(home2);
+        const world = city.getWorld() as unknown as { coLocated(x: string, y: string): boolean };
+        expect(world.coLocated('a', 'b')).toBe(false); // different houses — the 'home'-alias false-positive is gone
+        b.setCurrentBuilding(home1);
+        expect(world.coLocated('a', 'b')).toBe(true); // now in the same building
+    });
+
+    test('reaching a co-located person resolves immediately; a remote one stays pending and pursues', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const work = field.loadStructure('work', 20, 20, 'w') as Workplace;
+        const a = field.loadPerson(72, 72); a.setAsset({} as never); a.social.setPersonId('a'); a.social.setHome(home); a.setCurrentBuilding(home);
+        const b = field.loadPerson(74, 72); b.setAsset({} as never); b.social.setPersonId('b'); b.setCurrentBuilding(home);
+        const world = city.getWorld();
+
+        // Already together → arrived at once.
+        expect(world.requestTransition('a', { kind: 'person', personId: 'b' }, 10, null).status).toBe('arrived');
+
+        // Move b to a far building; a pursues — the handle stays pending and a is dispatched toward b's building.
+        b.setCurrentBuilding(work);
+        const handle = world.requestTransition('a', { kind: 'person', personId: 'b' }, 11, null);
+        expect(handle.status).toBe('pending');
+        world.pump(11);
+        expect(a.isEnRoute()).toBe(true); // heading for b (commute/walk started)
+    });
+
+    test('a pursuit of an absent person is cancelled (no ghost visit)', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const a = field.loadPerson(72, 72); a.social.setPersonId('a'); a.setCurrentBuilding(home);
+        const handle = city.getWorld().requestTransition('a', { kind: 'person', personId: 'ghost' }, 10, null);
+        expect(handle.status).toBe('cancelled');
+    });
+
+    test('the pursuit resolves arrived once the pursuer catches up (co-located)', () => {
+        const { city, field } = makeWorld();
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        const work = field.loadStructure('work', 20, 20, 'w') as Workplace;
+        const a = field.loadPerson(72, 72); a.setAsset({} as never); a.social.setPersonId('a'); a.setCurrentBuilding(home);
+        const b = field.loadPerson(74, 72); b.setAsset({} as never); b.social.setPersonId('b'); b.setCurrentBuilding(work);
+        const world = city.getWorld();
+        const handle = world.requestTransition('a', { kind: 'person', personId: 'b' }, 10, null);
+        expect(handle.status).toBe('pending');
+        world.pump(10);
+        // Simulate a physically arriving where b is.
+        a.setCurrentBuilding(work);
+        world.pump(11);
+        expect(handle.status).toBe('arrived');
+    });
+});

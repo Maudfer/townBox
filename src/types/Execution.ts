@@ -26,6 +26,13 @@ export type LogicalLocation =
     | { kind: 'home' }
     | { kind: 'building'; key: string } // building anchor key ("row-col" on the map; logical id off-map)
     | { kind: 'venue'; venue: string }
+    // Reach a PERSON wherever they are (task 131 follow-up): the target for "go to X" — a visit, or a
+    // remote person-targeted interaction. Unlike the other kinds this is NOT a fixed place: LiveWorld
+    // re-resolves the target's current location every pump and pursues them through the needed exit/enter/
+    // walk/drive steps (a building → commute & enter, a street cell → walk to it, a moving target → chase
+    // their cell), resolving only on true co-location. Bootstrap/logical worlds resolve it immediately to the
+    // target's abstract location (the sanctioned town-wide seam). Never a person's OWN resting location.
+    | { kind: 'person'; personId: PersonId }
     // Outdoors. `cell` scopes co-location to a patch of street (V2 / aliveness-4): LiveWorld tags a person's
     // outdoor location with the map cell they stand in, so two pedestrians only co-locate when they are
     // actually near each other — not town-wide as before (a gift changed hands across the whole map). A
@@ -64,6 +71,10 @@ export interface WorldAdapter {
     // Optional — bootstrap/logical worlds are town-wide-abstract (everyone is co-located), so absent an impl
     // a caller treats it as always present (no off-map behavior change, so the generated asset is untouched).
     isPresent?(personId: PersonId): boolean;
+    // Physical co-location (task 131 follow-up): are these two people actually together? Live worlds compare
+    // the concrete building / outdoor cell (NOT 'home', a per-person alias that would falsely co-locate two
+    // people each in their own home). Optional — a caller without it falls back to locationKey equality.
+    coLocated?(a: PersonId, b: PersonId): boolean;
     // Venue availability (task 107): does this world HOST the venue kind? Live: a placed, occupied business
     // of a hosting blueprint exists (json/venues.json). Bootstrap/logical: venues are abstract shared
     // places and always exist — the seam's only sanctioned difference is physical backing.

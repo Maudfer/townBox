@@ -15,6 +15,7 @@ import { CADENCE_SALT } from 'game/events/LifeLog';
 import { LogicalLocation, TransitionHandle, WorldAdapter, SimulationMode } from 'types/Execution';
 import { PersonId } from 'types/Genealogy';
 import { locationKey } from 'types/Objects';
+import { PixelPosition } from 'types/Position';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isOnShiftAtTick } from 'util/shifts';
 import Workplace from 'game/world/Workplace';
@@ -36,6 +37,9 @@ export interface LiveWorldDeps {
     // pre-107 doubles keep working (venues then resolve to nothing, as before).
     listBuildings?(): Building[];
     startCommute(person: Person, destination: Building): void;
+    // Directed outdoor walk (task 131 follow-up): send the person on foot toward a map point — the physical
+    // primitive person-pursuit uses to reach a target who is out on the street. Optional (pre-pursuit doubles).
+    walkToward?(person: Person, targetPixel: PixelPosition | null): void;
     // Carpool coordination (task 131): co-located people (same origin building) bound to the SAME
     // destination leave together in ONE car — a household to the same shop/venue, co-workers to the same
     // workplace. City elects a driver among them and forms one group ride (never one car per person).
@@ -67,6 +71,10 @@ export default class LiveWorld implements WorldAdapter {
     private resolvedVenues: Map<number, string> = new Map();
     // Commutes waiting for their departure minute (LP-11), keyed by handle id.
     private departures: Map<number, { person: Person; destination: Building; departMinute: number }> = new Map();
+    // Person pursuits (task 131 follow-up): "reach person X" handles, driven & re-resolved each pump until the
+    // pursuer is physically co-located with the target. lastDest is the target-location key we last routed
+    // toward, so a stationary target is routed to once and a moving one is re-chased only when they move.
+    private pursuits: Map<number, { targetId: PersonId; lastDest: string | null }> = new Map();
 
     constructor(deps: LiveWorldDeps) {
         this.deps = deps;
@@ -79,6 +87,25 @@ export default class LiveWorld implements WorldAdapter {
             }
         }
         return null;
+    }
+
+    // PHYSICAL co-location (task 131 follow-up): are these two people actually together — in the SAME building,
+    // or in the same outdoor street cell? Deliberately NOT locationKey equality: 'home' is a per-person alias
+    // (locationOf returns it only for the home's owner), so two people each in their OWN home both read 'home'
+    // and would falsely "co-locate" across town. This compares the concrete building / outdoor cell instead.
+    coLocated(a: PersonId, b: PersonId): boolean {
+        const pa = this.findPerson(a);
+        const pb = this.findPerson(b);
+        if (!pa || !pb) {
+            return false;
+        }
+        const ba = pa.getCurrentBuilding();
+        const bb = pb.getCurrentBuilding();
+        if (ba !== null || bb !== null) {
+            return ba === bb; // same building (or one inside, one out → not together)
+        }
+        const ca = this.outdoorCellOf(pa); // both outdoors → same street patch
+        return ca !== undefined && ca === this.outdoorCellOf(pb);
     }
 
     // Materialized on the map right now (task 131 follow-up)? A person-located visit to someone NOT present
@@ -273,6 +300,25 @@ export default class LiveWorld implements WorldAdapter {
         };
 
         const person = this.findPerson(personId);
+        // Reach a PERSON (task 131 follow-up): "go to X wherever they are" — a visit, or a remote person-
+        // targeted interaction. Registered as a pursuit and driven by pump: it re-resolves the target's current
+        // location every tick and walks/commutes toward them through the needed exit/enter steps, resolving
+        // only on physical co-location. Already together → arrived now; target not on the map → cancelled.
+        if (person && target.kind === 'person') {
+            if (!this.findPerson(target.personId)) {
+                handle.status = 'cancelled';
+                handle.resolvedAtTick = tick;
+                return handle;
+            }
+            if (this.coLocated(personId, target.personId)) {
+                handle.status = 'arrived';
+                handle.resolvedAtTick = tick;
+                return handle;
+            }
+            this.pursuits.set(handle.id, { targetId: target.personId, lastDest: null });
+            this.pending.push(handle);
+            return handle;
+        }
         // Stepping OUTSIDE (task 093 / E1): pre-093 this cancelled and outdoor actions blocked in live mode.
         // Now the person steps out the door — onto the curb of the connected street (W8 follow-up; the
         // entrance pixel sits inside the footprint and read as "standing on the house sprite") — and the
@@ -385,6 +431,12 @@ export default class LiveWorld implements WorldAdapter {
                 unresolved.push(handle);
                 continue;
             }
+            // Person pursuit (task 131 follow-up): re-resolve the target and keep chasing until co-located.
+            const pursuit = this.pursuits.get(handle.id);
+            if (pursuit) {
+                this.advancePursuit(handle, pursuit, tick, unresolved);
+                continue;
+            }
             const person = this.findPerson(handle.personId);
             const destination = person ? this.targetBuilding(person, handle.target, this.resolvedVenues.get(handle.id)) : null;
             // The burning gate (V4): a destination that caught fire mid-trip cancels like one that vanished —
@@ -411,6 +463,46 @@ export default class LiveWorld implements WorldAdapter {
             unresolved.push(handle);
         }
         this.pending = unresolved;
+    }
+
+    // Advance one person-pursuit (task 131 follow-up). Resolves on physical co-location; otherwise re-routes
+    // the pursuer toward the target's CURRENT location — commute-and-enter for a building/home, walk-to-them
+    // for a street cell — re-issuing only when the target has moved to a new place (so a stationary target is
+    // routed to once, a moving one is chased). The target vanishing cancels the trip and stops the body.
+    private advancePursuit(handle: TransitionHandle, pursuit: { targetId: PersonId; lastDest: string | null }, tick: number, unresolved: TransitionHandle[]): void {
+        const pursuer = this.findPerson(handle.personId);
+        const target = this.findPerson(pursuit.targetId);
+        if (!pursuer || !target) {
+            handle.status = 'cancelled';
+            handle.resolvedAtTick = tick;
+            this.pursuits.delete(handle.id);
+            pursuer?.abortTravel?.();
+            return;
+        }
+        if (this.coLocated(handle.personId, pursuit.targetId)) {
+            handle.status = 'arrived';
+            handle.resolvedAtTick = tick;
+            this.pursuits.delete(handle.id);
+            return; // caught up — physically together
+        }
+        const targetLoc = this.locationOf(pursuit.targetId);
+        const targetKey = locationKey(targetLoc);
+        if (targetKey !== pursuit.lastDest) {
+            // The target is somewhere new (or this is the first leg): head for them.
+            if (targetLoc.kind === 'building' || targetLoc.kind === 'home') {
+                // Their concrete building — the target's own home for 'home' (never the pursuer's).
+                const building = targetLoc.kind === 'home'
+                    ? target.getCurrentBuilding()
+                    : this.deps.buildingByKey(targetLoc.key);
+                if (building) {
+                    this.deps.startCommute(pursuer, building);
+                }
+            } else if (targetLoc.kind === 'outside') {
+                this.deps.walkToward?.(pursuer, target.getPosition?.() ?? null);
+            }
+            pursuit.lastDest = targetKey;
+        }
+        unresolved.push(handle);
     }
 
     // Arrival ground truth (W8 follow-up): the identity link when it exists, else the body physically

@@ -36,7 +36,7 @@ import { EventLink,
     PoolChildSpec,
     SequenceStepSpec,
 } from 'types/Action';
-import { ExecutionContext, SubProfiler, TransitionHandle } from 'types/Execution';
+import { ExecutionContext, LogicalLocation, SubProfiler, TransitionHandle, WorldAdapter } from 'types/Execution';
 import { PersonId, PopulationState } from 'types/Genealogy';
 import { TickResult } from 'types/LifeEvent';
 import { isAliveAt } from 'util/kinship';
@@ -535,7 +535,10 @@ export default class ActionEngine {
             }
             if (def.interaction.requiresSameBuilding) {
                 const world = deps.ctx.world;
-                if (!world || locationKey(world.locationOf(personId)) !== locationKey(world.locationOf(targetId))) {
+                // PHYSICAL co-location (task 131 follow-up): the two must actually be together — not merely
+                // both "home" (a per-person alias that used to let people interact from separate houses across
+                // town). coLocated compares the concrete building / outdoor cell.
+                if (!world || !this.coLocatedWith(world, personId, targetId as PersonId)) {
                     return { ok: false, reason: 'targetNotPresent' };
                 }
             }
@@ -671,6 +674,14 @@ export default class ActionEngine {
         return { ok: true, instanceId: instance.id, logSeq: instance.startLogSeq ?? this.lifeLog.getNextSeq() - 1 };
     }
 
+    // Physical co-location of two people (task 131 follow-up): delegates to the world's concrete check
+    // (LiveWorld: same building / outdoor cell — 'home' is a per-person alias and must not be key-compared).
+    // Falls back to locationKey equality for minimal test doubles without the coLocated method.
+    private coLocatedWith(world: WorldAdapter, self: PersonId, target: PersonId): boolean {
+        return world.coLocated?.(self, target)
+            ?? (locationKey(world.locationOf(self)) === locationKey(world.locationOf(target)));
+    }
+
     // Moves a pending/waiting instance toward running: requests the location transition when needed, enters
     // `running` (logging 'started' and firing onStart) once the person is logically in place. "Started
     // working" fires HERE — when the action actually starts — never when commuting begins.
@@ -679,19 +690,29 @@ export default class ActionEngine {
         const world = deps.ctx.world;
         // Per-instance override (task 046): a shared work action's location is the person's OWN workplace,
         // supplied by the caller (Brain/Orchestrator) rather than authored on the shared definition.
-        let requiredLocation = instance.locationOverride ?? def.location;
-        // Follow-the-person targeting (task 085): 'person:<id>' resolves to that person's CURRENT location,
-        // re-read on every materialize pass so a moved target re-routes the transition below.
-        if (requiredLocation?.startsWith('person:') && world) {
-            requiredLocation = locationKey(world.locationOf(requiredLocation.slice('person:'.length)));
-        }
+        const requiredLocation = instance.locationOverride ?? def.location;
+        // Reach-a-person targeting (task 085, rebuilt as pursuit in the 131 follow-up): 'person:<id>' is NOT
+        // pre-resolved to a fixed place. It's handed to the world as a { kind:'person' } target that pursues
+        // the person wherever they are (LiveWorld re-resolves & walks/commutes toward them each pump), and
+        // "am I there yet" is PHYSICAL co-location — not key equality, which the 'home' alias and the
+        // step-out-only 'outside' transition both got wrong (a visitor "visiting" from their own couch).
+        const personTarget = requiredLocation?.startsWith('person:') ? requiredLocation.slice('person:'.length) : null;
         if (requiredLocation && world) {
-            const at = locationKey(world.locationOf(instance.personId));
-            if (at !== requiredLocation) {
+            const alreadyThere = personTarget !== null
+                ? this.coLocatedWith(world, instance.personId, personTarget)
+                : locationKey(world.locationOf(instance.personId)) === requiredLocation;
+            if (!alreadyThere) {
+                const targetLocation: LogicalLocation = personTarget !== null
+                    ? { kind: 'person', personId: personTarget }
+                    : parseLocationKey(requiredLocation);
                 let handle = this.handles.get(instance.id) ?? null;
-                const stale = handle && handle.status === 'arrived' && locationKey(handle.target) !== requiredLocation;
+                // Re-request when there's no live handle, it was cancelled, or an arrived one is stale: for a
+                // fixed target that's a target-key change (re-resolved venue / displacement); for a person it's
+                // "arrived but they moved on before we could act" — re-pursue.
+                const stale = handle !== null && handle.status === 'arrived'
+                    && (personTarget !== null || locationKey(handle.target) !== requiredLocation);
                 if (!handle || handle.status === 'cancelled' || stale) {
-                    handle = world.requestTransition(instance.personId, parseLocationKey(requiredLocation), deps.tick, instance.causationId);
+                    handle = world.requestTransition(instance.personId, targetLocation, deps.tick, instance.causationId);
                     this.handles.set(instance.id, handle);
                     instance.transitionHandleId = handle.id;
                     // Departure entry (LP-2): the travel toward this action is part of its story — without
@@ -815,17 +836,25 @@ export default class ActionEngine {
             // replaces it at the flip. Structurally, "Sleeping" can never run on the street again.
             {
                 const world = deps.ctx.world;
-                let requiredLocation = instance.locationOverride ?? def.location;
-                if (requiredLocation?.startsWith('person:') && world) {
-                    requiredLocation = locationKey(world.locationOf(requiredLocation.slice('person:'.length)));
-                }
-                // venue:* resolved to a concrete host at materialization (the handle is gone by now), so
-                // the standing check applies to the CONCRETE location kinds: home / building:<key> /
-                // person-resolved. 'outside' and venue-abstract stay ungated here.
-                const concrete = requiredLocation === 'home' || requiredLocation?.startsWith('building:');
-                if (concrete && world && locationKey(world.locationOf(instance.personId)) !== requiredLocation) {
-                    instance.status = 'pending';
-                    continue; // displaced — re-materialize next pass rather than acting in the wrong place
+                const requiredLocation = instance.locationOverride ?? def.location;
+                const personTarget = requiredLocation?.startsWith('person:') ? requiredLocation.slice('person:'.length) : null;
+                if (personTarget !== null && world) {
+                    // A person-located action is a STANDING co-location requirement (task 131 follow-up): if the
+                    // target has moved on (left the building, walked off), stop acting and re-pursue — no more
+                    // "visiting" someone who isn't there anymore.
+                    if (!this.coLocatedWith(world, instance.personId, personTarget)) {
+                        instance.status = 'pending';
+                        continue;
+                    }
+                } else {
+                    // venue:* resolved to a concrete host at materialization (the handle is gone by now), so
+                    // the standing check applies to the CONCRETE location kinds: home / building:<key>.
+                    // 'outside' and venue-abstract stay ungated here.
+                    const concrete = requiredLocation === 'home' || requiredLocation?.startsWith('building:');
+                    if (concrete && world && locationKey(world.locationOf(instance.personId)) !== requiredLocation) {
+                        instance.status = 'pending';
+                        continue; // displaced — re-materialize next pass rather than acting in the wrong place
+                    }
                 }
             }
 
