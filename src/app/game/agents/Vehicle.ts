@@ -149,6 +149,14 @@ export default class Vehicle {
         return this.occupants.length >= this.expectedOccupants || this.boardWindowFrames <= 0;
     }
 
+    // Has the car committed to its journey (task 131 follow-up)? A car is boardable only while STOPPED — it
+    // has no route yet (freshly spawned, the driver about to board) or is still waiting at the curb for its
+    // passengers (the board window). Once it has a destination AND is cleared to leave, it is departing/in
+    // motion and must not be boarded (nobody leaps into a moving car). See Person's EnteringCar step.
+    hasDeparted(): boolean {
+        return this.currentTarget !== null && this.readyToDepart();
+    }
+
     setDebugDriver(debugDriver: boolean): void {
         this.debugDriver = debugDriver;
     }

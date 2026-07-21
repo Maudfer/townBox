@@ -548,6 +548,19 @@ export default class Person {
                 // its occupant (drive() refuses to move an empty car), and the car is routed to the STREET in
                 // front of the destination — cars stop on the road, never inside a footprint (anchor fallback
                 // for legacy/test worlds with no adjacent road).
+                if (this.vehicle && this.vehicle.hasDeparted() && !this.vehicle.isAboard(this)) {
+                    // The car already left without me (task 131 follow-up): a shared ride whose board window
+                    // lapsed, or any car now in motion. Never leap into a moving car — abandon the boarding and
+                    // continue on foot (the body is on the street; the travel machine falls back to idle so the
+                    // Brain re-plans). Don't touch the car — its driver + other riders keep going.
+                    this.vehicle = null;
+                    this.setIndoors(false);
+                    this.destinationBuilding = null;
+                    this.currentDestination = null;
+                    this.path = [];
+                    this.travelStep = TravelStep.Idle;
+                    break;
+                }
                 if (this.vehicle) {
                     // Board by role (task 130): the driver drives; a passenger just rides. Only the DRIVER
                     // routes the car — a passenger boarding the same car must not overwrite/duplicate its route.

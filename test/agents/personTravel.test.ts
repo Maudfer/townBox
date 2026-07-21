@@ -161,4 +161,62 @@ describe('Person travel flow', () => {
     expect(passenger.isIdle()).toBe(true);
     expect(passenger.getVehicle()).toBeNull();
   });
+
+  test('a rider whose car ALREADY DEPARTED never boards it — abandons on foot (task 131 follow-up)', () => {
+    const road = new Road(0, 0, 'road');
+    const destBuilding = new Building(2, 2, null);
+    const vehicle = new Vehicle(1, 1);
+    vehicle.setControlled(true);
+    const gameStub = {
+      pixelToTilePosition: () => ({ row: 0, col: 0 }),
+      field: { getTile: () => road, getAdjacentRoadTile: () => null, removeVehicle: () => { throw new Error('must NOT remove the driver\'s car'); } },
+      gridParams: { cells: { width: 1, height: 1 }, bounds: { top: 0, left: 0, right: 10, bottom: 10 } },
+    } as unknown as GameManager;
+    const pathFinder = { findPath: () => [] } as unknown as PathFinder;
+
+    const latePassenger = new Person(0, 0);
+    latePassenger.setGameManager(gameStub);
+    latePassenger.setVehicle(vehicle, false);
+    latePassenger.setDestination(destBuilding);
+    latePassenger.setAsset({} as any);
+
+    // The car has departed: it has a route and its board window has lapsed (0 riders expected, 0 frames).
+    (vehicle as any).setDestinationTile = () => {};
+    vehicle.setRideExpectations(1, 0); // window lapsed → readyToDepart
+    (vehicle as any).currentTarget = { x: 5, y: 5 }; // en route
+    expect(vehicle.hasDeparted()).toBe(true);
+
+    (latePassenger as any).travelStep = TravelStep.EnteringCar;
+    latePassenger.update(road, 0, new Set(), pathFinder);
+
+    // Abandoned: never boarded the moving car, link cleared, back to idle to re-plan on foot.
+    expect(vehicle.isAboard(latePassenger)).toBe(false);
+    expect(latePassenger.getVehicle()).toBeNull();
+    expect(latePassenger.isIdle()).toBe(true);
+    expect(latePassenger.isIndoors()).toBe(false);
+  });
+
+  test('a driver boards their freshly-spawned (un-routed) car — it has not departed', () => {
+    const road = new Road(0, 0, 'road');
+    const destBuilding = new Building(2, 2, null);
+    const vehicle = new Vehicle(1, 1);
+    vehicle.setControlled(true);
+    const gameStub = {
+      pixelToTilePosition: () => ({ row: 0, col: 0 }),
+      field: { getTile: () => road, getAdjacentRoadTile: () => null },
+      gridParams: { cells: { width: 1, height: 1 }, bounds: { top: 0, left: 0, right: 10, bottom: 10 } },
+    } as unknown as GameManager;
+    const pathFinder = { findPath: () => [] } as unknown as PathFinder;
+    const driver = new Person(0, 0);
+    driver.setGameManager(gameStub);
+    driver.setVehicle(vehicle, true);
+    driver.setDestination(destBuilding);
+    driver.setAsset({} as any);
+
+    expect(vehicle.hasDeparted()).toBe(false); // no route yet → boardable
+    (driver as any).travelStep = TravelStep.EnteringCar;
+    driver.update(road, 0, new Set(), pathFinder);
+    expect(vehicle.isAboard(driver)).toBe(true);
+    expect((driver as any).travelStep).toBe(TravelStep.Driving);
+  });
 });
