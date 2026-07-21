@@ -839,10 +839,14 @@ export default class ActionEngine {
                 const requiredLocation = instance.locationOverride ?? def.location;
                 const personTarget = requiredLocation?.startsWith('person:') ? requiredLocation.slice('person:'.length) : null;
                 if (personTarget !== null && world) {
-                    // A person-located action is a STANDING co-location requirement (task 131 follow-up): if the
-                    // target has moved on (left the building, walked off), stop acting and re-pursue — no more
-                    // "visiting" someone who isn't there anymore.
-                    if (!this.coLocatedWith(world, instance.personId, personTarget)) {
+                    // A person-located action at a CONCRETE target (their building/home) is a standing
+                    // co-location requirement (task 131 follow-up): if they left, stop acting and re-pursue —
+                    // no more "visiting" someone who isn't there. Scoped to concrete kinds to match the pre-131
+                    // gate exactly off-map (an outdoor target is transient; reaching them is materialize's job),
+                    // so the generated asset is byte-identical while live co-location uses physical coLocated.
+                    const targetLoc = world.locationOf(personTarget);
+                    if ((targetLoc.kind === 'building' || targetLoc.kind === 'home')
+                        && !this.coLocatedWith(world, instance.personId, personTarget)) {
                         instance.status = 'pending';
                         continue;
                     }
