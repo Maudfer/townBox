@@ -918,7 +918,8 @@ describe('household outings — weekend family trips co-scheduled to one venue (
         });
         expect(withOutings.length).toBeGreaterThan(0); // deterministic: some households go out
 
-        // Every outing entry is well-formed and the household shares ONE plan (linkId) to ONE venue action.
+        // Every outing entry is well-formed: the household shares ONE venue action over ONE window (which is
+        // what makes them set off together and carpool — no separate link tag needed).
         for (const house of withOutings) {
             const entries = house.getResidents().flatMap(p =>
                 agenda.dueEntriesOf(p.social.getPersonId()!, SATURDAY_TICK + 14, () => false)
@@ -927,10 +928,8 @@ describe('household outings — weekend family trips co-scheduled to one venue (
             const actions = new Set(entries.map(e => e.actionId));
             expect(actions.size).toBe(1); // the SAME venue for the whole household
             expect(['visiting_beach', 'eating_out', 'night_at_the_cinema']).toContain([...actions][0]);
-            const links = new Set(entries.map(e => e.linkId));
-            expect(links.size).toBe(1); // one shared plan link
             for (const e of entries) {
-                expect(e.earliestTick).toBe(SATURDAY_TICK + 13);
+                expect(e.earliestTick).toBe(SATURDAY_TICK + 13); // the SAME window → they leave together
                 expect(e.latestTick).toBe(SATURDAY_TICK + 18);
             }
         }

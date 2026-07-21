@@ -162,7 +162,9 @@ describe('routines (D2)', () => {
             .find(entry => entry.personId === 'b' && entry.actionId === 'hosting_a_friend_visit');
         expect(host).toBeTruthy();
         expect(host!.locationOverride).toBe('home');           // the friend hosts at their own home
-        expect(host!.linkId).toBe(visit.linkId);                // one scene: both sides linked, ending together
+        // One scene: both sides run over the SAME window, so they start and end together.
+        expect(host!.earliestTick).toBe(visit.earliestTick);
+        expect(host!.latestTick).toBe(visit.latestTick);
     });
 });
 
@@ -185,7 +187,9 @@ describe('joint plans (D3)', () => {
         expect(first!.locationOverride).toBe('home');
         expect(second!.personId).toBe('b');
         expect(second!.locationOverride).toBe('person:a');
-        expect(first!.linkId).toBe(second!.linkId);
+        // Mirrored: both entries run over the SAME window (start/end together — the joint-plan linkage).
+        expect(first!.earliestTick).toBe(second!.earliestTick);
+        expect(first!.latestTick).toBe(second!.latestTick);
         expect(first!.actionId).toBe('catching_up_over_coffee');
     });
 

@@ -849,7 +849,8 @@ export default class City {
                 continue; // a group outing needs at least two — else it's just a solo leisure pick
             }
             const outing = available[rng.nextInt(0, available.length - 1)]!;
-            const linkId = `outing${week}-${houseKey}`;
+            // Every goer gets the SAME venue action over the SAME window, so they set off together and the
+            // carpool folds them into one car — the shared plan is the shared destination + window, not a tag.
             for (const person of goers) {
                 const personId = person.social.getPersonId()!;
                 if (agenda.hasPendingRoutine(personId, 'household_outing', tick)) {
@@ -862,7 +863,6 @@ export default class City {
                     earliestTick: dayStart + windowStart,
                     latestTick: dayStart + windowEnd,
                     routineId: 'household_outing',
-                    linkId,
                     source: 'routine',
                     causationId: null,
                 });

@@ -124,9 +124,9 @@ export const plannerHook: BrainHook = {
                     ? bestFriendTarget(deps, personId)
                     : bestRelativeTarget(deps, personId);
                 if (hostId !== null) {
-                    const linkId = `visit${deps.tick}-${personId}`;
-                    agenda.enqueue({ ...entry, locationOverride: `person:${hostId}`, linkId });
-                    // The host's side (V9): welcomes the visitor at home, linked to the same window.
+                    agenda.enqueue({ ...entry, locationOverride: `person:${hostId}` });
+                    // The host's side (V9): welcomes the visitor at home, over the same window (both entries
+                    // share earliestTick/latestTick, so the scene runs and ends together).
                     agenda.enqueue({
                         personId: hostId,
                         actionId: 'hosting_a_friend_visit',
@@ -134,7 +134,6 @@ export const plannerHook: BrainHook = {
                         enqueuedAtTick: deps.tick,
                         earliestTick: entry.earliestTick,
                         latestTick: entry.latestTick,
-                        linkId,
                         causationId: null,
                         source: 'routine',
                     });

@@ -94,14 +94,6 @@ export default class Agenda implements AgendaWriter {
         return false;
     }
 
-    // Pending (unexpired) entries sharing a joint-plan link (D3) — lets one side see the other's commitment.
-    // Rare (one per consented invitation), so the whole-table scan is fine here.
-    entriesByLink(linkId: string): AgendaEntry[] {
-        return Object.values(this.state.entries)
-            .filter(entry => entry.linkId === linkId)
-            .sort((a, b) => a.id.localeCompare(b.id));
-    }
-
     removeEntry(id: string): void {
         const entry = this.state.entries[id];
         if (entry) {
