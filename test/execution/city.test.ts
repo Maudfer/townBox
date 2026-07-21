@@ -2,6 +2,7 @@ import City from 'game/City';
 import Clock from 'game/Clock';
 import GameManager from 'game/GameManager';
 import ActionEngine from 'game/actions/ActionEngine';
+import Agenda from 'game/actions/Agenda';
 import Brain from 'game/actions/Brain';
 import Person from 'game/agents/Person';
 import Economy from 'game/economy/Economy';
@@ -875,5 +876,88 @@ describe('live move-out via the event path (task 122)', () => {
 
         expect(child.social.getHome()).toBe(home);
         expect(home.getHousehold()?.memberIds).toEqual(['p', 'ch']);
+    });
+});
+
+// Task 131 (R3/R9): the weekend household-outing producer co-schedules a household to one venue so the
+// carpool folds them into a single car. The producer is deterministic (per worldSeed + house + week).
+describe('household outings — weekend family trips co-scheduled to one venue (task 131)', () => {
+    const SATURDAY_TICK = 5 * 24; // absolute day 5 = Saturday (day 0 = Monday), hour 0
+    const MONDAY_TICK = 7 * 24;   // absolute day 7 = Monday again
+
+    function outingWorld(): { city: City; field: Field; agenda: Agenda } {
+        const { game, field, city } = makeGame(40, 40);
+        const agenda = new Agenda();
+        (game as unknown as { agenda: Agenda }).agenda = agenda;
+        // A beach is "placed" for the outing repertoire to have somewhere to go.
+        (city.getWorld() as unknown as { hasVenuePlaced: (v: string) => boolean }).hasVenuePlaced = v => v === 'beach';
+        return { city, field, agenda };
+    }
+
+    function houseWith(field: Field, key: string, row: number, ages: number[]): House {
+        const house = field.loadStructure('house', row, 4, key) as House;
+        ages.forEach((age, i) => {
+            const person = materialize(field, house, `${key}_${i}`, row * 16 + i * 2, 72);
+            person.social.setAge(age);
+        });
+        return house;
+    }
+
+    test('on a weekend, adopted households get ONE outing entry per adult member, sharing a link', () => {
+        const { city, field, agenda } = outingWorld();
+        // Many households so at least one clears the deterministic adoption gate (worldSeed 0, week 0).
+        const houses = [4, 7, 10, 13, 16, 19, 22, 25].map((row, i) => houseWith(field, `hh${i}`, row, [34, 32]));
+
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(SATURDAY_TICK);
+
+        const withOutings = houses.filter(h => {
+            const memberEntries = h.getResidents().map(p =>
+                agenda.dueEntriesOf(p.social.getPersonId()!, SATURDAY_TICK + 14, () => false)
+                    .filter(e => e.routineId === 'household_outing'));
+            return memberEntries.some(list => list.length > 0);
+        });
+        expect(withOutings.length).toBeGreaterThan(0); // deterministic: some households go out
+
+        // Every outing entry is well-formed and the household shares ONE plan (linkId) to ONE venue action.
+        for (const house of withOutings) {
+            const entries = house.getResidents().flatMap(p =>
+                agenda.dueEntriesOf(p.social.getPersonId()!, SATURDAY_TICK + 14, () => false)
+                    .filter(e => e.routineId === 'household_outing'));
+            expect(entries.length).toBe(2); // both adults
+            const actions = new Set(entries.map(e => e.actionId));
+            expect(actions.size).toBe(1); // the SAME venue for the whole household
+            expect(['visiting_beach', 'eating_out', 'night_at_the_cinema']).toContain([...actions][0]);
+            const links = new Set(entries.map(e => e.linkId));
+            expect(links.size).toBe(1); // one shared plan link
+            for (const e of entries) {
+                expect(e.earliestTick).toBe(SATURDAY_TICK + 13);
+                expect(e.latestTick).toBe(SATURDAY_TICK + 18);
+            }
+        }
+    });
+
+    test('no outings are scheduled on a WEEKDAY', () => {
+        const { city, field, agenda } = outingWorld();
+        [4, 7, 10, 13, 16, 19, 22, 25].forEach((row, i) => houseWith(field, `wd${i}`, row, [34, 32]));
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(MONDAY_TICK);
+        expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
+    });
+
+    test('no outings when none of the outing venues are placed', () => {
+        const { game, field, city } = makeGame(40, 40);
+        const agenda = new Agenda();
+        (game as unknown as { agenda: Agenda }).agenda = agenda;
+        (city.getWorld() as unknown as { hasVenuePlaced: () => boolean }).hasVenuePlaced = () => false;
+        [4, 7, 10, 13].forEach((row, i) => houseWith(field, `nv${i}`, row, [34, 32]));
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(SATURDAY_TICK);
+        expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
+    });
+
+    test('a lone-adult household (only one goer) is never scheduled — an outing needs company', () => {
+        const { city, field, agenda } = outingWorld();
+        // Adult + toddler: the toddler is below the venue-independence age, leaving one goer → no group outing.
+        [4, 7, 10, 13, 16, 19, 22, 25].forEach((row, i) => houseWith(field, `solo${i}`, row, [40, 3]));
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(SATURDAY_TICK);
+        expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
     });
 });

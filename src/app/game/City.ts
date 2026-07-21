@@ -50,7 +50,8 @@ import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandpa
 import { notificationForSignal } from 'util/notifications';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isSchoolAge, schoolFactsFor } from 'util/school';
-import { TICKS_PER_MONTH } from 'util/time';
+import { TICKS_PER_MONTH, TICKS_PER_DAY, hourOfTick, isWeekendTick } from 'util/time';
+import { VENUE_INDEPENDENCE_AGE } from 'game/actions/ActionEngine';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
@@ -80,6 +81,20 @@ const GROUP_RIDE_BOARD_WINDOW_FRAMES = 600;
 // the Brain's going-out suppressor). A relative drives the severely ill to the hospital rather than them
 // self-driving.
 const MIN_DRIVE_HEALTH = 0.35;
+// Household outings (task 131 / R3+R9): on a weekend afternoon a household may plan a trip to a venue
+// TOGETHER — the older members each get a leisure-outing agenda entry to the SAME venue in the SAME window,
+// so when they set off the carpool mechanism folds them into one car (a family drive to the beach, dinner
+// out, a night at the cinema). Adoption is deterministic per (household, week); a household without any of
+// the venues placed simply doesn't (nothing to plan). Live-only (City-scheduled) — asset-neutral.
+const HOUSEHOLD_OUTING_ADOPTION = 0.28;
+const HOUSEHOLD_OUTING_WINDOW: readonly [number, number] = [13, 18];
+// The family-outing repertoire: the venue leisure action + the venue type it needs placed. Car-worthy
+// destinations only (each is a real placed building the ride can park at), not the ambulatory street actions.
+const HOUSEHOLD_OUTINGS: readonly { action: string; venue: string }[] = [
+    { action: 'visiting_beach', venue: 'beach' },
+    { action: 'eating_out', venue: 'restaurant' },
+    { action: 'night_at_the_cinema', venue: 'cinema' },
+];
 // Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
 // than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
 const MIGRATION_MIN_OPEN_POSITIONS = 3;
@@ -694,6 +709,10 @@ export default class City {
         // the recovery attempt (see the looked_for_housing commit handler). Dedup rides the routineId.
         this.enqueueHomeSeeking(event.tick, clock.getTicksPerYear());
 
+        // Household outings (task 131): a weekend family trip to a venue, co-scheduled so the household
+        // rides together (the carpool folds them into one car when they set off).
+        this.enqueueHouseholdOutings(event.tick);
+
         // Migration (W1 / proposal simulation-aliveness-3 P0-3): a town whose businesses want workers and
         // whose people are all employed ATTRACTS a household into a vacant home — the labor inflow every
         // city builder lives on. At most one draw per day, only under a genuine labor shortage.
@@ -784,6 +803,67 @@ export default class City {
                     latestTick: tick + 24,
                     routineId: 'home_seeking',
                     source: 'home_seeking',
+                    causationId: null,
+                });
+            }
+        }
+    }
+
+    // Household outings (task 131 / R3+R9): a weekend family trip to a venue, co-scheduled so the household
+    // RIDES TOGETHER. On a weekend day each household deterministically decides (per week) whether to go out
+    // and to which placed venue; every co-resident member old enough to be at a venue on their own
+    // (VENUE_INDEPENDENCE_AGE — younger children stay home, the guardianship hook keeps an adult with them)
+    // gets the same leisure-outing entry in the same afternoon window. When those entries come due the members
+    // set off from home to the SAME venue at once, and the carpool mechanism (LiveWorld departure phase →
+    // startCommuteGroup) folds them into ONE car. No new coordination primitive — the outing is just a
+    // co-scheduled destination, and the shared ride is emergent. Live-only, so the off-map asset is untouched.
+    private enqueueHouseholdOutings(tick: number): void {
+        const agenda = Game.agenda;
+        const field = Game.field;
+        if (!agenda || !field || !isWeekendTick(tick)) {
+            return;
+        }
+        const available = HOUSEHOLD_OUTINGS.filter(o => this.world.hasVenuePlaced?.(o.venue) ?? false);
+        if (available.length === 0) {
+            return; // nowhere to go — no outing
+        }
+        const worldSeed = Game.population?.getState().worldSeed ?? 0;
+        const week = Math.floor(tick / (7 * TICKS_PER_DAY));
+        const dayStart = tick - hourOfTick(tick);
+        const [windowStart, windowEnd] = HOUSEHOLD_OUTING_WINDOW;
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House)) {
+                continue;
+            }
+            const houseKey = structure.getIdentifier();
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('outing#' + houseKey + '#' + week)) >>> 0);
+            if (rng.next() >= HOUSEHOLD_OUTING_ADOPTION) {
+                continue; // this household stays in this weekend
+            }
+            // Members old enough to go on their own (younger children are left with a guardian, task 126).
+            const goers = structure.getResidents().filter(person => {
+                const id = person.social.getPersonId();
+                return id !== null && person.social.getAge() >= VENUE_INDEPENDENCE_AGE;
+            });
+            if (goers.length < 2) {
+                continue; // a group outing needs at least two — else it's just a solo leisure pick
+            }
+            const outing = available[rng.nextInt(0, available.length - 1)]!;
+            const linkId = `outing${week}-${houseKey}`;
+            for (const person of goers) {
+                const personId = person.social.getPersonId()!;
+                if (agenda.hasPendingRoutine(personId, 'household_outing', tick)) {
+                    continue;
+                }
+                agenda.enqueue({
+                    personId,
+                    actionId: outing.action,
+                    enqueuedAtTick: tick,
+                    earliestTick: dayStart + windowStart,
+                    latestTick: dayStart + windowEnd,
+                    routineId: 'household_outing',
+                    linkId,
+                    source: 'routine',
                     causationId: null,
                 });
             }
