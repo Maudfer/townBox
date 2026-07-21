@@ -2,7 +2,38 @@
 
 - **Type:** Feature / Simulation
 - **Labels:** `simulation`, `vehicles`, `joint-plans`, `brain`, `planner`, `routines`
-- **Status:** 📋 Proposed follow-up to task 130 (awaiting maintainer purview before scheduling)
+- **Status:** ✅ Done (agreed subset) — landed on `task/simulation-aliveness-4`, same PR as task 130. The
+  approach turned out cleaner than the original ticket assumed: instead of six bespoke proactive producers +
+  an N-person joint-plan primitive, ONE reactive mechanism (**opportunistic carpooling** at the departure
+  seam) plus a thin **co-scheduling producer** compose to cover most cases. What shipped:
+  - ✅ **Opportunistic carpooling (the base for R3/R5/R6/R9):** `LiveWorld`'s departure phase gathers, when a
+    departure comes due, every co-located companion (same origin building) bound to the SAME destination and
+    hands the group to `City.startCommuteGroup`, which elects one driver and forms a single group ride
+    (reusing 130's `startGroupRide` + `narrateRide`). Near → all walk; no eligible driver → per-person
+    fallback; group > one car → a second car for the overflow. Live-only, asset-neutral.
+  - ✅ **Household outings (R3/R9) + couple outings (R6):** `City.enqueueHouseholdOutings` (weekend, daily
+    cadence) co-schedules each household member ≥ `VENUE_INDEPENDENCE_AGE` the SAME leisure-outing agenda
+    entry (`visiting_beach`/`eating_out`/`night_at_the_cinema`) in one afternoon window; when due they set off
+    together and the carpool folds them into one car. A childless couple IS a two-adult household, so R6 (date
+    night) rides the same producer. Deterministic per (worldSeed, household, week); City-scheduled, so the
+    generator never runs it (asset-neutral). Younger children stay home (the 126 guardianship hook keeps an
+    adult with them).
+  - ✅ **R5 (work carpool):** emergent from opportunistic carpooling — two household adults with the same
+    workplace leaving in the same window share a car (same-destination only; the "co-directional / on-the-way"
+    routing case is deliberately out of scope).
+  - ✅ **R8 (drive the ill/dependent to an appointment):** already the 130-E election at the transition seam
+    (a non-driver bound far is driven); now narrated.
+  - ✅ **Narrated return trips:** `narrateRide` is direction-aware — a minor driven FROM a school home reads
+    "Picked up {kid} from school" / "Rode home from school"; anyone driven FROM a hospital home reads
+    "Drove {relative} home from the hospital" / "Was driven home from the hospital".
+  - ⏸️ **Deferred — R2 (police carpool patrol):** needs a *cruising* patrol car (a new movement model — the
+    current patrol is an ambulatory street walk with no building destination), which is a distinct feature,
+    not a ride-coordination one. Flagged for its own task.
+  - ⏸️ **Deferred — bespoke R7 (host insists on driving a capable guest home):** the non-driver guest case is
+    already covered by the 130-E election (the host drives a kid/ill guest home); a capable guest self-travels.
+    A dedicated "drive a capable friend home" scene is pure flavor — not built.
+
+  Originally proposed as a follow-up to task 130 (below).
 
 ## Context
 

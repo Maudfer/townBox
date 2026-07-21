@@ -169,7 +169,7 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [128](128-street-wander-graph-and-seeded-wander_DONE.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
 | [129](129-persistent-household-cars_REVERTED.md) | ⛔ Reverted | [Feature] Persistent household cars — park it, don't conjure it (reverted by 130) |
 | [130](130-ridesharing-and-on-demand-cars.md) | ✅ Done | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
-| [131](131-proactive-ride-producers.md) | 📋 Proposed | [Feature] Proactive ride producers — carpools, group outings, narrated return trips (follow-up to 130) |
+| [131](131-proactive-ride-producers_DONE.md) | ✅ Done | [Feature] Proactive ride producers — carpools, group outings, narrated return trips (follow-up to 130) |
 
 ## Open work
 
@@ -196,10 +196,15 @@ code (see `CLAUDE.md` §5.1). This README is the index.
   the ill are driven, accompaniment closed), and the **narrated flagships** (a group ride reads "Drove {kid}
   to school" / "Drove {relative} to the hospital" / "Gave {target} a ride" in the per-person log, derived
   from the destination + riders and invoked live-only — no asset regeneration forced). The far-school
-  preference is the enrollment sweep's existing nearest-first scoring; the speculative proactive-producer
-  catalog (patrol carpool, group/household/couple outings, work carpool, drive-a-friend-home) is
-  **[task 131](131-proactive-ride-producers.md)** (proposed) rather than invented here (no existing trigger;
-  would be speculative content under §5.6).
+  preference is the enrollment sweep's existing nearest-first scoring.
+- **[Task 131](131-proactive-ride-producers_DONE.md) is done** (agreed subset, same PR): the proactive
+  ride-producer layer, delivered more cleanly than the ticket assumed — ONE reactive **opportunistic
+  carpool** (co-located, same-destination people share a car at the departure seam: R3/R5/R6/R9) plus a thin
+  live-only **household-outing co-scheduler** (a weekend family trip to a venue, which the carpool folds into
+  one car; a childless couple rides it as date night). **Direction-aware narration** adds school pickups and
+  hospital discharges to the return leg. R8 (drive the ill/dependent) is the 130-E election, now narrated;
+  **R2 (cruising police carpool) and bespoke R7 are deferred** as distinct features (a new movement model / pure
+  flavor). All live-only → asset-neutral.
 - The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
   (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 

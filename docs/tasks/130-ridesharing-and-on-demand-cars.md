@@ -6,7 +6,7 @@
   reachable flagships (R1 school run, R4 hospital drive, R10 accompaniment) are landed on
   `task/simulation-aliveness-4`. The speculative proactive-producer catalog (R2 patrol carpool, R3/R6/R9
   group/couple/household outings, R5 work carpool, R7 drive-a-friend-home) is scoped as
-  [task 131](131-proactive-ride-producers.md) rather than invented here — none has an existing trigger, and building them means new routines +
+  [task 131](131-proactive-ride-producers_DONE.md) rather than invented here — none has an existing trigger, and building them means new routines +
   N-person group-plan machinery + return-trip coordination, an initiative-sized effort that would be
   speculative content under §5.6. Progress:
   - ✅ **A — revert 129:** cars are on-demand again (spawn as the driver leaves the origin building, despawn
@@ -29,17 +29,17 @@
     `City.narrateRide` (bootstrap/the generator never call `startGroupRide`, so the off-map RNG stream and
     the committed asset are untouched — NO regeneration forced). The narration rides the SAME election path
     that already forms the ride (E), so no separate proactive producer is needed for the reachable cases to
-    read. The speculative producers (patrol carpool, group/household outings, work carpool) → [task 131](131-proactive-ride-producers.md).
+    read. The speculative producers (patrol carpool, group/household outings, work carpool) → [task 131](131-proactive-ride-producers_DONE.md).
   - ✅ **F — school/treatment already coherent:** the far-school preference is the enrollment sweep's
     existing nearest-first scoring (task 058 `SchoolRegistry`: Manhattan home→school, ties by anchor key), so
     a child rides only when nearer seats are full; `receiving_treatment`'s located transition already elects a
     relative-driver through the E gate for the severely ill (health < `MIN_DRIVE_HEALTH`) while the mildly ill
-    self-drive. The outing/couple routines belong with the D producers → [task 131](131-proactive-ride-producers.md).
+    self-drive. The outing/couple routines belong with the D producers → [task 131](131-proactive-ride-producers_DONE.md).
   - Gaps handled: eject-all on despawn (B), one-car-not-N (C), board window / no-show (C), canDrive +
     election + far-school net (E), narrated flagships (D), open-map/non-enterable destinations (the `outside`
     transition resolves immediately with no car; `startCommute` guards `!destEntrance`), bootstrap/asset
     parity (live-only narration). Return trips (school/hospital home) ride the same election seam
-    behaviorally; their narration + the proactive outing/carpool producers → [task 131](131-proactive-ride-producers.md).
+    behaviorally; their narration + the proactive outing/carpool producers → [task 131](131-proactive-ride-producers_DONE.md).
 
   Originally: reverts task 129, builds the shared-ride subsystem. Bundled into the current aliveness-4
   follow-up PR (branch `task/simulation-aliveness-4`).
