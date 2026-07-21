@@ -216,6 +216,18 @@ canvas {
 
 .house-details {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The resident list keeps its own space at the top and stays ABOVE the family-tree SVG (task 131 follow-up
+   #3): the larger 800×700 house window sizes the SVG big enough that, on a shorter viewport where the window
+   is capped, it used to overflow and intercept clicks on the resident links. */
+.house-residents {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    background-color: #0f353b;
 }
 
 #family-tree {
@@ -224,7 +236,9 @@ canvas {
     align-content: center;
     justify-content: center;
     flex-wrap: wrap;
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #family-tree circle {

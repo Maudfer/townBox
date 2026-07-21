@@ -115,7 +115,10 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, o
                                 <li
                                     key={residentIndex}
                                     data-testid="house-resident"
-                                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                    // Content-width so only the NAME is the click target (task 131 follow-up
+                                    // #3): a full-width row put the clickable centre mid-window, where a large
+                                    // 800px sibling inspector could still cover it. This is also better UX.
+                                    style={{ cursor: 'pointer', textDecoration: 'underline', width: 'fit-content' }}
                                     onClick={() => game.emit('PersonSelected', resident)}
                                 >
                                     {resident.social.getFullName()} <small>({resident.social.getAge()})</small>
