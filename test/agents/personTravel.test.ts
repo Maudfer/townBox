@@ -114,4 +114,51 @@ describe('Person travel flow', () => {
     expect(person.getVehicle()).toBeNull();
     expect(person.isIdle()).toBe(true);
   });
+
+  test('a PASSENGER (non-driver) rides through to arrival and never routes the car (task 130/131)', () => {
+    const road = new Road(0, 0, 'road');
+    const destBuilding = new Building(2, 2, null);
+    const vehicle = new Vehicle(1, 1);
+    vehicle.setControlled(true);
+
+    const routedTo: unknown[] = [];
+    (vehicle as any).setDestinationTile = (_t: unknown, dest: unknown) => routedTo.push(dest);
+    const removed: Vehicle[] = [];
+    const gameStub = {
+      pixelToTilePosition: () => ({ row: 0, col: 0 }),
+      field: { getTile: () => road, getAdjacentRoadTile: () => null, removeVehicle: (v: Vehicle) => removed.push(v) },
+      gridParams: { cells: { width: 1, height: 1 }, bounds: { top: 0, left: 0, right: 10, bottom: 10 } },
+    } as unknown as GameManager;
+    const pathFinder = { findPath: () => [] } as unknown as PathFinder;
+
+    const passenger = new Person(0, 0);
+    passenger.setGameManager(gameStub);
+    passenger.setVehicle(vehicle, false); // rides as a PASSENGER, not the driver
+    passenger.setDestination(destBuilding);
+    passenger.setAsset({} as any);
+    expect(passenger.isDriver()).toBe(false);
+
+    // Board: the passenger occupies the car but must NOT route it (only the driver does).
+    (passenger as any).travelStep = TravelStep.EnteringCar;
+    passenger.update(road, 0, new Set(), pathFinder);
+    expect((passenger as any).travelStep).toBe(TravelStep.Driving);
+    expect(vehicle.isOccupied()).toBe(true);
+    expect(routedTo).toEqual([]); // a passenger never sets the car's destination
+
+    // The (driver's) car arrives → the passenger steps out and walks the last leg to the building.
+    (vehicle as any).isDestinationReached = () => true;
+    passenger.update(road, 0, new Set(), pathFinder); // Driving → ExitingCar
+    expect((passenger as any).travelStep).toBe(TravelStep.ExitingCar);
+    passenger.update(road, 0, new Set(), pathFinder); // ExitingCar → WalkingToDestination
+    expect((passenger as any).travelStep).toBe(TravelStep.WalkingToDestination);
+    expect(passenger.isIndoors()).toBe(false); // back on the street for the last leg
+    expect(vehicle.isAboard(passenger)).toBe(false); // disembarked
+
+    // Walk completes → Arrived: the passenger records the building and ends idle (journey complete, not stranded).
+    (passenger as any).travelStep = TravelStep.Arrived;
+    passenger.update(road, 0, new Set(), pathFinder);
+    expect(passenger.getCurrentBuilding()).toBe(destBuilding);
+    expect(passenger.isIdle()).toBe(true);
+    expect(passenger.getVehicle()).toBeNull();
+  });
 });

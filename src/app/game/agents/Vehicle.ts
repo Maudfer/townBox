@@ -46,8 +46,8 @@ export default class Vehicle {
     private controlled: boolean;
 
     // Occupants (task 130 ridesharing): the people physically inside — one DRIVER (whose presence lets the
-    // car move) plus passengers. board() at EnteringCar / joinRide, disembark() at ExitingCar; drive() gates
-    // on a driver being aboard. A car can't move driverless (task 008). The debug V-key test car carries an
+    // car move) plus passengers. board() at EnteringCar (as driver or passenger), disembark() at ExitingCar;
+    // drive() gates on a driver being aboard. A car can't move driverless (task 008). The debug V-key test car carries an
     // implicit `debugDriver` so the wander demo still works with no real occupants. Person is a type-only
     // import (erased at compile) so storing the refs doesn't create a runtime Person↔Vehicle cycle.
     private occupants: Person[] = [];
@@ -129,20 +129,12 @@ export default class Vehicle {
         return this.driver !== null || this.debugDriver;
     }
 
-    getDriver(): Person | null {
-        return this.driver;
-    }
-
     getOccupants(): readonly Person[] {
         return this.occupants;
     }
 
     isAboard(person: Person): boolean {
         return this.occupants.includes(person);
-    }
-
-    seatsAvailable(): number {
-        return Vehicle.SEAT_CAPACITY - this.occupants.length;
     }
 
     // Declares a shared ride: how many riders to wait for and for how long (task 130). A solo commute leaves
