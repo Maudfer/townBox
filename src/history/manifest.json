@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-07-21T05:49:50.565Z",
+  "serial": "20260721024950",
+  "hash": "24bc",
+  "name": "history-20260721024950-24bc",
+  "generator": {
+    "script": "scripts/generateHistoryAsset.ts"
+  },
+  "environment": {
+    "node": "v24.16.0",
+    "platform": "win32/x64",
+    "host": "MAURICIO-PC"
+  },
+  "invocation": {
+    "argv": [],
+    "flags": {}
+  },
+  "runtime": "3 h 33 min 14 s",
+  "people": {
+    "files": 676,
+    "prunedWarmupFiles": 27
+  },
+  "sizes": {
+    "personBytes": 1591481138,
+    "sectionBytes": 2124296
+  }
+}
