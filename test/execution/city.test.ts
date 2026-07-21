@@ -2,6 +2,7 @@ import City from 'game/City';
 import Clock from 'game/Clock';
 import GameManager from 'game/GameManager';
 import ActionEngine from 'game/actions/ActionEngine';
+import Agenda from 'game/actions/Agenda';
 import Brain from 'game/actions/Brain';
 import Person from 'game/agents/Person';
 import Economy from 'game/economy/Economy';
@@ -115,6 +116,40 @@ function materialize(field: Field, house: House | null, id: string, x: number, y
     }
     return person;
 }
+
+describe('services ledger refreshes on building placement (bug 2026-07-20)', () => {
+    // recomputeServices used to run ONLY on newDay, so a hospital/police/fire/school placed mid-day read as
+    // "No facility" in the City Services window + nagbar until the next midnight sweep. setupBusiness (and
+    // closeBusiness) now recompute immediately.
+    function servicesOf(city: City) {
+        return (city as unknown as { services: { latest: () => { service: string; facilities: number }[] } }).services.latest();
+    }
+
+    test('placing a hospital registers its healthcare facility immediately — no newDay needed', () => {
+        const { field, city } = makeGame(30, 30);
+        field.loadStructure('road', 1, 4, 'r');
+        const wp = field.loadStructure('work', 4, 4, 'h') as Workplace;
+        // Before placement: no sweep has run.
+        wp.setPendingBlueprint('hospital'); // the construction-menu civic pin
+        city.setupBusiness(wp);
+
+        const healthcare = servicesOf(city).find(s => s.service === 'healthcare');
+        expect(healthcare).toBeDefined();
+        expect(healthcare!.facilities).toBe(1);
+    });
+
+    test('a non-service business does not fabricate service facilities', () => {
+        const { field, city } = makeGame(30, 30);
+        field.loadStructure('road', 1, 4, 'r');
+        const wp = field.loadStructure('work', 4, 4, 'c') as Workplace;
+        wp.setPendingBlueprint('cafe');
+        city.setupBusiness(wp);
+
+        for (const line of servicesOf(city)) {
+            expect(line.facilities).toBe(0);
+        }
+    });
+});
 
 describe('City basic accessors', () => {
     test('name, population, and homeless-household registries are plain get/set state', () => {
@@ -423,6 +458,112 @@ describe('City rehousing/cohabitation/move-out (direct calls — public for unit
 
         expect(minorPerson.social.getHome()).toBe(house2);
         expect(house2.getHousehold()!.memberIds).toContain('minor');
+    });
+
+    test('resolveRehousing fans out a jailed sole caregiver\'s minor to a relative (task 126)', () => {
+        const tickNow = 50 * TICKS_PER_YEAR;
+        const { game, field, population, clock, city } = makeGame(30, 30);
+        const mom = gen('mom', Genders.Female, 40, tickNow);
+        const kid = gen('kid', Genders.Male, 6, tickNow, { motherId: 'mom' });
+        const bro = gen('bro', Genders.Male, 35, tickNow, { motherId: 'mom' }); // the kid's adult sibling
+        loadState(population, clock, { mom, kid, bro }, ['mom', 'kid', 'bro'], tickNow);
+
+        const house1 = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        materialize(field, house1, 'mom', 68, 64);
+        const kidPerson = materialize(field, house1, 'kid', 72, 64);
+        house1.setHousehold({ id: 'hh-1', houseKey: house1.getIdentifier(), headId: 'mom', memberIds: ['mom', 'kid'], arrangement: HouseholdArrangements.Nuclear });
+
+        const house2 = field.loadStructure('house', 16, 16, 'building_1x1x1_1') as House;
+        materialize(field, house2, 'bro', 256, 256);
+        house2.setHousehold({ id: 'hh-2', houseKey: house2.getIdentifier(), headId: 'bro', memberIds: ['bro'], arrangement: HouseholdArrangements.Single });
+
+        // Mom is alive but in detention — an unavailable caregiver, so her sole minor is left unattended.
+        (game as unknown as { detention: unknown }).detention = { isDetained: (id: string) => id === 'mom' };
+
+        city.resolveRehousing(tickNow, TICKS_PER_YEAR);
+
+        expect(kidPerson.social.getHome()).toBe(house2);
+        expect(house2.getHousehold()!.memberIds).toContain('kid');
+    });
+
+    test('resolveRehousing leaves the minor put when the sole caregiver is home (not jailed)', () => {
+        const tickNow = 50 * TICKS_PER_YEAR;
+        const { field, population, clock, city } = makeGame(30, 30);
+        const mom = gen('mom', Genders.Female, 40, tickNow);
+        const kid = gen('kid', Genders.Male, 6, tickNow, { motherId: 'mom' });
+        const bro = gen('bro', Genders.Male, 35, tickNow, { motherId: 'mom' });
+        loadState(population, clock, { mom, kid, bro }, ['mom', 'kid', 'bro'], tickNow);
+
+        const house1 = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+        materialize(field, house1, 'mom', 68, 64);
+        const kidPerson = materialize(field, house1, 'kid', 72, 64);
+        house1.setHousehold({ id: 'hh-1', houseKey: house1.getIdentifier(), headId: 'mom', memberIds: ['mom', 'kid'], arrangement: HouseholdArrangements.Nuclear });
+        const house2 = field.loadStructure('house', 16, 16, 'building_1x1x1_1') as House;
+        materialize(field, house2, 'bro', 256, 256);
+        house2.setHousehold({ id: 'hh-2', houseKey: house2.getIdentifier(), headId: 'bro', memberIds: ['bro'], arrangement: HouseholdArrangements.Single });
+
+        // No detention registry / mom free → she's a coherent guardian, the child stays home.
+        city.resolveRehousing(tickNow, TICKS_PER_YEAR);
+
+        expect(kidPerson.social.getHome()).toBe(house1);
+    });
+
+    describe('unattendedYoungDependentAtHome (task 126 home-alone care)', () => {
+        const tickNow = 40 * TICKS_PER_YEAR;
+
+        function setup() {
+            const { game, field, population, clock, city } = makeGame(30, 30);
+            const mom = gen('mom', Genders.Female, 35, tickNow);
+            const dad = gen('dad', Genders.Male, 37, tickNow);
+            const kid = gen('kid', Genders.Male, 5, tickNow, { motherId: 'mom', fatherId: 'dad' });
+            const pool: PersonTable = { mom, kid, dad };
+            loadState(population, clock, pool, ['mom', 'kid', 'dad'], tickNow);
+            const house = field.loadStructure('house', 4, 4, 'building_1x1x1_1') as House;
+            const momP = materialize(field, house, 'mom', 68, 64);
+            const kidP = materialize(field, house, 'kid', 72, 64);
+            const dadP = materialize(field, house, 'dad', 76, 64);
+            house.setHousehold({ id: 'hh', houseKey: house.getIdentifier(), headId: 'mom', memberIds: ['mom', 'dad', 'kid'], arrangement: HouseholdArrangements.Nuclear });
+            const byGenId = new Map<string, Person>([['mom', momP], ['dad', dadP], ['kid', kidP]]);
+            return { game, city, house, momP, dadP, kidP, byGenId, pool };
+        }
+
+        test('true when the last adult present at home has a young dependent also home', () => {
+            const { city, house, momP, kidP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house);
+            kidP.setCurrentBuilding(house);
+            // dad is out (currentBuilding null) → mom is the only adult minding the child.
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(true);
+        });
+
+        test('false when another adult is also home to mind the child', () => {
+            const { city, house, momP, dadP, kidP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house);
+            dadP.setCurrentBuilding(house);
+            kidP.setCurrentBuilding(house);
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(false);
+        });
+
+        test('false when the adult is not actually at home', () => {
+            const { city, house, kidP, byGenId, pool } = setup();
+            kidP.setCurrentBuilding(house); // mom's currentBuilding stays null (she's out)
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(false);
+        });
+
+        test('false when the young dependent is not home (e.g. at school)', () => {
+            const { city, house, momP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house); // kid's currentBuilding stays null (out)
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(false);
+        });
+
+        test('true even when another co-resident adult is home BUT detained', () => {
+            const { game, city, house, momP, dadP, kidP, byGenId, pool } = setup();
+            momP.setCurrentBuilding(house);
+            dadP.setCurrentBuilding(house);
+            kidP.setCurrentBuilding(house);
+            (game as unknown as { detention: unknown }).detention = { isDetained: (id: string) => id === 'dad' };
+            // dad is physically home but jailed (house arrest fiction aside — a detained adult can't mind).
+            expect(city.unattendedYoungDependentAtHome('mom', byGenId, pool, tickNow, TICKS_PER_YEAR)).toBe(true);
+        });
     });
 
     test('resolveRehousing is a no-op when field or population is missing', () => {
@@ -735,5 +876,213 @@ describe('live move-out via the event path (task 122)', () => {
 
         expect(child.social.getHome()).toBe(home);
         expect(home.getHousehold()?.memberIds).toEqual(['p', 'ch']);
+    });
+});
+
+// Task 131 (R3/R9): the weekend household-outing producer co-schedules a household to one venue so the
+// carpool folds them into a single car. The producer is deterministic (per worldSeed + house + week).
+describe('household outings — weekend family trips co-scheduled to one venue (task 131)', () => {
+    const SATURDAY_TICK = 5 * 24; // absolute day 5 = Saturday (day 0 = Monday), hour 0
+    const MONDAY_TICK = 7 * 24;   // absolute day 7 = Monday again
+
+    function outingWorld(): { city: City; field: Field; agenda: Agenda } {
+        const { game, field, city } = makeGame(40, 40);
+        const agenda = new Agenda();
+        (game as unknown as { agenda: Agenda }).agenda = agenda;
+        // A beach is "placed" for the outing repertoire to have somewhere to go.
+        (city.getWorld() as unknown as { hasVenuePlaced: (v: string) => boolean }).hasVenuePlaced = v => v === 'beach';
+        return { city, field, agenda };
+    }
+
+    function houseWith(field: Field, key: string, row: number, ages: number[]): House {
+        const house = field.loadStructure('house', row, 4, key) as House;
+        ages.forEach((age, i) => {
+            const person = materialize(field, house, `${key}_${i}`, row * 16 + i * 2, 72);
+            person.social.setAge(age);
+        });
+        return house;
+    }
+
+    test('on a weekend, adopted households get ONE outing entry per adult member, sharing a link', () => {
+        const { city, field, agenda } = outingWorld();
+        // Many households so at least one clears the deterministic adoption gate (worldSeed 0, week 0).
+        const houses = [4, 7, 10, 13, 16, 19, 22, 25].map((row, i) => houseWith(field, `hh${i}`, row, [34, 32]));
+
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(SATURDAY_TICK);
+
+        const withOutings = houses.filter(h => {
+            const memberEntries = h.getResidents().map(p =>
+                agenda.dueEntriesOf(p.social.getPersonId()!, SATURDAY_TICK + 14, () => false)
+                    .filter(e => e.routineId === 'household_outing'));
+            return memberEntries.some(list => list.length > 0);
+        });
+        expect(withOutings.length).toBeGreaterThan(0); // deterministic: some households go out
+
+        // Every outing entry is well-formed: the household shares ONE venue action over ONE window (which is
+        // what makes them set off together and carpool — no separate link tag needed).
+        for (const house of withOutings) {
+            const entries = house.getResidents().flatMap(p =>
+                agenda.dueEntriesOf(p.social.getPersonId()!, SATURDAY_TICK + 14, () => false)
+                    .filter(e => e.routineId === 'household_outing'));
+            expect(entries.length).toBe(2); // both adults
+            const actions = new Set(entries.map(e => e.actionId));
+            expect(actions.size).toBe(1); // the SAME venue for the whole household
+            expect(['visiting_beach', 'eating_out', 'night_at_the_cinema']).toContain([...actions][0]);
+            for (const e of entries) {
+                expect(e.earliestTick).toBe(SATURDAY_TICK + 13); // the SAME window → they leave together
+                expect(e.latestTick).toBe(SATURDAY_TICK + 18);
+            }
+        }
+    });
+
+    test('no outings are scheduled on a WEEKDAY', () => {
+        const { city, field, agenda } = outingWorld();
+        [4, 7, 10, 13, 16, 19, 22, 25].forEach((row, i) => houseWith(field, `wd${i}`, row, [34, 32]));
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(MONDAY_TICK);
+        expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
+    });
+
+    test('no outings when none of the outing venues are placed', () => {
+        const { game, field, city } = makeGame(40, 40);
+        const agenda = new Agenda();
+        (game as unknown as { agenda: Agenda }).agenda = agenda;
+        (city.getWorld() as unknown as { hasVenuePlaced: () => boolean }).hasVenuePlaced = () => false;
+        [4, 7, 10, 13].forEach((row, i) => houseWith(field, `nv${i}`, row, [34, 32]));
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(SATURDAY_TICK);
+        expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
+    });
+
+    test('a lone-adult household (only one goer) is never scheduled — an outing needs company', () => {
+        const { city, field, agenda } = outingWorld();
+        // Adult + toddler: the toddler is below the venue-independence age, leaving one goer → no group outing.
+        [4, 7, 10, 13, 16, 19, 22, 25].forEach((row, i) => houseWith(field, `solo${i}`, row, [40, 3]));
+        (city as unknown as { enqueueHouseholdOutings(tick: number): void }).enqueueHouseholdOutings(SATURDAY_TICK);
+        expect((agenda.serialize() as { entries: Record<string, unknown> }).entries).toEqual({});
+    });
+});
+
+// Task 130/131: the City-side ride cluster (driver eligibility, election, the group ride + its narration, the
+// carpool grouping). Exercised through the full execution harness so City.ts — the module owner — is covered.
+describe('coordinated rides — City-side election, carpool & narration (task 130/131)', () => {
+    const TICK_NOW = 100;
+    interface RideScene { city: City; field: Field; home: House; work: Workplace; people: Person[] }
+    // A household at (4,4), a road, and a far workplace at (20,20) — far enough to be a drive, not a walk.
+    function scene(blueprintKey: string, ages: number[]): RideScene {
+        const { field, population, clock, city } = makeGame(40, 40);
+        const table: PersonTable = {};
+        ages.forEach((age, i) => { table[`r${i}`] = gen(`r${i}`, i % 2 ? Genders.Female : Genders.Male, age, TICK_NOW); });
+        loadState(population, clock, table, Object.keys(table), TICK_NOW);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const work = field.loadStructure('work', 20, 20, 'w') as Workplace;
+        work.setBusiness({ blueprintKey, positions: [] } as never);
+        const people = ages.map((age, i) => {
+            const p = materialize(field, home, `r${i}`, 72 + i * 2, 72);
+            p.social.setAge(age); p.setAsset({} as never); p.setCurrentBuilding(home);
+            return p;
+        });
+        return { city, field, home, work, people };
+    }
+
+    test('canDrive gates on adulthood; electDriver picks a co-located adult', () => {
+        const { city, people } = scene('bakery', [34, 9]); // an adult + a child
+        const [adult, child] = people;
+        expect(city.canDrive(adult!, TICK_NOW)).toBe(true);
+        expect(city.canDrive(child!, TICK_NOW)).toBe(false); // kids can't drive
+        // The child (a non-driver) bound far gets the co-located adult elected as driver.
+        const driver = (city as unknown as { electDriver(p: Person, t: number): Person | null }).electDriver(child!, TICK_NOW);
+        expect(driver).toBe(adult);
+    });
+
+    test('startGroupRide spawns ONE car with a driver + passengers and narrates a school run', () => {
+        const { city, field, work, people } = scene('school', [34, 8, 10]);
+        const [driver, ...kids] = people;
+        const car = city.startGroupRide(driver!, kids, work);
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(car).toBe(field.getVehicles()[0]);
+        expect(driver!.isDriver()).toBe(true);
+        for (const kid of kids) {
+            expect(kid.getVehicle()).toBe(car);
+            expect(kid.isDriver()).toBe(false);
+        }
+    });
+
+    test('startGroupRide narrates a hospital drive and (origin-aware) a school pickup home', () => {
+        const hosp = scene('hospital', [40, 70]);
+        expect(hosp.city.startGroupRide(hosp.people[0]!, [hosp.people[1]!], hosp.work)).not.toBeNull();
+
+        // Origin a school, destination home → the return-trip (pickup) narration branch.
+        const sch = scene('school', [34, 9]);
+        sch.people.forEach(p => p.setCurrentBuilding(sch.work)); // set off FROM the school
+        expect(sch.city.startGroupRide(sch.people[0]!, [sch.people[1]!], sch.home)).not.toBeNull();
+    });
+
+    test('startCommuteGroup: one car for a drive-distance group, driver elected among them', () => {
+        const { city, field, work, people } = scene('bakery', [30, 31, 32]);
+        city.startCommuteGroup(people, work);
+        expect(field.getVehicles()).toHaveLength(1);
+        expect(people.filter(p => p.isDriver())).toHaveLength(1);
+        for (const p of people) {
+            expect(p.getVehicle()).toBe(field.getVehicles()[0]);
+        }
+    });
+
+    test('startCommuteGroup walks everyone for a NEAR destination (no car)', () => {
+        const { field, population, clock, city } = makeGame(40, 40);
+        loadState(population, clock, {}, [], TICK_NOW);
+        const home = field.loadStructure('house', 4, 4, 'h') as House;
+        field.loadStructure('road', 1, 4, 'r');
+        const near = field.loadStructure('work', 5, 5, 'n') as Workplace; // within walk distance
+        const people = [0, 1].map(i => {
+            const p = field.loadPerson(72 + i * 2, 72); p.setAsset({} as never);
+            p.social.setAge(30); p.social.setPersonId(`w${i}`); p.setCurrentBuilding(home);
+            return p;
+        });
+        city.startCommuteGroup(people, near);
+        expect(field.getVehicles()).toHaveLength(0);
+    });
+
+    test('startCommuteGroup over one car spawns a SECOND car for the overflow', () => {
+        const { city, field, work, people } = scene('bakery', [30, 31, 32, 33, 34, 35]); // six adults
+        city.startCommuteGroup(people, work);
+        expect(field.getVehicles()).toHaveLength(2);
+    });
+
+    test('LiveWorld.isPresent is true for a materialized person, false for a ghost', () => {
+        const { city, people } = scene('bakery', [30]);
+        const world = city.getWorld() as unknown as { isPresent(id: string): boolean };
+        expect(world.isPresent(people[0]!.social.getPersonId()!)).toBe(true);
+        expect(world.isPresent('nobody-here')).toBe(false);
+    });
+
+    // Task 131 follow-up: the reach-a-person pursuit, driven through the full City/LiveWorld execution stack.
+    test('coLocated is physical, and a person pursuit resolves on arrival / cancels for an absent target', () => {
+        const { field, population, clock, city } = makeGame(40, 40);
+        const tickNow = 100;
+        loadState(population, clock, {
+            a: gen('a', Genders.Male, 30, tickNow),
+            b: gen('b', Genders.Female, 32, tickNow),
+        }, ['a', 'b'], tickNow);
+        const home1 = field.loadStructure('house', 4, 4, 'h1') as House;
+        const work = field.loadStructure('work', 22, 22, 'w') as Workplace;
+        field.loadStructure('road', 1, 4, 'r');
+        const a = materialize(field, home1, 'a', 72, 72); a.setAsset({} as never); a.setCurrentBuilding(home1);
+        const b = materialize(field, null, 'b', 74, 72); b.setAsset({} as never); b.setCurrentBuilding(work);
+        const world = city.getWorld();
+        const physical = world as unknown as { coLocated(x: string, y: string): boolean };
+
+        expect(physical.coLocated('a', 'b')).toBe(false); // different buildings
+        // a pursues b (in a far building): pending, then arrived once a catches up.
+        const handle = world.requestTransition('a', { kind: 'person', personId: 'b' }, tickNow, null);
+        expect(handle.status).toBe('pending');
+        world.pump(tickNow);
+        expect(a.isEnRoute()).toBe(true); // dispatched toward b
+        a.setCurrentBuilding(work); // a arrives where b is
+        world.pump(tickNow + 1);
+        expect(handle.status).toBe('arrived');
+        expect(physical.coLocated('a', 'b')).toBe(true);
+
+        // Pursuing someone who isn't on the map cancels (no ghost visit).
+        expect(world.requestTransition('a', { kind: 'person', personId: 'ghost' }, tickNow, null).status).toBe('cancelled');
     });
 });

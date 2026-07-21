@@ -12,7 +12,7 @@ const REFRESH_MS = 2000;
 // All figures come from City.getCityStats() (derived from game getters). Refreshed on a light interval rather
 // than the `newDay` bus event, because the bus's off() drops *all* handlers for an event and City owns the
 // newDay handler — recomputing every couple of seconds is plenty fresh for a dashboard and never per-frame.
-const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const city = data as City;
     const [stats, setStats] = useState<CityStats | null>(() => city?.getCityStats() ?? null);
 
@@ -28,8 +28,8 @@ const CityDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => 
     const money = (value: number) => `$${Math.round(value).toLocaleString()}`;
 
     return (
-        <Window game={game} index={index} title={`${stats.name} — overview`} testId="window-city" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div style={{ padding: '4px 10px', overflowY: 'auto', height: '100%' }}>
+        <Window game={game} index={index} z={z} onFocus={onFocus} title={`${stats.name} — overview`} testId="window-city" initialSize={INITIAL_SIZE} onClose={onClose}>
+            <div style={{ padding: '4px 10px' }}>
                 <section>
                     <h4>Population</h4>
                     <ul style={{ margin: 0, paddingLeft: 16 }}>

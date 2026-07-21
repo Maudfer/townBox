@@ -210,12 +210,16 @@ export default class LogicalWorld implements WorldAdapter {
     }
 
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
-        this.locationNow.set(personId, target);
-        this.setLocationIndex(personId, locationKey(target));
+        // Reach a PERSON (task 131 follow-up): off-map there is no travel — resolve to the target's OWN
+        // current location (byte-identical to the pre-131 path, where ActionEngine pre-resolved 'person:<id>'
+        // to that same location before calling; a raw 'person' location must never be stored).
+        const resolved: LogicalLocation = target.kind === 'person' ? this.locationOf(target.personId) : target;
+        this.locationNow.set(personId, resolved);
+        this.setLocationIndex(personId, locationKey(resolved));
         return {
             id: this.nextHandleId++,
             personId,
-            target,
+            target: resolved,
             status: 'arrived', // no visual layer to wait for
             requestedAtTick: tick,
             resolvedAtTick: tick,

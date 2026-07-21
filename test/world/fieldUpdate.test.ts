@@ -241,7 +241,8 @@ describe('Field.update: time-throttle movement scaling (LP-2)', () => {
 
         field.update({ time: 0, timeDelta: 16 });
 
-        expect(personUpdate).toHaveBeenCalledWith(expect.anything(), 64, expect.anything(), expect.anything());
+        // The 5th arg is the wander context (task 128) — undefined for a non-ambulatory fake person.
+        expect(personUpdate).toHaveBeenCalledWith(expect.anything(), 64, expect.anything(), expect.anything(), undefined);
         expect(drive).toHaveBeenCalledWith(expect.anything(), 64);
     });
 
@@ -253,6 +254,6 @@ describe('Field.update: time-throttle movement scaling (LP-2)', () => {
 
         field.update({ time: 0, timeDelta: 16 });
 
-        expect(personUpdate).toHaveBeenCalledWith(expect.anything(), 16, expect.anything(), expect.anything());
+        expect(personUpdate).toHaveBeenCalledWith(expect.anything(), 16, expect.anything(), expect.anything(), undefined);
     });
 });

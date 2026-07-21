@@ -565,12 +565,33 @@ export default class GameManager {
         if (!this.clock || this.timePaused) {
             return;
         }
-        const delta = this.effectiveTimeDelta(payload.timeDelta);
-        if (delta <= 0) {
+        let remaining = this.effectiveTimeDelta(payload.timeDelta);
+        if (remaining <= 0) {
             return; // paused (scale 0) or a degenerate frame — nothing advances, coherently
         }
-        this.clock.advance(delta);
+        // Advance in ≤1-in-game-minute STEPS so no minute (or tick, or day) is ever skipped (bug fix: the
+        // orphaned/stuck people at high speed). A single large frame delta — a hitch at 50×, where 100 ms
+        // capped × 50 = two in-game minutes in one frame — used to jump the clock past a minute whose commute
+        // departure/transition pump then never fired at that exact minute (LiveWorld schedules departures per
+        // minute-of-hour). Stepping guarantees every crossed minute emits its cadence exactly once. At 1× a
+        // frame is a fraction of a minute, so this is a single iteration — no behaviour change.
+        const stepMs = MS_PER_TICK / 60; // one in-game minute (a tick is one in-game hour)
+        while (remaining > 0) {
+            const step = Math.min(remaining, stepMs);
+            remaining -= step;
+            this.clock.advance(step);
+            this.emitTimeCadence();
+        }
+    }
 
+    // Emits the time signals that ACTUALLY changed since the last emit: `newDay` on a day rollover, `newTick`
+    // once per in-game hour (the canonical simulation tick, task 040), `timeChanged` once per in-game minute
+    // (the HUD's display granularity). Guarded by the last-emitted markers so a fractional-minute step is a
+    // no-op; called in a stepped loop by advanceTime so high-speed frames never skip a unit.
+    private emitTimeCadence(): void {
+        if (!this.clock) {
+            return;
+        }
         const timestamp = this.clock.getTimestamp();
         const tick = this.clock.getCurrentTick();
         const minuteOfDay = timestamp.hour * 60 + timestamp.minute;
@@ -813,7 +834,10 @@ export default class GameManager {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic bus: handler return types are heterogeneous and unknown to the emitter
     async emit<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any[]> {
-        if (!payload) {
+        // Only a genuinely ABSENT payload defaults to {}. A falsy-but-valid payload (0, false, '') must pass
+        // through untouched — `!payload` clobbered `setTimeScale(0)` (Pause) to {}, so pause never took (the
+        // handler read {} and fell back to 1×). Any numeric/boolean-payload event hit this.
+        if (payload === undefined || payload === null) {
             payload = {} as EventPayloads[K];
         }
 
@@ -828,8 +852,8 @@ export default class GameManager {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- generic bus: the single handler's return type is unknown to the emitter; callers narrow it
     async emitSingle<K extends keyof EventPayloads>(eventName: K, payload?: EventPayloads[K]): Promise<any> {
-        if (!payload) {
-            payload = {} as EventPayloads[K];
+        if (payload === undefined || payload === null) {
+            payload = {} as EventPayloads[K]; // falsy-but-valid payloads (0/false/'') pass through — see emit()
         }
 
         const handlers = this.eventListeners[eventName] || [];
@@ -847,7 +871,9 @@ export default class GameManager {
         }
 
         const { callback, context } = handler;
-        const result = await context ? callback.call(context, payload) : callback(payload);
+        // `await context ? … : …` parsed as `(await context) ? … : …` — it awaited the CONTEXT, not the
+        // callback's result, so an async single-handler's promise was returned unresolved. Await the call.
+        const result = context ? await callback.call(context, payload) : await callback(payload);
 
         return result;
     }

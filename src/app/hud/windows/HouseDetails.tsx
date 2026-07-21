@@ -12,14 +12,14 @@ const TREE_DEPTH = 2;
 import { DetailsWindowProps, WindowSize } from 'types/HUD';
 import { FamilyTree, FamilyTreeTags } from 'types/FamilyTree';
 
-const INITIAL_WIDTH = 600;
-const INITIAL_HEIGHT = 600;
+const INITIAL_WIDTH = 800;
+const INITIAL_HEIGHT = 700;
 
 const LINKS_CLASS = 'links';
 const LINK_LABELS_CLASS = 'link-labels';
 const NODES_CLASS = 'nodes';
 
-const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const initialSize: WindowSize = { width: INITIAL_WIDTH, height: INITIAL_HEIGHT };
 
     const [size, setSize] = useState<WindowSize>(initialSize);
@@ -98,6 +98,8 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
         <Window
             game={game}
             index={index}
+            z={z}
+            onFocus={onFocus}
             title={`Casa ${house?.getHouseholdName() ?? ''}`}
             testId="window-house"
             initialSize={initialSize}
@@ -113,7 +115,10 @@ const HouseDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =>
                                 <li
                                     key={residentIndex}
                                     data-testid="house-resident"
-                                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                    // Content-width so only the NAME is the click target (task 131 follow-up
+                                    // #3): a full-width row put the clickable centre mid-window, where a large
+                                    // 800px sibling inspector could still cover it. This is also better UX.
+                                    style={{ cursor: 'pointer', textDecoration: 'underline', width: 'fit-content' }}
                                     onClick={() => game.emit('PersonSelected', resident)}
                                 >
                                     {resident.social.getFullName()} <small>({resident.social.getAge()})</small>

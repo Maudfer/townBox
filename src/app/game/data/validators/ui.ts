@@ -144,8 +144,10 @@ export function validateConstructionSemantics(data: unknown, peers: Record<strin
         }
     }
     for (const [key, blueprint] of Object.entries(blueprints)) {
-        if (blueprint.placement === 'civic' && !pinned.has(key)) {
-            issues.add('construction.entries', 'civic blueprint "' + key + '" is not placeable from the menu — its only spawn path');
+        // Both menu-placed modes must be reachable from the menu — it is their only spawn path once the
+        // random draw fences them out (civic: task 108; amenity beach/cemetery/park: task 123).
+        if ((blueprint.placement === 'civic' || blueprint.placement === 'amenity') && !pinned.has(key)) {
+            issues.add('construction.entries', blueprint.placement + ' blueprint "' + key + '" is not placeable from the menu — its only spawn path');
         }
     }
 }

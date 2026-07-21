@@ -499,6 +499,11 @@ export default class SaveManager {
                 const vehicle = vehicleById.get(personSnapshot.vehicleId);
                 if (vehicle) {
                     person.setVehicle(vehicle);
+                    // A person-linked car is a commute car, not a free-wandering test car: mark it controlled
+                    // so Field.update doesn't send a restored car wandering to random destinations (a fresh
+                    // Vehicle defaults controlled=false). In-flight travel is reset to idle on load; the stale
+                    // car is despawned when the person's next commute sets a fresh vehicle (setVehicle).
+                    vehicle.setControlled(true);
                 }
             }
 

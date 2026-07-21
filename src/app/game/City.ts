@@ -50,7 +50,8 @@ import { ageAt, relationshipLabel, isAliveAt, siblingsOf, unclesAuntsOf, grandpa
 import { notificationForSignal } from 'util/notifications';
 import { SeededRandom, hashStringToSeed } from 'util/random';
 import { isSchoolAge, schoolFactsFor } from 'util/school';
-import { TICKS_PER_MONTH } from 'util/time';
+import { TICKS_PER_MONTH, TICKS_PER_DAY, hourOfTick, isWeekendTick } from 'util/time';
+import { VENUE_INDEPENDENCE_AGE } from 'game/actions/ActionEngine';
 
 const BUSINESS_BLUEPRINTS = businessesConfig as unknown as BusinessBlueprintTable;
 const JOBS = jobsConfig as unknown as JobTable;
@@ -63,10 +64,37 @@ const HOUSE_PLACEMENT_TAGS: readonly string[] = (residencesConfig as { house: { 
 // (task 062; consumed by SkillBook.initialize).
 const JOB_CORE_SKILLS: ReadonlySet<string> = new Set(Object.values(JOBS).flatMap(job => job.requiredSkills ?? []));
 const ADULT_AGE_YEARS = (householdDrawConfig as { adultAgeYears: number }).adultAgeYears;
+// A child under this age can't be left home alone (task 126 / home-alone care): the last adult present at
+// home anchors `caring_for_children` rather than wandering off to leisure while a young dependent is home
+// unattended. Above VENUE_INDEPENDENCE_AGE (8) — a school-age child can be briefly on their own; a toddler
+// can't. School/work still take a parent out (the sim has no daycare model), so this only holds the parent
+// against DISCRETIONARY departures, which is the audit's actual break.
+const CARE_AGE_YEARS = 10;
 // Walk-vs-drive threshold (V1 / aliveness-4 trip planner): a trip whose Manhattan distance from the body to
 // the destination is at or under this many tiles is WALKED — the car is reserved for real commutes. The
 // audit found people driving zero-to-a-few tiles constantly (magic pop-in/pop-out cars everywhere).
 const WALK_COMMUTE_MAX_TILES = 12;
+// How many frames a shared car waits at the curb for its passengers to board before departing without the
+// no-shows (task 130). Generous enough for riders to walk out of the origin building and cross to the car.
+const GROUP_RIDE_BOARD_WINDOW_FRAMES = 600;
+// Below this health a person can't drive (task 130) — they're driven instead (the severe-illness band, matching
+// the Brain's going-out suppressor). A relative drives the severely ill to the hospital rather than them
+// self-driving.
+const MIN_DRIVE_HEALTH = 0.35;
+// Household outings (task 131 / R3+R9): on a weekend afternoon a household may plan a trip to a venue
+// TOGETHER — the older members each get a leisure-outing agenda entry to the SAME venue in the SAME window,
+// so when they set off the carpool mechanism folds them into one car (a family drive to the beach, dinner
+// out, a night at the cinema). Adoption is deterministic per (household, week); a household without any of
+// the venues placed simply doesn't (nothing to plan). Live-only (City-scheduled) — asset-neutral.
+const HOUSEHOLD_OUTING_ADOPTION = 0.28;
+const HOUSEHOLD_OUTING_WINDOW: readonly [number, number] = [13, 18];
+// The family-outing repertoire: the venue leisure action + the venue type it needs placed. Car-worthy
+// destinations only (each is a real placed building the ride can park at), not the ambulatory street actions.
+const HOUSEHOLD_OUTINGS: readonly { action: string; venue: string }[] = [
+    { action: 'visiting_beach', venue: 'beach' },
+    { action: 'eating_out', venue: 'restaurant' },
+    { action: 'night_at_the_cinema', venue: 'cinema' },
+];
 // Migration (W1 / proposal simulation-aliveness-3 P0-3): the labor-shortage floor — fewer real openings
 // than this and the town doesn't attract anyone (a couple of stragglers is not a shortage).
 const MIGRATION_MIN_OPEN_POSITIONS = 3;
@@ -75,6 +103,18 @@ const RETCON_CONFIG = retconsConfig as unknown as RetconConfig;
 // Civic blueprints (task 108) are placed deliberately through the construction menu — never drawn onto
 // generic lots by the random draw, re-occupancy, or entrepreneurship.
 const isCivicBlueprint = (key: string): boolean => BUSINESS_BLUEPRINTS[key]?.placement === 'civic';
+// Amenity blueprints (task 123): non-commercial public venues (beach, cemetery, park) that read wrong as a
+// random work lot — the audit drew a BEACH between the bar and the bakery. Fenced from the same three draw
+// paths as civic (generic draw / re-occupancy / entrepreneurship); placed deliberately through the
+// construction menu, and still venue-mapped so visiting_beach/park actions resolve once one is placed.
+const isAmenityBlueprint = (key: string): boolean => BUSINESS_BLUEPRINTS[key]?.placement === 'amenity';
+// A blueprint that never appears on a randomly-drawn generic work lot (civic OR amenity) — both are
+// menu-placed. The single predicate the three draw paths share.
+const isMenuOnlyBlueprint = (key: string): boolean => isCivicBlueprint(key) || isAmenityBlueprint(key);
+// How much more the first-placement draw favours a demand category with NO placed business yet over a
+// merely under-supplied one (task 123): the deficit weighting alone stacked a second supermarket/school
+// while dining/leisure sat empty, so an unrepresented category's weight is boosted to spread the town out.
+const UNREPRESENTED_CATEGORY_BOOST = 4;
 // A criminal record fades after two in-game years (task 099) — the town forgives, slowly.
 const CRIMINAL_RECORD_WINDOW_TICKS = 2 * 8640;
 // The business blueprint that makes a building a school (task 058). Students enroll against it; its staff
@@ -133,6 +173,9 @@ export default class City {
                 return null;
             },
             startCommute: (person, destination) => this.startCommute(person, destination),
+            startCommuteGroup: (people, destination) => this.startCommuteGroup(people, destination),
+            // Directed outdoor walk (task 131 follow-up): person-pursuit walks toward a target on the street.
+            walkToward: (person, targetPixel) => { if (targetPixel) { Game.field?.walkPersonTo(person, targetPixel); } },
             // Venue grounding (task 107): resolution scans placed structures for hosting businesses.
             listBuildings: () => (Game.field?.getStructures() ?? []).filter((tile): tile is Building => tile instanceof Building),
             getInventory: () => Game.inventory,
@@ -507,6 +550,10 @@ export default class City {
             // drain time, with job-seeking cooldowns cleared, so the town answers the placement NOW rather
             // than after the routine's multi-day cadence.
             this.wakes.enqueue('businessOpened');
+            // Refresh the services ledger NOW, not on the next daily sweep (bug fix): placing a hospital/
+            // police/fire/school must register its facility immediately, or the City Services window and the
+            // nagbar keep reading "No facility" for hours until the midnight recompute.
+            this.recomputeServices(Game.clock?.getCurrentTick() ?? 0);
         }
     }
 
@@ -531,20 +578,27 @@ export default class City {
         const rng = new SeededRandom(seed);
         fakerPT_BR.seed(seed);
 
-        const drawable = blueprintKeys.filter(candidate => !isCivicBlueprint(candidate));
+        const drawable = blueprintKeys.filter(candidate => !isMenuOnlyBlueprint(candidate));
         let blueprintKey: string;
         if (options.blueprintKey) {
-            // A forced blueprint (task 097/I3 founders; task 108 construction-menu pins).
+            // A forced blueprint (task 097/I3 founders; task 108 construction-menu pins — including the
+            // menu-placed civic AND amenity blueprints, which the draws below fence out but a pin instantiates).
             blueprintKey = options.blueprintKey;
         } else if (category) {
             const candidates = drawable.filter(candidate => BUSINESS_BLUEPRINTS[candidate]!.category === category);
             blueprintKey = rng.pick(candidates.length > 0 ? candidates : drawable);
         } else {
             // First-placement matching (task 097/I2): an unconstrained draw prefers categories the town's
-            // demand actually lacks, weighted by unmet demand. With no positive deficit anywhere (an empty
+            // demand actually lacks, weighted by unmet demand — and (task 123) boosts categories with NO
+            // placed business at all, so the town spreads across categories instead of stacking a second
+            // supermarket/school while dining/leisure sit empty. With no positive deficit anywhere (an empty
             // map) the draw falls back to the legacy uniform pick — same seed, same stream, same business.
-            const { deficits } = this.categorySupplyAndDeficits();
-            const weighted = [...deficits.entries()].filter(([, deficit]) => deficit > 0).sort((a, b) => a[0].localeCompare(b[0]));
+            const { supply, deficits } = this.categorySupplyAndDeficits();
+            const weighted = [...deficits.entries()]
+                .filter(([, deficit]) => deficit > 0)
+                .map(([cat, deficit]): [string, number] =>
+                    [cat, deficit * ((supply[cat] ?? 0) > 0 ? 1 : UNREPRESENTED_CATEGORY_BOOST)])
+                .sort((a, b) => a[0].localeCompare(b[0]));
             if (weighted.length === 0) {
                 blueprintKey = rng.pick(drawable);
             } else {
@@ -568,6 +622,9 @@ export default class City {
 
         const business = generateBusiness(blueprintKey, blueprint, JOBS, name, size);
         workplace.setBusiness(business);
+        // A gathering venue's curb becomes a loiter node for street wander (task 128); the Workplace had no
+        // business at stamp time, so the assignment is what makes its blueprint knowable to the loiter scan.
+        Game.field?.markLoiterDirty();
         // Seed starting capital (task 017), scaled by size so bigger establishments start with more.
         // Starting capital injected from the external sector (task 076/H3): idempotent + conserved.
         Game.economy?.adjustBusiness(key, DEFAULT_ECONOMY_PARAMS.startingBusinessCapital * size - (Game.economy?.getBusinessBalance(key) ?? 0));
@@ -653,6 +710,10 @@ export default class City {
         // looking_for_a_home agenda entry — a visible, ambulatory street search whose completion invokes
         // the recovery attempt (see the looked_for_housing commit handler). Dedup rides the routineId.
         this.enqueueHomeSeeking(event.tick, clock.getTicksPerYear());
+
+        // Household outings (task 131): a weekend family trip to a venue, co-scheduled so the household
+        // rides together (the carpool folds them into one car when they set off).
+        this.enqueueHouseholdOutings(event.tick);
 
         // Migration (W1 / proposal simulation-aliveness-3 P0-3): a town whose businesses want workers and
         // whose people are all employed ATTRACTS a household into a vacant home — the labor inflow every
@@ -744,6 +805,67 @@ export default class City {
                     latestTick: tick + 24,
                     routineId: 'home_seeking',
                     source: 'home_seeking',
+                    causationId: null,
+                });
+            }
+        }
+    }
+
+    // Household outings (task 131 / R3+R9): a weekend family trip to a venue, co-scheduled so the household
+    // RIDES TOGETHER. On a weekend day each household deterministically decides (per week) whether to go out
+    // and to which placed venue; every co-resident member old enough to be at a venue on their own
+    // (VENUE_INDEPENDENCE_AGE — younger children stay home, the guardianship hook keeps an adult with them)
+    // gets the same leisure-outing entry in the same afternoon window. When those entries come due the members
+    // set off from home to the SAME venue at once, and the carpool mechanism (LiveWorld departure phase →
+    // startCommuteGroup) folds them into ONE car. No new coordination primitive — the outing is just a
+    // co-scheduled destination, and the shared ride is emergent. Live-only, so the off-map asset is untouched.
+    private enqueueHouseholdOutings(tick: number): void {
+        const agenda = Game.agenda;
+        const field = Game.field;
+        if (!agenda || !field || !isWeekendTick(tick)) {
+            return;
+        }
+        const available = HOUSEHOLD_OUTINGS.filter(o => this.world.hasVenuePlaced?.(o.venue) ?? false);
+        if (available.length === 0) {
+            return; // nowhere to go — no outing
+        }
+        const worldSeed = Game.population?.getState().worldSeed ?? 0;
+        const week = Math.floor(tick / (7 * TICKS_PER_DAY));
+        const dayStart = tick - hourOfTick(tick);
+        const [windowStart, windowEnd] = HOUSEHOLD_OUTING_WINDOW;
+        for (const structure of field.getStructures()) {
+            if (!(structure instanceof House)) {
+                continue;
+            }
+            const houseKey = structure.getIdentifier();
+            const rng = new SeededRandom((worldSeed ^ hashStringToSeed('outing#' + houseKey + '#' + week)) >>> 0);
+            if (rng.next() >= HOUSEHOLD_OUTING_ADOPTION) {
+                continue; // this household stays in this weekend
+            }
+            // Members old enough to go on their own (younger children are left with a guardian, task 126).
+            const goers = structure.getResidents().filter(person => {
+                const id = person.social.getPersonId();
+                return id !== null && person.social.getAge() >= VENUE_INDEPENDENCE_AGE;
+            });
+            if (goers.length < 2) {
+                continue; // a group outing needs at least two — else it's just a solo leisure pick
+            }
+            const outing = available[rng.nextInt(0, available.length - 1)]!;
+            // Every goer gets the SAME venue action over the SAME window, so they set off together and the
+            // carpool folds them into one car — the shared plan is the shared destination + window, not a tag.
+            for (const person of goers) {
+                const personId = person.social.getPersonId()!;
+                if (agenda.hasPendingRoutine(personId, 'household_outing', tick)) {
+                    continue;
+                }
+                agenda.enqueue({
+                    personId,
+                    actionId: outing.action,
+                    enqueuedAtTick: tick,
+                    earliestTick: dayStart + windowStart,
+                    latestTick: dayStart + windowEnd,
+                    routineId: 'household_outing',
+                    source: 'routine',
                     causationId: null,
                 });
             }
@@ -995,6 +1117,7 @@ export default class City {
             jobOf: id => this.jobFactsOf(id, personByGenId),
             schoolOf: id => this.schoolFactsOf(id, personByGenId, tick, ticksPerYear),
             detentionOf: id => (Game.detention && Game.detention.isDetained(id, tick) ? Game.detention.detentionOf(id) : null),
+            unattendedDependentAtHome: id => this.unattendedYoungDependentAtHome(id, personByGenId, population.getPeople(), tick, ticksPerYear),
         }, [], result);
         engine.unbindMarkets();
         // Stamp any log appends the pass produced (starts, declines) — same pass the flip runs (LP-11).
@@ -1488,6 +1611,9 @@ export default class City {
 
         // Re-draw so the now-businessless building reads as vacant (desaturated), like an emptied house.
         Game.emit("tileSpawned", workplace);
+        // Losing a facility updates coverage immediately (bug fix, symmetric with setupBusiness) — a
+        // bulldozed hospital/station shouldn't keep reading as covered until the next daily sweep.
+        this.recomputeServices(tick);
     }
 
     // Re-occupies vacant work buildings over time (task 037): a lot vacated by bankruptcy stays vacant for
@@ -2003,7 +2129,7 @@ export default class City {
         let pick: { category: string; blueprintKey: string; founderId: PersonId } | null = null;
         for (const [category] of openCategories) {
             const blueprintKeys = Object.keys(BUSINESS_BLUEPRINTS)
-                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category && !isCivicBlueprint(key))
+                .filter(key => BUSINESS_BLUEPRINTS[key]!.category === category && !isMenuOnlyBlueprint(key))
                 .sort();
             for (const blueprintKey of blueprintKeys) {
                 const blueprint = BUSINESS_BLUEPRINTS[blueprintKey]!;
@@ -2101,8 +2227,8 @@ export default class City {
         // Blueprints grouped by category, so a chosen category always has something to build.
         const blueprintsByCategory = new Map<string, string[]>();
         for (const [blueprintKey, blueprint] of Object.entries(BUSINESS_BLUEPRINTS)) {
-            if (isCivicBlueprint(blueprintKey)) {
-                continue; // civic buildings are placed, never attracted (task 108)
+            if (isMenuOnlyBlueprint(blueprintKey)) {
+                continue; // civic + amenity buildings are placed, never attracted (task 108/123)
             }
             const keys = blueprintsByCategory.get(blueprint.category) ?? [];
             keys.push(blueprintKey);
@@ -2714,9 +2840,19 @@ export default class City {
             if (livingMembers.length === 0) {
                 continue;
             }
-            const hasAdult = livingMembers.some(id => ageAt(pool[id]!, tick, ticksPerYear) >= ADULT_AGE_YEARS);
+            // A caregiver is a living adult who is actually AVAILABLE to mind the home — a jailed adult isn't
+            // (task 126 / guardianship fan-out): the audit's single parent hauled off to detention left a
+            // toddler home alone, and the death-only orphan path never fired because the parent was still
+            // alive. Detention removes them from the home exactly as death does, so a sole-caregiver jailing
+            // fans the dependents out to a relative's household, same as an orphaning. (Illness keeps the
+            // parent physically home — the child isn't unattended, just under-attended — so it is handled by
+            // the home-alone care hook + LP-5 meal fan-out, not relocation.)
+            const hasAdult = livingMembers.some(id =>
+                ageAt(pool[id]!, tick, ticksPerYear) >= ADULT_AGE_YEARS
+                && !(Game.detention?.isDetained(id, tick) ?? false)
+            );
             if (hasAdult) {
-                continue; // a coherent guardian remains
+                continue; // a coherent, available guardian remains
             }
 
             // No adult present: relocate each minor to a relative's adult household.
@@ -2801,6 +2937,45 @@ export default class City {
             }
         }
         return byGenId;
+    }
+
+    // Home-alone care (task 126): true when `adultId` is an adult currently present at their home together
+    // with a co-resident child under CARE_AGE_YEARS who is ALSO home, and no OTHER available adult is home to
+    // mind them. The guardianship Brain hook reads this to anchor `caring_for_children` — the last adult in
+    // the house minds a young dependent instead of drifting off to a discretionary activity. Live-only
+    // (presence is a map concept): the generator/bootstrap never supply this resolver, so it can't diverge.
+    public unattendedYoungDependentAtHome(adultId: PersonId, byGenId: Map<PersonId, Person>, pool: PersonTable, tick: number, ticksPerYear: number): boolean {
+        const adult = byGenId.get(adultId);
+        if (!adult) {
+            return false;
+        }
+        const home = adult.social.getHome();
+        if (!(home instanceof House) || adult.getCurrentBuilding() !== home) {
+            return false; // only the adult who is actually AT home can be the one minding the child
+        }
+        const household = home.getHousehold();
+        if (!household) {
+            return false;
+        }
+        let youngDependentHome = false;
+        let otherAdultHome = false;
+        for (const memberId of household.memberIds) {
+            if (memberId === adultId) {
+                continue;
+            }
+            const member = byGenId.get(memberId);
+            const record = pool[memberId];
+            if (!member || !record || !isAliveAt(record, tick) || member.getCurrentBuilding() !== home) {
+                continue; // only members physically home matter for "is the child unattended"
+            }
+            const age = ageAt(record, tick, ticksPerYear);
+            if (age < CARE_AGE_YEARS) {
+                youngDependentHome = true;
+            } else if (age >= ADULT_AGE_YEARS && !(Game.detention?.isDetained(memberId, tick) ?? false)) {
+                otherAdultHome = true; // another available adult is here — the child isn't unattended
+            }
+        }
+        return youngDependentHome && !otherAdultHome;
     }
 
     // The materialized minor children of `parentId` who currently live in `house` — the dependents that move
@@ -3034,10 +3209,7 @@ export default class City {
             }
             for (const vehicle of [...field.getVehicles()]) {
                 if (vehicle.isControlled() && !linked.has(vehicle)) {
-                    if (vehicle.isOccupied()) {
-                        vehicle.disembark();
-                    }
-                    field.removeVehicle(vehicle);
+                    field.removeVehicle(vehicle); // ejects any remaining occupants (ridesharing) + clears sprite
                 }
             }
         }
@@ -3058,15 +3230,8 @@ export default class City {
             return;
         }
 
-        // Minors walk (task 058): children don't drive, so no commute car is spawned — Person.processTravel
-        // routes them on foot straight to the destination over the pedestrian network.
-        if (person.social.getAge() < ADULT_AGE_YEARS) {
-            person.setDestination(destination);
-            return;
-        }
-
-        // Walk vs. drive by distance from the BODY's current position (V1): a short hop is walked, the car
-        // is for a real commute. Manhattan distance matches the grid movement; the threshold is authored.
+        // Walk vs. drive by distance from the BODY's current position (V1): a short hop is walked (by anyone,
+        // including minors — task 058), the car is for a real commute. Manhattan distance matches the grid.
         const bodyPosition = person.getPosition();
         const walkDistancePx = WALK_COMMUTE_MAX_TILES * Game.gridParams.cells.width;
         const distanceToDestination = bodyPosition
@@ -3074,6 +3239,23 @@ export default class City {
             : Number.POSITIVE_INFINITY;
         if (distanceToDestination <= walkDistancePx) {
             person.setDestination(destination);
+            return;
+        }
+
+        // The trip is drive-distance. Only a driver (adult, not detained — task 130 canDrive) may spawn a
+        // solo car. A NON-driver (a child, or an ill/detained person) who needs to go somewhere FAR gets a
+        // lift: an available co-located adult drives them (a group ride) — the "kids can't reach a far school
+        // alone" guard and the never-strand-a-non-driver net. If no driver is available, they walk as a last
+        // resort (far, but never stuck). Narrated collective actions (drive_kids_to_school, drive_to_hospital)
+        // install their own rides upstream; this is the safety fallback at the transition seam.
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        if (!this.canDrive(person, tick)) {
+            const driver = this.electDriver(person, tick);
+            if (driver) {
+                this.startGroupRide(driver, [person], destination);
+            } else {
+                person.setDestination(destination); // no driver → walk (last resort)
+            }
             return;
         }
 
@@ -3095,6 +3277,10 @@ export default class City {
             return;
         }
 
+        // On-demand car (task 130): a fresh car is spawned for this drive and despawned on arrival — no
+        // persistence, no parked-car reuse. If the person somehow still holds a stale vehicle link (a
+        // mid-flight re-plan), setVehicle below despawns it before the new link lands (the W8 148-car-leak fix).
+
         // Drive: the car materializes ON THE STREET at the origin road tile (task 008 commute spec), never
         // inside a footprint. Body-position fallback (origin truth) for road-less test/edge worlds — the car
         // still starts from WHERE THE PERSON IS, never their distant home.
@@ -3103,6 +3289,202 @@ export default class City {
         vehicle.setControlled(true);
         person.setVehicle(vehicle);
         person.setDestination(destination);
+    }
+
+    // A carpool (task 131): co-located people (same origin building) heading to the SAME destination leave
+    // together in ONE car — a household to the same shop/venue, co-workers to the same workplace, a couple on
+    // an outing. LiveWorld's departure phase gathers the group; this elects a driver among them and forms one
+    // group ride. A short hop is walked by everyone (no car for a near trip). A group with no eligible driver
+    // (all children/ill) falls back to the per-person path (each elects an external driver or walks — never
+    // stranded). A group larger than one car spawns a SECOND car for the overflow (recursively).
+    public startCommuteGroup(people: Person[], destination: Building): void {
+        const field = Game.field;
+        const destEntrance = destination.getEntrance();
+        if (!field || !destEntrance) {
+            return;
+        }
+        const riders = people.filter(person => person.getVehicle() === null); // never re-seat someone mid-ride
+        if (riders.length <= 1) {
+            const solo = riders[0];
+            if (solo) {
+                this.startCommute(solo, destination);
+            }
+            return;
+        }
+        // Walk vs. drive from a representative co-located body (V1): a near destination is walked by all.
+        const body = riders[0]!.getPosition();
+        const walkDistancePx = WALK_COMMUTE_MAX_TILES * Game.gridParams.cells.width;
+        const distance = body
+            ? Math.abs(body.x - destEntrance.x) + Math.abs(body.y - destEntrance.y)
+            : Number.POSITIVE_INFINITY;
+        if (distance <= walkDistancePx) {
+            for (const person of riders) {
+                person.setDestination(destination);
+            }
+            return;
+        }
+        // Drive: elect a driver among the group (deterministic by personId). No eligible driver → per-person
+        // fallback (each will elect an external driver or walk — the 130 never-strand net).
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        const drivers = riders.filter(person => this.canDrive(person, tick))
+            .sort((a, b) => (a.social.getPersonId() ?? '').localeCompare(b.social.getPersonId() ?? ''));
+        const driver = drivers[0];
+        if (!driver) {
+            for (const person of riders) {
+                this.startCommute(person, destination);
+            }
+            return;
+        }
+        const passengers = riders.filter(person => person !== driver);
+        const seats = Vehicle.SEAT_CAPACITY - 1;
+        this.startGroupRide(driver, passengers.slice(0, seats), destination);
+        const overflow = passengers.slice(seats);
+        if (overflow.length > 0) {
+            this.startCommuteGroup(overflow, destination); // a second car for a big household
+        }
+    }
+
+    // Can this person legally/physically drive a car (task 130)? A driver must be an adult, not detained, and
+    // not severely ill — so children never drive, a jailed person never drives, and a severely-ill person is
+    // driven by someone else (a relative to the hospital) rather than self-driving. Health is read from the
+    // event context (the same overlay the illness system writes); absent an engine, the age/detention gate
+    // holds. Public for the producers (Treatment, the school run) and unit tests.
+    public canDrive(person: Person, tick: number): boolean {
+        if (person.social.getAge() < ADULT_AGE_YEARS) {
+            return false; // kids can't drive
+        }
+        const id = person.social.getPersonId();
+        if (!id) {
+            return true; // no pool id (edge/test) — age gate only
+        }
+        if (Game.detention?.isDetained(id, tick)) {
+            return false; // detained can't drive
+        }
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (engine && population) {
+            const ticksPerYear = Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear;
+            const health = engine.contextFor(population.getState(), id, tick, ticksPerYear).getAttr('health');
+            if (typeof health === 'number' && health < MIN_DRIVE_HEALTH) {
+                return false; // severely ill — can't drive
+            }
+        }
+        return true;
+    }
+
+    // Finds an available adult to drive `passenger` (task 130): a person CO-LOCATED at the passenger's origin
+    // building who canDrive and is idle (not already committed to their own trip). Prefers a co-resident of
+    // the passenger's home (a parent/relative), then a deterministic id order. Null when nobody can take them.
+    private electDriver(passenger: Person, tick: number): Person | null {
+        const field = Game.field;
+        const origin = passenger.getCurrentBuilding();
+        if (!field || !origin) {
+            return null; // must be at a building to form a co-located ride
+        }
+        const home = passenger.social.getHome();
+        const candidates = field.getPeople().filter(candidate =>
+            candidate !== passenger
+            && candidate.getCurrentBuilding() === origin
+            && candidate.isIdle()
+            && this.canDrive(candidate, tick));
+        candidates.sort((a, b) => {
+            const aHome = home !== null && a.social.getHome() === home ? 0 : 1;
+            const bHome = home !== null && b.social.getHome() === home ? 0 : 1;
+            if (aHome !== bHome) {
+                return aHome - bHome; // co-residents first
+            }
+            return (a.social.getPersonId() ?? '').localeCompare(b.social.getPersonId() ?? '');
+        });
+        return candidates[0] ?? null;
+    }
+
+    // A coordinated shared ride (task 130): a driver + co-located passengers board ONE car and travel to a
+    // shared destination — a parent driving the kids to school, officers sharing a patrol car, a relative
+    // driving the ill to hospital, a household outing. Exactly one car is spawned (never one per rider); the
+    // driver drives, passengers are carried, and the car waits at the curb until everyone has boarded (the
+    // board window) before departing. Passengers beyond the car's seats are dropped (the caller should cap; a
+    // second car for a big household is a future refinement). Returns the spawned car (null if it couldn't
+    // spawn). The driver MUST be a valid driver (canDrive) — the caller/producer guarantees that.
+    public startGroupRide(driver: Person, passengers: Person[], destination: Building): Vehicle | null {
+        const field = Game.field;
+        if (!field || !destination.getEntrance()) {
+            return null;
+        }
+        const riders = passengers.slice(0, Vehicle.SEAT_CAPACITY - 1); // driver + up to capacity-1 passengers
+        this.narrateRide(driver, riders, destination);
+        const bodyPosition = driver.getPosition();
+        const currentBuilding = driver.getCurrentBuilding();
+        const originRoadTile = currentBuilding
+            ? field.getAdjacentRoadTile(currentBuilding)
+            : (bodyPosition ? field.nearestRoadTile(bodyPosition) : null);
+        const streetSpot = originRoadTile ? Game.tileToPixelPosition(originRoadTile) : bodyPosition;
+        const car = field.spawnVehicle(streetSpot ?? destination.getEntrance());
+        car.setControlled(true);
+        car.setRideExpectations(1 + riders.length, GROUP_RIDE_BOARD_WINDOW_FRAMES);
+        driver.setVehicle(car, true);
+        driver.setDestination(destination);
+        for (const passenger of riders) {
+            passenger.setVehicle(car, false);
+            passenger.setDestination(destination);
+        }
+        return car;
+    }
+
+    // Narrates a coordinated ride (task 130 Phase D, direction-aware since 131) so the log/feed read the
+    // TRUTH — "Drove Ana to school", "Picked up Ana from school", "Was driven home from the hospital" — rather
+    // than each rider silently teleporting. Purpose is derived from the ORIGIN + DESTINATION buildings + the
+    // riders: a minor bound FOR a school is a school run, FROM a school back home is a pickup; anyone bound FOR
+    // a hospital is a medical drive, FROM one back home is a discharge; else a plain lift. So the narration
+    // rides the SAME election/carpool path that already forms the ride — no separate producer needed for the
+    // behavior to read. Manual, effect-free texture events invoked live-only (bootstrap/the generator never
+    // call startGroupRide), so the off-map RNG stream and the committed asset are untouched. Best-effort: a
+    // missing engine/pool no-ops silently.
+    private narrateRide(driver: Person, riders: Person[], destination: Building): void {
+        const engine = Game.eventEngine;
+        const population = Game.population;
+        if (!engine || !population || riders.length === 0) {
+            return;
+        }
+        const driverId = driver.social.getPersonId();
+        if (!driverId) {
+            return;
+        }
+        const state = population.getState();
+        const tick = Game.clock?.getCurrentTick() ?? 0;
+        const ticksPerYear = Game.clock?.getTicksPerYear() ?? DEFAULT_POPULATION_PARAMS.ticksPerYear;
+        const cause = { source: 'system' as const, causationId: null };
+        const firstRiderId = riders[0]?.social.getPersonId();
+        const blueprintOf = (b: Building | null): string | undefined =>
+            b instanceof Workplace ? b.getBusiness()?.blueprintKey : undefined;
+        const destBlueprint = blueprintOf(destination);
+        const originBlueprint = blueprintOf(driver.getCurrentBuilding());
+        const goingHome = destination instanceof House;
+        const hasMinor = riders.some(r => r.social.getAge() < ADULT_AGE_YEARS);
+
+        // One pair of narrated events: the driver's side (with the first rider as {target}) + each rider's side.
+        const narrate = (driverEvent: string, riderEvent: string): void => {
+            if (firstRiderId) {
+                engine.invoke(state, driverEvent, driverId, tick, ticksPerYear, cause, {}, {}, { target: firstRiderId });
+            }
+            for (const rider of riders) {
+                const rid = rider.social.getPersonId();
+                if (rid) {
+                    engine.invoke(state, riderEvent, rid, tick, ticksPerYear, cause);
+                }
+            }
+        };
+
+        if (destBlueprint === 'school' && hasMinor) {
+            narrate('drove_kids_to_school', 'rode_to_school');
+        } else if (originBlueprint === 'school' && goingHome && hasMinor) {
+            narrate('picked_up_kids_from_school', 'rode_home_from_school');
+        } else if (destBlueprint === 'hospital') {
+            narrate('drove_relative_to_hospital', 'was_driven_to_hospital');
+        } else if (originBlueprint === 'hospital' && goingHome) {
+            narrate('drove_relative_home_from_hospital', 'was_driven_home_from_hospital');
+        } else {
+            narrate('gave_someone_a_ride', 'caught_a_ride'); // an outing, a carpool, a plain lift
+        }
     }
 
     public setupCar(vehicle: Vehicle): void {

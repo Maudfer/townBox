@@ -382,6 +382,89 @@ describe('walk(): real per-frame movement', () => {
     });
 });
 
+// Seeded, loiter-biased ambulatory wander (task 128). A path is always available (any goal is reachable),
+// so every pick commits and we can read the chosen destination straight off currentDestination.
+describe('updateDestination(): seeded, loiter-biased wander', () => {
+    let warnSpy: jest.SpyInstance;
+    beforeEach(() => { warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {}); });
+    afterEach(() => { warnSpy.mockRestore(); });
+
+    const alwaysReachable = { findPath: () => [new Road(1, 1, null)] } as unknown as PathFinder;
+
+    function ambulatoryPerson(personId: string): Person {
+        const p = new Person(0, 0);
+        p.social.setPersonId(personId);
+        return p;
+    }
+
+    // Reads which destination key a single wander pick chose, resetting so the next call picks fresh.
+    function pickOnce(p: Person, destinations: Set<string>, wander: { loiter: Set<string>; seed: number; tick: number }): string {
+        (p as any).currentDestination = null;
+        (p as any).wanderRetryFrames = 0;
+        p.updateDestination(new Road(0, 0, 'road'), destinations, alwaysReachable, wander);
+        const dest = (p as any).currentDestination as { row: number; col: number } | null;
+        return dest ? `${dest.row}-${dest.col}` : '';
+    }
+
+    test('biases picks toward reachable loiter nodes when a wander context supplies them', () => {
+        const loiter = new Set<string>(['5-5', '6-6']);
+        // A dozen ordinary road anchors plus the two loiter curbs — a uniform pick would land on loiter ~14%.
+        const destinations = new Set<string>([...loiter, '2-3', '2-4', '2-5', '2-6', '2-7', '3-3', '3-4', '3-5', '3-6', '3-7', '4-3', '4-4']);
+        const p = ambulatoryPerson('walker-1');
+
+        let loiterHits = 0;
+        const samples = 400;
+        for (let tick = 0; tick < samples; tick++) {
+            const key = pickOnce(p, destinations, { loiter, seed: 12345, tick });
+            if (loiter.has(key)) { loiterHits++; }
+        }
+
+        // With LOITER_BIAS 0.65 the loiter share sits well above the ~14% a uniform draw would give.
+        expect(loiterHits / samples).toBeGreaterThan(0.5);
+    });
+
+    test('falls back to the full roam set when no loiter node is supplied', () => {
+        const destinations = new Set<string>(['2-3', '2-4', '2-5', '3-3', '3-4']);
+        const p = ambulatoryPerson('walker-2');
+        const hits = new Set<string>();
+        for (let tick = 0; tick < 200; tick++) {
+            hits.add(pickOnce(p, destinations, { loiter: new Set(), seed: 42, tick }));
+        }
+        // Every pick is a real member of the roam set, and the wander explores more than one spot.
+        for (const key of hits) { expect(destinations.has(key)).toBe(true); }
+        expect(hits.size).toBeGreaterThan(1);
+    });
+
+    test('the pick is deterministic per (seed, tick, person) across two fresh runs', () => {
+        const loiter = new Set<string>(['5-5', '6-6']);
+        const destinations = new Set<string>([...loiter, '2-3', '2-4', '2-5', '3-3', '3-4', '4-4']);
+
+        const runOne: string[] = [];
+        const a = ambulatoryPerson('walker-3');
+        for (let tick = 0; tick < 30; tick++) { runOne.push(pickOnce(a, destinations, { loiter, seed: 777, tick })); }
+
+        const runTwo: string[] = [];
+        const b = ambulatoryPerson('walker-3'); // same id, same seed, fresh counter
+        for (let tick = 0; tick < 30; tick++) { runTwo.push(pickOnce(b, destinations, { loiter, seed: 777, tick })); }
+
+        expect(runTwo).toEqual(runOne);
+    });
+
+    test('different people diverge under the same seed and tick', () => {
+        const destinations = new Set<string>(['2-3', '2-4', '2-5', '3-3', '3-4', '4-4', '5-5', '6-6']);
+        const a = ambulatoryPerson('alice');
+        const b = ambulatoryPerson('bob');
+        const picksA: string[] = [];
+        const picksB: string[] = [];
+        for (let tick = 0; tick < 30; tick++) {
+            picksA.push(pickOnce(a, destinations, { loiter: new Set(), seed: 9, tick }));
+            picksB.push(pickOnce(b, destinations, { loiter: new Set(), seed: 9, tick }));
+        }
+        // Two people on the same street at the same instant don't march in lockstep.
+        expect(picksA).not.toEqual(picksB);
+    });
+});
+
 describe('setNextTarget()', () => {
     test('does nothing with an empty path', () => {
         const p = new Person(0, 0);

@@ -43,6 +43,13 @@ export default class BootstrapWorld implements WorldAdapter {
         }
     }
 
+    // Physical co-location (task 131 follow-up). Off-map the world is town-wide abstract (the sanctioned
+    // seam): everyone at 'home' shares one logical place, so this stays the existing sameLocation semantics
+    // rather than LiveWorld's concrete per-building check.
+    coLocated(a: PersonId, b: PersonId): boolean {
+        return sameLocation(this.locationOf(a), this.locationOf(b));
+    }
+
     peopleAt(location: LogicalLocation): PersonId[] {
         count('world.peopleAt'); // perf: co-location queries — social hook rolls its RNG gate BEFORE calling (task 079)
         const ids: PersonId[] = [];
@@ -63,16 +70,19 @@ export default class BootstrapWorld implements WorldAdapter {
     }
 
     requestTransition(personId: PersonId, target: LogicalLocation, tick: number, causationId: number | null): TransitionHandle {
+        // Reach a PERSON (task 131 follow-up): off-map there is no travel — the pursuer is logically WITH the
+        // target this tick, so resolve to the target's OWN current location (never store a 'person' location).
+        const resolved: LogicalLocation = target.kind === 'person' ? this.locationOf(target.personId) : target;
         const handle: TransitionHandle = {
             id: this.nextHandleId++,
             personId,
-            target,
+            target: resolved,
             status: 'arrived', // no visual layer to wait for — the person is logically there this tick
             requestedAtTick: tick,
             resolvedAtTick: tick,
             causationId,
         };
-        this.locations.set(personId, target);
+        this.locations.set(personId, resolved);
         this.transitions.push(handle);
         return handle;
     }

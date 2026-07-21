@@ -1,6 +1,7 @@
 import GameManager from 'game/GameManager';
 import PathFinder from 'game/agents/PathFinder';
 import Vehicle from 'game/agents/Vehicle';
+import { SeededRandom, hashStringToSeed } from 'util/random';
 import SocialLife from 'game/population/SocialLife';
 import WorkLife from 'game/population/WorkLife';
 import Building from 'game/world/Building';
@@ -35,6 +36,20 @@ const LOCOMOTION_SPEEDS: Record<LocomotionKind, number> = {
     chase: BASE_WALK_SPEED * 2.5, // the police premium — closes on a fleeing suspect
 };
 
+// Seeded, loiter-biased ambulatory wander (task 128). `loiter` is the gathering-venue curb subset of the
+// roam targets; `seed`/`tick` seed the pick so WHICH destination a walker chooses is deterministic per
+// (worldSeed, tick, person) — live arrival timing stays frame-paced (a best-effort, not a byte-guarantee,
+// as the task notes). Absent (debug test people) → the legacy unseeded building wander.
+export type WanderContext = {
+    loiter: Set<string>;
+    seed: number;
+    tick: number;
+};
+// How often an ambulatory walk aims for a loiter node (a park/beach/bar curb) rather than an arbitrary
+// road anchor, when any loiter node is reachable. High enough that street life visibly congregates at
+// plausible spots, low enough that people still stroll the streets between them.
+const LOITER_BIAS = 0.65;
+
 export default class Person {
     public social: SocialLife;
     public work: WorkLife;
@@ -51,6 +66,10 @@ export default class Person {
     private insideBuilding: boolean;
 
     private vehicle: Vehicle | null;
+    // Whether this person DRIVES their current vehicle (task 130 ridesharing). A ride's driver sets the car's
+    // destination and its presence lets the car move; a passenger just boards and is carried. Default true —
+    // a normal solo commute drives its own car.
+    private isDriverOfVehicle = true;
     private destinationBuilding: Building | null;
     // The building the person is currently in/at (home or workplace). Set on arrival (and at logical
     // placement — materialization, load, rehousing); null means outdoors/in transit (W8).
@@ -103,18 +122,23 @@ export default class Person {
         Game = gameManager;
     }
 
-    setVehicle(vehicle: Vehicle): void {
+    setVehicle(vehicle: Vehicle, asDriver = true): void {
         // A live link never gets silently overwritten (W8 / proposal simulation-aliveness-3 P0-2.1): the
         // audit found 148 orphaned commute cars in a month — every mid-flight re-plan minted one. The old
         // car is properly despawned (occupant cleared so no phantom driver) before the new link lands.
+        // A shared ride passes asDriver=false for passengers — they board the SAME car but don't drive it,
+        // and the guard below never despawns a car they're merely joining (only a DIFFERENT prior link).
         if (this.vehicle && this.vehicle !== vehicle) {
-            if (this.vehicle.isOccupied()) {
-                this.vehicle.disembark();
-            }
+            this.vehicle.disembark(this);
             this.vehicle.setControlled(false);
-            Game.field?.removeVehicle(this.vehicle);
+            Game.field?.removeVehicle(this.vehicle); // ejects any remaining occupants (ridesharing)
         }
         this.vehicle = vehicle;
+        this.isDriverOfVehicle = asDriver;
+    }
+
+    isDriver(): boolean {
+        return this.isDriverOfVehicle;
     }
 
     getVehicle(): Vehicle | null {
@@ -130,23 +154,41 @@ export default class Person {
         }
         if (this.vehicle) {
             // Boarded (EnteringCar → Driving): the person is "inside" the car — step out where it stands.
-            if (this.vehicle.isOccupied()) {
+            if (this.vehicle.isAboard(this)) {
                 const carPosition = this.vehicle.getPosition();
                 if (carPosition) {
                     this.x = carPosition.x;
                     this.y = carPosition.y;
                 }
-                this.vehicle.disembark();
+                this.vehicle.disembark(this);
                 this.setIndoors(false);
             }
             this.vehicle.setControlled(false);
-            Game.field?.removeVehicle(this.vehicle);
+            Game.field?.removeVehicle(this.vehicle); // ejects any remaining occupants (ridesharing)
             this.vehicle = null;
         }
         this.destinationBuilding = null;
         this.path = [];
         this.currentDestination = null;
         this.travelStep = TravelStep.Idle;
+    }
+
+    // Ejected from a vanishing car (task 130 ridesharing): step out at the car's position with the sprite
+    // restored, disembark, and clear the link to this car. Called by Field.removeVehicle for EVERY occupant
+    // (driver and passengers) so nobody is left invisible-inside a despawned car — the W8 contract for N
+    // riders. Idempotent; only touches vehicle/position state (a passenger's stalled ride re-plans elsewhere).
+    ejectFromVehicle(vehicle: Vehicle, position: PixelPosition | null): void {
+        if (vehicle.isAboard(this)) {
+            vehicle.disembark(this);
+        }
+        if (position) {
+            this.x = position.x;
+            this.y = position.y;
+        }
+        this.setIndoors(false);
+        if (this.vehicle === vehicle) {
+            this.vehicle = null;
+        }
     }
 
     setDirection(direction: Direction): void {
@@ -170,6 +212,25 @@ export default class Person {
     setDestination(building: Building): void {
         this.destinationBuilding = building;
         this.travelStep = TravelStep.ExitingBuilding;
+    }
+
+    // A DIRECTED outdoor walk to a specific tile (task 131 follow-up): unlike setDestination (which commutes
+    // to a building) or the ambulatory roam (which wanders road anchors), this heads straight for a point on
+    // the street — the piece that was missing for "walk over to that person". No building destination, so
+    // update() drives it through walk() (the else branch); on arrival walk() clears the target and the body
+    // stops. The caller (Field.walkPersonTo) has already stepped the person out of any building.
+    walkOutdoorsTo(currentTile: Tile, targetTile: TilePosition, pathFinder: PathFinder): void {
+        this.destinationBuilding = null;
+        this.travelStep = TravelStep.Idle;
+        this.setDestinationTile(currentTile, targetTile, pathFinder);
+    }
+
+    // Is the body currently travelling — a commute to a building or a directed outdoor walk with a live
+    // target (task 131 follow-up)? Distinct from isIdle(), which reads true DURING an outdoor walk (a directed
+    // walk leaves travelStep at Idle and sets no destinationBuilding). Pursuit uses this to avoid re-issuing a
+    // fresh leg every tick while the pursuer is already on its way.
+    isEnRoute(): boolean {
+        return this.destinationBuilding !== null || this.currentDestination !== null;
     }
 
     // Where the travel machine is currently headed (W9: demolition ejects people heading TO the doomed
@@ -350,8 +411,11 @@ export default class Person {
     // Frames left before the next wander pick after an unreachable one (W8 follow-up) — retrying every
     // frame would hammer A* from a spot that may simply have no route this instant.
     private wanderRetryFrames = 0;
+    // Monotonic per-person counter folded into the seeded wander stream (task 128) so successive picks in
+    // the same tick differ; never serialized (outdoor pixel position is not sim state).
+    private wanderPick = 0;
 
-    updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder): void {
+    updateDestination(currentTile: Tile, destinations: Set<string>, pathFinder: PathFinder, wander?: WanderContext): void {
         if (this.currentDestination) {
             return;
         }
@@ -365,8 +429,24 @@ export default class Person {
             return;
         }
 
-        const destinationArray = Array.from(destinations);
-        const destinationKey = Phaser.Math.RND.pick(destinationArray);
+        // Loiter-biased, seeded pick (task 128). When a wander context is supplied (ambulatory residents),
+        // prefer a reachable gathering-venue curb and draw from a deterministic per-person stream; debug
+        // test people fall back to the legacy unseeded uniform building pick.
+        const personId = this.social.getPersonId();
+        let destinationKey: string;
+        if (wander && personId) {
+            const rng = new SeededRandom(wander.seed)
+                .fork(hashStringToSeed(personId))
+                .fork(wander.tick)
+                .fork(this.wanderPick++);
+            const loiterArray = Array.from(wander.loiter).filter(key => destinations.has(key));
+            const source = loiterArray.length > 0 && rng.chance(LOITER_BIAS)
+                ? loiterArray
+                : Array.from(destinations);
+            destinationKey = rng.pick(source);
+        } else {
+            destinationKey = Phaser.Math.RND.pick(Array.from(destinations));
+        }
         const [destinationRow, destinationCol] = destinationKey.split('-').map(Number);
         if (!destinationRow || !destinationCol) {
             return;
@@ -487,16 +567,33 @@ export default class Person {
                 // its occupant (drive() refuses to move an empty car), and the car is routed to the STREET in
                 // front of the destination — cars stop on the road, never inside a footprint (anchor fallback
                 // for legacy/test worlds with no adjacent road).
+                if (this.vehicle && this.vehicle.hasDeparted() && !this.vehicle.isAboard(this)) {
+                    // The car already left without me (task 131 follow-up): a shared ride whose board window
+                    // lapsed, or any car now in motion. Never leap into a moving car — abandon the boarding and
+                    // continue on foot (the body is on the street; the travel machine falls back to idle so the
+                    // Brain re-plans). Don't touch the car — its driver + other riders keep going.
+                    this.vehicle = null;
+                    this.setIndoors(false);
+                    this.destinationBuilding = null;
+                    this.currentDestination = null;
+                    this.path = [];
+                    this.travelStep = TravelStep.Idle;
+                    break;
+                }
                 if (this.vehicle) {
-                    this.vehicle.board();
+                    // Board by role (task 130): the driver drives; a passenger just rides. Only the DRIVER
+                    // routes the car — a passenger boarding the same car must not overwrite/duplicate its route.
+                    this.vehicle.board(this, this.isDriverOfVehicle);
                     this.setIndoors(true);
-                    const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
-                    const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
-                        ?? this.destinationBuilding.getPosition();
-                    if (vehicleTile && destTile) {
-                        const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
-                        if (tile) {
-                            this.vehicle.setDestinationTile(tile, destTile, pathFinder);
+                    if (this.isDriverOfVehicle) {
+                        const vehicleTile = Game.pixelToTilePosition(this.vehicle.getPosition());
+                        const destTile = Game.field?.getAdjacentRoadTile(this.destinationBuilding)
+                            ?? this.destinationBuilding.getPosition();
+                        if (vehicleTile && destTile) {
+                            const tile = Game.field!.getTile(vehicleTile.row, vehicleTile.col);
+                            if (tile) {
+                                this.vehicle.setDestinationTile(tile, destTile, pathFinder);
+                            }
                         }
                     }
                 }
@@ -517,7 +614,7 @@ export default class Person {
                         this.x = carPosition.x;
                         this.y = carPosition.y;
                     }
-                    this.vehicle.disembark();
+                    this.vehicle.disembark(this);
                     this.setIndoors(false);
                     const carTilePos = Game.pixelToTilePosition(this.vehicle.getPosition());
                     if (carTilePos) {
@@ -541,8 +638,11 @@ export default class Person {
                 this.setIndoors(true);
                 // Record where we now are (home or workplace) for the commute scheduler.
                 this.currentBuilding = this.destinationBuilding;
-                // Park-and-despawn the commute car: drop it from the field and clear the link so no sprite or
-                // update entry leaks.
+                // On-demand car (task 130, revert of the 129 persistence): the commute car is despawned as the
+                // driver ENTERS the destination — the desired visual (a car appears when someone leaves to
+                // drive, vanishes when they arrive), no parked cars accumulating. The driver already stepped
+                // out in ExitingCar; removeVehicle ejects any remaining occupants (ridesharing, task 130) and
+                // clears their sprites, so nothing is left invisible-inside a vanished car.
                 if (this.vehicle) {
                     Game.field?.removeVehicle(this.vehicle);
                     this.vehicle.setControlled(false);
@@ -579,7 +679,7 @@ export default class Person {
         return this.ambulatory;
     }
 
-    update(currentTile: Tile, timeDelta: number, destinations: Set<string>, pathFinder: PathFinder): void {
+    update(currentTile: Tile, timeDelta: number, destinations: Set<string>, pathFinder: PathFinder, wander?: WanderContext): void {
         if (this.destinationBuilding) {
             this.processTravel(currentTile, timeDelta, pathFinder);
         } else {
@@ -587,7 +687,7 @@ export default class Person {
             // Debug test people wander; residents stay put until dispatched (commute, task 006) — unless
             // their current activity is ambulatory (task 093): joggers jog, strollers stroll, visibly.
             if (this.wander || this.ambulatory) {
-                this.updateDestination(currentTile, destinations, pathFinder);
+                this.updateDestination(currentTile, destinations, pathFinder, wander);
             }
         }
     }

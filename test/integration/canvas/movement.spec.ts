@@ -65,6 +65,10 @@ async function driveCommute(page: Page, personId: string, homeKey: string): Prom
 
 test.describe('movement & commute', () => {
     test('an employed resident commutes to work and back home (full round trip)', async ({ page }) => {
+        // A full round trip steps the sim tick-by-tick with per-chunk CDP samples — hundreds of round-trips
+        // that finish comfortably in ~30s locally but can edge past the 60s default on a slow CI runner
+        // (pre-existing flakiness). Give it headroom rather than racing the clock.
+        test.setTimeout(150_000);
         await bootFixture(page, 'commuter');
         const employed = (await people(page)).find(p => p.jobTitle);
         expect(employed, 'commuter fixture should have an employed adult').toBeTruthy();

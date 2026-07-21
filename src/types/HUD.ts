@@ -26,6 +26,10 @@ export interface WindowProps {
     header?: React.ReactNode;
     footer?: React.ReactNode;
     initialSize?: WindowSize;
+    // Stacking order + focus (task 131 follow-up #2): the HUD assigns each window a z; interacting with a
+    // window (click or drag) calls onFocus to bring it to the front.
+    z?: number;
+    onFocus?: () => void;
     onClose?: (index: number) => void;
     onResize?: RndResizeCallback;
 }
@@ -50,6 +54,8 @@ export enum WindowTypes {
 };
 
 export type WindowData = {
+    id: string;   // stable React key + focus handle (task 131 follow-up #2)
+    z: number;    // stacking order — higher is in front
     type: WindowTypes;
     data: WindowPayload;
 };

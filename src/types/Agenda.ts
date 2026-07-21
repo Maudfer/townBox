@@ -21,8 +21,6 @@ export interface AgendaEntry {
     prerequisites?: Predicate;
     // The routine template that produced this entry (dedup: one pending entry per routine per person).
     routineId?: string;
-    // Joint plans (D3): mirrored entries share a link id; the companion's id names who to meet.
-    linkId?: string;
     causationId: number | null;
     source: string;         // which producer enqueued it (diagnostics)
 }
@@ -41,7 +39,6 @@ export interface AgendaWriter {
 export interface AgendaAccess extends AgendaWriter {
     dueEntriesOf(personId: string, tick: number, hasAction: (actionId: string, query?: { withinTicks?: number; minCount?: number }) => boolean): AgendaEntry[];
     hasPendingRoutine(personId: string, routineId: string, tick: number): boolean;
-    entriesByLink(linkId: string): AgendaEntry[];
     removeEntry(id: string): void;
     removePerson(personId: string): void;
 }

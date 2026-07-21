@@ -2,7 +2,24 @@
 
 - **Type:** Feature / Simulation + Visual
 - **Labels:** `simulation`, `vehicles`, `sprites`, `save`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V1 stretch)
+- **Status:** ⛔ Reverted — landed briefly (implemented + live-verified in the observation pass), then
+  **reverted by [task 130](130-ridesharing-and-on-demand-cars_DONE.md)** in the same PR: persistent parked cars
+  read as abandoned and the maintainer preferred on-demand spawn/despawn. Task 130 restores V1's on-demand
+  car (spawn as the driver leaves the origin, despawn as they enter the destination) and builds coordinated
+  ridesharing on top. The description below records what 129 did before it was reverted. A commuter's car
+  used to **park** on arrival (`Person.processTravel` `Arrived`
+  disembarks but keeps it linked + controlled instead of despawning) and is **re-boarded** on the next trip
+  (`City.startCommute` reuses the owner's parked car when it is near the body; a car stranded far away — the
+  owner walked off and now drives from elsewhere — is released via `Person.releaseVehicle` and a fresh one
+  spawns at the origin). A mid-drive (occupied) car is NOT reused — that path keeps the W8 148-car-leak
+  despawn (`setVehicle`). `Field.removePerson` despawns the owner's parked car; a restored linked car is
+  marked controlled on load (`SaveManager`) so it doesn't wander (parked cars re-derive across save/load —
+  the task's allowed option, no save-version bump). **Live-verified:** across two in-game days the vehicle
+  count stayed bounded (1–5, no leak), drivers retained parked cars (`occupied:false, controlled:true`,
+  linked), and **every W8 sprite invariant read zero at every sample** (orphanControlledVehicles /
+  occupiedDriverlessVehicles / orphanSprites). Known residual: N driving adults in one household park N cars
+  at the same curb (visual overlap; bounded), and the walk-away-then-drive-elsewhere case still spawns a
+  fresh car — both documented, minor.
 - **Depends on:** V1 (the trip planner, landed); V8 (the sprite invariants, landed)
 
 ## The problem

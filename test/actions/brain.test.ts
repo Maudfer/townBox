@@ -174,6 +174,40 @@ describe('free-time selection', () => {
         expect(countOut()).toBeLessThan(healthyOut);
     });
 
+    test('a homeless person never free-time-picks a home-located action (task 127)', () => {
+        const { engine, brain, makeDeps } = harness();
+        const manifest = DEFAULT_ACTION_MANIFEST;
+        const homePicks = (): number => {
+            let home = 0;
+            for (let tick = 200; tick < 320; tick++) {
+                const pick = brain.selectFreeTimeAction('a', makeDeps(tick));
+                if (pick && manifest[pick]?.location === 'home') {
+                    home += 1;
+                }
+            }
+            return home;
+        };
+        // Housed: home-located domestic actions (spending_time_at_home, …) are proposed sometimes.
+        expect(homePicks()).toBeGreaterThan(0);
+
+        // Now 'a' has no home — the home-located domestic repertoire is hard-gated out (it would only block
+        // on no-route at the rubble), so it is never proposed.
+        engine.loadOverlayState({ a: { homeless: true } });
+        expect(homePicks()).toBe(0);
+    });
+
+    test('a homeless person still has an outdoor day-shape — picks continue, just not at home (task 127)', () => {
+        const { engine, brain, makeDeps } = harness();
+        engine.loadOverlayState({ a: { homeless: true } });
+        let picks = 0;
+        for (let tick = 200; tick < 320; tick++) {
+            if (brain.selectFreeTimeAction('a', makeDeps(tick))) {
+                picks += 1;
+            }
+        }
+        expect(picks).toBeGreaterThan(0); // they still do things — outdoor/errand ones, not TV at the rubble
+    });
+
     test('hard gates hold: read_book is never picked without a book in Possessions', () => {
         const { brain, makeDeps, inventory } = harness();
         for (let tick = 100; tick < 140; tick++) {

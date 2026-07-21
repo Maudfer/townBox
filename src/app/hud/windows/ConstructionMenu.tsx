@@ -19,11 +19,11 @@ interface ConstructionEntry {
 
 const ENTRIES = (constructionConfig as { entries: ConstructionEntry[] }).entries;
 
-const INITIAL_SIZE = { width: 380, height: 320 };
+const INITIAL_SIZE = { width: 400, height: 415 };
 
 
 
-const ConstructionMenu: React.FC<DetailsWindowProps> = ({ game, index, onClose }) => {
+const ConstructionMenu: React.FC<DetailsWindowProps> = ({ game, index, z, onFocus, onClose }) => {
     const pick = (entry: ConstructionEntry): void => {
         game.emit('constructionSelected', {
             tool: entry.tool === 'house' ? Tool.House : Tool.Work,
@@ -34,7 +34,7 @@ const ConstructionMenu: React.FC<DetailsWindowProps> = ({ game, index, onClose }
     };
 
     return (
-        <Window game={game} index={index} title="Construction" testId="window-construction" initialSize={INITIAL_SIZE} onClose={onClose}>
+        <Window game={game} index={index} z={z} onFocus={onFocus} title="Construction" testId="window-construction" initialSize={INITIAL_SIZE} onClose={onClose}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: 8 }} data-testid="construction-grid">
                 {ENTRIES.map(entry => (
                     <button

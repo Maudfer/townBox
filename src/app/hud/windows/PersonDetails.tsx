@@ -23,7 +23,7 @@ import { DetailsWindowProps } from 'types/HUD';
 import { formatTickAtMinute } from 'util/time';
 import { resolveLogParams, renderLabelSegments } from 'hud/logEntities';
 
-const INITIAL_SIZE = { width: 360, height: 460 };
+const INITIAL_SIZE = { width: 800, height: 700 };
 const REFRESH_MS = 1500;
 const MAX_LOG_ENTRIES = 40;
 
@@ -68,7 +68,7 @@ function locationHint(key: string | undefined): string | null {
     return null;
 }
 
-const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const person = data as Person;
 
     // Re-read the live Person/engine state on a light interval so age and the event log stay current.
@@ -137,8 +137,8 @@ const PersonDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) =
     const relationshipRows = Object.entries(overview.relationships).filter(([, names]) => !!names);
 
     return (
-        <Window game={game} index={index} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div className="person-details" style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
+        <Window game={game} index={index} z={z} onFocus={onFocus} title={person.social.getFullName()} testId="window-person" initialSize={INITIAL_SIZE} onClose={onClose}>
+            <div className="person-details" style={{ padding: '4px 8px' }}>
                 <section>
                     {nowLine && (
                         <p data-testid="person-now-line">

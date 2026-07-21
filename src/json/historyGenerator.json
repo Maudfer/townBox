@@ -2,7 +2,7 @@
     "seed": 1337,
     "founderCount": 100,
     "recordThreshold": 250,
-    "recordYears": 100,
+    "recordYears": 90,
     "ticksPerYear": 8640,
     "daysPerStep": 1,
     "warmMarginYears": 40,

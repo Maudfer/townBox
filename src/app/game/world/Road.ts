@@ -4,6 +4,9 @@ import { Curb, Lane, Direction } from 'types/Movement';
 import { NeighborMap } from 'types/Neighbor';
 import { PixelPosition } from 'types/Position';
 export default class Road extends Tile {
+    // The single depth every road draws at — below all buildings ((row+1)*10 >= 10) and people, above soil (0).
+    static readonly DEPTH = 1;
+
     private curb: Curb;
     private lane: Lane;
 
@@ -13,8 +16,13 @@ export default class Road extends Tile {
         this.lane = null;
     }
 
+    // Roads sit on ONE constant depth, always below every building and person and above the grass (task 131
+    // follow-up #5). They never overlap each other, so they need no per-row ordering — and the old row*10
+    // meant a road SOUTH of a walking person out-sorted them, drawing the road over the person until they
+    // reached it (the momentary clip). Buildings and people keep the (row+1)*10 "more south = more on top"
+    // rule; roads are flat ground and must never occlude anyone. 1 sits above soil (0), below buildings (>=10).
     calculateDepth(): number {
-        return (this.row * 10);
+        return Road.DEPTH;
     }
 
     calculateCurb(cellParams: CellParams, pixelCenter: PixelPosition): void {

@@ -102,8 +102,13 @@ canvas {
     color: #fff;
     text-align: left;
     width: 100%;
+    /* The ONE scroller for a window's content (task 131 follow-up): flex-fill the space between header and
+       footer (min-height:0 lets it actually shrink) and scroll here. Detail windows must NOT add their own
+       overflow container, or you get the double scrollbar. Replaces height:-webkit-fill-available, which
+       overflowed the flex column and produced a second scrollbar. */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: auto;
-    height: -webkit-fill-available;
     background-color: #0f353b;
     box-shadow: inset 0 0 5px #00000099;
 }
@@ -216,6 +221,18 @@ canvas {
 
 .house-details {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The resident list keeps its own space at the top and stays ABOVE the family-tree SVG (task 131 follow-up
+   #3): the larger 800×700 house window sizes the SVG big enough that, on a shorter viewport where the window
+   is capped, it used to overflow and intercept clicks on the resident links. */
+.house-residents {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 auto;
+    background-color: #0f353b;
 }
 
 #family-tree {
@@ -224,7 +241,9 @@ canvas {
     align-content: center;
     justify-content: center;
     flex-wrap: wrap;
-    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
 }
 
 #family-tree circle {
@@ -315,8 +334,10 @@ canvas {
 
 .city-feed {
     position: absolute;
-    bottom: 20px;
-    left: 20px;
+    /* Upper-right, just below the speed buttons (.time-controls: top 12px + ~30px tall + 10px gap), and
+       right-aligned with them (task 131 follow-up #4). Top-anchored so it grows DOWNWARD when expanded. */
+    top: 52px;
+    right: 12px;
     width: 280px;
     max-height: 40vh;
     display: flex;

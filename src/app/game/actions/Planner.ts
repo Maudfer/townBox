@@ -33,25 +33,36 @@ const SORTED_ROUTINES = Object.entries(ROUTINES_CONFIG).sort(([a], [b]) => a.loc
 // chain ran ~9× per person per tick in the generator's hot band. Bounded by people × routines.
 const adoptionMemo = new Map<string, boolean>();
 
+// Is this person materialized/reachable in the world right now (task 131 follow-up)? A person-located visit
+// to someone NOT present resolves to town-wide 'outside' and strands the visitor standing still "visiting a
+// ghost". Live worlds answer truthfully; bootstrap/logical (and test doubles) have no impl and are town-wide
+// abstract, so they treat everyone as present — no off-map change, the generated asset is untouched.
+function isPresent(deps: HookContext['deps'], id: string): boolean {
+    return deps.ctx.world?.isPresent?.(id) ?? true;
+}
+
 // The strongest real friendship worth a visit (V9), or null. A located visit only happens toward a genuine
-// friend/partner edge above the strength floor — below it the generic company is enough.
-function bestFriendTarget(deps: HookContext['deps'], personId: string): string | null {
+// friend/partner edge above the strength floor — below it the generic company is enough. The target must be
+// present (materialized) — you can't visit someone who isn't here (task 131 follow-up).
+export function bestFriendTarget(deps: HookContext['deps'], personId: string): string | null {
     const social = deps.ctx.markets?.social ?? null;
     const friends = social?.edgesOf(personId, deps.tick)
-        .filter(edge => ['friend', 'close_friend', 'dating', 'engaged'].includes(edge.view.kind) && edge.view.strength >= VISIT_EDGE_MIN_STRENGTH) ?? [];
+        .filter(edge => ['friend', 'close_friend', 'dating', 'engaged'].includes(edge.view.kind)
+            && edge.view.strength >= VISIT_EDGE_MIN_STRENGTH && isPresent(deps, edge.otherId)) ?? [];
     if (friends.length === 0) {
         return null;
     }
     return friends.reduce((top, edge) => edge.view.strength > top.view.strength ? edge : top).otherId;
 }
 
-// A living close relative to visit (V9), or null — the lowest-id living parent or adult child (deterministic).
-// The spouse is excluded (you cohabit, you don't "visit"); an unresolvable/off-map target simply cancels.
-function bestRelativeTarget(deps: HookContext['deps'], personId: string): string | null {
+// A living, PRESENT close relative to visit (V9), or null — the lowest-id present living parent or adult
+// child (deterministic). The spouse is excluded (you cohabit, you don't "visit"); an off-map / unmaterialized
+// relative is skipped so the visit never resolves to standing still on the street (task 131 follow-up).
+export function bestRelativeTarget(deps: HookContext['deps'], personId: string): string | null {
     const pool = deps.state.people;
     const spouse = spouseAt(pool, personId, deps.tick);
     const kin = [...parentsOf(pool, personId), ...childrenOf(pool, personId)]
-        .filter(id => id !== personId && id !== spouse && pool[id] && isAliveAt(pool[id]!, deps.tick))
+        .filter(id => id !== personId && id !== spouse && pool[id] && isAliveAt(pool[id]!, deps.tick) && isPresent(deps, id))
         .sort();
     return kin[0] ?? null;
 }
@@ -124,9 +135,9 @@ export const plannerHook: BrainHook = {
                     ? bestFriendTarget(deps, personId)
                     : bestRelativeTarget(deps, personId);
                 if (hostId !== null) {
-                    const linkId = `visit${deps.tick}-${personId}`;
-                    agenda.enqueue({ ...entry, locationOverride: `person:${hostId}`, linkId });
-                    // The host's side (V9): welcomes the visitor at home, linked to the same window.
+                    agenda.enqueue({ ...entry, locationOverride: `person:${hostId}` });
+                    // The host's side (V9): welcomes the visitor at home, over the same window (both entries
+                    // share earliestTick/latestTick, so the scene runs and ends together).
                     agenda.enqueue({
                         personId: hostId,
                         actionId: 'hosting_a_friend_visit',
@@ -134,7 +145,6 @@ export const plannerHook: BrainHook = {
                         enqueuedAtTick: deps.tick,
                         earliestTick: entry.earliestTick,
                         latestTick: entry.latestTick,
-                        linkId,
                         causationId: null,
                         source: 'routine',
                     });
@@ -193,6 +203,9 @@ export const plannerHook: BrainHook = {
             }
             kin.push(...childrenOf(pool, personId), ...parentsOf(pool, personId));
             const sick = kin.sort().find(relativeId => {
+                if (!isPresent(deps, relativeId)) {
+                    return false; // can't sit at the bedside of someone who isn't materialized (task 131 follow-up)
+                }
                 const health = deps.eventEngine!.contextFor(deps.state, relativeId, deps.tick, deps.ticksPerYear).getAttr('health');
                 return typeof health === 'number' && health < SICK_HEALTH_THRESHOLD;
             });

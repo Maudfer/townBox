@@ -312,9 +312,11 @@ export function validateBusinessesStructure(data: unknown, issues: IssueCollecto
             continue;
         }
         checkUnknownKeys(issues, id, blueprint, BLUEPRINT_KEYS);
-        if ('placement' in blueprint && blueprint['placement'] !== 'civic') {
-            // Civic buildings (task 108): placed via the construction menu, never randomly drawn.
-            issues.add(`${id}.placement`, "expected 'civic' (the only placement mode; omit for normal businesses)");
+        if ('placement' in blueprint && blueprint['placement'] !== 'civic' && blueprint['placement'] !== 'amenity') {
+            // Menu-placed buildings: 'civic' (task 108 — police/fire/hospital/…) and 'amenity' (task 123 —
+            // beach/cemetery/park, non-commercial public venues fenced from the random business draw). Both
+            // are placed via the construction menu, never randomly drawn; normal businesses omit the field.
+            issues.add(`${id}.placement`, "expected 'civic' or 'amenity' (menu-placed modes; omit for normal businesses)");
         }
         checkString(issues, `${id}.friendlyName`, blueprint['friendlyName']);
         checkString(issues, `${id}.category`, blueprint['category']);

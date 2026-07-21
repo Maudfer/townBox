@@ -111,6 +111,8 @@ export function locationKey(location: LogicalLocation): string {
             return `building:${location.key}`;
         case 'venue':
             return `venue:${location.venue}`;
+        case 'person':
+            return `person:${location.personId}`; // "reach person X" (task 131 follow-up)
         case 'outside':
             // Cell-scoped outdoors (V2): "outside:<cell>" for a patch of street, plain "outside" for the
             // abstract everywhere (bootstrap; global queries). Equality of these keys IS co-location.
@@ -136,6 +138,9 @@ export function parseLocationKey(key: string): LogicalLocation {
     }
     if (key.startsWith('venue:')) {
         return { kind: 'venue', venue: key.slice('venue:'.length) };
+    }
+    if (key.startsWith('person:')) {
+        return { kind: 'person', personId: key.slice('person:'.length) }; // "reach person X" (task 131 follow-up)
     }
     return { kind: 'outside' };
 }

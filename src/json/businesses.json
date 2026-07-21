@@ -1800,7 +1800,8 @@
                 "base": 1000,
                 "perUnit": 500
             }
-        }
+        },
+        "placement": "amenity"
     },
     "sports_complex": {
         "friendlyName": "Sports Complex",
@@ -1886,7 +1887,8 @@
                 "base": 1200,
                 "perUnit": 700
             }
-        }
+        },
+        "placement": "amenity"
     },
     "park": {
         "friendlyName": "Park",
@@ -1928,7 +1930,8 @@
                 "base": 1300,
                 "perUnit": 700
             }
-        }
+        },
+        "placement": "amenity"
     },
     "jail": {
         "friendlyName": "County Jail",

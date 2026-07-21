@@ -161,21 +161,50 @@ code (see `CLAUDE.md` §5.1). This README is the index.
 | [120](120-generator-perf-byte-identical-pass_DONE.md) | ✅ | [Perf] Byte-identical generator perf pass — flatten the super-linear costs |
 | [121](121-headless-city-systems_DONE.md) | ✅ | [Fix] Headless city systems — the off-map world stops dropping live play's loops |
 | [122](122-live-moved-out-signal-orphan_DONE.md) | ✅ Done | [Fix] Live move-out is orphaned — nothing emits the `movedOut` signal |
-| [123](123-business-draw-coherence.md) | 📋 Planned | [Feature] Business draw coherence — no beach downtown, no duplicate schools |
-| [124](124-evacuation-as-a-scene.md) | ✅ Done (core) | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
-| [125](125-deferred-venue-needs.md) | ✅ Done | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
-| [126](126-guardianship-depth.md) | 📋 Planned | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
-| [127](127-homeless-day-shape-and-domestic-locations.md) | 📋 Planned | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
-| [128](128-street-wander-graph-and-seeded-wander.md) | 📋 Planned | [Feature] Street wander graph + seeded wander — walks that end somewhere |
-| [129](129-persistent-household-cars.md) | 📋 Planned | [Feature] Persistent household cars — park it, don't conjure it |
+| [123](123-business-draw-coherence_DONE.md) | ✅ Done | [Feature] Business draw coherence — no beach downtown, no duplicate schools |
+| [124](124-evacuation-as-a-scene_DONE.md) | ✅ Done (core) | [Feature] Evacuation as a scene — a rally, a conclusion, and kin who notice |
+| [125](125-deferred-venue-needs_DONE.md) | ✅ Done | [Feature] Deferred venue needs — a closed door is a plan, not a shrug |
+| [126](126-guardianship-depth_DONE.md) | ✅ Done (core) | [Feature] Guardianship depth — accompaniment, home-alone care, dependent fan-outs |
+| [127](127-homeless-day-shape-and-domestic-locations_DONE.md) | ✅ Done (core) | [Feature] Homeless day-shape + domestic home-locations — no resting at the rubble |
+| [128](128-street-wander-graph-and-seeded-wander_DONE.md) | ✅ Done | [Feature] Street wander graph + seeded wander — walks that end somewhere |
+| [129](129-persistent-household-cars_REVERTED.md) | ⛔ Reverted | [Feature] Persistent household cars — park it, don't conjure it (reverted by 130) |
+| [130](130-ridesharing-and-on-demand-cars_DONE.md) | ✅ Done | [Feature] On-demand cars + coordinated ridesharing — revert 129, share the ride |
+| [131](131-proactive-ride-producers_DONE.md) | ✅ Done | [Feature] Proactive ride producers — carpools, group outings, narrated return trips (follow-up to 130) |
 
 ## Open work
 
-- **The simulation-aliveness-4 deferred follow-ups (tasks 123–129)** — the workstream remainders the arc
-  consciously held back, several with asset-regeneration/determinism coupling. **124 & 125 landed** on the
-  `task/simulation-aliveness-4` branch (PR #103). The rest (123, 126, 127, 128, 129) are focused follow-ups:
-  126/128 are live-only; **129 wants a live browser for the W8 sprite-invariant check**; **123 & 127**
-  perturb the generator/economy stream and best ride the **asset regeneration**.
+- **The simulation-aliveness-4 deferred follow-ups (tasks 123–129) all landed** on the
+  `task/simulation-aliveness-4` branch (PR #103). 124/125/128 in full; 126/127 "core" (accompaniment and a
+  `sleeping_rough` shelter action deferred, both noted in-file); 123; and 129 (implemented + live-verified in
+  the observation pass). Note: 123 & 127 turned out **asset-byte-unaffected** (the generator's logical world
+  uses a round-robin business roster and elastic off-map housing, so neither the amenity fencing nor the
+  homeless gate fires off-map) — no regeneration needed for them.
+- **Live-play bugs fixed (2026-07-20):** (a) `Field.stampFootprint` registered a structure's destinations/
+  road-anchor key BEFORE tearing down the grass it replaced, and a grid-aligned structure shares that key with
+  the grass — so `destroyStructure` wiped it, leaving `roadAnchors`/`destinations` permanently EMPTY in built
+  towns (V2's street roam had no targets → the audit's persistent entrance-clustering; task 128's loiter nodes
+  never registered); fixed by registering after teardown. (b) The **Pause** button did nothing —
+  `GameManager.emit`'s `if (!payload)` clobbered the falsy `setTimeScale(0)` to `{}`; fixed the guard. (c)
+  **City Services** read "No facility" for placed buildings — `recomputeServices` ran only on `newDay`; now
+  recomputes on placement/teardown. (d) People **stuck at high speed** — `advanceTime` skipped crossed in-game
+  minutes (the per-minute commute-departure pump missed them); now advances in ≤1-minute steps. All verified
+  live / unit-tested.
+- **[Task 130](130-ridesharing-and-on-demand-cars_DONE.md) is done** (agreed subset, same PR): reverted 129's
+  persistent cars to **on-demand** spawn/despawn and built **coordinated ridesharing** — a multi-occupant car
+  that ejects every occupant on despawn, the one-car-per-group `startGroupRide` primitive with a board window,
+  the `canDrive` gate + driver election (kids/severely-ill can't drive, kids can't reach far schools alone,
+  the ill are driven, accompaniment closed), and the **narrated flagships** (a group ride reads "Drove {kid}
+  to school" / "Drove {relative} to the hospital" / "Gave {target} a ride" in the per-person log, derived
+  from the destination + riders and invoked live-only — no asset regeneration forced). The far-school
+  preference is the enrollment sweep's existing nearest-first scoring.
+- **[Task 131](131-proactive-ride-producers_DONE.md) is done** (agreed subset, same PR): the proactive
+  ride-producer layer, delivered more cleanly than the ticket assumed — ONE reactive **opportunistic
+  carpool** (co-located, same-destination people share a car at the departure seam: R3/R5/R6/R9) plus a thin
+  live-only **household-outing co-scheduler** (a weekend family trip to a venue, which the carpool folds into
+  one car; a childless couple rides it as date night). **Direction-aware narration** adds school pickups and
+  hospital discharges to the return leg. R8 (drive the ill/dependent) is the 130-E election, now narrated;
+  **R2 (cruising police carpool) and bespoke R7 are deferred** as distinct features (a new movement model / pure
+  flavor). All live-only → asset-neutral.
 - The recommended balancing tunings from [`docs/proposals/visibility-balancing-notes.md`](../proposals/visibility-balancing-notes.md)
   (task 117), to be applied and validated against a full asset regeneration — the maintainer's pre-merge pass.
 

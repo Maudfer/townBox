@@ -58,6 +58,27 @@
             "tool": "work",
             "blueprint": "school",
             "color": "#d1a24b"
+        },
+        {
+            "id": "park",
+            "label": "Park",
+            "tool": "work",
+            "blueprint": "park",
+            "color": "#5fae5f"
+        },
+        {
+            "id": "beach",
+            "label": "Beach",
+            "tool": "work",
+            "blueprint": "beach",
+            "color": "#e6cf8a"
+        },
+        {
+            "id": "cemetery",
+            "label": "Cemetery",
+            "tool": "work",
+            "blueprint": "cemetery",
+            "color": "#7d8a7d"
         }
     ]
 }

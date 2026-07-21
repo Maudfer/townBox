@@ -121,3 +121,5 @@ bin/
 # meta.json/manifest.json/shards). Dev generations (--dev) and the local dev pointer are never committed.
 src/history/dev/
 src/history/asset.local.json
+
+.investigations/

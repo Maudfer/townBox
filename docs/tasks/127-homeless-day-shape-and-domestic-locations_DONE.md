@@ -2,7 +2,21 @@
 
 - **Type:** Feature / Simulation + Data pass
 - **Labels:** `simulation`, `homeless`, `actions-data`, `generator`, `asset-regen`
-- **Status:** 📋 Planned — deferred from the simulation-aliveness-4 arc (V4 / Appendix-B.1 remainder)
+- **Status:** ✅ Done (core) — landed in the aliveness-4 follow-up batch (PR #103). A **Brain free-time
+  homeless hard-gate**: a person with `homeless == true` never has a `location: 'home'` domestic action
+  proposed for free time — those would only request a transition to a home that resolves to nothing and
+  block on `no_route` tick after tick (the audit's "spending time at home / watching TV at the rubble"). The
+  outdoor repertoire (walks, `looking_for_a_home`, park/bench rest) takes their weight instead — the homeless
+  day-shape. **Correction to the requirements below:** the broad `location: home` data pass was reconsidered
+  and NOT done — the named domestic actions (`watched_tv_show`, `rearranged_possessions`, …) are *discrete*
+  (they ignore `location`), and their real domestic wrappers (`spending_time_at_home`, `sleep`,
+  `resting_at_home_sick`) are ALREADY `location: home` and already block for the homeless, so the hard-gate at
+  selection is the correct and sufficient mechanism (resting/napping location-less actions stay valid
+  outdoors — a homeless person on a bench is coherent). **Asset byte-unaffected:** the generator's logical
+  world has elastic housing (no evictions → `homeless` is never set off-map), so the gate never fires during
+  generation — no regeneration, no perf re-baseline (suites green). **Deferred:** a dedicated
+  `sleeping_rough`/shelter action for the survival-sleep gap (a homeless person still can't satisfy the
+  sleep need without a home) — a small content addition for a future street-life pass.
 - **Depends on:** V4 (`City.interruptStaleHomeAction`, landed); interacts with the asset regeneration
 
 ## The problem

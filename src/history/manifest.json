@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-07-19T06:22:19.143Z",
-  "serial": "20260719032219",
-  "hash": "bd98",
-  "name": "history-20260719032219-bd98",
+  "generatedAt": "2026-07-21T05:49:50.565Z",
+  "serial": "20260721024950",
+  "hash": "24bc",
+  "name": "history-20260721024950-24bc",
   "generator": {
     "script": "scripts/generateHistoryAsset.ts"
   },
@@ -15,13 +15,13 @@
     "argv": [],
     "flags": {}
   },
-  "runtime": "2 h 21 min 48 s",
+  "runtime": "3 h 33 min 14 s",
   "people": {
-    "files": 704,
+    "files": 676,
     "prunedWarmupFiles": 27
   },
   "sizes": {
-    "personBytes": 1663074008,
-    "sectionBytes": 2143112
+    "personBytes": 1591481138,
+    "sectionBytes": 2124296
   }
 }

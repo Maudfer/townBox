@@ -7,7 +7,7 @@
       "seed": 1337,
       "founderCount": 100,
       "recordThreshold": 250,
-      "recordYears": 100,
+      "recordYears": 90,
       "ticksPerYear": 8640,
       "daysPerStep": 1,
       "warmMarginYears": 40,
@@ -38,17 +38,17 @@
       },
       "hotYears": 10
     },
-    "createdAt": "2026-07-19T08:44:07.387Z",
-    "gitCommit": "2021e01",
+    "createdAt": "2026-07-21T09:23:04.490Z",
+    "gitCommit": "374ecce",
     "epochTick": 203712,
-    "endTick": 1067712,
+    "endTick": 981312,
     "ticksPerYear": 8640,
     "stats": {
-      "retainedPeople": 704,
-      "livingAtEnd": 279,
-      "births": 631,
-      "deaths": 452,
-      "medianHistoryLen": 89878,
+      "retainedPeople": 676,
+      "livingAtEnd": 292,
+      "births": 603,
+      "deaths": 411,
+      "medianHistoryLen": 90541.5,
       "trajectory": [
         {
           "year": 0,
@@ -64,51 +64,47 @@
         },
         {
           "year": 30,
-          "living": 275
+          "living": 276
         },
         {
           "year": 40,
-          "living": 271
+          "living": 275
         },
         {
           "year": 50,
-          "living": 266
+          "living": 271
         },
         {
           "year": 60,
-          "living": 289
+          "living": 284
         },
         {
           "year": 70,
-          "living": 294
+          "living": 299
         },
         {
           "year": 80,
-          "living": 269
+          "living": 268
         },
         {
           "year": 90,
-          "living": 266
+          "living": 290
         },
         {
           "year": 100,
-          "living": 263
+          "living": 279
         },
         {
           "year": 110,
-          "living": 280
-        },
-        {
-          "year": 120,
-          "living": 270
+          "living": 283
         }
       ],
-      "runtimeMs": 8507991,
+      "runtimeMs": 12793684,
       "rawBytes": 0,
-      "compressedBytes": 1665217120
+      "compressedBytes": 1593605434
     }
   },
-  "eventLogSeq": 76034086,
+  "eventLogSeq": 74664020,
   "sections": {
     "population": "population.tbz",
     "objects": "objects.tbz",
@@ -403,8 +399,8 @@
     "p311": "person-p311.tbz",
     "p312": "person-p312.tbz",
     "p313": "person-p313.tbz",
-    "p314": "person-p314.tbz",
     "p315": "person-p315.tbz",
+    "p314": "person-p314.tbz",
     "p316": "person-p316.tbz",
     "p317": "person-p317.tbz",
     "p318": "person-p318.tbz",
@@ -791,34 +787,6 @@
     "p699": "person-p699.tbz",
     "p700": "person-p700.tbz",
     "p701": "person-p701.tbz",
-    "p702": "person-p702.tbz",
-    "p703": "person-p703.tbz",
-    "p704": "person-p704.tbz",
-    "p705": "person-p705.tbz",
-    "p706": "person-p706.tbz",
-    "p707": "person-p707.tbz",
-    "p708": "person-p708.tbz",
-    "p709": "person-p709.tbz",
-    "p710": "person-p710.tbz",
-    "p711": "person-p711.tbz",
-    "p712": "person-p712.tbz",
-    "p713": "person-p713.tbz",
-    "p714": "person-p714.tbz",
-    "p715": "person-p715.tbz",
-    "p716": "person-p716.tbz",
-    "p717": "person-p717.tbz",
-    "p718": "person-p718.tbz",
-    "p719": "person-p719.tbz",
-    "p720": "person-p720.tbz",
-    "p721": "person-p721.tbz",
-    "p722": "person-p722.tbz",
-    "p723": "person-p723.tbz",
-    "p724": "person-p724.tbz",
-    "p725": "person-p725.tbz",
-    "p726": "person-p726.tbz",
-    "p727": "person-p727.tbz",
-    "p728": "person-p728.tbz",
-    "p729": "person-p729.tbz",
-    "p730": "person-p730.tbz"
+    "p702": "person-p702.tbz"
   }
 }

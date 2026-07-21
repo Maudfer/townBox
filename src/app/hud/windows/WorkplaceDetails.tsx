@@ -5,10 +5,10 @@ import Window from 'hud/Window';
 import { DetailsWindowProps } from 'types/HUD';
 import { summarizePositions } from 'util/positions';
 
-const INITIAL_SIZE = { width: 360, height: 440 };
+const INITIAL_SIZE = { width: 800, height: 700 };
 const REFRESH_MS = 1500;
 
-const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }) => {
+const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, z, onFocus, onClose }) => {
     const workplace = data as Workplace;
 
     const [, setRefresh] = useState(0);
@@ -26,7 +26,7 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
 
     if (!business) {
         return (
-            <Window game={game} index={index} title="Vacant work building" testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
+            <Window game={game} index={index} z={z} onFocus={onFocus} title="Vacant work building" testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
                 <div style={{ padding: '8px' }}><em>No business operates here.</em></div>
             </Window>
         );
@@ -38,8 +38,8 @@ const WorkplaceDetails: FC<DetailsWindowProps> = ({ game, index, data, onClose }
     const stock = game.inventory?.instancesOwnedBy({ kind: 'business', key: workplace.getIdentifier() }) ?? [];
 
     return (
-        <Window game={game} index={index} title={business.name} testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
-            <div style={{ padding: '4px 8px', overflowY: 'auto', height: '100%' }}>
+        <Window game={game} index={index} z={z} onFocus={onFocus} title={business.name} testId="window-workplace" initialSize={INITIAL_SIZE} onClose={onClose}>
+            <div style={{ padding: '4px 8px' }}>
                 <p><strong>{business.lineOfWork}</strong> &nbsp; <small>size {business.size}</small></p>
                 {balance !== undefined && <p><strong>Balance:</strong> ${balance.toLocaleString()}</p>}
                 {business.lastPnl !== undefined && (

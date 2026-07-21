@@ -85,6 +85,24 @@ describe('Field.build', () => {
         expect(emitted.some(e => e.event === 'workplaceBuilt' && e.payload === tile)).toBe(true);
     });
 
+    // Regression (live-play finding, 2026-07-20): a road/building placed on a supertile anchor shares its key
+    // with the grass footprint it overwrites (grass sits on the same 3k+1 grid). destroyStructure deleted that
+    // shared key AFTER the structure registered it, so roadAnchors/destinations came up permanently EMPTY for
+    // grid-aligned structures — V2's ambulatory street roam silently had NO road targets. The fix registers
+    // the anchor after the overwritten-grass teardown.
+    test('a road placed on a supertile anchor survives the grass teardown and registers in roadAnchors', () => {
+        const { field } = makeGame(15, 15);
+        field.build(buildEvent(Tool.Road, { row: 7, col: 7 }));
+        expect([...(field as unknown as { roadAnchors: Set<string> }).roadAnchors]).toContain('7-7');
+    });
+
+    test('a building placed on a supertile anchor survives the grass teardown and registers in destinations', () => {
+        const { field } = makeGame(15, 15);
+        field.build(buildEvent(Tool.Road, { row: 7, col: 7 }));
+        field.build(buildEvent(Tool.House, { row: 10, col: 7 }));
+        expect([...(field as unknown as { destinations: Set<string> }).destinations]).toContain('10-7');
+    });
+
     test('rejects an invalid building placement (not flush against a road)', () => {
         const { field, emitted } = makeGame(15, 15);
         const before = emitted.length;

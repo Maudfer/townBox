@@ -36,6 +36,14 @@ const BUILDING_SNAP_CAPTURE_TILES = 1.5;
 // How close (in world pixels) the Select cursor must be to a person sprite to pick it (task 026).
 const SELECT_RADIUS_PX = 12;
 
+// Gathering-venue blueprints (task 128 / street wander graph): the curb in front of one of these is a
+// LOITER NODE — an ambulatory walk prefers to end there ("went to sit by the park") instead of at an
+// arbitrary road anchor. The set is the leisure/civic-gathering venues from json/venues.json — places
+// people plausibly congregate — deliberately excluding shops/offices/homes (destinations, not hangouts).
+const GATHERING_BLUEPRINTS = new Set<string>([
+    'park', 'beach', 'bar', 'cafe', 'restaurant', 'cinema', 'gym', 'sports_complex', 'library', 'church',
+]);
+
 let Game: GameManager;
 
 export default class Field {
@@ -48,6 +56,12 @@ export default class Field {
     // Road anchors (V2 / aliveness-4): the roam targets for ambulatory street life, so a walk wanders the
     // streets and ends mid-block instead of terminating at a building entrance (the entrance-cluster fix).
     private roadAnchors: Set<string> = new Set();
+    // Loiter nodes (task 128): the subset of road anchors sitting in front of a gathering venue (park/beach/
+    // bar/…). An ambulatory walk PREFERS these, so people congregate at plausible spots rather than drifting
+    // to arbitrary curb. Recomputed lazily behind a dirty flag — the gathering-building set changes only on
+    // build/teardown/business-assignment, all of which mark it stale.
+    private loiterAnchors: Set<string> = new Set();
+    private loiterDirty = true;
     private pathFinder: PathFinder;
 
     public matrix: TileMatrix;
@@ -125,8 +139,19 @@ export default class Field {
 
             // Ambulatory street life (V2) roams the ROADS (ends mid-block); debug-wander test people keep
             // the building-destination behaviour. A road-less world falls back to building destinations.
-            const roamTargets = person.isAmbulatory?.() && this.roadAnchors.size > 0 ? this.roadAnchors : this.destinations;
-            person.update(currentTile, timeDelta, roamTargets, this.pathFinder);
+            const ambulatory = person.isAmbulatory?.() && this.roadAnchors.size > 0;
+            const roamTargets = ambulatory ? this.roadAnchors : this.destinations;
+            // A seeded, loiter-biased wander for ambulatory residents (task 128): the pick is deterministic
+            // per (worldSeed, tick, person) and prefers a gathering-venue curb when one is reachable. Debug
+            // test people (no wanderContext) keep the legacy unseeded building wander.
+            const wanderContext = ambulatory
+                ? {
+                    loiter: this.getLoiterAnchors(),
+                    seed: Game.population?.getState()?.worldSeed ?? 0,
+                    tick: Game.clock?.getCurrentTick() ?? 0,
+                }
+                : undefined;
+            person.update(currentTile, timeDelta, roamTargets, this.pathFinder, wanderContext);
             person.redraw(timeDelta);
         });
 
@@ -434,6 +459,22 @@ export default class Field {
         const anchorKey = structure.getIdentifier();
         this.destinations.delete(anchorKey);
         this.roadAnchors.delete(anchorKey);
+        this.loiterDirty = true; // structure set changed → gathering-venue curbs may have moved
+
+        // Tear down anything this structure fully replaced BEFORE registering our own anchor below. A road or
+        // building placed on a supertile anchor shares its key ("row-col") with the grass footprint it
+        // overwrites — grass footprints are anchored on the SAME 3k+1 grid roads snap to — and
+        // destroyStructure deletes that key from destinations/roadAnchors. Registering AFTER the teardown
+        // means the replaced grass can't wipe our just-added entry. (This ordering bug left roadAnchors and
+        // grid-aligned destinations permanently EMPTY: since roads always snap to the grid, V2's ambulatory
+        // street roam silently had no road targets and every walk fell back to building-entrance wander —
+        // the audit's persistent entrance-clustering.)
+        for (const previous of overwritten) {
+            if (this.isFootprintOrphaned(previous)) {
+                this.destroyStructure(previous);
+            }
+        }
+
         if (structure instanceof Building) {
             this.destinations.add(anchorKey);
         } else if (structure instanceof Road) {
@@ -441,12 +482,6 @@ export default class Field {
             // wanders the ROADS and stops mid-street, instead of pathing to a building's entrance and
             // clustering there (the audit's crowds at civic doorways).
             this.roadAnchors.add(anchorKey);
-        }
-
-        for (const previous of overwritten) {
-            if (this.isFootprintOrphaned(previous)) {
-                this.destroyStructure(previous);
-            }
         }
     }
 
@@ -494,6 +529,50 @@ export default class Field {
 
         this.destinations.delete(structure.getIdentifier());
         this.roadAnchors.delete(structure.getIdentifier());
+        this.loiterDirty = true;
+    }
+
+    // Marks the loiter-node cache stale (task 128). Called by City when a business is (re)assigned to a
+    // workplace — a Workplace has no business at stamp time (setupBusiness runs after workplaceBuilt), so the
+    // build-time dirty flag can't yet see its blueprint; the assignment is the second, decisive signal.
+    markLoiterDirty(): void {
+        this.loiterDirty = true;
+    }
+
+    // The loiter nodes — road anchors in front of gathering venues (task 128). Recomputed lazily on first
+    // access after any change; the scan is O(buildings) (a few dozen) and only runs when stale.
+    getLoiterAnchors(): Set<string> {
+        if (this.loiterDirty) {
+            this.recomputeLoiterAnchors();
+        }
+        return this.loiterAnchors;
+    }
+
+    private recomputeLoiterAnchors(): void {
+        this.loiterAnchors.clear();
+        for (const key of this.destinations) {
+            const [row, col] = key.split('-').map(Number);
+            if (row === undefined || col === undefined) {
+                continue;
+            }
+            const tile = this.getTile(row, col);
+            if (!(tile instanceof Workplace)) {
+                continue;
+            }
+            const blueprintKey = tile.getBusiness()?.blueprintKey;
+            if (!blueprintKey || !GATHERING_BLUEPRINTS.has(blueprintKey)) {
+                continue;
+            }
+            const roadTile = this.getAdjacentRoadTile(tile);
+            if (!roadTile) {
+                continue;
+            }
+            const road = this.getTile(roadTile.row, roadTile.col);
+            if (road instanceof Road) {
+                this.loiterAnchors.add(road.getIdentifier());
+            }
+        }
+        this.loiterDirty = false;
     }
 
     // Resolves where a structure would actually be placed for the given tool, and whether that placement is
@@ -681,6 +760,29 @@ export default class Field {
         return null;
     }
 
+    // Directed outdoor walk (task 131 follow-up): send `person` on foot toward `targetPixel` — the physical
+    // primitive behind "walk over to that person" that the person-pursuit transition needs. Steps them out of
+    // any building first (the walk starts on the street), then paths from their current tile to the nearest
+    // reachable road tile to the target. A no-route target simply leaves the body where it stands.
+    walkPersonTo(person: Person, targetPixel: PixelPosition): void {
+        if (!targetPixel) {
+            return;
+        }
+        if (person.getCurrentBuilding()) {
+            person.stepOutside?.();
+        }
+        const bodyTile = Game.pixelToTilePosition(person.getPosition());
+        if (!bodyTile) {
+            return;
+        }
+        const currentTile = this.getTile(bodyTile.row, bodyTile.col);
+        const targetTile = this.nearestRoadTile(targetPixel) ?? Game.pixelToTilePosition(targetPixel);
+        if (!currentTile || !targetTile) {
+            return;
+        }
+        person.walkOutdoorsTo(currentTile, targetTile, this.pathFinder);
+    }
+
     getAdjacentRoadTile(building: Building): TilePosition {
         const footprintTiles = Game.gridParams.footprint.tiles;
         const half = Math.floor(footprintTiles / 2);
@@ -817,6 +919,13 @@ export default class Field {
             return;
         }
         this.people.splice(index, 1);
+        // Despawn the removed person's linked car (task 130): once its driver is gone it links to nobody, so
+        // it would become a controlled orphan (the runWakePass sweep would reap it a minute later, but tearing
+        // it down here keeps the invariant immediate). removeVehicle ejects any remaining occupants (ridesharing).
+        const vehicle = person.getVehicle();
+        if (vehicle) {
+            this.removeVehicle(vehicle);
+        }
         person.getAsset()?.destroy();
         person.markRemoved(); // a late-attaching sprite (async draw handler) self-destroys — W8/P0-2.2
     }
@@ -825,12 +934,19 @@ export default class Field {
         return this.vehicles;
     }
 
-    // Despawns a vehicle: destroys its sprite and drops it from the update list. Used when a commute car is
-    // parked/abandoned at the destination on arrival.
+    // Despawns a vehicle: ejects any remaining occupants, destroys its sprite, and drops it from the update
+    // list. Used when a commute car is despawned at the destination on arrival (task 130 on-demand cars).
     removeVehicle(vehicle: Vehicle): void {
         const index = this.vehicles.indexOf(vehicle);
         if (index === -1) {
             return;
+        }
+        // Eject everyone still aboard (ridesharing / forced despawn, task 130): a car must never vanish with
+        // a person invisibly inside. Each occupant is stepped out at the car's position with their sprite
+        // restored and their vehicle link cleared — the W8 contract, generalized from one driver to N riders.
+        const carPosition = vehicle.getPosition();
+        for (const occupant of [...vehicle.getOccupants()]) {
+            occupant.ejectFromVehicle(vehicle, carPosition);
         }
         this.vehicles.splice(index, 1);
         vehicle.getAsset()?.destroy();

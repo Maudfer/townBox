@@ -148,8 +148,12 @@ describe('Road waypoint computation', () => {
         });
     });
 
-    test('calculateDepth scales with row only (row * 10)', () => {
-        const road = new Road(7, 99, null);
-        expect(road.calculateDepth()).toBe(70);
+    // Task 131 follow-up #5: roads draw at ONE constant low depth (they never overlap), always below every
+    // building and person and above the grass — so a road south of a walking person can't clip over them.
+    test('calculateDepth is a row-independent constant, below buildings and above soil', () => {
+        expect(new Road(7, 99, null).calculateDepth()).toBe(Road.DEPTH);
+        expect(new Road(300, 1, null).calculateDepth()).toBe(Road.DEPTH); // same at any row — no per-row sort
+        expect(Road.DEPTH).toBeGreaterThan(0); // above soil (0)
+        expect(Road.DEPTH).toBeLessThan((0 + 1) * 10); // below the lowest-row building ((row+1)*10)
     });
 });

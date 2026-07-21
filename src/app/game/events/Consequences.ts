@@ -551,12 +551,12 @@ export function planConsequences(ops: ConsequenceOp[], ctx: CommitContext, plann
                     if (!agenda) {
                         return; // no planning substrate (pure tests) — benign no-op
                     }
-                    const linkId = `l${ctx.causationId ?? ctx.deps.tick}`;
+                    // Both entries share this window (earliestTick/latestTick), so the mirrored plan runs and
+                    // expires together — the joint-plan linkage, made real by the shared window rather than a tag.
                     const window = {
                         enqueuedAtTick: ctx.deps.tick,
                         earliestTick: ctx.deps.tick + op.afterTicks,
                         latestTick: ctx.deps.tick + op.afterTicks + op.windowTicks,
-                        linkId,
                         causationId: ctx.causationId,
                         source: 'jointActivity',
                     };

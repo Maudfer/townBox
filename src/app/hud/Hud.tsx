@@ -26,6 +26,10 @@ const TOAST_DURATION_MS = 3200;
 // How a newly requested window reconciles with already-open ones.
 type OpenMode = 'append' | 'replaceType' | 'dedupeData';
 
+// The next stacking order (one above the current frontmost). Pure — hoisted out of the component so the
+// open/focus handlers stay stable for the once-on-mount effect (task 131 follow-up #2).
+const nextZ = (windows: WindowData[]): number => windows.reduce((max, w) => Math.max(max, w.z), 0) + 1;
+
 const windowMap = {
     [WindowTypes.HouseDetails]: HouseDetails,
     [WindowTypes.WorkplaceDetails]: WorkplaceDetails,
@@ -51,17 +55,34 @@ const HUD: FC<HUDProps> = ({ game }) => {
     }
 
     // Functional updates so handlers registered once (in effects) never act on a stale window list.
-    // - replaceType: at most one window of this type (e.g. the house tree) — used for singletons.
-    // - dedupeData: allow many of this type but not the same entity twice (e.g. several person windows).
+    // - replaceType: at most ONE window of this type (the house/city/services/construction singletons AND the
+    //   person inspector — task 131 follow-up #2: opening a person closes any other person window). Re-opening
+    //   updates its data and brings it to the front (no flicker, no duplicate).
+    // - dedupeData: allow many of this type but not the same entity twice (e.g. several workplace windows).
+    // Either way, opening a dialog that's already up just brings it to the front (task 131 follow-up #2).
     function openWindow(type: WindowTypes, data: WindowPayload, mode: OpenMode = 'append') {
         setOpenWindows(prev => {
-            if (mode === 'replaceType') {
-                return [...prev.filter(w => w.type !== type), { type, data }];
+            const z = nextZ(prev);
+            const singleton = mode === 'replaceType';
+            const matchIndex = prev.findIndex(w => w.type === type && (singleton || w.data === data));
+            if (matchIndex >= 0) {
+                const next = prev.slice();
+                next[matchIndex] = { ...next[matchIndex]!, data, z }; // update payload + bring to front
+                return next;
             }
-            if (mode === 'dedupeData' && prev.some(w => w.type === type && w.data === data)) {
-                return prev;
+            return [...prev, { id: uuidv4(), type, data, z }];
+        });
+    }
+
+    // Bring a window to the front (task 131 follow-up #2): clicking or dragging any window raises it.
+    function bringToFront(id: string) {
+        setOpenWindows(prev => {
+            const target = prev.find(w => w.id === id);
+            if (!target || target.z === nextZ(prev) - 1) {
+                return prev; // already frontmost — no state churn
             }
-            return [...prev, { type, data }];
+            const z = nextZ(prev);
+            return prev.map(w => (w.id === id ? { ...w, z } : w));
         });
     }
 
@@ -83,7 +104,9 @@ const HUD: FC<HUDProps> = ({ game }) => {
     useEffect(() => {
         // Selection events are HUD-only (no game-side handler), so game.off here is safe.
         game.on("HouseSelected", { callback: (house: House) => openWindow(WindowTypes.HouseDetails, house, 'replaceType') });
-        game.on("PersonSelected", { callback: (person: Person) => openWindow(WindowTypes.PersonDetails, person, 'dedupeData') });
+        // One person inspector at a time (task 131 follow-up #2): opening another person replaces it (and the
+        // activity-label set follows, so only that person's label shows unless debug show-all is on).
+        game.on("PersonSelected", { callback: (person: Person) => openWindow(WindowTypes.PersonDetails, person, 'replaceType') });
         game.on("WorkplaceSelected", { callback: (workplace: Workplace) => openWindow(WindowTypes.WorkplaceDetails, workplace, 'dedupeData') });
         game.on("CitySelected", { callback: (city: City | null) => city && openWindow(WindowTypes.CityDetails, city, 'replaceType') });
         // The services window (task 114): opened from the nagbar (or anything else emitting ServicesSelected).
@@ -138,10 +161,12 @@ const HUD: FC<HUDProps> = ({ game }) => {
                 }
 
                 // Error boundary per window (W0 / P0-5): one crashing inspector must never take down the
-                // whole HUD — the boundary closes the offending window and the session continues.
+                // whole HUD — the boundary closes the offending window and the session continues. The key is
+                // the window's STABLE id (task 131 follow-up #2) — a per-render uuid used to remount every
+                // window on every state change, resetting position and z-order.
                 return (
                     <WindowErrorBoundary
-                        key={uuidv4()}
+                        key={window.id}
                         onWindowCrash={() => {
                             closeWindow(index);
                             pushToast('A window crashed and was closed', 'error');
@@ -151,6 +176,8 @@ const HUD: FC<HUDProps> = ({ game }) => {
                             game={game}
                             index={index}
                             data={window.data}
+                            z={window.z}
+                            onFocus={() => bringToFront(window.id)}
                             onClose={closeWindow}
                         />
                     </WindowErrorBoundary>
